@@ -1,0 +1,34 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Generated Clangd Files
+compile_commands.json
+.cache
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.dylib
+
+# Fortran Module Files
+*.mod
+*.smod
+
+# Build Output
+build/
+CPM_modules/
+cpm-package-lock.cmake
+
+# Program Output
+log.txt
+
+# User Files
+user/
