@@ -1,3 +1,4 @@
+#include "SDL3/SDL_error.h"
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_log.h"
@@ -13,6 +14,12 @@ struct SDL_AppState
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
+  if (!SDL_Init(SDL_INIT_VIDEO))
+  {
+    SDL_Log("Failed to initialize SDL: %s", SDL_GetError());
+    return SDL_APP_FAILURE;
+  }
+
   SDL_AppState *state = new SDL_AppState();
   if (!state)
   {
@@ -21,7 +28,11 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
   }
   *appstate = state;
 
-  if (argc > 1 || argv[0] == nullptr) return SDL_APP_FAILURE;
+  if (argc > 1 || argv[0] == nullptr)
+  {
+    SDL_Log("Expected 1 argument, got %d", argc);
+    return SDL_APP_FAILURE;
+  }
 
   if (!state->window.initialized)
   {

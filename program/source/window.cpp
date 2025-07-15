@@ -13,12 +13,6 @@ namespace cse
   Window::Window(const std::string &title, int i_width, int i_height)
     : width(i_width), height(i_height), starting_width(i_width), starting_height(i_height)
   {
-    if (!SDL_Init(SDL_INIT_VIDEO))
-    {
-      SDL_Log("Failed to initialize SDL: %s", SDL_GetError());
-      return;
-    }
-
     handle = SDL_CreateWindow(title.c_str(), i_width, i_height, 0);
     if (handle == nullptr)
     {
