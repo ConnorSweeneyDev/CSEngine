@@ -35,11 +35,7 @@ namespace cse
       return;
     }
     if (fullscreen)
-      if (!handle_fullscreen())
-      {
-        utility::log("Could not handle fullscreen", utility::SDL_FAILURE);
-        return;
-      }
+      if (handle_fullscreen() == SDL_APP_FAILURE) return;
 
     initialized = true;
   }

@@ -45,16 +45,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
   switch (event->type)
   {
     case SDL_EVENT_QUIT: return SDL_APP_SUCCESS;
-    case SDL_EVENT_WINDOW_MOVED:
-      if (!state->window.handle_move()) return cse::utility::log("Could not handle window move", cse::utility::FAILURE);
+    case SDL_EVENT_WINDOW_MOVED: return state->window.handle_move();
     case SDL_EVENT_KEY_DOWN:
       switch (event->key.scancode)
       {
         case SDL_SCANCODE_ESCAPE: return SDL_APP_SUCCESS;
-        case SDL_SCANCODE_F11:
-          if (!state->window.handle_fullscreen())
-            return cse::utility::log("Could not handle fullscreen", cse::utility::FAILURE);
-          break;
+        case SDL_SCANCODE_F11: return state->window.handle_fullscreen();
         default: break;
       }
     default: break;
