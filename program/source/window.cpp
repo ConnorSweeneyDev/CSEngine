@@ -1,11 +1,15 @@
 #include "window.hpp"
 
+#include <cstdlib>
 #include <string>
 #include <vector>
 
+#include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_init.h"
+#include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_rect.h"
+#include "SDL3/SDL_scancode.h"
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_timer.h"
 #include "SDL3/SDL_video.h"
@@ -17,6 +21,12 @@ namespace cse
   Window::Window(const std::string &title, int i_width, int i_height)
     : width(i_width), height(i_height), starting_width(i_width), starting_height(i_height)
   {
+    if (!SDL_Init(SDL_INIT_VIDEO))
+    {
+      utility::log("SDL could not be initialized", utility::SDL_FAILURE);
+      return;
+    }
+
     handle = SDL_CreateWindow(title.c_str(), i_width, i_height, SDL_WINDOW_HIDDEN);
     if (!handle)
     {
@@ -46,7 +56,7 @@ namespace cse
       utility::log("Could not create GPU device", utility::SDL_FAILURE);
       return;
     }
-    utility::log("Created GPU device " + std::string(SDL_GetGPUDeviceDriver(gpu)), utility::INFO);
+    utility::log("Created GPU device " + std::string(SDL_GetGPUDeviceDriver(gpu)), utility::TRACE);
     if (!SDL_ClaimWindowForGPUDevice(gpu, handle))
     {
       utility::log("Could not claim window for GPU device", utility::SDL_FAILURE);
@@ -60,23 +70,61 @@ namespace cse
       }
 
     SDL_ShowWindow(handle);
-    initialized = true;
+    running = true;
   }
 
   Window::~Window()
   {
     if (!handle) return;
-
     SDL_DestroyWindow(handle);
     handle = nullptr;
-    initialized = false;
+    running = false;
+    SDL_Quit();
   }
 
-  SDL_AppResult Window::update()
+  void Window::update_delta_time()
   {
-    Uint64 current_frame_time = SDL_GetTicksNS();
+    current_frame_time = SDL_GetTicksNS();
     delta_time = static_cast<double>(current_frame_time - past_frame_time) * 1e-9;
+  }
 
+  int Window::handle_events()
+  {
+    SDL_Event event = {};
+    const bool *key_state = SDL_GetKeyboardState(nullptr);
+    while (SDL_PollEvent(&event))
+    {
+      switch (event.type)
+      {
+        case SDL_EVENT_QUIT: return handle_quit();
+        case SDL_EVENT_WINDOW_MOVED: return handle_move();
+        case SDL_EVENT_KEY_DOWN:
+          switch (event.key.scancode)
+          {
+            case SDL_SCANCODE_ESCAPE: return handle_quit();
+            case SDL_SCANCODE_F11: return handle_fullscreen();
+            default: return EXIT_SUCCESS;
+          }
+        default: return EXIT_SUCCESS;
+      }
+    }
+
+    if (key_state[SDL_SCANCODE_D])
+    {
+      red -= 0.5f * static_cast<float>(delta_time);
+      if (red < 0.0f) red = 0.0f;
+    }
+    if (key_state[SDL_SCANCODE_F])
+    {
+      red += 0.5f * static_cast<float>(delta_time);
+      if (red > 1.0f) red = 1.0f;
+    }
+
+    return EXIT_SUCCESS;
+  }
+
+  int Window::update()
+  {
     SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
     if (!command_buffer) return utility::log("Could not acquire GPU command buffer", utility::SDL_FAILURE);
     SDL_GPUTexture *swapchain_texture = nullptr;
@@ -86,7 +134,7 @@ namespace cse
     color_target.store_op = SDL_GPU_STOREOP_STORE;
     color_target.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target.texture = swapchain_texture;
-    color_target.clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
+    color_target.clear_color = {red, 0.1f, 0.1f, 1.0f};
     std::vector<SDL_GPUColorTargetInfo> color_targets = {color_target};
     SDL_GPURenderPass *render_pass =
       SDL_BeginGPURenderPass(command_buffer, color_targets.data(), static_cast<Uint32>(color_targets.size()), nullptr);
@@ -94,34 +142,42 @@ namespace cse
     SDL_EndGPURenderPass(render_pass);
     if (!SDL_SubmitGPUCommandBuffer(command_buffer))
       return utility::log("Could not submit GPU command buffer", utility::SDL_FAILURE);
+    return EXIT_SUCCESS;
+  }
 
+  void Window::catchup()
+  {
     if (current_frame_time - last_frame_time >= 1000000000)
     {
       last_frame_time = current_frame_time;
-      utility::log(std::to_string(accumulated_frames) + " FPS", utility::INFO);
+      utility::log(std::to_string(accumulated_frames) + " FPS", utility::TRACE);
       accumulated_frames = 0;
     }
     past_frame_time = current_frame_time;
     accumulated_frames += 1;
     Uint64 elapsed = SDL_GetTicksNS() - current_frame_time;
     if (elapsed <= 1000000000 / target_frame_rate) SDL_DelayNS((1000000000 / target_frame_rate) - elapsed);
-
-    return SDL_APP_CONTINUE;
   }
 
-  SDL_AppResult Window::handle_move()
+  int Window::handle_quit()
   {
-    if (fullscreen) return SDL_APP_CONTINUE;
+    running = false;
+    return EXIT_SUCCESS;
+  }
+
+  int Window::handle_move()
+  {
+    if (fullscreen) return EXIT_SUCCESS;
 
     if (!SDL_GetWindowPosition(handle, &left, &top))
       return utility::log("Could not get window position", utility::SDL_FAILURE);
     display_index = SDL_GetDisplayForWindow(handle);
     if (display_index == 0) return utility::log("Could not get display for window", utility::SDL_FAILURE);
 
-    return SDL_APP_CONTINUE;
+    return EXIT_SUCCESS;
   }
 
-  SDL_AppResult Window::handle_fullscreen()
+  int Window::handle_fullscreen()
   {
     if (fullscreen)
     {
@@ -147,6 +203,6 @@ namespace cse
     }
 
     fullscreen = !fullscreen;
-    return SDL_APP_CONTINUE;
+    return EXIT_SUCCESS;
   }
 }
