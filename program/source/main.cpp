@@ -15,7 +15,7 @@ struct SDL_AppState
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
-  if (argc > 1 || argv[0] == nullptr)
+  if (argc > 1 || !argv[0])
     return cse::utility::log("Expected 1 argument, got " + std::to_string(argc), cse::utility::FAILURE);
 
   if (!SDL_Init(SDL_INIT_VIDEO)) return cse::utility::log("SDL could not be initialized", cse::utility::SDL_FAILURE);
@@ -33,8 +33,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 {
   SDL_AppState *state = static_cast<SDL_AppState *>(appstate);
   if (!state) return cse::utility::log("Application state is nullptr during iterate", cse::utility::FAILURE);
-
-  return SDL_APP_CONTINUE;
+  return state->window.update();
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)

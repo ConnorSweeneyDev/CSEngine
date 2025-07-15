@@ -2,7 +2,9 @@
 
 #include <string>
 
+#include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_init.h"
+#include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 
 namespace cse
@@ -13,6 +15,7 @@ namespace cse
     Window(const std::string &title, int i_width, int i_height);
     ~Window();
 
+    SDL_AppResult update();
     SDL_AppResult handle_move();
     SDL_AppResult handle_fullscreen();
 
@@ -21,6 +24,7 @@ namespace cse
 
   private:
     bool fullscreen = false;
+    SDL_DisplayID display_index = 0;
     int left = 0;
     int top = 0;
     int width = 0;
@@ -28,7 +32,13 @@ namespace cse
     const int starting_width = 0;
     const int starting_height = 0;
 
+    Uint64 target_frame_rate = 144;
+    Uint64 accumulated_frames = 0;
+    Uint64 last_frame_time = 0;
+    Uint64 past_frame_time = 0;
+    double delta_time = 0.0;
+
     SDL_Window *handle = nullptr;
-    SDL_DisplayID display_index = 0;
+    SDL_GPUDevice *gpu = nullptr;
   };
 }
