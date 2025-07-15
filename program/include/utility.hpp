@@ -6,5 +6,12 @@
 
 namespace cse::utility
 {
-  SDL_AppResult log(const std::string &message, SDL_AppResult result, bool display_sdl_error = false);
+  enum Log_level
+  {
+    INFO,
+    SUCCESS,
+    FAILURE,
+    SDL_FAILURE
+  };
+  SDL_AppResult log(const std::string &message, Log_level result);
 }

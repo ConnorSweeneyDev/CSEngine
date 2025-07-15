@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "SDL3/SDL_init.h"
 #include "SDL3/SDL_video.h"
 
 namespace cse
@@ -12,8 +13,8 @@ namespace cse
     Window(const std::string &title, int i_width, int i_height);
     ~Window();
 
-    bool handle_move();
-    bool handle_fullscreen();
+    SDL_AppResult handle_move();
+    SDL_AppResult handle_fullscreen();
 
   public:
     bool initialized = false;

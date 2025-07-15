@@ -15,15 +15,16 @@ struct SDL_AppState
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
-  if (argc > 1 || argv[0] == nullptr) return cse::utility::log("Expected 1 argument", SDL_APP_FAILURE, true);
+  if (argc > 1 || argv[0] == nullptr)
+    return cse::utility::log("Expected 1 argument, got " + std::to_string(argc), cse::utility::FAILURE);
 
-  if (!SDL_Init(SDL_INIT_VIDEO)) return cse::utility::log("SDL could not be initialized", SDL_APP_FAILURE, true);
+  if (!SDL_Init(SDL_INIT_VIDEO)) return cse::utility::log("SDL could not be initialized", cse::utility::SDL_FAILURE);
 
   SDL_AppState *state = new SDL_AppState();
-  if (!state) return cse::utility::log("Memory for application state could not be allocated", SDL_APP_FAILURE, true);
+  if (!state) return cse::utility::log("Application state is nullptr during init", cse::utility::FAILURE);
   *appstate = state;
 
-  if (!state->window.initialized) return cse::utility::log("Window could not be initialized", SDL_APP_FAILURE, true);
+  if (!state->window.initialized) return cse::utility::log("Window could not be initialized", cse::utility::FAILURE);
 
   return SDL_APP_CONTINUE;
 }
@@ -31,7 +32,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
   SDL_AppState *state = static_cast<SDL_AppState *>(appstate);
-  if (!state) return cse::utility::log("Application state is nullptr during iterate", SDL_APP_FAILURE);
+  if (!state) return cse::utility::log("Application state is nullptr during iterate", cse::utility::FAILURE);
 
   return SDL_APP_CONTINUE;
 }
@@ -39,20 +40,20 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
   SDL_AppState *state = static_cast<SDL_AppState *>(appstate);
-  if (!state) return cse::utility::log("Application state is nullptr during event", SDL_APP_FAILURE);
+  if (!state) return cse::utility::log("Application state is nullptr during event", cse::utility::FAILURE);
 
   switch (event->type)
   {
     case SDL_EVENT_QUIT: return SDL_APP_SUCCESS;
     case SDL_EVENT_WINDOW_MOVED:
-      if (!state->window.handle_move()) return cse::utility::log("Could not handle window move", SDL_APP_FAILURE, true);
+      if (!state->window.handle_move()) return cse::utility::log("Could not handle window move", cse::utility::FAILURE);
     case SDL_EVENT_KEY_DOWN:
       switch (event->key.scancode)
       {
         case SDL_SCANCODE_ESCAPE: return SDL_APP_SUCCESS;
         case SDL_SCANCODE_F11:
           if (!state->window.handle_fullscreen())
-            return cse::utility::log("Could not handle fullscreen", SDL_APP_FAILURE, true);
+            return cse::utility::log("Could not handle fullscreen", cse::utility::FAILURE);
           break;
         default: break;
       }
@@ -71,7 +72,7 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
     state = nullptr;
   }
   else
-    cse::utility::log("Application state is nullptr during quit", SDL_APP_FAILURE);
+    cse::utility::log("Application state is nullptr during quit", cse::utility::FAILURE);
 
-  cse::utility::log("Application quit", result);
+  cse::utility::log("Application quit", result == SDL_APP_SUCCESS ? cse::utility::SUCCESS : cse::utility::FAILURE);
 }
