@@ -10,7 +10,7 @@ namespace cse
   Window::Window(const std::string &title, int i_width, int i_height)
     : width(i_width), height(i_height), starting_width(i_width), starting_height(i_height)
   {
-    handle = SDL_CreateWindow(title.c_str(), i_width, i_height, SDL_WINDOWPOS_CENTERED);
+    handle = SDL_CreateWindow(title.c_str(), i_width, i_height, 0);
     if (handle == nullptr) return;
 
     display_index = SDL_GetPrimaryDisplay();
