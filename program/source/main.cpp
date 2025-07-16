@@ -17,11 +17,12 @@ int main(int argc, char *argv[])
       window.update_time();
       while (window.is_behind())
       {
-        if (window.input() == EXIT_FAILURE) break;
+        if (window.input() == EXIT_FAILURE) return cse::utility::log("Input failed", cse::utility::FAILURE);
+        window.simulate();
         window.catchup();
       }
       window.update_alpha();
-      if (window.render() == EXIT_FAILURE) break;
+      if (window.render() == EXIT_FAILURE) return cse::utility::log("Render failed", cse::utility::FAILURE);
       window.update_fps();
     }
   }

@@ -82,17 +82,6 @@ namespace cse
     SDL_Quit();
   }
 
-  void Window::update_time()
-  {
-    double new_time = static_cast<double>(SDL_GetTicks()) / 1000.0;
-    double frame_time = new_time - current_time;
-    current_time = new_time;
-    if (frame_time > 0.1) frame_time = 0.1;
-    accumulator += frame_time;
-  }
-
-  bool Window::is_behind() { return accumulator >= fixed_timestep; }
-
   int Window::input()
   {
     SDL_Event event = {};
@@ -114,19 +103,30 @@ namespace cse
       }
     }
 
-    previous_red = current_red;
-    if (key_state[SDL_SCANCODE_D]) current_red -= 0.005f;
-    if (key_state[SDL_SCANCODE_F]) current_red += 0.005f;
-    if (current_red < 0.0f) current_red = 0.0f;
-    if (current_red > 1.0f) current_red = 1.0f;
-    interpolated_red = previous_red + ((current_red - previous_red) * static_cast<float>(alpha));
+    red_acceleration = 0.0f;
+    if (key_state[SDL_SCANCODE_D]) red_acceleration -= 0.0005f;
+    if (key_state[SDL_SCANCODE_F]) red_acceleration += 0.0005f;
 
     return EXIT_SUCCESS;
   }
 
-  void Window::catchup() { accumulator -= fixed_timestep; }
-
-  void Window::update_alpha() { alpha = accumulator / fixed_timestep; }
+  void Window::simulate()
+  {
+    previous_red = current_red;
+    red_velocity += red_acceleration;
+    current_red += red_velocity;
+    if (current_red < 0.0f)
+    {
+      current_red = 0.0f;
+      red_velocity = 0.0f;
+    }
+    if (current_red > 1.0f)
+    {
+      current_red = 1.0f;
+      red_velocity = 0.0f;
+    }
+    interpolated_red = previous_red + ((current_red - previous_red) * static_cast<float>(alpha));
+  }
 
   int Window::render()
   {
@@ -150,11 +150,26 @@ namespace cse
     return EXIT_SUCCESS;
   }
 
+  void Window::update_time()
+  {
+    double new_simulation_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    double delta_simulation_time = new_simulation_time - current_simulation_time;
+    current_simulation_time = new_simulation_time;
+    if (delta_simulation_time > 0.1) delta_simulation_time = 0.1;
+    accumulator += delta_simulation_time;
+  }
+
+  bool Window::is_behind() { return accumulator >= fixed_timestep; }
+
+  void Window::catchup() { accumulator -= fixed_timestep; }
+
+  void Window::update_alpha() { alpha = accumulator / fixed_timestep; }
+
   void Window::update_fps()
   {
     frame_count++;
-    Uint64 current_fps_time = SDL_GetTicksNS();
-    if (current_fps_time - last_fps_time >= 1000000000)
+    double current_fps_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    if (current_fps_time - last_fps_time >= 1.0)
     {
       utility::log(std::to_string(frame_count) + " FPS", utility::TRACE);
       last_fps_time = current_fps_time;

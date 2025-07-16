@@ -3,7 +3,6 @@
 #include <string>
 
 #include "SDL3/SDL_gpu.h"
-#include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 
 namespace cse
@@ -14,12 +13,13 @@ namespace cse
     Window(const std::string &title, int i_width, int i_height);
     ~Window();
 
+    int input();
+    void simulate();
+    int render();
     void update_time();
     bool is_behind();
-    int input();
     void catchup();
     void update_alpha();
-    int render();
     void update_fps();
 
     int handle_quit();
@@ -30,6 +30,9 @@ namespace cse
     float current_red = 0.1f;
     float previous_red = current_red;
     float interpolated_red = current_red;
+    float red_velocity = 0.0f;
+    float red_acceleration = 0.0f;
+
     bool running = false;
 
   private:
@@ -43,10 +46,10 @@ namespace cse
     const int starting_height = 0;
 
     const double fixed_timestep = 1.0 / 60.0;
-    double current_time = 0.0;
+    double current_simulation_time = 0.0;
     double accumulator = 0.0;
     double alpha = 0.0;
-    Uint64 last_fps_time = 0;
+    double last_fps_time = 0;
     int frame_count = 0;
 
     SDL_Window *handle = nullptr;
