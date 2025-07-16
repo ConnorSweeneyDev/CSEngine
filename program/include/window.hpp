@@ -32,11 +32,11 @@ namespace cse
     void update_fps();
 
   public:
-    float current_red = 0.1f;
-    float previous_red = current_red;
-    float interpolated_red = current_red;
-    float red_velocity = 0.0f;
-    float red_acceleration = 0.0f;
+    float current_strength = 0.1f;
+    float previous_strength = current_strength;
+    float interpolated_strength = current_strength;
+    float strength_velocity = 0.0f;
+    float strength_acceleration = 0.0f;
 
     bool running = false;
 

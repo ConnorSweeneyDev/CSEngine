@@ -73,29 +73,37 @@ namespace cse
       }
     }
 
-    red_acceleration = 0.0f;
-    if (key_state[SDL_SCANCODE_D]) red_acceleration -= 0.0005f;
-    if (key_state[SDL_SCANCODE_F]) red_acceleration += 0.0005f;
+    if (key_state[SDL_SCANCODE_D]) strength_acceleration -= 0.0005f;
+    if (key_state[SDL_SCANCODE_F]) strength_acceleration += 0.0005f;
 
     return EXIT_SUCCESS;
   }
 
   void Window::simulate()
   {
-    previous_red = current_red;
-    red_velocity += red_acceleration;
-    current_red += red_velocity;
-    if (current_red < 0.0f)
+    previous_strength = current_strength;
+    strength_velocity += strength_acceleration;
+    if (!(strength_velocity < 0 && strength_velocity > 0))
     {
-      current_red = 0.0f;
-      red_velocity = 0.0f;
+      strength_acceleration = -0.0001f;
+      if (strength_velocity < 0) strength_velocity -= strength_acceleration;
+      if (strength_velocity > 0) strength_velocity += strength_acceleration;
+      if (strength_velocity < 0.0001f && strength_velocity > -0.0001f) strength_velocity = 0.0f;
     }
-    if (current_red > 0.5f)
+    current_strength += strength_velocity;
+    if (current_strength < 0.0f)
     {
-      current_red = 0.5f;
-      red_velocity = 0.0f;
+      current_strength = 0.0f;
+      strength_velocity = 0.0f;
     }
-    interpolated_red = previous_red + ((current_red - previous_red) * static_cast<float>(simulation_alpha));
+    if (current_strength > 0.5f)
+    {
+      current_strength = 0.5f;
+      strength_velocity = 0.0f;
+    }
+    strength_acceleration = 0.0f;
+    interpolated_strength =
+      previous_strength + ((current_strength - previous_strength) * static_cast<float>(simulation_alpha));
   }
 
   int Window::render()
@@ -109,7 +117,7 @@ namespace cse
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target_info.texture = swapchain_texture;
-    color_target_info.clear_color = {interpolated_red, 0.1f, 0.1f, 1.0f};
+    color_target_info.clear_color = {interpolated_strength, interpolated_strength, interpolated_strength, 1.0f};
 
     SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
     if (!render_pass) return utility::log("Could not begin GPU render pass", utility::SDL_FAILURE);
