@@ -14,10 +14,15 @@ int main(int argc, char *argv[])
     if (!window.running) return cse::utility::log("Window could not be initialized", cse::utility::FAILURE);
     while (window.running)
     {
-      window.update_delta_time();
-      if (window.handle_events() == EXIT_FAILURE) break;
-      if (window.update() == EXIT_FAILURE) break;
-      window.catchup();
+      window.update_time();
+      while (window.is_behind())
+      {
+        if (window.input() == EXIT_FAILURE) break;
+        window.catchup();
+      }
+      window.update_alpha();
+      if (window.render() == EXIT_FAILURE) break;
+      window.update_fps();
     }
   }
 

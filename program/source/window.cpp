@@ -82,13 +82,18 @@ namespace cse
     SDL_Quit();
   }
 
-  void Window::update_delta_time()
+  void Window::update_time()
   {
-    current_frame_time = SDL_GetTicksNS();
-    delta_time = static_cast<double>(current_frame_time - past_frame_time) * 1e-9;
+    double new_time = static_cast<double>(SDL_GetTicks()) / 1000.0;
+    double frame_time = new_time - current_time;
+    current_time = new_time;
+    if (frame_time > 0.1) frame_time = 0.1;
+    accumulator += frame_time;
   }
 
-  int Window::handle_events()
+  bool Window::is_behind() { return accumulator >= fixed_timestep; }
+
+  int Window::input()
   {
     SDL_Event event = {};
     const bool *key_state = SDL_GetKeyboardState(nullptr);
@@ -109,21 +114,20 @@ namespace cse
       }
     }
 
-    if (key_state[SDL_SCANCODE_D])
-    {
-      red -= 0.5f * static_cast<float>(delta_time);
-      if (red < 0.0f) red = 0.0f;
-    }
-    if (key_state[SDL_SCANCODE_F])
-    {
-      red += 0.5f * static_cast<float>(delta_time);
-      if (red > 1.0f) red = 1.0f;
-    }
+    previous_red = red;
+    if (key_state[SDL_SCANCODE_D]) red -= 0.005f;
+    if (key_state[SDL_SCANCODE_F]) red += 0.005f;
+    if (red < 0.0f) red = 0.0f;
+    if (red > 1.0f) red = 1.0f;
 
     return EXIT_SUCCESS;
   }
 
-  int Window::update()
+  void Window::catchup() { accumulator -= fixed_timestep; }
+
+  void Window::update_alpha() { alpha = accumulator / fixed_timestep; }
+
+  int Window::render()
   {
     SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
     if (!command_buffer) return utility::log("Could not acquire GPU command buffer", utility::SDL_FAILURE);
@@ -134,7 +138,7 @@ namespace cse
     color_target.store_op = SDL_GPU_STOREOP_STORE;
     color_target.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target.texture = swapchain_texture;
-    color_target.clear_color = {red, 0.1f, 0.1f, 1.0f};
+    color_target.clear_color = {previous_red + (red - previous_red) * static_cast<float>(alpha), 0.1f, 0.1f, 1.0f};
     std::vector<SDL_GPUColorTargetInfo> color_targets = {color_target};
     SDL_GPURenderPass *render_pass =
       SDL_BeginGPURenderPass(command_buffer, color_targets.data(), static_cast<Uint32>(color_targets.size()), nullptr);
@@ -145,18 +149,16 @@ namespace cse
     return EXIT_SUCCESS;
   }
 
-  void Window::catchup()
+  void Window::update_fps()
   {
-    if (current_frame_time - last_frame_time >= 1000000000)
+    frame_count++;
+    Uint64 current_fps_time = SDL_GetTicksNS();
+    if (current_fps_time - last_fps_time >= 1000000000)
     {
-      last_frame_time = current_frame_time;
-      utility::log(std::to_string(accumulated_frames) + " FPS", utility::TRACE);
-      accumulated_frames = 0;
+      utility::log(std::to_string(frame_count) + " FPS", utility::TRACE);
+      last_fps_time = current_fps_time;
+      frame_count = 0;
     }
-    past_frame_time = current_frame_time;
-    accumulated_frames += 1;
-    Uint64 elapsed = SDL_GetTicksNS() - current_frame_time;
-    if (elapsed <= 1000000000 / target_frame_rate) SDL_DelayNS((1000000000 / target_frame_rate) - elapsed);
   }
 
   int Window::handle_quit()
