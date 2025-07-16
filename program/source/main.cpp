@@ -10,9 +10,9 @@ int main(int argc, char *argv[])
   if (argc > 1 || !argv[0])
     return cse::utility::log("Expected 1 argument, got " + std::to_string(argc), cse::utility::FAILURE);
 
-  {
-    std::unique_ptr<cse::Window> window = cse::Window::create(argv[0], false, 1280, 720);
-    if (!window->running) return cse::utility::log("Window could not be initialized", cse::utility::FAILURE);
+  if (auto window = cse::Window::create(argv[0], false, 1280, 720); !cse::Window::valid(window))
+    return cse::utility::log("Window is invalid", cse::utility::FAILURE);
+  else
     while (window->running)
     {
       window->update_simulation_time();
@@ -29,7 +29,6 @@ int main(int argc, char *argv[])
         window->update_fps();
       }
     }
-  }
 
   return cse::utility::log("Application quit", cse::utility::SUCCESS);
 }

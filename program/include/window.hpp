@@ -13,6 +13,7 @@ namespace cse
   {
   public:
     static std::unique_ptr<Window> create(const std::string &title, bool i_fullscreen, int i_width, int i_height);
+    static bool valid(const std::unique_ptr<Window> &window);
     ~Window();
 
     int input();

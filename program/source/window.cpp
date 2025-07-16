@@ -30,6 +30,12 @@ namespace cse
     return std::unique_ptr<Window>(new Window(title, i_fullscreen, i_width, i_height));
   }
 
+  bool Window::valid(const std::unique_ptr<Window> &window)
+  {
+    if (!window || !window->running) return false;
+    return true;
+  }
+
   Window::~Window()
   {
     if (!handle) return;
