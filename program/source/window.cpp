@@ -125,7 +125,7 @@ namespace cse
       current_red = 1.0f;
       red_velocity = 0.0f;
     }
-    interpolated_red = previous_red + ((current_red - previous_red) * static_cast<float>(alpha));
+    interpolated_red = previous_red + ((current_red - previous_red) * static_cast<float>(simulation_alpha));
   }
 
   int Window::render()
@@ -150,20 +150,31 @@ namespace cse
     return EXIT_SUCCESS;
   }
 
-  void Window::update_time()
+  void Window::update_simulation_time()
   {
-    double new_simulation_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
-    double delta_simulation_time = new_simulation_time - current_simulation_time;
-    current_simulation_time = new_simulation_time;
+    double current_simulation_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    double delta_simulation_time = current_simulation_time - last_simulation_time;
+    last_simulation_time = current_simulation_time;
     if (delta_simulation_time > 0.1) delta_simulation_time = 0.1;
-    accumulator += delta_simulation_time;
+    simulation_accumulator += delta_simulation_time;
   }
 
-  bool Window::is_behind() { return accumulator >= fixed_timestep; }
+  bool Window::simulation_behind() { return simulation_accumulator >= target_simulation_time; }
 
-  void Window::catchup() { accumulator -= fixed_timestep; }
+  void Window::catchup_simulation() { simulation_accumulator -= target_simulation_time; }
 
-  void Window::update_alpha() { alpha = accumulator / fixed_timestep; }
+  void Window::update_simulation_alpha() { simulation_alpha = simulation_accumulator / target_simulation_time; }
+
+  bool Window::render_behind()
+  {
+    double current_render_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    if (current_render_time - last_render_time >= target_render_time)
+    {
+      last_render_time = current_render_time;
+      return true;
+    }
+    return false;
+  }
 
   void Window::update_fps()
   {

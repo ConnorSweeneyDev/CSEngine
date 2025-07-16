@@ -16,10 +16,12 @@ namespace cse
     int input();
     void simulate();
     int render();
-    void update_time();
-    bool is_behind();
-    void catchup();
-    void update_alpha();
+
+    void update_simulation_time();
+    bool simulation_behind();
+    void catchup_simulation();
+    void update_simulation_alpha();
+    bool render_behind();
     void update_fps();
 
     int handle_quit();
@@ -45,10 +47,12 @@ namespace cse
     const int starting_width = 0;
     const int starting_height = 0;
 
-    const double fixed_timestep = 1.0 / 60.0;
-    double current_simulation_time = 0.0;
-    double accumulator = 0.0;
-    double alpha = 0.0;
+    const double target_render_time = 1.0 / 144.0;
+    double last_render_time = 0.0;
+    const double target_simulation_time = 1.0 / 60.0;
+    double last_simulation_time = 0.0;
+    double simulation_accumulator = 0.0;
+    double simulation_alpha = 0.0;
     double last_fps_time = 0;
     int frame_count = 0;
 

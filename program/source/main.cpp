@@ -14,16 +14,19 @@ int main(int argc, char *argv[])
     if (!window.running) return cse::utility::log("Window could not be initialized", cse::utility::FAILURE);
     while (window.running)
     {
-      window.update_time();
-      while (window.is_behind())
+      window.update_simulation_time();
+      while (window.simulation_behind())
       {
         if (window.input() == EXIT_FAILURE) return cse::utility::log("Input failed", cse::utility::FAILURE);
         window.simulate();
-        window.catchup();
+        window.catchup_simulation();
       }
-      window.update_alpha();
-      if (window.render() == EXIT_FAILURE) return cse::utility::log("Render failed", cse::utility::FAILURE);
-      window.update_fps();
+      window.update_simulation_alpha();
+      if (window.render_behind())
+      {
+        if (window.render() == EXIT_FAILURE) return cse::utility::log("Render failed", cse::utility::FAILURE);
+        window.update_fps();
+      }
     }
   }
 
