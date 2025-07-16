@@ -32,7 +32,8 @@ namespace cse
 
   bool Window::valid(const std::unique_ptr<Window> &window)
   {
-    if (!window || !window->running) return false;
+    if (!initialized || !window) return false;
+    if (!window->running) return false;
     return true;
   }
 
