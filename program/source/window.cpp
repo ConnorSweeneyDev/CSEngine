@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
@@ -11,7 +10,6 @@
 #include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_rect.h"
 #include "SDL3/SDL_scancode.h"
-#include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_timer.h"
 #include "SDL3/SDL_video.h"
 
@@ -40,6 +38,8 @@ namespace cse
   Window::~Window()
   {
     if (!handle) return;
+    SDL_ReleaseWindowFromGPUDevice(gpu, handle);
+    SDL_DestroyGPUDevice(gpu);
     SDL_DestroyWindow(handle);
     handle = nullptr;
     running = false;
@@ -85,9 +85,9 @@ namespace cse
       current_red = 0.0f;
       red_velocity = 0.0f;
     }
-    if (current_red > 1.0f)
+    if (current_red > 0.5f)
     {
-      current_red = 1.0f;
+      current_red = 0.5f;
       red_velocity = 0.0f;
     }
     interpolated_red = previous_red + ((current_red - previous_red) * static_cast<float>(simulation_alpha));
@@ -100,14 +100,12 @@ namespace cse
     SDL_GPUTexture *swapchain_texture = nullptr;
     if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, handle, &swapchain_texture, nullptr, nullptr))
       return utility::log("Could not acquire GPU swapchain texture", utility::SDL_FAILURE);
-    SDL_GPUColorTargetInfo color_target = {};
-    color_target.store_op = SDL_GPU_STOREOP_STORE;
-    color_target.load_op = SDL_GPU_LOADOP_CLEAR;
-    color_target.texture = swapchain_texture;
-    color_target.clear_color = {interpolated_red, 0.1f, 0.1f, 1.0f};
-    std::vector<SDL_GPUColorTargetInfo> color_targets = {color_target};
-    SDL_GPURenderPass *render_pass =
-      SDL_BeginGPURenderPass(command_buffer, color_targets.data(), static_cast<Uint32>(color_targets.size()), nullptr);
+    SDL_GPUColorTargetInfo color_target_info = {};
+    color_target_info.store_op = SDL_GPU_STOREOP_STORE;
+    color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
+    color_target_info.texture = swapchain_texture;
+    color_target_info.clear_color = {interpolated_red, 0.1f, 0.1f, 1.0f};
+    SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
     if (!render_pass) return utility::log("Could not begin GPU render pass", utility::SDL_FAILURE);
     SDL_EndGPURenderPass(render_pass);
     if (!SDL_SubmitGPUCommandBuffer(command_buffer))
