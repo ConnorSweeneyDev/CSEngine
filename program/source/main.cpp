@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <memory>
 #include <string>
 
 #include "utility.hpp"
@@ -10,22 +11,22 @@ int main(int argc, char *argv[])
     return cse::utility::log("Expected 1 argument, got " + std::to_string(argc), cse::utility::FAILURE);
 
   {
-    cse::Window window{"CSEngine", 1280, 720};
-    if (!window.running) return cse::utility::log("Window could not be initialized", cse::utility::FAILURE);
-    while (window.running)
+    std::unique_ptr<cse::Window> window = cse::Window::create(argv[0], false, 1280, 720);
+    if (!window->running) return cse::utility::log("Window could not be initialized", cse::utility::FAILURE);
+    while (window->running)
     {
-      window.update_simulation_time();
-      while (window.simulation_behind())
+      window->update_simulation_time();
+      while (window->simulation_behind())
       {
-        if (window.input() == EXIT_FAILURE) return cse::utility::log("Input failed", cse::utility::FAILURE);
-        window.simulate();
-        window.catchup_simulation();
+        if (window->input() == EXIT_FAILURE) return cse::utility::log("Input failed", cse::utility::FAILURE);
+        window->simulate();
+        window->catchup_simulation();
       }
-      window.update_simulation_alpha();
-      if (window.render_behind())
+      window->update_simulation_alpha();
+      if (window->render_behind())
       {
-        if (window.render() == EXIT_FAILURE) return cse::utility::log("Render failed", cse::utility::FAILURE);
-        window.update_fps();
+        if (window->render() == EXIT_FAILURE) return cse::utility::log("Render failed", cse::utility::FAILURE);
+        window->update_fps();
       }
     }
   }

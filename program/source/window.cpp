@@ -1,6 +1,7 @@
 #include "window.hpp"
 
 #include <cstdlib>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -18,59 +19,15 @@
 
 namespace cse
 {
-  Window::Window(const std::string &title, int i_width, int i_height)
-    : width(i_width), height(i_height), starting_width(i_width), starting_height(i_height)
+  std::unique_ptr<Window> Window::create(const std::string &title, bool i_fullscreen, int i_width, int i_height)
   {
-    if (!SDL_Init(SDL_INIT_VIDEO))
+    bool expected = false;
+    if (!initialized.compare_exchange_strong(expected, true))
     {
-      utility::log("SDL could not be initialized", utility::SDL_FAILURE);
-      return;
+      utility::log("Window could not be created a second time", utility::FAILURE);
+      return nullptr;
     }
-
-    handle = SDL_CreateWindow(title.c_str(), i_width, i_height, SDL_WINDOW_HIDDEN);
-    if (!handle)
-    {
-      utility::log("Could not create window", utility::SDL_FAILURE);
-      return;
-    }
-
-    display_index = SDL_GetPrimaryDisplay();
-    if (display_index == 0)
-    {
-      utility::log("Could not get primary display", utility::SDL_FAILURE);
-      return;
-    }
-    left = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
-    top = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
-    if (!SDL_SetWindowPosition(handle, left, top))
-    {
-      utility::log("Could not set window position", utility::SDL_FAILURE);
-      return;
-    }
-    if (fullscreen)
-      if (handle_fullscreen() == SDL_APP_FAILURE) return;
-
-    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, true, nullptr);
-    if (!gpu)
-    {
-      utility::log("Could not create GPU device", utility::SDL_FAILURE);
-      return;
-    }
-    utility::log("Created GPU device " + std::string(SDL_GetGPUDeviceDriver(gpu)), utility::TRACE);
-    if (!SDL_ClaimWindowForGPUDevice(gpu, handle))
-    {
-      utility::log("Could not claim window for GPU device", utility::SDL_FAILURE);
-      return;
-    }
-    if (SDL_WindowSupportsGPUPresentMode(gpu, handle, SDL_GPU_PRESENTMODE_IMMEDIATE))
-      if (!SDL_SetGPUSwapchainParameters(gpu, handle, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_IMMEDIATE))
-      {
-        utility::log("Could not set GPU swapchain parameters", utility::SDL_FAILURE);
-        return;
-      }
-
-    SDL_ShowWindow(handle);
-    running = true;
+    return std::unique_ptr<Window>(new Window(title, i_fullscreen, i_width, i_height));
   }
 
   Window::~Window()
@@ -80,6 +37,7 @@ namespace cse
     handle = nullptr;
     running = false;
     SDL_Quit();
+    initialized.store(false);
   }
 
   int Window::input()
@@ -150,44 +108,6 @@ namespace cse
     return EXIT_SUCCESS;
   }
 
-  void Window::update_simulation_time()
-  {
-    double current_simulation_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
-    double delta_simulation_time = current_simulation_time - last_simulation_time;
-    last_simulation_time = current_simulation_time;
-    if (delta_simulation_time > 0.1) delta_simulation_time = 0.1;
-    simulation_accumulator += delta_simulation_time;
-  }
-
-  bool Window::simulation_behind() { return simulation_accumulator >= target_simulation_time; }
-
-  void Window::catchup_simulation() { simulation_accumulator -= target_simulation_time; }
-
-  void Window::update_simulation_alpha() { simulation_alpha = simulation_accumulator / target_simulation_time; }
-
-  bool Window::render_behind()
-  {
-    double current_render_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
-    if (current_render_time - last_render_time >= target_render_time)
-    {
-      last_render_time = current_render_time;
-      return true;
-    }
-    return false;
-  }
-
-  void Window::update_fps()
-  {
-    frame_count++;
-    double current_fps_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
-    if (current_fps_time - last_fps_time >= 1.0)
-    {
-      utility::log(std::to_string(frame_count) + " FPS", utility::TRACE);
-      last_fps_time = current_fps_time;
-      frame_count = 0;
-    }
-  }
-
   int Window::handle_quit()
   {
     running = false;
@@ -233,5 +153,98 @@ namespace cse
 
     fullscreen = !fullscreen;
     return EXIT_SUCCESS;
+  }
+
+  void Window::update_simulation_time()
+  {
+    double current_simulation_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    double delta_simulation_time = current_simulation_time - last_simulation_time;
+    last_simulation_time = current_simulation_time;
+    if (delta_simulation_time > 0.1) delta_simulation_time = 0.1;
+    simulation_accumulator += delta_simulation_time;
+  }
+
+  bool Window::simulation_behind() { return simulation_accumulator >= target_simulation_time; }
+
+  void Window::catchup_simulation() { simulation_accumulator -= target_simulation_time; }
+
+  void Window::update_simulation_alpha() { simulation_alpha = simulation_accumulator / target_simulation_time; }
+
+  bool Window::render_behind()
+  {
+    double current_render_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    if (current_render_time - last_render_time >= target_render_time)
+    {
+      last_render_time = current_render_time;
+      return true;
+    }
+    return false;
+  }
+
+  void Window::update_fps()
+  {
+    frame_count++;
+    double current_fps_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    if (current_fps_time - last_fps_time >= 1.0)
+    {
+      utility::log(std::to_string(frame_count) + " FPS", utility::TRACE);
+      last_fps_time = current_fps_time;
+      frame_count = 0;
+    }
+  }
+
+  Window::Window(const std::string &title, bool i_fullscreen, int i_width, int i_height)
+    : width(i_width), height(i_height), starting_width(i_width), starting_height(i_height)
+  {
+    if (!SDL_Init(SDL_INIT_VIDEO))
+    {
+      utility::log("SDL could not be initialized", utility::SDL_FAILURE);
+      return;
+    }
+
+    handle = SDL_CreateWindow(title.c_str(), i_width, i_height, SDL_WINDOW_HIDDEN);
+    if (!handle)
+    {
+      utility::log("Could not create window", utility::SDL_FAILURE);
+      return;
+    }
+
+    display_index = SDL_GetPrimaryDisplay();
+    if (display_index == 0)
+    {
+      utility::log("Could not get primary display", utility::SDL_FAILURE);
+      return;
+    }
+    left = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
+    top = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
+    if (!SDL_SetWindowPosition(handle, left, top))
+    {
+      utility::log("Could not set window position", utility::SDL_FAILURE);
+      return;
+    }
+    if (i_fullscreen)
+      if (handle_fullscreen() == SDL_APP_FAILURE) return;
+
+    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, true, nullptr);
+    if (!gpu)
+    {
+      utility::log("Could not create GPU device", utility::SDL_FAILURE);
+      return;
+    }
+    utility::log("Created GPU device " + std::string(SDL_GetGPUDeviceDriver(gpu)), utility::TRACE);
+    if (!SDL_ClaimWindowForGPUDevice(gpu, handle))
+    {
+      utility::log("Could not claim window for GPU device", utility::SDL_FAILURE);
+      return;
+    }
+    if (SDL_WindowSupportsGPUPresentMode(gpu, handle, SDL_GPU_PRESENTMODE_IMMEDIATE))
+      if (!SDL_SetGPUSwapchainParameters(gpu, handle, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_IMMEDIATE))
+      {
+        utility::log("Could not set GPU swapchain parameters", utility::SDL_FAILURE);
+        return;
+      }
+
+    SDL_ShowWindow(handle);
+    running = true;
   }
 }
