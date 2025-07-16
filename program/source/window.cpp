@@ -12,6 +12,7 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_keyboard.h"
+#include "SDL3/SDL_log.h"
 #include "SDL3/SDL_rect.h"
 #include "SDL3/SDL_scancode.h"
 #include "SDL3/SDL_stdinc.h"
@@ -218,6 +219,8 @@ namespace cse
   Window::Window(const std::string &title, bool i_fullscreen, int i_width, int i_height)
     : width(i_width), height(i_height), starting_width(i_width), starting_height(i_height)
   {
+    SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+    SDL_SetAppMetadata("CSEngine", "0.0.0", "Connor.Sweeney.Engine");
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
       utility::log("SDL could not be initialized", utility::SDL_FAILURE);
@@ -253,7 +256,6 @@ namespace cse
       utility::log("Could not create GPU device", utility::SDL_FAILURE);
       return;
     }
-    utility::log("Created GPU device " + std::string(SDL_GetGPUDeviceDriver(gpu)), utility::TRACE);
     if (!SDL_ClaimWindowForGPUDevice(gpu, handle))
     {
       utility::log("Could not claim window for GPU device", utility::SDL_FAILURE);
