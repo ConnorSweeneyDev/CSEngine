@@ -114,11 +114,12 @@ namespace cse
       }
     }
 
-    previous_red = red;
-    if (key_state[SDL_SCANCODE_D]) red -= 0.005f;
-    if (key_state[SDL_SCANCODE_F]) red += 0.005f;
-    if (red < 0.0f) red = 0.0f;
-    if (red > 1.0f) red = 1.0f;
+    previous_red = current_red;
+    if (key_state[SDL_SCANCODE_D]) current_red -= 0.005f;
+    if (key_state[SDL_SCANCODE_F]) current_red += 0.005f;
+    if (current_red < 0.0f) current_red = 0.0f;
+    if (current_red > 1.0f) current_red = 1.0f;
+    interpolated_red = previous_red + ((current_red - previous_red) * static_cast<float>(alpha));
 
     return EXIT_SUCCESS;
   }
@@ -138,7 +139,7 @@ namespace cse
     color_target.store_op = SDL_GPU_STOREOP_STORE;
     color_target.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target.texture = swapchain_texture;
-    color_target.clear_color = {previous_red + (red - previous_red) * static_cast<float>(alpha), 0.1f, 0.1f, 1.0f};
+    color_target.clear_color = {interpolated_red, 0.1f, 0.1f, 1.0f};
     std::vector<SDL_GPUColorTargetInfo> color_targets = {color_target};
     SDL_GPURenderPass *render_pass =
       SDL_BeginGPURenderPass(command_buffer, color_targets.data(), static_cast<Uint32>(color_targets.size()), nullptr);

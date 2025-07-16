@@ -27,8 +27,9 @@ namespace cse
     int handle_fullscreen();
 
   public:
-    float red = 0.1f;
-    float previous_red = 0.1f;
+    float current_red = 0.1f;
+    float previous_red = current_red;
+    float interpolated_red = current_red;
     bool running = false;
 
   private:
