@@ -41,7 +41,7 @@ namespace cse
     const int starting_width = 0;
     const int starting_height = 0;
 
-    const double fixed_timestep = 1.0 / 10.0;
+    const double fixed_timestep = 1.0 / 60.0;
     double current_time = 0.0;
     double accumulator = 0.0;
     double alpha = 0.0;
