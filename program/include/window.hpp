@@ -12,7 +12,7 @@ namespace cse
   class Window
   {
   public:
-    static std::unique_ptr<Window> create(const std::string &title, bool fullscreen, int width, int height);
+    static std::unique_ptr<Window> create(const std::string &title, bool i_fullscreen, int i_width, int i_height);
     ~Window();
 
     int input();
