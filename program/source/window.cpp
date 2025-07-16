@@ -1,8 +1,12 @@
 #include "window.hpp"
 
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <ios>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
@@ -10,6 +14,7 @@
 #include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_rect.h"
 #include "SDL3/SDL_scancode.h"
+#include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_timer.h"
 #include "SDL3/SDL_video.h"
 
@@ -105,9 +110,13 @@ namespace cse
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target_info.texture = swapchain_texture;
     color_target_info.clear_color = {interpolated_red, 0.1f, 0.1f, 1.0f};
+
     SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
     if (!render_pass) return utility::log("Could not begin GPU render pass", utility::SDL_FAILURE);
+    SDL_BindGPUGraphicsPipeline(render_pass, pipeline);
+    SDL_DrawGPUPrimitives(render_pass, 3, 1, 0, 0);
     SDL_EndGPURenderPass(render_pass);
+
     if (!SDL_SubmitGPUCommandBuffer(command_buffer))
       return utility::log("Could not submit GPU command buffer", utility::SDL_FAILURE);
     return EXIT_SUCCESS;
@@ -248,6 +257,113 @@ namespace cse
         utility::log("Could not set GPU swapchain parameters", utility::SDL_FAILURE);
         return;
       }
+
+    // START TODO: Refactor to load shaders from a generated resource.cpp file
+
+    std::filesystem::path vertex_shader_path = "resource";
+    std::filesystem::path fragment_shader_path = "resource";
+    SDL_GPUShaderFormat shader_format = {};
+    const SDL_GPUShaderFormat backend_formats = SDL_GetGPUShaderFormats(gpu);
+
+    if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV)
+    {
+      vertex_shader_path /= "RawTriangle.vert.spv";
+      fragment_shader_path /= "SolidColor.frag.spv";
+      shader_format = SDL_GPU_SHADERFORMAT_SPIRV;
+    }
+    else if (backend_formats & SDL_GPU_SHADERFORMAT_DXIL)
+    {
+      vertex_shader_path /= "RawTriangle.vert.dxil";
+      fragment_shader_path /= "SolidColor.frag.dxil";
+      shader_format = SDL_GPU_SHADERFORMAT_DXIL;
+    }
+    else
+    {
+      utility::log("No supported shader format found", utility::FAILURE);
+      return;
+    }
+
+    std::ifstream vertex_shader_file(vertex_shader_path, std::ios::binary | std::ios::ate);
+    if (!vertex_shader_file)
+    {
+      utility::log("Could not open vertex shader file: " + vertex_shader_path.string(), utility::FAILURE);
+      return;
+    }
+    std::streamsize vertex_shader_size = vertex_shader_file.tellg();
+    vertex_shader_file.seekg(0, std::ios::beg);
+    std::vector<Uint8> vertex_shader_binary(static_cast<size_t>(vertex_shader_size));
+    if (!vertex_shader_file.read(reinterpret_cast<char *>(vertex_shader_binary.data()), vertex_shader_size))
+    {
+      utility::log("Failed to read vertex shader file", utility::FAILURE);
+      return;
+    }
+    if (vertex_shader_binary.size() % 4 != 0)
+      vertex_shader_binary.resize((vertex_shader_binary.size() + 3) & static_cast<size_t>(~3));
+    vertex_shader_file.close();
+    std::ifstream fragment_shader_file(fragment_shader_path, std::ios::binary | std::ios::ate);
+    if (!fragment_shader_file)
+    {
+      utility::log("Could not open fragment shader file: " + fragment_shader_path.string(), utility::FAILURE);
+      return;
+    }
+    std::streamsize fragment_shader_size = fragment_shader_file.tellg();
+    fragment_shader_file.seekg(0, std::ios::beg);
+    std::vector<Uint8> fragment_shader_binary(static_cast<size_t>(fragment_shader_size));
+    if (!fragment_shader_file.read(reinterpret_cast<char *>(fragment_shader_binary.data()), fragment_shader_size))
+    {
+      utility::log("Failed to read fragment shader file", utility::FAILURE);
+      return;
+    }
+    if (fragment_shader_binary.size() % 4 != 0)
+      fragment_shader_binary.resize((fragment_shader_binary.size() + 3) & static_cast<size_t>(~3));
+    fragment_shader_file.close();
+
+    SDL_GPUShaderCreateInfo shader_info = {};
+    shader_info.code = vertex_shader_binary.data();
+    shader_info.code_size = vertex_shader_binary.size();
+    shader_info.entrypoint = "main";
+    shader_info.format = shader_format;
+    shader_info.stage = SDL_GPU_SHADERSTAGE_VERTEX;
+    shader_info.num_samplers = 0;
+    shader_info.num_uniform_buffers = 0;
+    shader_info.num_storage_buffers = 0;
+    shader_info.num_storage_textures = 0;
+    SDL_GPUShader *vertex_shader = SDL_CreateGPUShader(gpu, &shader_info);
+    if (!vertex_shader)
+    {
+      utility::log("Could not create vertex shader", utility::SDL_FAILURE);
+      return;
+    }
+    shader_info.code = fragment_shader_binary.data();
+    shader_info.code_size = fragment_shader_binary.size();
+    shader_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
+    SDL_GPUShader *fragment_shader = SDL_CreateGPUShader(gpu, &shader_info);
+    if (!fragment_shader)
+    {
+      utility::log("Could not create fragment shader", utility::SDL_FAILURE);
+      return;
+    }
+
+    SDL_GPUColorTargetDescription color_target_description = {};
+    color_target_description.format = SDL_GetGPUSwapchainTextureFormat(gpu, handle);
+    SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
+    pipeline_info.vertex_shader = vertex_shader;
+    pipeline_info.fragment_shader = fragment_shader;
+    pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+    pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
+    pipeline_info.target_info.num_color_targets = 1;
+    pipeline_info.target_info.color_target_descriptions = &color_target_description;
+    pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &pipeline_info);
+    if (!pipeline)
+    {
+      utility::log("Could not create graphics pipeline", utility::SDL_FAILURE);
+      return;
+    }
+
+    SDL_ReleaseGPUShader(gpu, vertex_shader);
+    SDL_ReleaseGPUShader(gpu, fragment_shader);
+
+    // END TODO: Refactor to load shaders from a generated resource.cpp file
 
     SDL_ShowWindow(handle);
     running = true;

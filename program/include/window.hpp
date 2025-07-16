@@ -64,6 +64,7 @@ namespace cse
 
     SDL_Window *handle = nullptr;
     SDL_GPUDevice *gpu = nullptr;
+    SDL_GPUGraphicsPipeline *pipeline = nullptr;
     inline static std::atomic<bool> initialized = false;
   };
 }
