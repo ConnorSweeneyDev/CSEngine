@@ -12,7 +12,7 @@ namespace cse
     const char *what() const noexcept override;
 
   private:
-    std::string message;
+    std::string message = "";
   };
 
   class SDL_exception : public Exception
