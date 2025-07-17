@@ -1,13 +1,22 @@
 #!/bin/bash
 
-LEVEL=0
-# LEVEL=1
-# LEVEL=2
+ALL=0
+# ALL=1
+ENGINE=0
+# ENGINE=1
+SHADER=0
+# SHADER=1
 
-if [ $LEVEL == 0 ]; then
-  rm -rf build/CSEngine.dir
-elif [ $LEVEL == 1 ]; then
-  rm -rf build/CSEngine.dir build/_deps build/cmake
-elif [ $LEVEL == 2 ]; then
+if [ $ALL == 1 ]; then
   rm -rf build
+fi
+
+if [ $ENGINE == 0 ]; then
+  rm -rf build/CSEngine.dir
+elif [ $ENGINE == 1 ]; then
+  rm -rf build/CSEngine.dir build/_deps build/cmake
+fi
+
+if [ $SHADER == 1 ]; then
+  rm -rf build/Shaders
 fi

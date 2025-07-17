@@ -270,8 +270,8 @@ namespace cse
 
     // START TODO: Refactor to load shaders from a generated resource.cpp file
 
-    std::filesystem::path vertex_shader_path = "resource";
-    std::filesystem::path fragment_shader_path = "resource";
+    std::filesystem::path vertex_shader_path = "build/Shaders";
+    std::filesystem::path fragment_shader_path = "build/Shaders";
     SDL_GPUShaderFormat shader_format = {};
     const SDL_GPUShaderFormat backend_formats = SDL_GetGPUShaderFormats(gpu);
 
