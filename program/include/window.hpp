@@ -12,17 +12,16 @@ namespace cse
   class Window
   {
   public:
-    static std::unique_ptr<Window> create(const std::string &title, bool i_fullscreen, int i_width, int i_height);
-    static bool valid(const std::unique_ptr<Window> &window);
+    static std::unique_ptr<Window> create(const std::string &i_title, bool i_fullscreen, int i_width, int i_height);
     ~Window();
 
-    int input();
+    void input();
     void simulate();
-    int render();
+    void render();
 
-    int handle_quit();
-    int handle_move();
-    int handle_fullscreen();
+    void handle_quit();
+    void handle_move();
+    void handle_fullscreen();
 
     void update_simulation_time();
     bool simulation_behind();
@@ -41,17 +40,18 @@ namespace cse
     bool running = false;
 
   private:
-    Window(const std::string &title, bool i_fullscreen, int i_width, int i_height);
+    Window(const std::string &i_title, bool i_fullscreen, int i_width, int i_height);
 
   private:
+    const std::string title;
     bool fullscreen = false;
-    SDL_DisplayID display_index = 0;
-    int left = 0;
-    int top = 0;
     int width = 0;
     int height = 0;
     const int starting_width = 0;
     const int starting_height = 0;
+    SDL_DisplayID display_index = 0;
+    int left = 0;
+    int top = 0;
 
     const double target_simulation_time = 1.0 / 60.0;
     double last_simulation_time = 0.0;

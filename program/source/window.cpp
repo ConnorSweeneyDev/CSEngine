@@ -19,31 +19,20 @@
 #include "SDL3/SDL_timer.h"
 #include "SDL3/SDL_video.h"
 
-#include "utility.hpp"
+#include "exception.hpp"
 
 namespace cse
 {
-  std::unique_ptr<Window> Window::create(const std::string &title, bool i_fullscreen, int i_width, int i_height)
+  std::unique_ptr<Window> Window::create(const std::string &i_title, bool i_fullscreen, int i_width, int i_height)
   {
     bool expected = false;
     if (!initialized.compare_exchange_strong(expected, true))
-    {
-      utility::log("Window could not be created a second time", utility::FAILURE);
-      return nullptr;
-    }
-    return std::unique_ptr<Window>(new Window(title, i_fullscreen, i_width, i_height));
-  }
-
-  bool Window::valid(const std::unique_ptr<Window> &window)
-  {
-    if (!initialized || !window) return false;
-    if (!window->running) return false;
-    return true;
+      throw Exception("A window already exists, could not create {}", i_title);
+    return std::unique_ptr<Window>(new Window(i_title, i_fullscreen, i_width, i_height));
   }
 
   Window::~Window()
   {
-    if (!handle) return;
     SDL_ReleaseWindowFromGPUDevice(gpu, handle);
     SDL_DestroyGPUDevice(gpu);
     SDL_DestroyWindow(handle);
@@ -53,7 +42,7 @@ namespace cse
     initialized.store(false);
   }
 
-  int Window::input()
+  void Window::input()
   {
     SDL_Event event = {};
     const bool *key_state = SDL_GetKeyboardState(nullptr);
@@ -61,23 +50,21 @@ namespace cse
     {
       switch (event.type)
       {
-        case SDL_EVENT_QUIT: return handle_quit();
-        case SDL_EVENT_WINDOW_MOVED: return handle_move();
+        case SDL_EVENT_QUIT: handle_quit(); break;
+        case SDL_EVENT_WINDOW_MOVED: handle_move(); break;
         case SDL_EVENT_KEY_DOWN:
           switch (event.key.scancode)
           {
-            case SDL_SCANCODE_ESCAPE: return handle_quit();
-            case SDL_SCANCODE_F11: return handle_fullscreen();
-            default: return EXIT_SUCCESS;
+            case SDL_SCANCODE_ESCAPE: handle_quit(); break;
+            case SDL_SCANCODE_F11: handle_fullscreen(); break;
+            default: break;
           }
-        default: return EXIT_SUCCESS;
+        default: break;
       }
     }
 
     if (key_state[SDL_SCANCODE_D]) strength_acceleration -= 0.0005f;
     if (key_state[SDL_SCANCODE_F]) strength_acceleration += 0.0005f;
-
-    return EXIT_SUCCESS;
   }
 
   void Window::simulate()
@@ -107,13 +94,13 @@ namespace cse
       previous_strength + ((current_strength - previous_strength) * static_cast<float>(simulation_alpha));
   }
 
-  int Window::render()
+  void Window::render()
   {
     SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
-    if (!command_buffer) return utility::log("Could not acquire GPU command buffer", utility::SDL_FAILURE);
+    if (!command_buffer) throw SDL_exception("Could not acquire GPU command buffer");
     SDL_GPUTexture *swapchain_texture = nullptr;
     if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, handle, &swapchain_texture, nullptr, nullptr))
-      return utility::log("Could not acquire GPU swapchain texture", utility::SDL_FAILURE);
+      throw SDL_exception("Could not acquire GPU swapchain texture");
     SDL_GPUColorTargetInfo color_target_info = {};
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
@@ -121,61 +108,50 @@ namespace cse
     color_target_info.clear_color = {interpolated_strength, interpolated_strength, interpolated_strength, 1.0f};
 
     SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
-    if (!render_pass) return utility::log("Could not begin GPU render pass", utility::SDL_FAILURE);
+    if (!render_pass) throw SDL_exception("Could not begin GPU render pass");
     SDL_BindGPUGraphicsPipeline(render_pass, pipeline);
     SDL_DrawGPUPrimitives(render_pass, 3, 1, 0, 0);
     SDL_EndGPURenderPass(render_pass);
 
-    if (!SDL_SubmitGPUCommandBuffer(command_buffer))
-      return utility::log("Could not submit GPU command buffer", utility::SDL_FAILURE);
-    return EXIT_SUCCESS;
+    if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw SDL_exception("Could not submit GPU command buffer");
   }
 
-  int Window::handle_quit()
-  {
-    running = false;
-    return EXIT_SUCCESS;
-  }
+  void Window::handle_quit() { running = false; }
 
-  int Window::handle_move()
+  void Window::handle_move()
   {
-    if (fullscreen) return EXIT_SUCCESS;
+    if (fullscreen) return;
 
     if (!SDL_GetWindowPosition(handle, &left, &top))
-      return utility::log("Could not get window position", utility::SDL_FAILURE);
+      throw SDL_exception("Could not get window position for window at ({}, {})", left, top);
     display_index = SDL_GetDisplayForWindow(handle);
-    if (display_index == 0) return utility::log("Could not get display for window", utility::SDL_FAILURE);
-
-    return EXIT_SUCCESS;
+    if (display_index == 0) throw SDL_exception("Could not get display index");
   }
 
-  int Window::handle_fullscreen()
+  void Window::handle_fullscreen()
   {
     if (fullscreen)
     {
-      if (!SDL_SetWindowBordered(handle, true))
-        return utility::log("Could not set window bordered", utility::SDL_FAILURE);
+      if (!SDL_SetWindowBordered(handle, true)) throw SDL_exception("Could not set window bordered");
       if (!SDL_SetWindowSize(handle, starting_width, starting_height))
-        return utility::log("Could not set window size", utility::SDL_FAILURE);
+        throw SDL_exception("Could not set window size to ({}, {})", starting_width, starting_height);
       if (!SDL_SetWindowPosition(handle, left, top))
-        return utility::log("Could not set window position", utility::SDL_FAILURE);
+        throw SDL_exception("Could not set window position to ({}, {})", left, top);
     }
     else
     {
       SDL_Rect display_bounds;
       if (!SDL_GetDisplayBounds(display_index, &display_bounds))
-        return utility::log("Could not get display bounds", utility::SDL_FAILURE);
-      if (!SDL_SetWindowBordered(handle, false))
-        return utility::log("Could not set window bordered", utility::SDL_FAILURE);
+        throw SDL_exception("Could not get display bounds for display {}", display_index);
+      if (!SDL_SetWindowBordered(handle, false)) throw SDL_exception("Could not set window borderless");
       if (!SDL_SetWindowSize(handle, display_bounds.w, display_bounds.h))
-        return utility::log("Could not set window size", utility::SDL_FAILURE);
+        throw SDL_exception("Could not set window size to ({}, {}) on display {}", display_bounds.w, display_bounds.h,
+                            display_index);
       if (!SDL_SetWindowPosition(handle, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
                                  SDL_WINDOWPOS_CENTERED_DISPLAY(display_index)))
-        return utility::log("Could not set window position", utility::SDL_FAILURE);
+        throw SDL_exception("Could not set window position centered on display {}", display_index);
     }
-
     fullscreen = !fullscreen;
-    return EXIT_SUCCESS;
   }
 
   void Window::update_simulation_time()
@@ -210,63 +186,37 @@ namespace cse
     double current_fps_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
     if (current_fps_time - last_fps_time >= 1.0)
     {
-      utility::log(std::to_string(frame_count) + " FPS", utility::TRACE);
+      SDL_Log("%d FPS", frame_count);
       last_fps_time = current_fps_time;
       frame_count = 0;
     }
   }
 
-  Window::Window(const std::string &title, bool i_fullscreen, int i_width, int i_height)
+  Window::Window(const std::string &i_title, bool i_fullscreen, int i_width, int i_height)
     : width(i_width), height(i_height), starting_width(i_width), starting_height(i_height)
   {
     SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
     SDL_SetAppMetadata("CSEngine", "0.0.0", "Connor.Sweeney.Engine");
-    if (!SDL_Init(SDL_INIT_VIDEO))
-    {
-      utility::log("SDL could not be initialized", utility::SDL_FAILURE);
-      return;
-    }
+    if (!SDL_Init(SDL_INIT_VIDEO)) throw SDL_exception("SDL could not be initialized for window {}", i_title);
 
-    handle = SDL_CreateWindow(title.c_str(), i_width, i_height, SDL_WINDOW_HIDDEN);
-    if (!handle)
-    {
-      utility::log("Could not create window", utility::SDL_FAILURE);
-      return;
-    }
+    handle = SDL_CreateWindow(i_title.c_str(), i_width, i_height, SDL_WINDOW_HIDDEN);
+    if (!handle) throw SDL_exception("Handle could not be created for window {}", i_title);
 
     display_index = SDL_GetPrimaryDisplay();
-    if (display_index == 0)
-    {
-      utility::log("Could not get primary display", utility::SDL_FAILURE);
-      return;
-    }
+    if (display_index == 0) throw SDL_exception("Could not get primary display for window {}", i_title);
     left = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
     top = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
     if (!SDL_SetWindowPosition(handle, left, top))
-    {
-      utility::log("Could not set window position", utility::SDL_FAILURE);
-      return;
-    }
-    if (i_fullscreen)
-      if (handle_fullscreen() == SDL_APP_FAILURE) return;
+      throw SDL_exception("Could not set window {} position to ({}, {})", i_title, left, top);
+    if (i_fullscreen) handle_fullscreen();
 
     gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, true, nullptr);
-    if (!gpu)
-    {
-      utility::log("Could not create GPU device", utility::SDL_FAILURE);
-      return;
-    }
+    if (!gpu) throw SDL_exception("Could not create GPU device for window {}", i_title);
     if (!SDL_ClaimWindowForGPUDevice(gpu, handle))
-    {
-      utility::log("Could not claim window for GPU device", utility::SDL_FAILURE);
-      return;
-    }
+      throw SDL_exception("Could not claim window for GPU device for window {}", i_title);
     if (SDL_WindowSupportsGPUPresentMode(gpu, handle, SDL_GPU_PRESENTMODE_IMMEDIATE))
       if (!SDL_SetGPUSwapchainParameters(gpu, handle, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_IMMEDIATE))
-      {
-        utility::log("Could not set GPU swapchain parameters", utility::SDL_FAILURE);
-        return;
-      }
+        throw SDL_exception("Could not disable VSYNC for window {}", i_title);
 
     // START TODO: Refactor to load shaders from a generated resource.cpp file
 
@@ -288,42 +238,29 @@ namespace cse
       shader_format = SDL_GPU_SHADERFORMAT_DXIL;
     }
     else
-    {
-      utility::log("No supported shader format found", utility::FAILURE);
-      return;
-    }
+      throw SDL_exception("Could not find supported shader format for window {}", i_title);
 
     std::ifstream vertex_shader_file(vertex_shader_path, std::ios::binary | std::ios::ate);
     if (!vertex_shader_file)
-    {
-      utility::log("Could not open vertex shader file: " + vertex_shader_path.string(), utility::FAILURE);
-      return;
-    }
+      throw SDL_exception("Could not open vertex shader file {} for window {}", vertex_shader_path.string(), i_title);
     std::streamsize vertex_shader_size = vertex_shader_file.tellg();
     vertex_shader_file.seekg(0, std::ios::beg);
     std::vector<Uint8> vertex_shader_binary(static_cast<size_t>(vertex_shader_size));
     if (!vertex_shader_file.read(reinterpret_cast<char *>(vertex_shader_binary.data()), vertex_shader_size))
-    {
-      utility::log("Failed to read vertex shader file", utility::FAILURE);
-      return;
-    }
+      throw SDL_exception("Could not read vertex shader file {} for window {}", vertex_shader_path.string(), i_title);
     if (vertex_shader_binary.size() % 4 != 0)
       vertex_shader_binary.resize((vertex_shader_binary.size() + 3) & static_cast<size_t>(~3));
     vertex_shader_file.close();
     std::ifstream fragment_shader_file(fragment_shader_path, std::ios::binary | std::ios::ate);
     if (!fragment_shader_file)
-    {
-      utility::log("Could not open fragment shader file: " + fragment_shader_path.string(), utility::FAILURE);
-      return;
-    }
+      throw SDL_exception("Could not open fragment shader file {} for window {}", fragment_shader_path.string(),
+                          i_title);
     std::streamsize fragment_shader_size = fragment_shader_file.tellg();
     fragment_shader_file.seekg(0, std::ios::beg);
     std::vector<Uint8> fragment_shader_binary(static_cast<size_t>(fragment_shader_size));
     if (!fragment_shader_file.read(reinterpret_cast<char *>(fragment_shader_binary.data()), fragment_shader_size))
-    {
-      utility::log("Failed to read fragment shader file", utility::FAILURE);
-      return;
-    }
+      throw SDL_exception("Could not read fragment shader file {} for window {}", fragment_shader_path.string(),
+                          i_title);
     if (fragment_shader_binary.size() % 4 != 0)
       fragment_shader_binary.resize((fragment_shader_binary.size() + 3) & static_cast<size_t>(~3));
     fragment_shader_file.close();
@@ -339,20 +276,12 @@ namespace cse
     shader_info.num_storage_buffers = 0;
     shader_info.num_storage_textures = 0;
     SDL_GPUShader *vertex_shader = SDL_CreateGPUShader(gpu, &shader_info);
-    if (!vertex_shader)
-    {
-      utility::log("Could not create vertex shader", utility::SDL_FAILURE);
-      return;
-    }
+    if (!vertex_shader) throw SDL_exception("Could not create vertex shader for window {}", i_title);
     shader_info.code = fragment_shader_binary.data();
     shader_info.code_size = fragment_shader_binary.size();
     shader_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
     SDL_GPUShader *fragment_shader = SDL_CreateGPUShader(gpu, &shader_info);
-    if (!fragment_shader)
-    {
-      utility::log("Could not create fragment shader", utility::SDL_FAILURE);
-      return;
-    }
+    if (!fragment_shader) throw SDL_exception("Could not create fragment shader for window {}", i_title);
 
     SDL_GPUColorTargetDescription color_target_description = {};
     color_target_description.format = SDL_GetGPUSwapchainTextureFormat(gpu, handle);
@@ -364,11 +293,7 @@ namespace cse
     pipeline_info.target_info.num_color_targets = 1;
     pipeline_info.target_info.color_target_descriptions = &color_target_description;
     pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &pipeline_info);
-    if (!pipeline)
-    {
-      utility::log("Could not create graphics pipeline", utility::SDL_FAILURE);
-      return;
-    }
+    if (!pipeline) throw SDL_exception("Could not create graphics pipeline for window {}", i_title);
 
     SDL_ReleaseGPUShader(gpu, vertex_shader);
     SDL_ReleaseGPUShader(gpu, fragment_shader);

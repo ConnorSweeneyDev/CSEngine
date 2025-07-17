@@ -1,34 +1,44 @@
 #include <cstdlib>
-#include <memory>
-#include <string>
+#include <exception>
 
-#include "utility.hpp"
+#include "SDL3/SDL_log.h"
+
+#include "exception.hpp"
 #include "window.hpp"
+
+int try_main(int argc, char *argv[])
+{
+  if (argc > 1 || !argv[0]) throw cse::Exception("Expected 1 argument, got {}", argc);
+
+  auto window = cse::Window::create(argv[0], false, 1280, 720);
+  while (window->running)
+  {
+    window->update_simulation_time();
+    while (window->simulation_behind())
+    {
+      window->input();
+      window->simulate();
+      window->catchup_simulation();
+    }
+    window->update_simulation_alpha();
+    if (window->render_behind())
+    {
+      window->render();
+      window->update_fps();
+    }
+  }
+  return EXIT_SUCCESS;
+}
 
 int main(int argc, char *argv[])
 {
-  if (argc > 1 || !argv[0])
-    return cse::utility::log("Expected 1 argument, got " + std::to_string(argc), cse::utility::FAILURE);
-
-  if (auto window = cse::Window::create(argv[0], false, 1280, 720); !cse::Window::valid(window))
-    return cse::utility::log("Window is invalid", cse::utility::FAILURE);
-  else
-    while (window->running)
-    {
-      window->update_simulation_time();
-      while (window->simulation_behind())
-      {
-        if (window->input() == EXIT_FAILURE) return cse::utility::log("Input failed", cse::utility::FAILURE);
-        window->simulate();
-        window->catchup_simulation();
-      }
-      window->update_simulation_alpha();
-      if (window->render_behind())
-      {
-        if (window->render() == EXIT_FAILURE) return cse::utility::log("Render failed", cse::utility::FAILURE);
-        window->update_fps();
-      }
-    }
-
-  return cse::utility::log("Application quit", cse::utility::SUCCESS);
+  try
+  {
+    return try_main(argc, argv);
+  }
+  catch (const std::exception &exception)
+  {
+    SDL_Log("%s", exception.what());
+    return EXIT_FAILURE;
+  }
 }
