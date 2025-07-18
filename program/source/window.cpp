@@ -98,15 +98,21 @@ namespace cse
   {
     SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
     if (!command_buffer) throw SDL_exception("Could not acquire GPU command buffer");
+
     SDL_GPUTexture *swapchain_texture = nullptr;
     if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, window, &swapchain_texture, nullptr, nullptr))
       throw SDL_exception("Could not acquire GPU swapchain texture");
+    if (!swapchain_texture)
+    {
+      if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw SDL_exception("Could not submit GPU command buffer");
+      return;
+    }
+
     SDL_GPUColorTargetInfo color_target_info = {};
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target_info.texture = swapchain_texture;
     color_target_info.clear_color = {interpolated_strength, interpolated_strength, interpolated_strength, 1.0f};
-
     SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
     if (!render_pass) throw SDL_exception("Could not begin GPU render pass");
     SDL_BindGPUGraphicsPipeline(render_pass, pipeline);
