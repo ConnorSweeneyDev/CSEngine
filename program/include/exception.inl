@@ -15,8 +15,13 @@ namespace cse
   }
 
   template <typename... Args> SDL_exception::SDL_exception(const std::string &format, Args &&...args)
-    : Exception(std::format("{}: {}", std::vformat(format, std::make_format_args(std::forward<const Args>(args)...)),
-                            SDL_GetError()))
+    : Exception(format, std::forward<Args>(args)...)
   {
+    message.pop_back();
+    std::string sdl_error = SDL_GetError();
+    if (sdl_error.empty())
+      message = std::format("{}: Unknown SDL error.", message);
+    else
+      message = std::format("{}: {}.", message, sdl_error);
   }
 }

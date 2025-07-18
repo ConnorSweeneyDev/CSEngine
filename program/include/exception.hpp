@@ -11,7 +11,7 @@ namespace cse
     template <typename... Args> Exception(const std::string &format, Args &&...args);
     const char *what() const noexcept override;
 
-  private:
+  protected:
     std::string message = "";
   };
 
