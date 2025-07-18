@@ -62,7 +62,7 @@ namespace cse
     double last_fps_time = 0;
     int frame_count = 0;
 
-    SDL_Window *handle = nullptr;
+    SDL_Window *window = nullptr;
     SDL_GPUDevice *gpu = nullptr;
     SDL_GPUGraphicsPipeline *pipeline = nullptr;
     inline static std::atomic<bool> initialized = false;

@@ -33,10 +33,10 @@ namespace cse
 
   Window::~Window()
   {
-    SDL_ReleaseWindowFromGPUDevice(gpu, handle);
+    SDL_ReleaseWindowFromGPUDevice(gpu, window);
     SDL_DestroyGPUDevice(gpu);
-    SDL_DestroyWindow(handle);
-    handle = nullptr;
+    SDL_DestroyWindow(window);
+    window = nullptr;
     running = false;
     SDL_Quit();
     initialized.store(false);
@@ -99,7 +99,7 @@ namespace cse
     SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
     if (!command_buffer) throw SDL_exception("Could not acquire GPU command buffer");
     SDL_GPUTexture *swapchain_texture = nullptr;
-    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, handle, &swapchain_texture, nullptr, nullptr))
+    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, window, &swapchain_texture, nullptr, nullptr))
       throw SDL_exception("Could not acquire GPU swapchain texture");
     SDL_GPUColorTargetInfo color_target_info = {};
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
@@ -122,9 +122,9 @@ namespace cse
   {
     if (fullscreen) return;
 
-    if (!SDL_GetWindowPosition(handle, &left, &top))
+    if (!SDL_GetWindowPosition(window, &left, &top))
       throw SDL_exception("Could not get window position for window at ({}, {})", left, top);
-    display_index = SDL_GetDisplayForWindow(handle);
+    display_index = SDL_GetDisplayForWindow(window);
     if (display_index == 0) throw SDL_exception("Could not get display index");
   }
 
@@ -132,10 +132,10 @@ namespace cse
   {
     if (fullscreen)
     {
-      if (!SDL_SetWindowBordered(handle, true)) throw SDL_exception("Could not set window bordered");
-      if (!SDL_SetWindowSize(handle, starting_width, starting_height))
+      if (!SDL_SetWindowBordered(window, true)) throw SDL_exception("Could not set window bordered");
+      if (!SDL_SetWindowSize(window, starting_width, starting_height))
         throw SDL_exception("Could not set window size to ({}, {})", starting_width, starting_height);
-      if (!SDL_SetWindowPosition(handle, left, top))
+      if (!SDL_SetWindowPosition(window, left, top))
         throw SDL_exception("Could not set window position to ({}, {})", left, top);
     }
     else
@@ -143,11 +143,11 @@ namespace cse
       SDL_Rect display_bounds;
       if (!SDL_GetDisplayBounds(display_index, &display_bounds))
         throw SDL_exception("Could not get display bounds for display {}", display_index);
-      if (!SDL_SetWindowBordered(handle, false)) throw SDL_exception("Could not set window borderless");
-      if (!SDL_SetWindowSize(handle, display_bounds.w, display_bounds.h))
+      if (!SDL_SetWindowBordered(window, false)) throw SDL_exception("Could not set window borderless");
+      if (!SDL_SetWindowSize(window, display_bounds.w, display_bounds.h))
         throw SDL_exception("Could not set window size to ({}, {}) on display {}", display_bounds.w, display_bounds.h,
                             display_index);
-      if (!SDL_SetWindowPosition(handle, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
+      if (!SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
                                  SDL_WINDOWPOS_CENTERED_DISPLAY(display_index)))
         throw SDL_exception("Could not set window position centered on display {}", display_index);
     }
@@ -199,23 +199,23 @@ namespace cse
     SDL_SetAppMetadata("CSEngine", "0.0.0", "Connor.Sweeney.Engine");
     if (!SDL_Init(SDL_INIT_VIDEO)) throw SDL_exception("SDL could not be initialized for window {}", i_title);
 
-    handle = SDL_CreateWindow(i_title.c_str(), i_width, i_height, SDL_WINDOW_HIDDEN);
-    if (!handle) throw SDL_exception("Handle could not be created for window {}", i_title);
+    window = SDL_CreateWindow(i_title.c_str(), i_width, i_height, SDL_WINDOW_HIDDEN);
+    if (!window) throw SDL_exception("Could not create window {}", i_title);
 
     display_index = SDL_GetPrimaryDisplay();
     if (display_index == 0) throw SDL_exception("Could not get primary display for window {}", i_title);
     left = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
     top = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
-    if (!SDL_SetWindowPosition(handle, left, top))
+    if (!SDL_SetWindowPosition(window, left, top))
       throw SDL_exception("Could not set window {} position to ({}, {})", i_title, left, top);
     if (i_fullscreen) handle_fullscreen();
 
     gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, true, nullptr);
     if (!gpu) throw SDL_exception("Could not create GPU device for window {}", i_title);
-    if (!SDL_ClaimWindowForGPUDevice(gpu, handle))
+    if (!SDL_ClaimWindowForGPUDevice(gpu, window))
       throw SDL_exception("Could not claim window for GPU device for window {}", i_title);
-    if (SDL_WindowSupportsGPUPresentMode(gpu, handle, SDL_GPU_PRESENTMODE_IMMEDIATE))
-      if (!SDL_SetGPUSwapchainParameters(gpu, handle, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_IMMEDIATE))
+    if (SDL_WindowSupportsGPUPresentMode(gpu, window, SDL_GPU_PRESENTMODE_IMMEDIATE))
+      if (!SDL_SetGPUSwapchainParameters(gpu, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_IMMEDIATE))
         throw SDL_exception("Could not disable VSYNC for window {}", i_title);
 
     // START TODO: Refactor to load shaders from a generated resource.cpp file
@@ -224,7 +224,6 @@ namespace cse
     std::filesystem::path fragment_shader_path = "build/Shaders";
     SDL_GPUShaderFormat shader_format = {};
     const SDL_GPUShaderFormat backend_formats = SDL_GetGPUShaderFormats(gpu);
-
     if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV)
     {
       vertex_shader_path /= "RawTriangle.vert.spv";
@@ -284,7 +283,7 @@ namespace cse
     if (!fragment_shader) throw SDL_exception("Could not create fragment shader for window {}", i_title);
 
     SDL_GPUColorTargetDescription color_target_description = {};
-    color_target_description.format = SDL_GetGPUSwapchainTextureFormat(gpu, handle);
+    color_target_description.format = SDL_GetGPUSwapchainTextureFormat(gpu, window);
     SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
     pipeline_info.vertex_shader = vertex_shader;
     pipeline_info.fragment_shader = fragment_shader;
@@ -300,7 +299,7 @@ namespace cse
 
     // END TODO: Refactor to load shaders from a generated resource.cpp file
 
-    SDL_ShowWindow(handle);
+    SDL_ShowWindow(window);
     running = true;
   }
 }
