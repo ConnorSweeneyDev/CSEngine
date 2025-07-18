@@ -19,10 +19,6 @@ namespace cse
     void simulate();
     void render();
 
-    void handle_quit();
-    void handle_move();
-    void handle_fullscreen();
-
     void update_simulation_time();
     bool simulation_behind();
     void catchup_simulation();
@@ -41,6 +37,10 @@ namespace cse
 
   private:
     Window(const std::string &i_title, bool i_fullscreen, int i_width, int i_height);
+
+    void handle_quit();
+    void handle_move();
+    void handle_fullscreen();
 
   private:
     const std::string title;
