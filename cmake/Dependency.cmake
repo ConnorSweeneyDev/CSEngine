@@ -1,6 +1,7 @@
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/Manage.cmake")
 set(SDL_VERSION "3.2.16")
 set(SDL_SHADERCROSS_VERSION "392d12a")
+set(GLM_VERSION "1.0.1")
 
 CPMAddPackage(
   URI
@@ -25,7 +26,10 @@ set(
   DXCOMPILER_DLL_SOURCE
   "${CMAKE_CURRENT_BINARY_DIR}/_deps/sdl_shadercross-build/external/DirectXShaderCompiler/${CMAKE_BUILD_TYPE}/bin/dxcompiler.dll"
 )
-set(DXCOMPILER_DLL_DESTINATION "${CMAKE_BINARY_DIR}/_deps/sdl_shadercross-build/${CMAKE_BUILD_TYPE}/dxcompiler.dll")
+set(
+  DXCOMPILER_DLL_DESTINATION
+  "${CMAKE_CURRENT_BINARY_DIR}/_deps/sdl_shadercross-build/${CMAKE_BUILD_TYPE}/dxcompiler.dll"
+)
 add_custom_target(
   "CopyDXCompiler"
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${DXCOMPILER_DLL_SOURCE}" "${DXCOMPILER_DLL_DESTINATION}"
@@ -64,3 +68,19 @@ foreach(SOURCE_FILE ${SHADER_SOURCE_FILES})
 endforeach()
 add_custom_target("CompileShaders" DEPENDS "${SHADER_COMPILED_FILES}" "CopyDXCompiler" "Format")
 list(APPEND DEPENDENCIES "CompileShaders")
+
+CPMAddPackage(
+  NAME "glm"
+  URL "https://github.com/g-truc/glm/releases/download/${GLM_VERSION}/glm-${GLM_VERSION}-light.zip"
+  DOWNLOAD_ONLY
+)
+if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src/glm")
+  file(GLOB GLM_ENTRIES "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src/*")
+  file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src/glm")
+  foreach(ENTRY ${GLM_ENTRIES})
+    get_filename_component(ENTRY_NAME "${ENTRY}" NAME)
+    set(NEW_ENTRY "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src/glm/${ENTRY_NAME}")
+    file(RENAME "${ENTRY}" "${NEW_ENTRY}")
+  endforeach()
+endif()
+list(APPEND SYSTEM_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src")
