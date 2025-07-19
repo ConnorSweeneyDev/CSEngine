@@ -115,8 +115,17 @@ namespace cse
     color_target_info.clear_color = {interpolated_strength, interpolated_strength, interpolated_strength, 1.0f};
     SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
     if (!render_pass) throw SDL_exception("Could not begin GPU render pass");
+
     SDL_BindGPUGraphicsPipeline(render_pass, pipeline);
-    SDL_DrawGPUPrimitives(render_pass, 3, 1, 0, 0);
+    SDL_GPUBufferBinding buffer_binding = {};
+    buffer_binding.buffer = vertex_buffer;
+    buffer_binding.offset = 0;
+    SDL_BindGPUVertexBuffers(render_pass, 0, &buffer_binding, 1);
+    buffer_binding.buffer = index_buffer;
+    buffer_binding.offset = 0;
+    SDL_BindGPUIndexBuffer(render_pass, &buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+
+    SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0);
     SDL_EndGPURenderPass(render_pass);
 
     if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw SDL_exception("Could not submit GPU command buffer");
@@ -224,7 +233,7 @@ namespace cse
       if (!SDL_SetGPUSwapchainParameters(gpu, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_IMMEDIATE))
         throw SDL_exception("Could not disable VSYNC for window {}", i_title);
 
-    // START TODO: Refactor to load shaders from a generated resource.cpp file
+    // START TODO: Refactor
 
     std::filesystem::path vertex_shader_path = "build/Shaders";
     std::filesystem::path fragment_shader_path = "build/Shaders";
@@ -232,13 +241,13 @@ namespace cse
     const SDL_GPUShaderFormat backend_formats = SDL_GetGPUShaderFormats(gpu);
     if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV)
     {
-      vertex_shader_path /= "RawTriangle.vert.spv";
+      vertex_shader_path /= "PositionColor.vert.spv";
       fragment_shader_path /= "SolidColor.frag.spv";
       shader_format = SDL_GPU_SHADERFORMAT_SPIRV;
     }
     else if (backend_formats & SDL_GPU_SHADERFORMAT_DXIL)
     {
-      vertex_shader_path /= "RawTriangle.vert.dxil";
+      vertex_shader_path /= "PositionColor.vert.dxil";
       fragment_shader_path /= "SolidColor.frag.dxil";
       shader_format = SDL_GPU_SHADERFORMAT_DXIL;
     }
@@ -288,22 +297,98 @@ namespace cse
     SDL_GPUShader *fragment_shader = SDL_CreateGPUShader(gpu, &shader_info);
     if (!fragment_shader) throw SDL_exception("Could not create fragment shader for window {}", i_title);
 
-    SDL_GPUColorTargetDescription color_target_description = {};
-    color_target_description.format = SDL_GetGPUSwapchainTextureFormat(gpu, window);
     SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
     pipeline_info.vertex_shader = vertex_shader;
     pipeline_info.fragment_shader = fragment_shader;
     pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-    pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
+
+    SDL_GPUVertexInputState vertex_input = {};
+    vertex_input.num_vertex_buffers = 1;
+    vertex_input.num_vertex_attributes = 2;
+    SDL_GPUVertexBufferDescription vertex_buffer_description = {};
+    vertex_buffer_description.slot = 0;
+    vertex_buffer_description.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+    vertex_buffer_description.instance_step_rate = 0;
+    vertex_buffer_description.pitch = sizeof(Position_color_vertex);
+    vertex_input.vertex_buffer_descriptions = &vertex_buffer_description;
+    SDL_GPUVertexAttribute vertex_attributes[2];
+    vertex_attributes[0].buffer_slot = 0;
+    vertex_attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+    vertex_attributes[0].location = 0;
+    vertex_attributes[0].offset = 0;
+    vertex_attributes[1].buffer_slot = 0;
+    vertex_attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
+    vertex_attributes[1].location = 1;
+    vertex_attributes[1].offset = sizeof(float) * 3;
+    vertex_input.vertex_attributes = vertex_attributes;
+    pipeline_info.vertex_input_state = vertex_input;
+
     pipeline_info.target_info.num_color_targets = 1;
+    SDL_GPUColorTargetDescription color_target_description = {};
+    color_target_description.format = SDL_GetGPUSwapchainTextureFormat(gpu, window);
     pipeline_info.target_info.color_target_descriptions = &color_target_description;
+
     pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &pipeline_info);
     if (!pipeline) throw SDL_exception("Could not create graphics pipeline for window {}", i_title);
-
     SDL_ReleaseGPUShader(gpu, vertex_shader);
     SDL_ReleaseGPUShader(gpu, fragment_shader);
 
-    // END TODO: Refactor to load shaders from a generated resource.cpp file
+    SDL_GPUBufferCreateInfo buffer_info = {};
+    buffer_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+    buffer_info.size = sizeof(Position_color_vertex) * 4;
+    vertex_buffer = SDL_CreateGPUBuffer(gpu, &buffer_info);
+    if (!vertex_buffer) throw SDL_exception("Could not create vertex buffer for window {}", i_title);
+    buffer_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
+    buffer_info.size = sizeof(Uint16) * 6;
+    index_buffer = SDL_CreateGPUBuffer(gpu, &buffer_info);
+    if (!index_buffer) throw SDL_exception("Could not create index buffer for window {}", i_title);
+
+    SDL_GPUTransferBufferCreateInfo transfer_buffer_info = {};
+    transfer_buffer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    transfer_buffer_info.size = (sizeof(Position_color_vertex) * 4) + (sizeof(Uint16) * 6);
+    SDL_GPUTransferBuffer *transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &transfer_buffer_info);
+    if (!transfer_buffer) throw SDL_exception("Could not create transfer buffer for window {}", i_title);
+
+    Position_color_vertex *vertex_data =
+      reinterpret_cast<Position_color_vertex *>(SDL_MapGPUTransferBuffer(gpu, transfer_buffer, false));
+    if (!vertex_data) throw SDL_exception("Could not map vertex data for window {}", i_title);
+    vertex_data[0] = {-0.5f, -0.5f, 0.0f, 255, 0, 0, 255};
+    vertex_data[1] = {0.5f, -0.5f, 0.0f, 0, 255, 0, 255};
+    vertex_data[2] = {0.5f, 0.5f, 0.0f, 0, 0, 255, 255};
+    vertex_data[3] = {-0.5f, 0.5f, 0.0f, 255, 255, 255, 255};
+    Uint16 *index_data = reinterpret_cast<Uint16 *>(&vertex_data[4]);
+    if (!index_data) throw SDL_exception("Could not map index data for window {}", i_title);
+    index_data[0] = 0;
+    index_data[1] = 1;
+    index_data[2] = 2;
+    index_data[3] = 0;
+    index_data[4] = 2;
+    index_data[5] = 3;
+    SDL_UnmapGPUTransferBuffer(gpu, transfer_buffer);
+
+    SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
+    if (!command_buffer) throw SDL_exception("Could not acquire GPU command buffer for window {}", i_title);
+    SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass(command_buffer);
+    if (!copy_pass) throw SDL_exception("Could not begin GPU copy pass for window {}", i_title);
+
+    SDL_GPUTransferBufferLocation transfer_buffer_location = {};
+    transfer_buffer_location.transfer_buffer = transfer_buffer;
+    transfer_buffer_location.offset = 0;
+    SDL_GPUBufferRegion buffer_region = {};
+    buffer_region.buffer = vertex_buffer;
+    buffer_region.offset = 0;
+    buffer_region.size = sizeof(Position_color_vertex) * 4;
+    SDL_UploadToGPUBuffer(copy_pass, &transfer_buffer_location, &buffer_region, false);
+    transfer_buffer_location.offset = sizeof(Position_color_vertex) * 4;
+    buffer_region.buffer = index_buffer;
+    buffer_region.size = sizeof(Uint16) * 6;
+    SDL_UploadToGPUBuffer(copy_pass, &transfer_buffer_location, &buffer_region, false);
+
+    SDL_EndGPUCopyPass(copy_pass);
+    SDL_SubmitGPUCommandBuffer(command_buffer);
+    SDL_ReleaseGPUTransferBuffer(gpu, transfer_buffer);
+
+    // END TODO: Refactor
 
     SDL_ShowWindow(window);
     running = true;

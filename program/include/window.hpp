@@ -5,12 +5,20 @@
 #include <string>
 
 #include "SDL3/SDL_gpu.h"
+#include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 
 namespace cse
 {
   class Window
   {
+  private:
+    struct Position_color_vertex
+    {
+      float x = 0.0f, y = 0.0f, z = 0.0f;
+      Uint8 r = 0, g = 0, b = 0, a = 0;
+    };
+
   public:
     static std::unique_ptr<Window> create(const std::string &i_title, bool i_fullscreen, int i_width, int i_height);
     ~Window();
@@ -65,6 +73,8 @@ namespace cse
     SDL_Window *window = nullptr;
     SDL_GPUDevice *gpu = nullptr;
     SDL_GPUGraphicsPipeline *pipeline = nullptr;
+    SDL_GPUBuffer *vertex_buffer = nullptr;
+    SDL_GPUBuffer *index_buffer = nullptr;
     inline static std::atomic<bool> initialized = false;
   };
 }
