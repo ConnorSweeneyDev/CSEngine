@@ -69,18 +69,6 @@ endforeach()
 add_custom_target("CompileShaders" DEPENDS "${SHADER_COMPILED_FILES}" "CopyDXCompiler" "Format")
 list(APPEND DEPENDENCIES "CompileShaders")
 
-CPMAddPackage(
-  NAME "glm"
-  URL "https://github.com/g-truc/glm/releases/download/${GLM_VERSION}/glm-${GLM_VERSION}-light.zip"
-  DOWNLOAD_ONLY
-)
-if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src/glm")
-  file(GLOB GLM_ENTRIES "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src/*")
-  file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src/glm")
-  foreach(ENTRY ${GLM_ENTRIES})
-    get_filename_component(ENTRY_NAME "${ENTRY}" NAME)
-    set(NEW_ENTRY "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src/glm/${ENTRY_NAME}")
-    file(RENAME "${ENTRY}" "${NEW_ENTRY}")
-  endforeach()
-endif()
+CPMAddPackage(URI "gh:g-truc/glm#${GLM_VERSION}" OPTIONS "BUILD_SHARED_LIBS OFF" "GLM_BUILD_TESTS OFF")
 list(APPEND SYSTEM_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src")
+list(APPEND LIBRARIES "glm::glm")
