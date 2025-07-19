@@ -10,7 +10,7 @@ int try_main(int argc, char *argv[])
 {
   if (argc > 1 || !argv[0]) throw cse::Exception("Expected 1 argument, got {}", argc);
 
-  auto window = cse::Window::create(argv[0], false, 1280, 720);
+  auto window = cse::Window::create(argv[0], 1280, 720, false, false);
   while (window->running)
   {
     window->update_simulation_time();

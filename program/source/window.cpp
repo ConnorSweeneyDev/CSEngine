@@ -23,12 +23,13 @@
 
 namespace cse
 {
-  std::unique_ptr<Window> Window::create(const std::string &i_title, bool i_fullscreen, int i_width, int i_height)
+  std::unique_ptr<Window> Window::create(const std::string &i_title, int i_width, int i_height, bool i_fullscreen,
+                                         bool i_vsync)
   {
     bool expected = false;
     if (!initialized.compare_exchange_strong(expected, true))
       throw Exception("A window already exists, could not create {}", i_title);
-    return std::unique_ptr<Window>(new Window(i_title, i_fullscreen, i_width, i_height));
+    return std::unique_ptr<Window>(new Window(i_title, i_width, i_height, i_fullscreen, i_vsync));
   }
 
   Window::~Window()
@@ -57,6 +58,7 @@ namespace cse
           {
             case SDL_SCANCODE_ESCAPE: handle_quit(); break;
             case SDL_SCANCODE_F11: handle_fullscreen(); break;
+            case SDL_SCANCODE_F12: handle_vsync(); break;
             default: break;
           }
         default: break;
@@ -169,6 +171,23 @@ namespace cse
     fullscreen = !fullscreen;
   }
 
+  void Window::handle_vsync()
+  {
+    if (vsync)
+    {
+      if (SDL_WindowSupportsGPUPresentMode(gpu, window, SDL_GPU_PRESENTMODE_IMMEDIATE))
+        if (!SDL_SetGPUSwapchainParameters(gpu, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
+                                           SDL_GPU_PRESENTMODE_IMMEDIATE))
+          throw SDL_exception("Could not disable VSYNC for window {}", title);
+    }
+    else
+    {
+      if (!SDL_SetGPUSwapchainParameters(gpu, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
+        throw SDL_exception("Could not enable VSYNC for window {}", title);
+    }
+    vsync = !vsync;
+  }
+
   void Window::update_simulation_time()
   {
     double current_simulation_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
@@ -207,7 +226,7 @@ namespace cse
     }
   }
 
-  Window::Window(const std::string &i_title, bool i_fullscreen, int i_width, int i_height)
+  Window::Window(const std::string &i_title, int i_width, int i_height, bool i_fullscreen, bool i_vsync)
     : width(i_width), height(i_height), starting_width(i_width), starting_height(i_height)
   {
     SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
@@ -229,9 +248,9 @@ namespace cse
     if (!gpu) throw SDL_exception("Could not create GPU device for window {}", i_title);
     if (!SDL_ClaimWindowForGPUDevice(gpu, window))
       throw SDL_exception("Could not claim window for GPU device for window {}", i_title);
-    if (SDL_WindowSupportsGPUPresentMode(gpu, window, SDL_GPU_PRESENTMODE_IMMEDIATE))
-      if (!SDL_SetGPUSwapchainParameters(gpu, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_IMMEDIATE))
-        throw SDL_exception("Could not disable VSYNC for window {}", i_title);
+    if (!SDL_SetGPUSwapchainParameters(gpu, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
+      throw SDL_exception("Could not enable VSYNC for window {}", title);
+    if (!i_vsync) handle_vsync();
 
     // START TODO: Refactor
 
