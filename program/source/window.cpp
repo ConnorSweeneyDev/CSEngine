@@ -23,13 +23,13 @@
 
 namespace cse
 {
-  std::unique_ptr<Window> Window::create(const std::string &i_title, int i_width, int i_height, bool i_fullscreen,
-                                         bool i_vsync)
+  std::unique_ptr<Window> Window::create(const std::string &i_title, int i_starting_width, int i_starting_height,
+                                         bool i_fullscreen, bool i_vsync)
   {
     bool expected = false;
     if (!initialized.compare_exchange_strong(expected, true))
       throw Exception("A window already exists, could not create {}", i_title);
-    return std::unique_ptr<Window>(new Window(i_title, i_width, i_height, i_fullscreen, i_vsync));
+    return std::unique_ptr<Window>(new Window(i_title, i_starting_width, i_starting_height, i_fullscreen, i_vsync));
   }
 
   Window::~Window()
@@ -226,14 +226,16 @@ namespace cse
     }
   }
 
-  Window::Window(const std::string &i_title, int i_width, int i_height, bool i_fullscreen, bool i_vsync)
-    : width(i_width), height(i_height), starting_width(i_width), starting_height(i_height)
+  Window::Window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen,
+                 bool i_vsync)
+    : starting_width(i_starting_width), starting_height(i_starting_height), width(i_starting_width),
+      height(i_starting_height)
   {
     SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
     SDL_SetAppMetadata("CSEngine", "0.0.0", "Connor.Sweeney.Engine");
     if (!SDL_Init(SDL_INIT_VIDEO)) throw SDL_exception("SDL could not be initialized for window {}", i_title);
 
-    window = SDL_CreateWindow(i_title.c_str(), i_width, i_height, SDL_WINDOW_HIDDEN);
+    window = SDL_CreateWindow(i_title.c_str(), i_starting_width, i_starting_height, SDL_WINDOW_HIDDEN);
     if (!window) throw SDL_exception("Could not create window {}", i_title);
 
     display_index = SDL_GetPrimaryDisplay();

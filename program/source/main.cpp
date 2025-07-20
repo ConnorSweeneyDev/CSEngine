@@ -28,6 +28,7 @@ int try_main(int argc, char *argv[])
     }
   }
   window.reset();
+
   SDL_Log("Exiting application...");
   return EXIT_SUCCESS;
 }

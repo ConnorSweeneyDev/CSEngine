@@ -20,8 +20,8 @@ namespace cse
     };
 
   public:
-    static std::unique_ptr<Window> create(const std::string &i_title, int i_width, int i_height, bool i_fullscreen,
-                                          bool i_vsync);
+    static std::unique_ptr<Window> create(const std::string &i_title, int i_starting_width, int i_starting_height,
+                                          bool i_fullscreen, bool i_vsync);
     ~Window();
 
     void input();
@@ -45,7 +45,7 @@ namespace cse
     bool running = false;
 
   private:
-    Window(const std::string &i_title, int i_width, int i_height, bool i_fullscreen, bool i_vsync);
+    Window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen, bool i_vsync);
 
     void handle_quit();
     void handle_move();
@@ -54,6 +54,8 @@ namespace cse
 
   private:
     const std::string title;
+    const int starting_width = 0;
+    const int starting_height = 0;
     int width = 0;
     int height = 0;
     bool fullscreen = false;
@@ -61,8 +63,6 @@ namespace cse
     SDL_DisplayID display_index = 0;
     int left = 0;
     int top = 0;
-    const int starting_width = 0;
-    const int starting_height = 0;
 
     const double target_simulation_time = 1.0 / 60.0;
     double last_simulation_time = 0.0;
