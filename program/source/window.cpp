@@ -1,5 +1,6 @@
 #include "window.hpp"
 
+#include <array>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -18,6 +19,11 @@
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_timer.h"
 #include "SDL3/SDL_video.h"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/vector_float3.hpp"
+#include "glm/trigonometric.hpp"
 
 #include "exception.hpp"
 
@@ -126,6 +132,24 @@ namespace cse
     buffer_binding.buffer = index_buffer;
     buffer_binding.offset = 0;
     SDL_BindGPUIndexBuffer(render_pass, &buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+
+    glm::mat4 projection_matrix =
+      glm::perspective(glm::radians(45.0f), static_cast<float>(width) / static_cast<float>(height), 0.1f, 10.0f);
+    glm::vec3 view_translation = glm::vec3(0.0f, 0.0f, 2.0f);
+    glm::vec3 view_direction = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 view_up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::mat4 view_matrix = glm::lookAt(view_translation, view_translation + view_direction, view_up);
+    glm::vec3 model_translation = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 model_rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 model_scale = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::mat4 model_matrix = glm::mat4(1.0f);
+    model_matrix = glm::translate(model_matrix, model_translation);
+    model_matrix = glm::rotate(model_matrix, glm::radians(model_rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+    model_matrix = glm::rotate(model_matrix, glm::radians(model_rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    model_matrix = glm::rotate(model_matrix, glm::radians(model_rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    model_matrix = glm::scale(model_matrix, model_scale);
+    std::array<glm::mat4, 3> matrices = {projection_matrix, view_matrix, model_matrix};
+    SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
 
     SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0);
     SDL_EndGPURenderPass(render_pass);
@@ -262,14 +286,14 @@ namespace cse
     const SDL_GPUShaderFormat backend_formats = SDL_GetGPUShaderFormats(gpu);
     if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV)
     {
-      vertex_shader_path /= "PositionColor.vert.spv";
-      fragment_shader_path /= "SolidColor.frag.spv";
+      vertex_shader_path /= "main.vert.spv";
+      fragment_shader_path /= "main.frag.spv";
       shader_format = SDL_GPU_SHADERFORMAT_SPIRV;
     }
     else if (backend_formats & SDL_GPU_SHADERFORMAT_DXIL)
     {
-      vertex_shader_path /= "PositionColor.vert.dxil";
-      fragment_shader_path /= "SolidColor.frag.dxil";
+      vertex_shader_path /= "main.vert.dxil";
+      fragment_shader_path /= "main.frag.dxil";
       shader_format = SDL_GPU_SHADERFORMAT_DXIL;
     }
     else
@@ -307,7 +331,7 @@ namespace cse
     shader_info.format = shader_format;
     shader_info.stage = SDL_GPU_SHADERSTAGE_VERTEX;
     shader_info.num_samplers = 0;
-    shader_info.num_uniform_buffers = 0;
+    shader_info.num_uniform_buffers = 1;
     shader_info.num_storage_buffers = 0;
     shader_info.num_storage_textures = 0;
     SDL_GPUShader *vertex_shader = SDL_CreateGPUShader(gpu, &shader_info);
@@ -315,6 +339,7 @@ namespace cse
     shader_info.code = fragment_shader_binary.data();
     shader_info.code_size = fragment_shader_binary.size();
     shader_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
+    shader_info.num_uniform_buffers = 0;
     SDL_GPUShader *fragment_shader = SDL_CreateGPUShader(gpu, &shader_info);
     if (!fragment_shader) throw SDL_exception("Could not create fragment shader for window {}", i_title);
 
