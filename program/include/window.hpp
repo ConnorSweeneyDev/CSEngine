@@ -8,6 +8,7 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
+#include "glm/ext/vector_float3.hpp"
 
 namespace cse
 {
@@ -19,13 +20,6 @@ namespace cse
       float x = 0.0f, y = 0.0f, z = 0.0f;
       Uint8 r = 0, g = 0, b = 0, a = 0;
     };
-    const std::array<Position_color_vertex, 4> default_quad_vertices = {
-      Position_color_vertex{0.5f, 0.5f, 0.0f, 0, 0, 255, 255},
-      Position_color_vertex{0.5f, -0.5f, 0.0f, 0, 255, 0, 255},
-      Position_color_vertex{-0.5f, 0.5f, 0.0f, 255, 255, 255, 255},
-      Position_color_vertex{-0.5f, -0.5f, 0.0f, 255, 0, 0, 255},
-    };
-    const std::array<Uint16, 6> default_quad_indices = {3, 1, 0, 3, 0, 2};
 
   public:
     static std::unique_ptr<Window> create(const std::string &i_title, int i_starting_width, int i_starting_height,
@@ -44,12 +38,6 @@ namespace cse
     void update_fps();
 
   public:
-    float current_strength = 0.1f;
-    float previous_strength = current_strength;
-    float interpolated_strength = current_strength;
-    float strength_velocity = 0.0f;
-    float strength_acceleration = 0.0f;
-
     bool running = false;
 
   private:
@@ -81,11 +69,24 @@ namespace cse
     double last_fps_time = 0;
     int frame_count = 0;
 
+    glm::vec3 current_view_translation = glm::vec3(0.0f, 0.0f, 2.0f);
+    glm::vec3 previous_view_translation = current_view_translation;
+    glm::vec3 interpolated_view_translation = current_view_translation;
+    glm::vec3 view_translation_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 view_translation_acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
+
     SDL_Window *window = nullptr;
     SDL_GPUDevice *gpu = nullptr;
     SDL_GPUGraphicsPipeline *pipeline = nullptr;
     SDL_GPUBuffer *vertex_buffer = nullptr;
     SDL_GPUBuffer *index_buffer = nullptr;
+    const std::array<Position_color_vertex, 4> default_quad_vertices = {
+      Position_color_vertex{0.5f, 0.5f, 0.0f, 0, 0, 255, 255},
+      Position_color_vertex{0.5f, -0.5f, 0.0f, 0, 255, 0, 255},
+      Position_color_vertex{-0.5f, 0.5f, 0.0f, 255, 255, 255, 255},
+      Position_color_vertex{-0.5f, -0.5f, 0.0f, 255, 0, 0, 255},
+    };
+    const std::array<Uint16, 6> default_quad_indices = {3, 1, 0, 3, 0, 2};
     inline static std::atomic<bool> initialized = false;
   };
 }

@@ -72,35 +72,31 @@ namespace cse
       }
     }
 
-    if (key_state[SDL_SCANCODE_D]) strength_acceleration -= 0.0005f;
-    if (key_state[SDL_SCANCODE_F]) strength_acceleration += 0.0005f;
+    if (key_state[SDL_SCANCODE_E]) view_translation_acceleration.y += 0.0005f;
+    if (key_state[SDL_SCANCODE_D]) view_translation_acceleration.y -= 0.0005f;
+    if (key_state[SDL_SCANCODE_F]) view_translation_acceleration.x += 0.0005f;
+    if (key_state[SDL_SCANCODE_S]) view_translation_acceleration.x -= 0.0005f;
+    if (key_state[SDL_SCANCODE_W]) view_translation_acceleration.z += 0.0005f;
+    if (key_state[SDL_SCANCODE_R]) view_translation_acceleration.z -= 0.0005f;
   }
 
   void Window::simulate()
   {
-    previous_strength = current_strength;
-    strength_velocity += strength_acceleration;
-    if (!(strength_velocity < 0 && strength_velocity > 0))
+    previous_view_translation = current_view_translation;
+    view_translation_velocity += view_translation_acceleration;
+    for (int i = 0; i < 3; ++i)
     {
-      strength_acceleration = -0.0001f;
-      if (strength_velocity < 0) strength_velocity -= strength_acceleration;
-      if (strength_velocity > 0) strength_velocity += strength_acceleration;
-      if (strength_velocity < 0.0001f && strength_velocity > -0.0001f) strength_velocity = 0.0f;
+      view_translation_acceleration[i] = -0.0001f;
+      if (view_translation_velocity[i] < 0.0f) view_translation_velocity[i] -= view_translation_acceleration[i];
+      if (view_translation_velocity[i] > 0.0f) view_translation_velocity[i] += view_translation_acceleration[i];
+      if (view_translation_velocity[i] < 0.0001f && view_translation_velocity[i] > -0.0001f)
+        view_translation_velocity[i] = 0.0f;
     }
-    current_strength += strength_velocity;
-    if (current_strength < 0.0f)
-    {
-      current_strength = 0.0f;
-      strength_velocity = 0.0f;
-    }
-    if (current_strength > 0.5f)
-    {
-      current_strength = 0.5f;
-      strength_velocity = 0.0f;
-    }
-    strength_acceleration = 0.0f;
-    interpolated_strength =
-      previous_strength + ((current_strength - previous_strength) * static_cast<float>(simulation_alpha));
+    current_view_translation += view_translation_velocity;
+    view_translation_acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
+    interpolated_view_translation =
+      previous_view_translation +
+      ((current_view_translation - previous_view_translation) * static_cast<float>(simulation_alpha));
   }
 
   void Window::render()
@@ -121,7 +117,7 @@ namespace cse
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target_info.texture = swapchain_texture;
-    color_target_info.clear_color = {interpolated_strength, interpolated_strength, interpolated_strength, 1.0f};
+    color_target_info.clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
     SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
     if (!render_pass) throw SDL_exception("Could not begin GPU render pass");
 
@@ -136,10 +132,11 @@ namespace cse
 
     glm::mat4 projection_matrix =
       glm::perspective(glm::radians(45.0f), static_cast<float>(width) / static_cast<float>(height), 0.1f, 10.0f);
-    glm::vec3 view_translation = glm::vec3(0.0f, 0.0f, 2.0f);
+    // glm::vec3 view_translation = glm::vec3(0.0f, 0.0f, 2.0f);
     glm::vec3 view_direction = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 view_up = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::mat4 view_matrix = glm::lookAt(view_translation, view_translation + view_direction, view_up);
+    glm::mat4 view_matrix =
+      glm::lookAt(interpolated_view_translation, interpolated_view_translation + view_direction, view_up);
     glm::vec3 model_translation = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 model_rotation = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 model_scale = glm::vec3(1.0f, 1.0f, 1.0f);
