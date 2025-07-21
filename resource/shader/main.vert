@@ -10,7 +10,7 @@ struct Output
   float4 position : SV_Position;
 };
 
-cbuffer Matrices : register(b0, space1)
+cbuffer matrices : register(b0, space1)
 {
   float4x4 projection_matrix;
   float4x4 view_matrix;

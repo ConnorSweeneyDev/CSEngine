@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <memory>
 #include <string>
@@ -18,6 +19,13 @@ namespace cse
       float x = 0.0f, y = 0.0f, z = 0.0f;
       Uint8 r = 0, g = 0, b = 0, a = 0;
     };
+    const std::array<Position_color_vertex, 4> default_quad_vertices = {
+      Position_color_vertex{0.5f, 0.5f, 0.0f, 0, 0, 255, 255},
+      Position_color_vertex{0.5f, -0.5f, 0.0f, 0, 255, 0, 255},
+      Position_color_vertex{-0.5f, 0.5f, 0.0f, 255, 255, 255, 255},
+      Position_color_vertex{-0.5f, -0.5f, 0.0f, 255, 0, 0, 255},
+    };
+    const std::array<Uint16, 6> default_quad_indices = {3, 1, 0, 3, 0, 2};
 
   public:
     static std::unique_ptr<Window> create(const std::string &i_title, int i_starting_width, int i_starting_height,

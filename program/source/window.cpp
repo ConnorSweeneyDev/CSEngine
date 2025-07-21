@@ -1,5 +1,6 @@
 #include "window.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <filesystem>
@@ -270,7 +271,7 @@ namespace cse
       throw SDL_exception("Could not set window {} position to ({}, {})", i_title, left, top);
     if (i_fullscreen) handle_fullscreen();
 
-    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, true, nullptr);
+    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, false, nullptr);
     if (!gpu) throw SDL_exception("Could not create GPU device for window {}", i_title);
     if (!SDL_ClaimWindowForGPUDevice(gpu, window))
       throw SDL_exception("Could not claim window for GPU device for window {}", i_title);
@@ -347,6 +348,8 @@ namespace cse
     pipeline_info.vertex_shader = vertex_shader;
     pipeline_info.fragment_shader = fragment_shader;
     pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+    pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+    pipeline_info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_BACK;
 
     SDL_GPUVertexInputState vertex_input = {};
     vertex_input.num_vertex_buffers = 1;
@@ -357,16 +360,16 @@ namespace cse
     vertex_buffer_description.instance_step_rate = 0;
     vertex_buffer_description.pitch = sizeof(Position_color_vertex);
     vertex_input.vertex_buffer_descriptions = &vertex_buffer_description;
-    SDL_GPUVertexAttribute vertex_attributes[2];
-    vertex_attributes[0].buffer_slot = 0;
-    vertex_attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-    vertex_attributes[0].location = 0;
-    vertex_attributes[0].offset = 0;
-    vertex_attributes[1].buffer_slot = 0;
-    vertex_attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
-    vertex_attributes[1].location = 1;
-    vertex_attributes[1].offset = sizeof(float) * 3;
-    vertex_input.vertex_attributes = vertex_attributes;
+    std::array<SDL_GPUVertexAttribute, 2> vertex_attributes;
+    vertex_attributes.at(0).buffer_slot = 0;
+    vertex_attributes.at(0).format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+    vertex_attributes.at(0).location = 0;
+    vertex_attributes.at(0).offset = 0;
+    vertex_attributes.at(1).buffer_slot = 0;
+    vertex_attributes.at(1).format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
+    vertex_attributes.at(1).location = 1;
+    vertex_attributes.at(1).offset = sizeof(float) * 3;
+    vertex_input.vertex_attributes = vertex_attributes.data();
     pipeline_info.vertex_input_state = vertex_input;
 
     pipeline_info.target_info.num_color_targets = 1;
@@ -395,21 +398,12 @@ namespace cse
     SDL_GPUTransferBuffer *transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &transfer_buffer_info);
     if (!transfer_buffer) throw SDL_exception("Could not create transfer buffer for window {}", i_title);
 
-    Position_color_vertex *vertex_data =
-      reinterpret_cast<Position_color_vertex *>(SDL_MapGPUTransferBuffer(gpu, transfer_buffer, false));
+    auto vertex_data = reinterpret_cast<Position_color_vertex *>(SDL_MapGPUTransferBuffer(gpu, transfer_buffer, false));
     if (!vertex_data) throw SDL_exception("Could not map vertex data for window {}", i_title);
-    vertex_data[0] = {-0.5f, -0.5f, 0.0f, 255, 0, 0, 255};
-    vertex_data[1] = {0.5f, -0.5f, 0.0f, 0, 255, 0, 255};
-    vertex_data[2] = {0.5f, 0.5f, 0.0f, 0, 0, 255, 255};
-    vertex_data[3] = {-0.5f, 0.5f, 0.0f, 255, 255, 255, 255};
-    Uint16 *index_data = reinterpret_cast<Uint16 *>(&vertex_data[4]);
+    std::copy(default_quad_vertices.begin(), default_quad_vertices.end(), vertex_data);
+    auto index_data = reinterpret_cast<Uint16 *>(&vertex_data[default_quad_vertices.size()]);
     if (!index_data) throw SDL_exception("Could not map index data for window {}", i_title);
-    index_data[0] = 0;
-    index_data[1] = 1;
-    index_data[2] = 2;
-    index_data[3] = 0;
-    index_data[4] = 2;
-    index_data[5] = 3;
+    std::copy(default_quad_indices.begin(), default_quad_indices.end(), index_data);
     SDL_UnmapGPUTransferBuffer(gpu, transfer_buffer);
 
     SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
