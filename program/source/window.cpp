@@ -41,12 +41,14 @@ namespace cse
 
   Window::~Window()
   {
+    SDL_ReleaseGPUBuffer(gpu, vertex_buffer);
+    SDL_ReleaseGPUBuffer(gpu, index_buffer);
+    SDL_ReleaseGPUGraphicsPipeline(gpu, pipeline);
     SDL_ReleaseWindowFromGPUDevice(gpu, window);
     SDL_DestroyGPUDevice(gpu);
     SDL_DestroyWindow(window);
-    window = nullptr;
-    running = false;
     SDL_Quit();
+    running = false;
     initialized.store(false);
   }
 
@@ -113,6 +115,8 @@ namespace cse
       return;
     }
 
+    // START TODO: Refactor
+
     SDL_GPUColorTargetInfo color_target_info = {};
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
@@ -151,6 +155,8 @@ namespace cse
 
     SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0);
     SDL_EndGPURenderPass(render_pass);
+
+    // END TODO: Refactor
 
     if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw SDL_exception("Could not submit GPU command buffer");
   }
