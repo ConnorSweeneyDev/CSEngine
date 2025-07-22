@@ -209,10 +209,8 @@ namespace cse
           throw SDL_exception("Could not disable VSYNC for window {}", title);
     }
     else
-    {
       if (!SDL_SetGPUSwapchainParameters(gpu, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
         throw SDL_exception("Could not enable VSYNC for window {}", title);
-    }
     vsync = !vsync;
   }
 
