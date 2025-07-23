@@ -27,9 +27,3 @@ build/
 external/
 CPM_modules/
 cpm-package-lock.cmake
-
-# Program Output
-log.txt
-
-# User Files
-user/
