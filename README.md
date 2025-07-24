@@ -19,4 +19,4 @@ All dependencies are managed by CPM.cmake. After changing the version of a depen
 Change the `CPM_VERSION` variable inside `cmake/Manage.cmake` to the desired version.
 
 ### [SDL](https://github.com/libsdl-org/SDL/releases) and [SDL_Shadercross](https://github.com/libsdl-org/SDL_shadercross)
-Change the `[DEPENDECY]_VERSION` variable inside `cmake/Deps.cmake` to the desired version.
+Change the `[DEPENDECY]_VERSION` variable inside `cmake/Dependency.cmake` to the desired version.
