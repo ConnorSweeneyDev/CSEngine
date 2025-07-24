@@ -125,6 +125,13 @@ namespace cse
     SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
     if (!render_pass) throw SDL_exception("Could not begin GPU render pass");
 
+    SDL_GPUViewport viewport = {};
+    viewport.w = static_cast<float>(width);
+    viewport.h = static_cast<float>(height);
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    SDL_SetGPUViewport(render_pass, &viewport);
+
     SDL_BindGPUGraphicsPipeline(render_pass, pipeline);
     SDL_GPUBufferBinding buffer_binding = {};
     buffer_binding.buffer = vertex_buffer;
@@ -180,6 +187,8 @@ namespace cse
       if (!SDL_SetWindowBordered(window, true)) throw SDL_exception("Could not set window bordered");
       if (!SDL_SetWindowSize(window, starting_width, starting_height))
         throw SDL_exception("Could not set window size to ({}, {})", starting_width, starting_height);
+      width = starting_width;
+      height = starting_height;
       if (!SDL_SetWindowPosition(window, left, top))
         throw SDL_exception("Could not set window position to ({}, {})", left, top);
     }
@@ -192,6 +201,8 @@ namespace cse
       if (!SDL_SetWindowSize(window, display_bounds.w, display_bounds.h))
         throw SDL_exception("Could not set window size to ({}, {}) on display {}", display_bounds.w, display_bounds.h,
                             display_index);
+      width = display_bounds.w;
+      height = display_bounds.h;
       if (!SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
                                  SDL_WINDOWPOS_CENTERED_DISPLAY(display_index)))
         throw SDL_exception("Could not set window position centered on display {}", display_index);
