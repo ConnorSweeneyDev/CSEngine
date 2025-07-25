@@ -13,9 +13,9 @@ if [ $ALL == 1 ]; then
 fi
 
 if [ $ENGINE == 0 ]; then
-  rm -rf build/CSEngine.dir
+  rm -rf build/Release build/Debug build/CSEngine.dir build/FormatMarkers
 elif [ $ENGINE == 1 ]; then
-  rm -rf build/CSEngine.dir build/_deps build/cmake
+  rm -rf build/Release build/Debug build/CSEngine.dir build/FormatMarkers build/CMakeFiles build/_deps build/cmake
 fi
 
 if [ $RESOURCE == 1 ]; then
