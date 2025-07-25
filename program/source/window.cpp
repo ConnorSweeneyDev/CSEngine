@@ -27,29 +27,29 @@
 
 namespace cse
 {
-  std::unique_ptr<Window> Window::create(const std::string &i_title, int i_starting_width, int i_starting_height,
+  std::unique_ptr<window> window::create(const std::string &i_title, int i_starting_width, int i_starting_height,
                                          bool i_fullscreen, bool i_vsync)
   {
     bool expected = false;
     if (!initialized.compare_exchange_strong(expected, true))
-      throw Exception("A window already exists, could not create {}", i_title);
-    return std::unique_ptr<Window>(new Window(i_title, i_starting_width, i_starting_height, i_fullscreen, i_vsync));
+      throw exception("A window already exists, could not create {}", i_title);
+    return std::unique_ptr<window>(new window(i_title, i_starting_width, i_starting_height, i_fullscreen, i_vsync));
   }
 
-  Window::~Window()
+  window::~window()
   {
     SDL_ReleaseGPUBuffer(gpu, vertex_buffer);
     SDL_ReleaseGPUBuffer(gpu, index_buffer);
     SDL_ReleaseGPUGraphicsPipeline(gpu, pipeline);
-    SDL_ReleaseWindowFromGPUDevice(gpu, window);
+    SDL_ReleaseWindowFromGPUDevice(gpu, instance);
     SDL_DestroyGPUDevice(gpu);
-    SDL_DestroyWindow(window);
+    SDL_DestroyWindow(instance);
     SDL_Quit();
     running = false;
     initialized.store(false);
   }
 
-  void Window::input()
+  void window::input()
   {
     SDL_Event event = {};
     const bool *key_state = SDL_GetKeyboardState(nullptr);
@@ -79,7 +79,7 @@ namespace cse
     if (key_state[SDL_SCANCODE_R]) view_translation_acceleration.z -= 0.0005f;
   }
 
-  void Window::simulate()
+  void window::simulate()
   {
     previous_view_translation = current_view_translation;
     view_translation_velocity += view_translation_acceleration;
@@ -98,17 +98,17 @@ namespace cse
       ((current_view_translation - previous_view_translation) * static_cast<float>(simulation_alpha));
   }
 
-  void Window::render()
+  void window::render()
   {
     SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
-    if (!command_buffer) throw SDL_exception("Could not acquire GPU command buffer");
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer");
 
     SDL_GPUTexture *swapchain_texture = nullptr;
-    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, window, &swapchain_texture, nullptr, nullptr))
-      throw SDL_exception("Could not acquire GPU swapchain texture");
+    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, nullptr, nullptr))
+      throw sdl_exception("Could not acquire GPU swapchain texture");
     if (!swapchain_texture)
     {
-      if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw SDL_exception("Could not submit GPU command buffer");
+      if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
       return;
     }
 
@@ -120,7 +120,7 @@ namespace cse
     color_target_info.texture = swapchain_texture;
     color_target_info.clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
     SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
-    if (!render_pass) throw SDL_exception("Could not begin GPU render pass");
+    if (!render_pass) throw sdl_exception("Could not begin GPU render pass");
 
     SDL_GPUViewport viewport = {};
     viewport.w = static_cast<float>(width);
@@ -162,66 +162,66 @@ namespace cse
 
     // END TODO: Refactor
 
-    if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw SDL_exception("Could not submit GPU command buffer");
+    if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
   }
 
-  void Window::handle_quit() { running = false; }
+  void window::handle_quit() { running = false; }
 
-  void Window::handle_move()
+  void window::handle_move()
   {
     if (fullscreen) return;
 
-    if (!SDL_GetWindowPosition(window, &left, &top))
-      throw SDL_exception("Could not get window position for window at ({}, {})", left, top);
-    display_index = SDL_GetDisplayForWindow(window);
-    if (display_index == 0) throw SDL_exception("Could not get display index");
+    if (!SDL_GetWindowPosition(instance, &left, &top))
+      throw sdl_exception("Could not get window position for window at ({}, {})", left, top);
+    display_index = SDL_GetDisplayForWindow(instance);
+    if (display_index == 0) throw sdl_exception("Could not get display index");
   }
 
-  void Window::handle_fullscreen()
+  void window::handle_fullscreen()
   {
     if (fullscreen)
     {
-      if (!SDL_SetWindowBordered(window, true)) throw SDL_exception("Could not set window bordered");
-      if (!SDL_SetWindowSize(window, starting_width, starting_height))
-        throw SDL_exception("Could not set window size to ({}, {})", starting_width, starting_height);
+      if (!SDL_SetWindowBordered(instance, true)) throw sdl_exception("Could not set window bordered");
+      if (!SDL_SetWindowSize(instance, starting_width, starting_height))
+        throw sdl_exception("Could not set window size to ({}, {})", starting_width, starting_height);
       width = starting_width;
       height = starting_height;
-      if (!SDL_SetWindowPosition(window, left, top))
-        throw SDL_exception("Could not set window position to ({}, {})", left, top);
+      if (!SDL_SetWindowPosition(instance, left, top))
+        throw sdl_exception("Could not set window position to ({}, {})", left, top);
     }
     else
     {
       SDL_Rect display_bounds;
       if (!SDL_GetDisplayBounds(display_index, &display_bounds))
-        throw SDL_exception("Could not get display bounds for display {}", display_index);
-      if (!SDL_SetWindowBordered(window, false)) throw SDL_exception("Could not set window borderless");
-      if (!SDL_SetWindowSize(window, display_bounds.w, display_bounds.h))
-        throw SDL_exception("Could not set window size to ({}, {}) on display {}", display_bounds.w, display_bounds.h,
+        throw sdl_exception("Could not get display bounds for display {}", display_index);
+      if (!SDL_SetWindowBordered(instance, false)) throw sdl_exception("Could not set window borderless");
+      if (!SDL_SetWindowSize(instance, display_bounds.w, display_bounds.h))
+        throw sdl_exception("Could not set window size to ({}, {}) on display {}", display_bounds.w, display_bounds.h,
                             display_index);
       width = display_bounds.w;
       height = display_bounds.h;
-      if (!SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
+      if (!SDL_SetWindowPosition(instance, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
                                  SDL_WINDOWPOS_CENTERED_DISPLAY(display_index)))
-        throw SDL_exception("Could not set window position centered on display {}", display_index);
+        throw sdl_exception("Could not set window position centered on display {}", display_index);
     }
     fullscreen = !fullscreen;
   }
 
-  void Window::handle_vsync()
+  void window::handle_vsync()
   {
     if (vsync)
     {
-      if (SDL_WindowSupportsGPUPresentMode(gpu, window, SDL_GPU_PRESENTMODE_IMMEDIATE))
-        if (!SDL_SetGPUSwapchainParameters(gpu, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
+      if (SDL_WindowSupportsGPUPresentMode(gpu, instance, SDL_GPU_PRESENTMODE_IMMEDIATE))
+        if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
                                            SDL_GPU_PRESENTMODE_IMMEDIATE))
-          throw SDL_exception("Could not disable VSYNC for window {}", title);
+          throw sdl_exception("Could not disable VSYNC for window {}", title);
     }
-    else if (!SDL_SetGPUSwapchainParameters(gpu, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
-      throw SDL_exception("Could not enable VSYNC for window {}", title);
+    else if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
+      throw sdl_exception("Could not enable VSYNC for window {}", title);
     vsync = !vsync;
   }
 
-  void Window::update_simulation_time()
+  void window::update_simulation_time()
   {
     double current_simulation_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
     double delta_simulation_time = current_simulation_time - last_simulation_time;
@@ -230,13 +230,13 @@ namespace cse
     simulation_accumulator += delta_simulation_time;
   }
 
-  bool Window::simulation_behind() { return simulation_accumulator >= target_simulation_time; }
+  bool window::simulation_behind() { return simulation_accumulator >= target_simulation_time; }
 
-  void Window::catchup_simulation() { simulation_accumulator -= target_simulation_time; }
+  void window::catchup_simulation() { simulation_accumulator -= target_simulation_time; }
 
-  void Window::update_simulation_alpha() { simulation_alpha = simulation_accumulator / target_simulation_time; }
+  void window::update_simulation_alpha() { simulation_alpha = simulation_accumulator / target_simulation_time; }
 
-  bool Window::render_behind()
+  bool window::render_behind()
   {
     double current_render_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
     if (current_render_time - last_render_time >= target_render_time)
@@ -247,7 +247,7 @@ namespace cse
     return false;
   }
 
-  void Window::update_fps()
+  void window::update_fps()
   {
     frame_count++;
     double current_fps_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
@@ -259,32 +259,32 @@ namespace cse
     }
   }
 
-  Window::Window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen,
+  window::window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen,
                  bool i_vsync)
     : starting_width(i_starting_width), starting_height(i_starting_height), width(i_starting_width),
       height(i_starting_height)
   {
     SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
     SDL_SetAppMetadata("CSEngine", "0.0.0", "Connor.Sweeney.Engine");
-    if (!SDL_Init(SDL_INIT_VIDEO)) throw SDL_exception("SDL could not be initialized for window {}", i_title);
+    if (!SDL_Init(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be initialized for window {}", i_title);
 
-    window = SDL_CreateWindow(i_title.c_str(), i_starting_width, i_starting_height, SDL_WINDOW_HIDDEN);
-    if (!window) throw SDL_exception("Could not create window {}", i_title);
+    instance = SDL_CreateWindow(i_title.c_str(), i_starting_width, i_starting_height, SDL_WINDOW_HIDDEN);
+    if (!instance) throw sdl_exception("Could not create window {}", i_title);
 
     display_index = SDL_GetPrimaryDisplay();
-    if (display_index == 0) throw SDL_exception("Could not get primary display for window {}", i_title);
+    if (display_index == 0) throw sdl_exception("Could not get primary display for window {}", i_title);
     left = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
     top = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
-    if (!SDL_SetWindowPosition(window, left, top))
-      throw SDL_exception("Could not set window {} position to ({}, {})", i_title, left, top);
+    if (!SDL_SetWindowPosition(instance, left, top))
+      throw sdl_exception("Could not set window {} position to ({}, {})", i_title, left, top);
     if (i_fullscreen) handle_fullscreen();
 
     gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, false, nullptr);
-    if (!gpu) throw SDL_exception("Could not create GPU device for window {}", i_title);
-    if (!SDL_ClaimWindowForGPUDevice(gpu, window))
-      throw SDL_exception("Could not claim window for GPU device for window {}", i_title);
-    if (!SDL_SetGPUSwapchainParameters(gpu, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
-      throw SDL_exception("Could not enable VSYNC for window {}", title);
+    if (!gpu) throw sdl_exception("Could not create GPU device for window {}", i_title);
+    if (!SDL_ClaimWindowForGPUDevice(gpu, instance))
+      throw sdl_exception("Could not claim window for GPU device for window {}", i_title);
+    if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
+      throw sdl_exception("Could not enable VSYNC for window {}", title);
     if (!i_vsync) handle_vsync();
 
     // START TODO: Refactor
@@ -304,7 +304,7 @@ namespace cse
       shader_info.format = SDL_GPU_SHADERFORMAT_DXIL;
     }
     else
-      throw SDL_exception("Could not find supported shader format for window {}", i_title);
+      throw sdl_exception("Could not find supported shader format for window {}", i_title);
     shader_info.entrypoint = "main";
     shader_info.stage = SDL_GPU_SHADERSTAGE_VERTEX;
     shader_info.num_samplers = 0;
@@ -312,7 +312,7 @@ namespace cse
     shader_info.num_storage_buffers = 0;
     shader_info.num_storage_textures = 0;
     SDL_GPUShader *vertex_shader = SDL_CreateGPUShader(gpu, &shader_info);
-    if (!vertex_shader) throw SDL_exception("Could not create vertex shader for window {}", i_title);
+    if (!vertex_shader) throw sdl_exception("Could not create vertex shader for window {}", i_title);
     if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV)
     {
       shader_info.code = resource::main_fragment.spirv.data();
@@ -326,11 +326,11 @@ namespace cse
       shader_info.format = SDL_GPU_SHADERFORMAT_DXIL;
     }
     else
-      throw SDL_exception("Could not find supported shader format for window {}", i_title);
+      throw sdl_exception("Could not find supported shader format for window {}", i_title);
     shader_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
     shader_info.num_uniform_buffers = 0;
     SDL_GPUShader *fragment_shader = SDL_CreateGPUShader(gpu, &shader_info);
-    if (!fragment_shader) throw SDL_exception("Could not create fragment shader for window {}", i_title);
+    if (!fragment_shader) throw sdl_exception("Could not create fragment shader for window {}", i_title);
 
     SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
     pipeline_info.vertex_shader = vertex_shader;
@@ -346,7 +346,7 @@ namespace cse
     vertex_buffer_description.slot = 0;
     vertex_buffer_description.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
     vertex_buffer_description.instance_step_rate = 0;
-    vertex_buffer_description.pitch = sizeof(Position_color_vertex);
+    vertex_buffer_description.pitch = sizeof(position_color_vertex);
     vertex_input.vertex_buffer_descriptions = &vertex_buffer_description;
     std::array<SDL_GPUVertexAttribute, 2> vertex_attributes;
     vertex_attributes.at(0).buffer_slot = 0;
@@ -362,42 +362,42 @@ namespace cse
 
     pipeline_info.target_info.num_color_targets = 1;
     SDL_GPUColorTargetDescription color_target_description = {};
-    color_target_description.format = SDL_GetGPUSwapchainTextureFormat(gpu, window);
+    color_target_description.format = SDL_GetGPUSwapchainTextureFormat(gpu, instance);
     pipeline_info.target_info.color_target_descriptions = &color_target_description;
 
     pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &pipeline_info);
-    if (!pipeline) throw SDL_exception("Could not create graphics pipeline for window {}", i_title);
+    if (!pipeline) throw sdl_exception("Could not create graphics pipeline for window {}", i_title);
     SDL_ReleaseGPUShader(gpu, vertex_shader);
     SDL_ReleaseGPUShader(gpu, fragment_shader);
 
     SDL_GPUBufferCreateInfo buffer_info = {};
     buffer_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-    buffer_info.size = sizeof(Position_color_vertex) * 4;
+    buffer_info.size = sizeof(position_color_vertex) * 4;
     vertex_buffer = SDL_CreateGPUBuffer(gpu, &buffer_info);
-    if (!vertex_buffer) throw SDL_exception("Could not create vertex buffer for window {}", i_title);
+    if (!vertex_buffer) throw sdl_exception("Could not create vertex buffer for window {}", i_title);
     buffer_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
     buffer_info.size = sizeof(Uint16) * 6;
     index_buffer = SDL_CreateGPUBuffer(gpu, &buffer_info);
-    if (!index_buffer) throw SDL_exception("Could not create index buffer for window {}", i_title);
+    if (!index_buffer) throw sdl_exception("Could not create index buffer for window {}", i_title);
 
     SDL_GPUTransferBufferCreateInfo transfer_buffer_info = {};
     transfer_buffer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    transfer_buffer_info.size = (sizeof(Position_color_vertex) * 4) + (sizeof(Uint16) * 6);
+    transfer_buffer_info.size = (sizeof(position_color_vertex) * 4) + (sizeof(Uint16) * 6);
     SDL_GPUTransferBuffer *transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &transfer_buffer_info);
-    if (!transfer_buffer) throw SDL_exception("Could not create transfer buffer for window {}", i_title);
+    if (!transfer_buffer) throw sdl_exception("Could not create transfer buffer for window {}", i_title);
 
-    auto vertex_data = reinterpret_cast<Position_color_vertex *>(SDL_MapGPUTransferBuffer(gpu, transfer_buffer, false));
-    if (!vertex_data) throw SDL_exception("Could not map vertex data for window {}", i_title);
+    auto vertex_data = reinterpret_cast<position_color_vertex *>(SDL_MapGPUTransferBuffer(gpu, transfer_buffer, false));
+    if (!vertex_data) throw sdl_exception("Could not map vertex data for window {}", i_title);
     std::copy(default_quad_vertices.begin(), default_quad_vertices.end(), vertex_data);
     auto index_data = reinterpret_cast<Uint16 *>(&vertex_data[default_quad_vertices.size()]);
-    if (!index_data) throw SDL_exception("Could not map index data for window {}", i_title);
+    if (!index_data) throw sdl_exception("Could not map index data for window {}", i_title);
     std::copy(default_quad_indices.begin(), default_quad_indices.end(), index_data);
     SDL_UnmapGPUTransferBuffer(gpu, transfer_buffer);
 
     SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
-    if (!command_buffer) throw SDL_exception("Could not acquire GPU command buffer for window {}", i_title);
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for window {}", i_title);
     SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass(command_buffer);
-    if (!copy_pass) throw SDL_exception("Could not begin GPU copy pass for window {}", i_title);
+    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for window {}", i_title);
 
     SDL_GPUTransferBufferLocation transfer_buffer_location = {};
     transfer_buffer_location.transfer_buffer = transfer_buffer;
@@ -405,9 +405,9 @@ namespace cse
     SDL_GPUBufferRegion buffer_region = {};
     buffer_region.buffer = vertex_buffer;
     buffer_region.offset = 0;
-    buffer_region.size = sizeof(Position_color_vertex) * 4;
+    buffer_region.size = sizeof(position_color_vertex) * 4;
     SDL_UploadToGPUBuffer(copy_pass, &transfer_buffer_location, &buffer_region, false);
-    transfer_buffer_location.offset = sizeof(Position_color_vertex) * 4;
+    transfer_buffer_location.offset = sizeof(position_color_vertex) * 4;
     buffer_region.buffer = index_buffer;
     buffer_region.size = sizeof(Uint16) * 6;
     SDL_UploadToGPUBuffer(copy_pass, &transfer_buffer_location, &buffer_region, false);
@@ -418,7 +418,7 @@ namespace cse
 
     // END TODO: Refactor
 
-    SDL_ShowWindow(window);
+    SDL_ShowWindow(instance);
     running = true;
   }
 }

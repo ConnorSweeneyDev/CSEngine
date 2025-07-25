@@ -12,19 +12,19 @@
 
 namespace cse
 {
-  class Window
+  class window
   {
   private:
-    struct Position_color_vertex
+    struct position_color_vertex
     {
       float x = 0.0f, y = 0.0f, z = 0.0f;
       Uint8 r = 0, g = 0, b = 0, a = 0;
     };
 
   public:
-    static std::unique_ptr<Window> create(const std::string &i_title, int i_starting_width, int i_starting_height,
+    static std::unique_ptr<window> create(const std::string &i_title, int i_starting_width, int i_starting_height,
                                           bool i_fullscreen, bool i_vsync);
-    ~Window();
+    ~window();
 
     void input();
     void simulate();
@@ -41,7 +41,7 @@ namespace cse
     bool running = false;
 
   private:
-    Window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen, bool i_vsync);
+    window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen, bool i_vsync);
 
     void handle_quit();
     void handle_move();
@@ -75,16 +75,16 @@ namespace cse
     glm::vec3 view_translation_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 view_translation_acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    SDL_Window *window = nullptr;
+    SDL_Window *instance = nullptr;
     SDL_GPUDevice *gpu = nullptr;
     SDL_GPUGraphicsPipeline *pipeline = nullptr;
     SDL_GPUBuffer *vertex_buffer = nullptr;
     SDL_GPUBuffer *index_buffer = nullptr;
-    const std::array<Position_color_vertex, 4> default_quad_vertices = {
-      Position_color_vertex{0.5f, 0.5f, 0.0f, 0, 0, 255, 255},
-      Position_color_vertex{0.5f, -0.5f, 0.0f, 0, 255, 0, 255},
-      Position_color_vertex{-0.5f, 0.5f, 0.0f, 255, 255, 255, 255},
-      Position_color_vertex{-0.5f, -0.5f, 0.0f, 255, 0, 0, 255},
+    const std::array<position_color_vertex, 4> default_quad_vertices = {
+      position_color_vertex{0.5f, 0.5f, 0.0f, 0, 0, 255, 255},
+      position_color_vertex{0.5f, -0.5f, 0.0f, 0, 255, 0, 255},
+      position_color_vertex{-0.5f, 0.5f, 0.0f, 255, 255, 255, 255},
+      position_color_vertex{-0.5f, -0.5f, 0.0f, 255, 0, 0, 255},
     };
     const std::array<Uint16, 6> default_quad_indices = {3, 1, 0, 3, 0, 2};
     inline static std::atomic<bool> initialized = false;

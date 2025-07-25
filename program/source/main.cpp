@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <exception>
+#include <memory>
 
 #include "SDL3/SDL_log.h"
 
@@ -8,9 +9,9 @@
 
 int try_main(int argc, char *argv[])
 {
-  if (argc > 1 || !argv[0]) throw cse::Exception("Expected 1 argument, got {}", argc);
+  if (argc > 1 || !argv[0]) throw cse::exception("Expected 1 argument, got {}", argc);
 
-  auto window = cse::Window::create(argv[0], 1280, 720, false, true);
+  std::shared_ptr<cse::window> window = cse::window::create(argv[0], 1280, 720, false, true);
   while (window->running)
   {
     window->update_simulation_time();

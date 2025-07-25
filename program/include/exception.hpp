@@ -5,20 +5,20 @@
 
 namespace cse
 {
-  class Exception : public std::exception
+  class exception : public std::exception
   {
   public:
-    template <typename... Args> Exception(const std::string &format, Args &&...args);
+    template <typename... args> exception(const std::string &format, args &&...arguments);
     const char *what() const noexcept override;
 
   protected:
     std::string message = "";
   };
 
-  class SDL_exception : public Exception
+  class sdl_exception : public exception
   {
   public:
-    template <typename... Args> SDL_exception(const std::string &format, Args &&...args);
+    template <typename... args> sdl_exception(const std::string &format, args &&...arguments);
   };
 }
 
