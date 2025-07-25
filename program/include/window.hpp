@@ -14,13 +14,6 @@ namespace cse
 {
   class window
   {
-  private:
-    struct position_color_vertex
-    {
-      float x = 0.0f, y = 0.0f, z = 0.0f;
-      Uint8 r = 0, g = 0, b = 0, a = 0;
-    };
-
   public:
     static std::unique_ptr<window> create(const std::string &i_title, int i_starting_width, int i_starting_height,
                                           bool i_fullscreen, bool i_vsync);
@@ -39,6 +32,13 @@ namespace cse
 
   public:
     bool running = false;
+
+  private:
+    struct position_color_vertex
+    {
+      float x = 0.0f, y = 0.0f, z = 0.0f;
+      Uint8 r = 0, g = 0, b = 0, a = 0;
+    };
 
   private:
     window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen, bool i_vsync);
