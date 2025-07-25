@@ -2,10 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdlib>
-#include <filesystem>
-#include <fstream>
-#include <ios>
 #include <memory>
 #include <string>
 #include <vector>
@@ -27,6 +23,7 @@
 #include "glm/trigonometric.hpp"
 
 #include "exception.hpp"
+#include "resource.hpp"
 
 namespace cse
 {
@@ -292,55 +289,23 @@ namespace cse
 
     // START TODO: Refactor
 
-    std::filesystem::path vertex_shader_path = "build/Shaders";
-    std::filesystem::path fragment_shader_path = "build/Shaders";
-    SDL_GPUShaderFormat shader_format = {};
+    SDL_GPUShaderCreateInfo shader_info = {};
     const SDL_GPUShaderFormat backend_formats = SDL_GetGPUShaderFormats(gpu);
     if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV)
     {
-      vertex_shader_path /= "main.vert.spv";
-      fragment_shader_path /= "main.frag.spv";
-      shader_format = SDL_GPU_SHADERFORMAT_SPIRV;
+      shader_info.code = resource::main_vertex.spirv.data();
+      shader_info.code_size = resource::main_vertex.spirv.size();
+      shader_info.format = SDL_GPU_SHADERFORMAT_SPIRV;
     }
     else if (backend_formats & SDL_GPU_SHADERFORMAT_DXIL)
     {
-      vertex_shader_path /= "main.vert.dxil";
-      fragment_shader_path /= "main.frag.dxil";
-      shader_format = SDL_GPU_SHADERFORMAT_DXIL;
+      shader_info.code = resource::main_vertex.dxil.data();
+      shader_info.code_size = resource::main_vertex.dxil.size();
+      shader_info.format = SDL_GPU_SHADERFORMAT_DXIL;
     }
     else
       throw SDL_exception("Could not find supported shader format for window {}", i_title);
-
-    std::ifstream vertex_shader_file(vertex_shader_path, std::ios::binary | std::ios::ate);
-    if (!vertex_shader_file)
-      throw SDL_exception("Could not open vertex shader file {} for window {}", vertex_shader_path.string(), i_title);
-    std::streamsize vertex_shader_size = vertex_shader_file.tellg();
-    vertex_shader_file.seekg(0, std::ios::beg);
-    std::vector<Uint8> vertex_shader_binary(static_cast<size_t>(vertex_shader_size));
-    if (!vertex_shader_file.read(reinterpret_cast<char *>(vertex_shader_binary.data()), vertex_shader_size))
-      throw SDL_exception("Could not read vertex shader file {} for window {}", vertex_shader_path.string(), i_title);
-    if (vertex_shader_binary.size() % 4 != 0)
-      vertex_shader_binary.resize((vertex_shader_binary.size() + 3) & static_cast<size_t>(~3));
-    vertex_shader_file.close();
-    std::ifstream fragment_shader_file(fragment_shader_path, std::ios::binary | std::ios::ate);
-    if (!fragment_shader_file)
-      throw SDL_exception("Could not open fragment shader file {} for window {}", fragment_shader_path.string(),
-                          i_title);
-    std::streamsize fragment_shader_size = fragment_shader_file.tellg();
-    fragment_shader_file.seekg(0, std::ios::beg);
-    std::vector<Uint8> fragment_shader_binary(static_cast<size_t>(fragment_shader_size));
-    if (!fragment_shader_file.read(reinterpret_cast<char *>(fragment_shader_binary.data()), fragment_shader_size))
-      throw SDL_exception("Could not read fragment shader file {} for window {}", fragment_shader_path.string(),
-                          i_title);
-    if (fragment_shader_binary.size() % 4 != 0)
-      fragment_shader_binary.resize((fragment_shader_binary.size() + 3) & static_cast<size_t>(~3));
-    fragment_shader_file.close();
-
-    SDL_GPUShaderCreateInfo shader_info = {};
-    shader_info.code = vertex_shader_binary.data();
-    shader_info.code_size = vertex_shader_binary.size();
     shader_info.entrypoint = "main";
-    shader_info.format = shader_format;
     shader_info.stage = SDL_GPU_SHADERSTAGE_VERTEX;
     shader_info.num_samplers = 0;
     shader_info.num_uniform_buffers = 1;
@@ -348,8 +313,20 @@ namespace cse
     shader_info.num_storage_textures = 0;
     SDL_GPUShader *vertex_shader = SDL_CreateGPUShader(gpu, &shader_info);
     if (!vertex_shader) throw SDL_exception("Could not create vertex shader for window {}", i_title);
-    shader_info.code = fragment_shader_binary.data();
-    shader_info.code_size = fragment_shader_binary.size();
+    if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV)
+    {
+      shader_info.code = resource::main_fragment.spirv.data();
+      shader_info.code_size = resource::main_fragment.spirv.size();
+      shader_info.format = SDL_GPU_SHADERFORMAT_SPIRV;
+    }
+    else if (backend_formats & SDL_GPU_SHADERFORMAT_DXIL)
+    {
+      shader_info.code = resource::main_fragment.dxil.data();
+      shader_info.code_size = resource::main_fragment.dxil.size();
+      shader_info.format = SDL_GPU_SHADERFORMAT_DXIL;
+    }
+    else
+      throw SDL_exception("Could not find supported shader format for window {}", i_title);
     shader_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
     shader_info.num_uniform_buffers = 0;
     SDL_GPUShader *fragment_shader = SDL_CreateGPUShader(gpu, &shader_info);

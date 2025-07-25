@@ -27,3 +27,5 @@ build/
 external/
 CPM_modules/
 cpm-package-lock.cmake
+program/include/resource.hpp
+program/source/resource.cpp

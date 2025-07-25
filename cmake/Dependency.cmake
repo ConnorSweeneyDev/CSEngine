@@ -1,42 +1,18 @@
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/Manage.cmake")
 set(SDL_VERSION "3.2.16")
-set(SDL_SHADERCROSS_VERSION "392d12a")
+set(CSRESOURCE_VERSION "0.0.0")
 set(GLM_VERSION "1.0.1")
 
 CPMAddPackage(
   URI
   "gh:libsdl-org/SDL#release-${SDL_VERSION}"
+  NAME "sdl"
   OPTIONS "SDL_INSTALL OFF" "SDL_UNINSTALL OFF" "SDL_INSTALL_TESTS OFF" "SDL_TESTS OFF"
 )
-list(APPEND SYSTEM_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}/_deps/sdl-src/include")
+list(APPEND SYSTEM_INCLUDE_DIRECTORIES "${sdl_SOURCE_DIR}/include")
 list(APPEND LIBRARIES "SDL3-static")
-install(TARGETS "SDL3-static" "SDL3_Headers" EXPORT "LLVMExports")
 
-CPMAddPackage(
-  URI
-  "gh:libsdl-org/SDL_shadercross#${SDL_SHADERCROSS_VERSION}"
-  OPTIONS
-    "SDLSHADERCROSS_VENDORED ON"
-    "SDLSHADERCROSS_SHARED OFF"
-    "SDLSHADERCROSS_SPIRVCROSS_SHARED OFF"
-    "SDLSHADERCROSS_STATIC ON"
-    "SDLSHADERCROSS_CLI_STATIC ON"
-)
-set(
-  DXCOMPILER_DLL_SOURCE
-  "${CMAKE_CURRENT_BINARY_DIR}/_deps/sdl_shadercross-build/external/DirectXShaderCompiler/${CMAKE_BUILD_TYPE}/bin/dxcompiler.dll"
-)
-set(
-  DXCOMPILER_DLL_DESTINATION
-  "${CMAKE_CURRENT_BINARY_DIR}/_deps/sdl_shadercross-build/${CMAKE_BUILD_TYPE}/dxcompiler.dll"
-)
-add_custom_target(
-  "CopyDXCompiler"
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${DXCOMPILER_DLL_SOURCE}" "${DXCOMPILER_DLL_DESTINATION}"
-  DEPENDS "${DXCOMPILER_DLL_DESTINATION}" "shadercross"
-)
-list(APPEND DEPENDENCIES "CopyDXCompiler")
-
+CPMAddPackage(URI "gh:ConnorSweeneyDev/CSResource#v${CSRESOURCE_VERSION}" NAME "csresource")
 set(SHADER_SOURCE_DIRECTORY "resource/shader")
 file(
   GLOB_RECURSE SHADER_SOURCE_FILES
@@ -44,31 +20,23 @@ file(
   "${CMAKE_CURRENT_SOURCE_DIR}/${SHADER_SOURCE_DIRECTORY}/*.frag"
 )
 set(SHADER_COMPILED_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Shaders")
-file(MAKE_DIRECTORY "${SHADER_COMPILED_DIRECTORY}")
-set(SHADER_COMPILED_FILES "")
-foreach(SOURCE_FILE ${SHADER_SOURCE_FILES})
-  get_filename_component(FILE_NAME "${SOURCE_FILE}" NAME_WE)
-  get_filename_component(FILE_EXTENSION "${SOURCE_FILE}" EXT)
-  if("${FILE_EXTENSION}" MATCHES "vert")
-    set(STAGE "vertex")
-    set(SPV_FILE "${SHADER_COMPILED_DIRECTORY}/${FILE_NAME}.vert.spv")
-    set(DXIL_FILE "${SHADER_COMPILED_DIRECTORY}/${FILE_NAME}.vert.dxil")
-  elseif("${FILE_EXTENSION}" MATCHES "frag")
-    set(STAGE "fragment")
-    set(SPV_FILE "${SHADER_COMPILED_DIRECTORY}/${FILE_NAME}.frag.spv")
-    set(DXIL_FILE "${SHADER_COMPILED_DIRECTORY}/${FILE_NAME}.frag.dxil")
-  endif()
-  list(APPEND SHADER_COMPILED_FILES "${SPV_FILE}" "${DXIL_FILE}")
-  add_custom_command(
-    OUTPUT "${SPV_FILE}" "${DXIL_FILE}"
-    COMMAND "shadercross" "${SOURCE_FILE}" -s HLSL -d SPIRV -t ${STAGE} -o "${SPV_FILE}"
-    COMMAND "shadercross" "${SOURCE_FILE}" -s HLSL -d DXIL -t ${STAGE} -o "${DXIL_FILE}"
-    DEPENDS "${SOURCE_FILE}"
-  )
-endforeach()
-add_custom_target("CompileShaders" DEPENDS "${SHADER_COMPILED_FILES}" "CopyDXCompiler" "Format")
-list(APPEND DEPENDENCIES "CompileShaders")
+set(RESOURCE_HPP_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${PROGRAM_INCLUDE_DIRECTORY}/resource.hpp")
+set(RESOURCE_CPP_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${PROGRAM_SOURCE_DIRECTORY}/resource.cpp")
+add_custom_command(
+  OUTPUT "${RESOURCE_HPP_FILE}" "${RESOURCE_CPP_FILE}"
+  COMMAND
+    "CSResource" ${SHADER_SOURCE_FILES} ${SHADER_COMPILED_DIRECTORY} ${PROGRAM_INCLUDE_DIRECTORY}
+    ${PROGRAM_SOURCE_DIRECTORY}
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  DEPENDS ${SHADER_SOURCE_FILES}
+)
+add_custom_target("generate_resources" DEPENDS "${RESOURCE_HPP_FILE}" "${RESOURCE_CPP_FILE}")
+add_dependencies("generate_resources" "CSResource")
+list(APPEND DEPENDENCIES "generate_resources")
+if(NOT "${RESOURCE_CPP_FILE}" IN_LIST SOURCE_FILES)
+  list(APPEND SOURCE_FILES "${RESOURCE_CPP_FILE}")
+endif()
 
-CPMAddPackage(URI "gh:g-truc/glm#${GLM_VERSION}" OPTIONS "BUILD_SHARED_LIBS OFF" "GLM_BUILD_TESTS OFF")
-list(APPEND SYSTEM_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src")
+CPMAddPackage(URI "gh:g-truc/glm#${GLM_VERSION}" NAME "glm" OPTIONS "BUILD_SHARED_LIBS OFF" "GLM_BUILD_TESTS OFF")
+list(APPEND SYSTEM_INCLUDE_DIRECTORIES "${glm_SOURCE_DIR}")
 list(APPEND LIBRARIES "glm::glm")
