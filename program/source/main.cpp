@@ -40,9 +40,9 @@ int main(int argc, char *argv[])
   {
     return try_main(argc, argv);
   }
-  catch (const std::exception &exception)
+  catch (const std::exception &error)
   {
-    SDL_Log("%s", exception.what());
+    SDL_Log("%s", error.what());
     return EXIT_FAILURE;
   }
 }
