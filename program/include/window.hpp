@@ -40,6 +40,10 @@ namespace cse
 
   private:
     window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen, bool i_vsync);
+    window(const window &) = delete;
+    window &operator=(const window &) = delete;
+    window(window &&) = delete;
+    window &operator=(window &&) = delete;
 
     void handle_quit();
     void handle_move();
