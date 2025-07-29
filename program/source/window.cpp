@@ -49,6 +49,8 @@ namespace cse
     initialized.store(false);
   }
 
+  bool window::is_running() { return running; }
+
   void window::input()
   {
     SDL_Event event = {};

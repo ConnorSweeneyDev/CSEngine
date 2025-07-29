@@ -19,6 +19,7 @@ namespace cse
                                           bool i_fullscreen, bool i_vsync);
     ~window();
 
+    bool is_running();
     void input();
     void simulate();
     void render();
@@ -29,9 +30,6 @@ namespace cse
     void update_simulation_alpha();
     bool render_behind();
     void update_fps();
-
-  public:
-    bool running = false;
 
   private:
     struct position_color_vertex
@@ -56,9 +54,13 @@ namespace cse
     int height = 0;
     bool fullscreen = false;
     bool vsync = true;
+    bool running = false;
     SDL_DisplayID display_index = 0;
     int left = 0;
     int top = 0;
+
+    SDL_Window *instance = nullptr;
+    inline static std::atomic<bool> initialized = false;
 
     const double target_simulation_time = 1.0 / 60.0;
     double last_simulation_time = 0.0;
@@ -75,7 +77,6 @@ namespace cse
     glm::vec3 view_translation_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 view_translation_acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    SDL_Window *instance = nullptr;
     SDL_GPUDevice *gpu = nullptr;
     SDL_GPUGraphicsPipeline *pipeline = nullptr;
     SDL_GPUBuffer *vertex_buffer = nullptr;
@@ -87,6 +88,5 @@ namespace cse
       position_color_vertex{-0.5f, -0.5f, 0.0f, 255, 0, 0, 255},
     };
     const std::array<Uint16, 6> default_quad_indices = {3, 1, 0, 3, 0, 2};
-    inline static std::atomic<bool> initialized = false;
   };
 }
