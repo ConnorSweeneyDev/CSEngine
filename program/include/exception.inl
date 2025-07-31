@@ -7,7 +7,7 @@
 
 #include "SDL3/SDL_error.h"
 
-namespace cse
+namespace cse::utility
 {
   template <typename... args> exception::exception(const std::string &format, args &&...arguments)
     : message(std::format("{}.", std::vformat(format, std::make_format_args(std::forward<const args>(arguments)...))))
