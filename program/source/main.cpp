@@ -8,6 +8,7 @@
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
+#include "SDL3/SDL_init.h"
 #include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_log.h"
 #include "SDL3/SDL_scancode.h"
@@ -34,6 +35,52 @@ public:
                 bool i_vsync)
     : window(i_title, i_starting_width, i_starting_height, i_fullscreen, i_vsync)
   {
+  }
+
+  void initialize() override
+  {
+    SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+    SDL_SetAppMetadata("CSEngine", "0.0.0", "Connor.Sweeney.Engine");
+    if (!SDL_Init(SDL_INIT_VIDEO))
+      throw cse::utility::sdl_exception("SDL could not be initialized for window {}", title);
+
+    instance = SDL_CreateWindow(title.c_str(), starting_width, starting_height, SDL_WINDOW_HIDDEN);
+    if (!instance) throw cse::utility::sdl_exception("Could not create window {}", title);
+
+    display_index = SDL_GetPrimaryDisplay();
+    if (display_index == 0) throw cse::utility::sdl_exception("Could not get primary display for window {}", title);
+    left = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
+    top = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
+    if (!SDL_SetWindowPosition(instance, left, top))
+      throw cse::utility::sdl_exception("Could not set window {} position to ({}, {})", title, left, top);
+    if (fullscreen)
+    {
+      fullscreen = !fullscreen;
+      handle_fullscreen();
+    }
+
+    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, false, nullptr);
+    if (!gpu) throw cse::utility::sdl_exception("Could not create GPU device for window {}", title);
+    if (!SDL_ClaimWindowForGPUDevice(gpu, instance))
+      throw cse::utility::sdl_exception("Could not claim window for GPU device for window {}", title);
+    if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
+      throw cse::utility::sdl_exception("Could not enable VSYNC for window {}", title);
+    if (!vsync)
+    {
+      vsync = !vsync;
+      handle_vsync();
+    }
+
+    SDL_ShowWindow(instance);
+    running = true;
+  }
+
+  void cleanup() override
+  {
+    SDL_ReleaseWindowFromGPUDevice(gpu, instance);
+    SDL_DestroyGPUDevice(gpu);
+    SDL_DestroyWindow(instance);
+    SDL_Quit();
   }
 
   void input() override
@@ -107,14 +154,19 @@ public:
 
   void initialize() override
   {
+    window->initialize();
     if (scenes.empty()) throw cse::utility::exception("No scenes have been added to the game");
     if (!current_scene) throw cse::utility::exception("No current scene has been set for the game");
     current_scene->initialize(window->instance, window->gpu);
   }
 
-  void cleanup() override { current_scene->cleanup(window->gpu); }
+  void cleanup() override
+  {
+    window->cleanup();
+    current_scene->cleanup(window->gpu);
+  }
 
-  bool is_running() override { return window->is_running(); }
+  bool is_running() override { return window->running; }
 
   void input() override
   {

@@ -3,8 +3,6 @@
 #include <string>
 
 #include "SDL3/SDL_gpu.h"
-#include "SDL3/SDL_init.h"
-#include "SDL3/SDL_log.h"
 #include "SDL3/SDL_rect.h"
 #include "SDL3/SDL_video.h"
 
@@ -15,45 +13,11 @@ namespace cse::base
   window::window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen,
                  bool i_vsync)
     : width(i_starting_width), height(i_starting_height), title(i_title), starting_width(i_starting_width),
-      starting_height(i_starting_height)
+      starting_height(i_starting_height), fullscreen(i_fullscreen), vsync(i_vsync)
   {
-    SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-    SDL_SetAppMetadata("CSEngine", "0.0.0", "Connor.Sweeney.Engine");
-    if (!SDL_Init(SDL_INIT_VIDEO)) throw utility::sdl_exception("SDL could not be initialized for window {}", i_title);
-
-    instance = SDL_CreateWindow(i_title.c_str(), i_starting_width, i_starting_height, SDL_WINDOW_HIDDEN);
-    if (!instance) throw utility::sdl_exception("Could not create window {}", i_title);
-
-    display_index = SDL_GetPrimaryDisplay();
-    if (display_index == 0) throw utility::sdl_exception("Could not get primary display for window {}", i_title);
-    left = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
-    top = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
-    if (!SDL_SetWindowPosition(instance, left, top))
-      throw utility::sdl_exception("Could not set window {} position to ({}, {})", i_title, left, top);
-    if (i_fullscreen) handle_fullscreen();
-
-    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, false, nullptr);
-    if (!gpu) throw utility::sdl_exception("Could not create GPU device for window {}", i_title);
-    if (!SDL_ClaimWindowForGPUDevice(gpu, instance))
-      throw utility::sdl_exception("Could not claim window for GPU device for window {}", i_title);
-    if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
-      throw utility::sdl_exception("Could not enable VSYNC for window {}", title);
-    if (!i_vsync) handle_vsync();
-
-    SDL_ShowWindow(instance);
-    running = true;
   }
 
-  window::~window()
-  {
-    SDL_ReleaseWindowFromGPUDevice(gpu, instance);
-    SDL_DestroyGPUDevice(gpu);
-    SDL_DestroyWindow(instance);
-    SDL_Quit();
-    running = false;
-  }
-
-  bool window::is_running() const { return running; }
+  window::~window() { running = false; }
 
   void window::handle_quit() { running = false; }
 

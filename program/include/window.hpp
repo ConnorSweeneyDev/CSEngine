@@ -13,7 +13,8 @@ namespace cse::base
     window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen, bool i_vsync);
     virtual ~window();
 
-    bool is_running() const;
+    virtual void initialize() = 0;
+    virtual void cleanup() = 0;
 
     virtual void input() = 0;
     virtual bool start_render() = 0;
@@ -26,6 +27,7 @@ namespace cse::base
     void handle_vsync();
 
   public:
+    bool running = false;
     int width = 0;
     int height = 0;
     const bool *key_state = nullptr;
@@ -40,7 +42,6 @@ namespace cse::base
     int starting_height = 720;
     bool fullscreen = false;
     bool vsync = true;
-    bool running = false;
     SDL_DisplayID display_index = 0;
     int left = 0;
     int top = 0;

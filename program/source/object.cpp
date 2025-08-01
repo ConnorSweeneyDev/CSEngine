@@ -1,19 +1,7 @@
 #include "object.hpp"
 
-#include <algorithm>
-#include <array>
-#include <string>
-
-#include "SDL3/SDL_gpu.h"
-#include "SDL3/SDL_scancode.h"
-#include "SDL3/SDL_stdinc.h"
-#include "SDL3/SDL_video.h"
-#include "glm/ext/matrix_float4x4.hpp"
-#include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_float3.hpp"
-#include "glm/trigonometric.hpp"
 
-#include "exception.hpp"
 #include "resource.hpp"
 
 namespace cse::base
