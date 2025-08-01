@@ -20,14 +20,15 @@ namespace cse::base
 
     void add_object(const std::string &name, std::unique_ptr<object> custom_object);
 
-    virtual void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
-    virtual void cleanup(SDL_GPUDevice *gpu);
+    virtual void initialize(SDL_Window *instance, SDL_GPUDevice *gpu) = 0;
+    virtual void cleanup(SDL_GPUDevice *gpu) = 0;
 
-    virtual void input(const bool *key_state);
-    virtual void simulate(double simulation_alpha);
-    virtual void render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass, int width, int height);
+    virtual void input(const bool *key_state) = 0;
+    virtual void simulate(double simulation_alpha) = 0;
+    virtual void render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass, int width,
+                        int height) = 0;
 
-  private:
+  protected:
     std::unique_ptr<camera> camera;
     std::unordered_map<std::string, std::unique_ptr<object>> objects = {};
   };

@@ -38,14 +38,14 @@ namespace cse::base
            const float starting_fov, const float starting_near_clip, const float starting_far_clip);
     virtual ~camera();
 
-    virtual void input(const bool *key_state);
-    virtual void simulate(double simulation_alpha);
-    virtual void render(int width, int height);
+    virtual void input(const bool *key_state) = 0;
+    virtual void simulate(double simulation_alpha) = 0;
+    virtual void render(int width, int height) = 0;
 
   public:
     graphics graphics;
 
-  private:
+  protected:
     float fov;
     float near_clip;
     float far_clip;

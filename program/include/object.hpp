@@ -35,6 +35,8 @@ namespace cse::base
       property rotation;
       property scale;
     };
+
+  protected:
     struct graphics
     {
       struct position_color_vertex
@@ -69,13 +71,13 @@ namespace cse::base
            const resource::compiled_shader &vertex_shader, const resource::compiled_shader &fragment_shader);
     virtual ~object();
 
-    void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
-    void cleanup(SDL_GPUDevice *gpu);
+    virtual void initialize(SDL_Window *instance, SDL_GPUDevice *gpu) = 0;
+    virtual void cleanup(SDL_GPUDevice *gpu) = 0;
 
-    virtual void input(const bool *key_state);
-    virtual void simulate(double simulation_alpha);
+    virtual void input(const bool *key_state) = 0;
+    virtual void simulate(double simulation_alpha) = 0;
     virtual void render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                        const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix);
+                        const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix) = 0;
 
   protected:
     transform transform;

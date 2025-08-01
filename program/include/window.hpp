@@ -13,12 +13,13 @@ namespace cse::base
     window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen, bool i_vsync);
     virtual ~window();
 
-    virtual bool is_running() const;
-    virtual void input();
-    virtual bool start_render();
-    virtual void end_render();
+    bool is_running() const;
 
-  private:
+    virtual void input() = 0;
+    virtual bool start_render() = 0;
+    virtual void end_render() = 0;
+
+  protected:
     void handle_quit();
     void handle_move();
     void handle_fullscreen();
@@ -33,7 +34,7 @@ namespace cse::base
     SDL_GPUCommandBuffer *command_buffer = nullptr;
     SDL_GPURenderPass *render_pass = nullptr;
 
-  private:
+  protected:
     std::string title = "CSE Window";
     int starting_width = 1280;
     int starting_height = 720;

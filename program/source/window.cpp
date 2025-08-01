@@ -2,13 +2,10 @@
 
 #include <string>
 
-#include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_init.h"
-#include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_log.h"
 #include "SDL3/SDL_rect.h"
-#include "SDL3/SDL_scancode.h"
 #include "SDL3/SDL_video.h"
 
 #include "exception.hpp"
@@ -57,69 +54,6 @@ namespace cse::base
   }
 
   bool window::is_running() const { return running; }
-
-  void window::input()
-  {
-    key_state = SDL_GetKeyboardState(nullptr);
-    SDL_Event event = {};
-    while (SDL_PollEvent(&event))
-    {
-      switch (event.type)
-      {
-        case SDL_EVENT_QUIT: handle_quit(); break;
-        case SDL_EVENT_WINDOW_MOVED: handle_move(); break;
-        case SDL_EVENT_KEY_DOWN:
-          switch (event.key.scancode)
-          {
-            case SDL_SCANCODE_ESCAPE: handle_quit(); break;
-            case SDL_SCANCODE_F11: handle_fullscreen(); break;
-            case SDL_SCANCODE_F12: handle_vsync(); break;
-            default: break;
-          }
-        default: break;
-      }
-    }
-  }
-
-  bool window::start_render()
-  {
-    command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
-    if (!command_buffer) throw utility::sdl_exception("Could not acquire GPU command buffer");
-
-    SDL_GPUTexture *swapchain_texture = nullptr;
-    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, nullptr, nullptr))
-      throw utility::sdl_exception("Could not acquire GPU swapchain texture");
-    if (!swapchain_texture)
-    {
-      if (!SDL_SubmitGPUCommandBuffer(command_buffer))
-        throw utility::sdl_exception("Could not submit GPU command buffer");
-      return false;
-    }
-
-    SDL_GPUColorTargetInfo color_target_info = {};
-    color_target_info.store_op = SDL_GPU_STOREOP_STORE;
-    color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
-    color_target_info.texture = swapchain_texture;
-    color_target_info.clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
-    render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
-    if (!render_pass) throw utility::sdl_exception("Could not begin GPU render pass");
-
-    SDL_GPUViewport viewport = {};
-    viewport.w = static_cast<float>(width);
-    viewport.h = static_cast<float>(height);
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    SDL_SetGPUViewport(render_pass, &viewport);
-
-    return true;
-  }
-
-  void window::end_render()
-  {
-    SDL_EndGPURenderPass(render_pass);
-    if (!SDL_SubmitGPUCommandBuffer(command_buffer))
-      throw utility::sdl_exception("Could not submit GPU command buffer");
-  }
 
   void window::handle_quit() { running = false; }
 

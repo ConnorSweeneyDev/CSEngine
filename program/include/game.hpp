@@ -20,13 +20,13 @@ namespace cse::base
     void run();
 
   private:
-    virtual void initialize();
-    virtual void cleanup();
+    virtual void initialize() = 0;
+    virtual void cleanup() = 0;
 
-    virtual bool is_running();
-    virtual void input();
-    virtual void simulate();
-    virtual void render();
+    virtual bool is_running() = 0;
+    virtual void input() = 0;
+    virtual void simulate() = 0;
+    virtual void render() = 0;
 
     void update_simulation_time();
     bool simulation_behind();
@@ -38,12 +38,12 @@ namespace cse::base
     std::unique_ptr<window> window;
     std::unordered_map<std::string, std::unique_ptr<scene>> scenes = {};
     scene *current_scene = nullptr;
+    double simulation_alpha = 0.0;
 
   private:
     const double target_simulation_time = 1.0 / 60.0;
     double last_simulation_time = 0.0;
     double simulation_accumulator = 0.0;
-    double simulation_alpha = 0.0;
     const double target_render_time = 1.0 / 144.0;
     double last_render_time = 0.0;
     double last_fps_time = 0;
