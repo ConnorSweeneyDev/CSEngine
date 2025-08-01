@@ -56,7 +56,7 @@ namespace cse::base
     running = false;
   }
 
-  bool window::is_running() { return running; }
+  bool window::is_running() const { return running; }
 
   void window::input()
   {

@@ -9,6 +9,8 @@ namespace cse::utility
   {
   public:
     template <typename... args> exception(const std::string &format, args &&...arguments);
+    virtual ~exception() = default;
+
     const char *what() const noexcept override;
 
   protected:

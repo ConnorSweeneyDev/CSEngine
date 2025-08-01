@@ -13,11 +13,18 @@ namespace cse::base
     window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen, bool i_vsync);
     virtual ~window();
 
-    virtual bool is_running();
+    virtual bool is_running() const;
     virtual void input();
     virtual bool start_render();
     virtual void end_render();
 
+  private:
+    void handle_quit();
+    void handle_move();
+    void handle_fullscreen();
+    void handle_vsync();
+
+  public:
     int width = 0;
     int height = 0;
     const bool *key_state = nullptr;
@@ -25,12 +32,6 @@ namespace cse::base
     SDL_GPUDevice *gpu = nullptr;
     SDL_GPUCommandBuffer *command_buffer = nullptr;
     SDL_GPURenderPass *render_pass = nullptr;
-
-  private:
-    void handle_quit();
-    void handle_move();
-    void handle_fullscreen();
-    void handle_vsync();
 
   private:
     std::string title = "CSE Window";

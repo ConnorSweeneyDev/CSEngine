@@ -15,7 +15,7 @@ namespace cse::utility
   }
 
   template <typename... args> sdl_exception::sdl_exception(const std::string &format, args &&...arguments)
-    : exception(format, std::forward<args>(arguments)...)
+    : exception(format, std::forward<const args>(arguments)...)
   {
     message.pop_back();
     std::string sdl_error(SDL_GetError());
