@@ -7,9 +7,10 @@
 *.o
 *.obj
 
-# Generated Clangd Files
+# Generated Development Files
 compile_commands.json
-.cache
+.cache/
+.claude/
 
 # Precompiled Headers
 *.gch

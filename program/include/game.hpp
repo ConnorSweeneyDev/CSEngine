@@ -12,10 +12,10 @@ namespace cse::base
   class game
   {
   public:
-    game(const std::shared_ptr<window> &custom_window);
+    game(std::unique_ptr<window> custom_window);
     virtual ~game();
 
-    void add_scene(const std::string &name, const std::shared_ptr<scene> &custom_scene);
+    void add_scene(const std::string &name, std::unique_ptr<scene> custom_scene);
     void set_current_scene(const std::string &name);
     void run();
 
@@ -35,9 +35,9 @@ namespace cse::base
     void update_fps();
 
   protected:
-    std::shared_ptr<window> window;
-    std::unordered_map<std::string, std::shared_ptr<scene>> scenes = {};
-    std::shared_ptr<scene> current_scene = nullptr;
+    std::unique_ptr<window> window;
+    std::unordered_map<std::string, std::unique_ptr<scene>> scenes = {};
+    scene *current_scene = nullptr;
 
   private:
     const double target_simulation_time = 1.0 / 60.0;

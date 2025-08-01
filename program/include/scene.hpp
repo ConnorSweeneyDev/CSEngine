@@ -15,10 +15,10 @@ namespace cse::base
   class scene
   {
   public:
-    scene(const std::shared_ptr<camera> &custom_camera);
+    scene(std::unique_ptr<camera> custom_camera);
     virtual ~scene();
 
-    void add_object(const std::string &name, const std::shared_ptr<object> &custom_object);
+    void add_object(const std::string &name, std::unique_ptr<object> custom_object);
 
     virtual void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     virtual void cleanup(SDL_GPUDevice *gpu);
@@ -28,7 +28,7 @@ namespace cse::base
     virtual void render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass, int width, int height);
 
   private:
-    std::shared_ptr<camera> camera;
-    std::unordered_map<std::string, std::shared_ptr<object>> objects = {};
+    std::unique_ptr<camera> camera;
+    std::unordered_map<std::string, std::unique_ptr<object>> objects = {};
   };
 }

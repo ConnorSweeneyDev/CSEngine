@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "SDL3/SDL_log.h"
 #include "SDL3/SDL_timer.h"
@@ -12,29 +13,29 @@
 
 namespace cse::base
 {
-  game::game(const std::shared_ptr<base::window> &custom_window) : window(custom_window)
+  game::game(std::unique_ptr<base::window> custom_window) : window(std::move(custom_window))
   {
     if (!window) throw utility::exception("Game window cannot be null");
   }
 
   game::~game()
   {
-    current_scene.reset();
+    current_scene = nullptr;
     scenes.clear();
     window.reset();
   }
 
-  void game::add_scene(const std::string &name, const std::shared_ptr<scene> &custom_scene)
+  void game::add_scene(const std::string &name, std::unique_ptr<scene> custom_scene)
   {
     if (!custom_scene) throw utility::exception("Cannot add a null scene with name '{}'", name);
     if (scenes.find(name) != scenes.end()) throw utility::exception("Scene with name '{}' already exists", name);
-    scenes[name] = custom_scene;
+    scenes[name] = std::move(custom_scene);
   }
 
   void game::set_current_scene(const std::string &name)
   {
     if (scenes.find(name) == scenes.end()) throw utility::exception("Scene with name '{}' does not exist", name);
-    current_scene = scenes[name];
+    current_scene = scenes[name].get();
   }
 
   void game::run()
