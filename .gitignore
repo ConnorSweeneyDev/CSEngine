@@ -1,5 +1,4 @@
 # Development Output
-compile_commands.json
 .cache/
 .claude/
 .vscode/
@@ -9,6 +8,7 @@ compile_commands.json
 build/
 external/
 CPM_modules/
+compile_commands.json
 cpm-package-lock.cmake
 program/include/resource.hpp
 program/source/resource.cpp
