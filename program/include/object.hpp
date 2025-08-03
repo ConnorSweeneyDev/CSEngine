@@ -20,21 +20,20 @@ namespace cse::base
     {
       struct property
       {
-        property(const glm::vec3 &starting_value);
+        property(const glm::vec3 &value_);
 
-        glm::vec3 current;
-        glm::vec3 previous;
-        glm::vec3 interpolated;
-        glm::vec3 velocity;
-        glm::vec3 acceleration;
+        glm::vec3 current = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 previous = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 interpolated = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
       };
 
-      transform(const glm::vec3 &starting_translation, const glm::vec3 &starting_rotation,
-                const glm::vec3 &starting_scale);
+      transform(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_);
 
-      property translation;
-      property rotation;
-      property scale;
+      property translation = glm::vec3(0.0f, 0.0f, 0.0f);
+      property rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+      property scale = glm::vec3(1.0f, 1.0f, 1.0f);
     };
 
   protected:
@@ -51,9 +50,9 @@ namespace cse::base
         resource::compiled_shader fragment = {};
       };
 
-      graphics(const resource::compiled_shader &vertex_shader, const resource::compiled_shader &fragment_shader);
+      graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_);
 
-      shader shader;
+      shader shader = {};
       SDL_GPUGraphicsPipeline *pipeline = nullptr;
       SDL_GPUBuffer *vertex_buffer = nullptr;
       SDL_GPUBuffer *index_buffer = nullptr;
@@ -68,8 +67,8 @@ namespace cse::base
     };
 
   public:
-    object(const glm::vec3 &starting_translation, const glm::vec3 &starting_rotation, const glm::vec3 &starting_scale,
-           const resource::compiled_shader &vertex_shader, const resource::compiled_shader &fragment_shader);
+    object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
+           const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_);
     virtual ~object();
 
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);

@@ -16,28 +16,26 @@
 
 namespace cse::base
 {
-  object::transform::property::property(const glm::vec3 &starting_value)
-    : current(starting_value), previous(starting_value), interpolated(starting_value),
-      velocity(glm::vec3(0.0f, 0.0f, 0.0f)), acceleration(glm::vec3(0.0f, 0.0f, 0.0f))
+  object::transform::property::property(const glm::vec3 &value_)
+    : current(value_), previous(value_), interpolated(value_), velocity(glm::vec3(0.0f, 0.0f, 0.0f)),
+      acceleration(glm::vec3(0.0f, 0.0f, 0.0f))
   {
   }
 
-  object::transform::transform(const glm::vec3 &starting_translation, const glm::vec3 &starting_rotation,
-                               const glm::vec3 &starting_scale)
-    : translation(starting_translation), rotation(starting_rotation), scale(starting_scale)
+  object::transform::transform(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_)
+    : translation(translation_), rotation(rotation_), scale(scale_)
   {
   }
 
-  object::graphics::graphics(const resource::compiled_shader &vertex_shader,
-                             const resource::compiled_shader &fragment_shader)
-    : shader(vertex_shader, fragment_shader)
+  object::graphics::graphics(const resource::compiled_shader &vertex_shader_,
+                             const resource::compiled_shader &fragment_shader_)
+    : shader(vertex_shader_, fragment_shader_)
   {
   }
 
-  object::object(const glm::vec3 &starting_translation, const glm::vec3 &starting_rotation,
-                 const glm::vec3 &starting_scale, const resource::compiled_shader &vertex_shader,
-                 const resource::compiled_shader &fragment_shader)
-    : transform(starting_translation, starting_rotation, starting_scale), graphics(vertex_shader, fragment_shader)
+  object::object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
+                 const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_)
+    : transform(translation_, rotation_, scale_), graphics(vertex_shader_, fragment_shader_)
   {
   }
 

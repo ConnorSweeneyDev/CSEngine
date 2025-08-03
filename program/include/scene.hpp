@@ -16,10 +16,12 @@ namespace cse::base
   class scene
   {
   public:
-    scene(std::unique_ptr<camera> custom_camera);
+    scene();
     virtual ~scene();
 
-    void add_object(const std::string &name, std::unique_ptr<object> custom_object);
+    template <typename camera_type, typename... camera_arguments> void set_camera(camera_arguments &&...arguments);
+    template <typename object_type, typename... object_arguments>
+    void add_object(const std::string &name, object_arguments &&...arguments);
 
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void cleanup(SDL_GPUDevice *gpu);
@@ -32,7 +34,9 @@ namespace cse::base
     std::function<void(double simulation_alpha)> handle_simulate = nullptr;
 
   private:
-    std::unique_ptr<camera> camera;
-    std::unordered_map<std::string, std::unique_ptr<object>> objects = {};
+    std::unique_ptr<camera> camera = nullptr;
+    std::unordered_map<std::string, std::shared_ptr<object>> objects = {};
   };
 }
+
+#include "scene.inl"

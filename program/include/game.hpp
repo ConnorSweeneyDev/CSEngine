@@ -7,17 +7,21 @@
 #include "scene.hpp"
 #include "window.hpp"
 
-namespace cse::base
+namespace cse
 {
   class game
   {
   public:
-    game(std::unique_ptr<window> custom_window);
+    game();
     ~game();
 
-    void add_scene(const std::string &name, std::unique_ptr<scene> custom_scene);
-    void set_current_scene(const std::string &name);
     void run();
+
+    template <typename window_type, typename... window_arguments> void set_window(window_arguments &&...arguments);
+    template <typename scene_type, typename... scene_arguments>
+    void add_scene(const std::string &name, scene_arguments &&...arguments);
+    void set_current_scene(const std::string &name);
+    std::shared_ptr<base::scene> get_scene(const std::string &name) const;
 
   private:
     void initialize();
@@ -34,9 +38,9 @@ namespace cse::base
     void update_fps();
 
   private:
-    std::unique_ptr<window> window;
-    std::unordered_map<std::string, std::unique_ptr<scene>> scenes = {};
-    scene *current_scene = nullptr;
+    std::unique_ptr<base::window> window = nullptr;
+    std::unordered_map<std::string, std::shared_ptr<base::scene>> scenes = {};
+    std::weak_ptr<base::scene> current_scene = {};
 
     const double target_simulation_time = 1.0 / 60.0;
     double last_simulation_time = 0.0;
@@ -48,3 +52,5 @@ namespace cse::base
     int frame_count = 0;
   };
 }
+
+#include "game.inl"

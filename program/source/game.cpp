@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 
 #include "SDL3/SDL_log.h"
 #include "SDL3/SDL_timer.h"
@@ -11,31 +10,15 @@
 #include "scene.hpp"
 #include "window.hpp"
 
-namespace cse::base
+namespace cse
 {
-  game::game(std::unique_ptr<base::window> custom_window) : window(std::move(custom_window))
-  {
-    if (!window) throw utility::exception("Game window cannot be null");
-  }
+  game::game() {}
 
   game::~game()
   {
-    current_scene = nullptr;
+    current_scene.reset();
     scenes.clear();
     window.reset();
-  }
-
-  void game::add_scene(const std::string &name, std::unique_ptr<scene> custom_scene)
-  {
-    if (!custom_scene) throw utility::exception("Cannot add a null scene with name '{}'", name);
-    if (scenes.find(name) != scenes.end()) throw utility::exception("Scene with name '{}' already exists", name);
-    scenes[name] = std::move(custom_scene);
-  }
-
-  void game::set_current_scene(const std::string &name)
-  {
-    if (scenes.find(name) == scenes.end()) throw utility::exception("Scene with name '{}' does not exist", name);
-    current_scene = scenes[name].get();
   }
 
   void game::run()
@@ -59,34 +42,53 @@ namespace cse::base
     cleanup();
   }
 
+  void game::set_current_scene(const std::string &name)
+  {
+    if (scenes.find(name) == scenes.end()) throw utility::exception("Scene with name '{}' does not exist", name);
+    current_scene = scenes[name];
+  }
+
+  std::shared_ptr<base::scene> game::get_scene(const std::string &name) const
+  {
+    auto iterator = scenes.find(name);
+    if (iterator == scenes.end()) throw utility::exception("Scene with name '{}' does not exist", name);
+    return iterator->second;
+  }
+
   void game::initialize()
   {
     window->initialize();
     if (scenes.empty()) throw cse::utility::exception("No scenes have been added to the game");
-    if (!current_scene) throw cse::utility::exception("No current scene has been set for the game");
-    current_scene->initialize(window->instance, window->gpu);
+    if (current_scene.expired()) throw cse::utility::exception("No current scene has been set for the game");
+    if (auto scene = current_scene.lock())
+      scene->initialize(window->get_graphics().instance, window->get_graphics().gpu);
   }
 
   void game::cleanup()
   {
+    if (auto scene = current_scene.lock()) scene->cleanup(window->get_graphics().gpu);
     window->cleanup();
-    current_scene->cleanup(window->gpu);
   }
 
-  bool game::is_running() { return window->running; }
+  bool game::is_running() { return window->is_running(); }
 
   void game::input()
   {
     window->input();
-    current_scene->input(window->key_state);
+    if (auto scene = current_scene.lock()) scene->input(window->get_key_state());
   }
 
-  void game::simulate() { current_scene->simulate(simulation_alpha); }
+  void game::simulate()
+  {
+    if (auto scene = current_scene.lock()) scene->simulate(simulation_alpha);
+  }
 
   void game::render()
   {
     if (!window->start_render()) return;
-    current_scene->render(window->command_buffer, window->render_pass, window->width, window->height);
+    if (auto scene = current_scene.lock())
+      scene->render(window->get_graphics().command_buffer, window->get_graphics().render_pass,
+                    window->get_graphics().width, window->get_graphics().height);
     window->end_render();
   }
 

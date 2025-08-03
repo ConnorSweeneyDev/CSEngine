@@ -2,7 +2,6 @@
 #include <exception>
 #include <memory>
 #include <string>
-#include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_log.h"
@@ -123,20 +122,19 @@ int try_main(int argc, char *argv[])
 {
   if (argc > 1 || !argv[0]) throw cse::utility::exception("Expected 1 argument, got {}", argc);
 
-  {
-    auto window = std::make_unique<custom_window>("CSE Example", 1280, 720, false, true);
-    auto game = cse::base::game(std::move(window));
-    auto camera = std::make_unique<custom_camera>(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, -1.0f),
-                                                  glm::vec3(0.0f, 1.0f, 0.0f), 45.0f, 0.01f, 10.0f);
-    auto scene = std::make_unique<cse::base::scene>(std::move(camera));
-    auto quad = std::make_unique<custom_object>(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                                                glm::vec3(1.0f, 1.0f, 1.0f), cse::resource::main_vertex,
-                                                cse::resource::main_fragment);
-    scene->add_object("quad", std::move(quad));
-    game.add_scene("scene", std::move(scene));
-    game.set_current_scene("scene");
-    game.run();
-  }
+  auto game = std::make_unique<cse::game>();
+  game->set_window<custom_window>("CSE Example", 1280, 720, false, true);
+
+  game->add_scene<cse::base::scene>("scene");
+  game->get_scene("scene")->set_camera<custom_camera>(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, -1.0f),
+                                                      glm::vec3(0.0f, 1.0f, 0.0f), 45.0f, 0.01f, 10.0f);
+  game->get_scene("scene")->add_object<custom_object>("object", glm::vec3(0.0f, 0.0f, 0.0f),
+                                                      glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
+                                                      cse::resource::main_vertex, cse::resource::main_fragment);
+
+  game->set_current_scene("scene");
+  game->run();
+  game.reset();
 
   SDL_Log("Exiting application...");
   return EXIT_SUCCESS;

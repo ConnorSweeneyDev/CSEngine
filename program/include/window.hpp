@@ -11,8 +11,22 @@ namespace cse::base
 {
   class window
   {
+  private:
+    struct graphics
+    {
+      int width = 0;
+      int height = 0;
+      int left = 0;
+      int top = 0;
+      SDL_DisplayID display_index = 0;
+      SDL_Window *instance = nullptr;
+      SDL_GPUDevice *gpu = nullptr;
+      SDL_GPUCommandBuffer *command_buffer = nullptr;
+      SDL_GPURenderPass *render_pass = nullptr;
+    };
+
   public:
-    window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen, bool i_vsync);
+    window(const std::string &title_, int starting_width_, int starting_height_, bool fullscreen_, bool vsync_);
     virtual ~window();
 
     void initialize();
@@ -21,21 +35,15 @@ namespace cse::base
     bool start_render();
     void end_render();
 
+    bool is_running() const;
+    const bool *get_key_state() const;
+    graphics get_graphics() const;
+
   protected:
     void quit();
     void move();
     void toggle_fullscreen();
     void toggle_vsync();
-
-  public:
-    bool running = false;
-    int width = 0;
-    int height = 0;
-    SDL_Window *instance = nullptr;
-    SDL_GPUDevice *gpu = nullptr;
-    SDL_GPUCommandBuffer *command_buffer = nullptr;
-    SDL_GPURenderPass *render_pass = nullptr;
-    const bool *key_state = nullptr;
 
   protected:
     std::function<void(const SDL_KeyboardEvent &key)> handle_input = nullptr;
@@ -46,8 +54,8 @@ namespace cse::base
     int starting_height = 720;
     bool fullscreen = false;
     bool vsync = true;
-    SDL_DisplayID display_index = 0;
-    int left = 0;
-    int top = 0;
+    bool running = false;
+    const bool *key_state = nullptr;
+    graphics graphics = {};
   };
 }
