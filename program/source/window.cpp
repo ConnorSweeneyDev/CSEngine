@@ -35,13 +35,21 @@ namespace cse::base
   void window::initialize()
   {
     SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-    SDL_SetAppMetadata("CSEngine", "0.0.0", "Connor.Sweeney.Engine");
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
+      throw cse::utility::sdl_exception("Could not set app metadata type for window {}", title);
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "Connor.Sweeney.Engine"))
+      throw cse::utility::sdl_exception("Could not set app metadata identifier for window {}", title);
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, "CSEngine"))
+      throw cse::utility::sdl_exception("Could not set app metadata name for window {}", title);
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "0.0.0"))
+      throw cse::utility::sdl_exception("Could not set app metadata version for window {}", title);
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
+      throw cse::utility::sdl_exception("Could not set app metadata creator for window {}", title);
     if (!SDL_Init(SDL_INIT_VIDEO))
       throw cse::utility::sdl_exception("SDL could not be initialized for window {}", title);
 
     graphics.instance = SDL_CreateWindow(title.c_str(), starting_width, starting_height, SDL_WINDOW_HIDDEN);
     if (!graphics.instance) throw cse::utility::sdl_exception("Could not create window {}", title);
-
     graphics.display_index = SDL_GetPrimaryDisplay();
     if (graphics.display_index == 0)
       throw cse::utility::sdl_exception("Could not get primary display for window {}", title);
