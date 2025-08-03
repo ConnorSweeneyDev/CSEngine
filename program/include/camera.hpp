@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
 
@@ -38,9 +40,13 @@ namespace cse::base
            const float starting_fov, const float starting_near_clip, const float starting_far_clip);
     virtual ~camera();
 
-    virtual void input(const bool *key_state) = 0;
-    virtual void simulate(double simulation_alpha) = 0;
-    virtual void render(int width, int height) = 0;
+    void input(const bool *key_state);
+    void simulate(double simulation_alpha);
+    void render(int width, int height);
+
+  protected:
+    std::function<void(const bool *key_state)> handle_input = nullptr;
+    std::function<void(double simulation_alpha)> handle_simulate = nullptr;
 
   public:
     graphics graphics;
@@ -49,7 +55,6 @@ namespace cse::base
     float fov;
     float near_clip;
     float far_clip;
-
     transform transform;
   };
 }

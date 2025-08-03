@@ -1,6 +1,9 @@
 #include "camera.hpp"
 
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_float3.hpp"
+#include "glm/trigonometric.hpp"
 
 namespace cse::base
 {
@@ -23,5 +26,28 @@ namespace cse::base
   {
   }
 
-  camera::~camera() {}
+  camera::~camera()
+  {
+    handle_simulate = nullptr;
+    handle_input = nullptr;
+  }
+
+  void camera::input(const bool *key_state)
+  {
+    if (handle_input) handle_input(key_state);
+  }
+
+  void camera::simulate(double simulation_alpha)
+  {
+    if (handle_simulate) handle_simulate(simulation_alpha);
+  }
+
+  void camera::render(int width, int height)
+  {
+    graphics.projection_matrix =
+      glm::perspective(glm::radians(fov), static_cast<float>(width) / static_cast<float>(height), near_clip, far_clip);
+    graphics.view_matrix =
+      glm::lookAt(transform.translation.interpolated,
+                  transform.translation.interpolated + transform.forward.interpolated, transform.up.interpolated);
+  }
 }

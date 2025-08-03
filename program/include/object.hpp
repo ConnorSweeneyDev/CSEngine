@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <functional>
 
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_stdinc.h"
@@ -71,13 +72,16 @@ namespace cse::base
            const resource::compiled_shader &vertex_shader, const resource::compiled_shader &fragment_shader);
     virtual ~object();
 
-    virtual void initialize(SDL_Window *instance, SDL_GPUDevice *gpu) = 0;
-    virtual void cleanup(SDL_GPUDevice *gpu) = 0;
+    void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
+    void cleanup(SDL_GPUDevice *gpu);
+    void input(const bool *key_state);
+    void simulate(double simulation_alpha);
+    void render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
+                const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix);
 
-    virtual void input(const bool *key_state) = 0;
-    virtual void simulate(double simulation_alpha) = 0;
-    virtual void render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                        const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix) = 0;
+  protected:
+    std::function<void(const bool *key_state)> handle_input = nullptr;
+    std::function<void(double simulation_alpha)> handle_simulate = nullptr;
 
   protected:
     transform transform;

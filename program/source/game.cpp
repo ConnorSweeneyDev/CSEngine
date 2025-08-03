@@ -59,6 +59,37 @@ namespace cse::base
     cleanup();
   }
 
+  void game::initialize()
+  {
+    window->initialize();
+    if (scenes.empty()) throw cse::utility::exception("No scenes have been added to the game");
+    if (!current_scene) throw cse::utility::exception("No current scene has been set for the game");
+    current_scene->initialize(window->instance, window->gpu);
+  }
+
+  void game::cleanup()
+  {
+    window->cleanup();
+    current_scene->cleanup(window->gpu);
+  }
+
+  bool game::is_running() { return window->running; }
+
+  void game::input()
+  {
+    window->input();
+    current_scene->input(window->key_state);
+  }
+
+  void game::simulate() { current_scene->simulate(simulation_alpha); }
+
+  void game::render()
+  {
+    if (!window->start_render()) return;
+    current_scene->render(window->command_buffer, window->render_pass, window->width, window->height);
+    window->end_render();
+  }
+
   void game::update_simulation_time()
   {
     double current_simulation_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
