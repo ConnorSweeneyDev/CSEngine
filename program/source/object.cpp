@@ -17,9 +17,20 @@
 namespace cse::base
 {
   object::transform::property::property(const glm::vec3 &value_)
-    : current(value_), previous(value_), interpolated(value_), velocity(glm::vec3(0.0f, 0.0f, 0.0f)),
-      acceleration(glm::vec3(0.0f, 0.0f, 0.0f))
+    : value(value_), velocity(glm::vec3(0.0f, 0.0f, 0.0f)), acceleration(glm::vec3(0.0f, 0.0f, 0.0f)), previous(value_),
+      interpolated(value_)
   {
+  }
+
+  glm::vec3 object::transform::property::get_previous() const { return previous; }
+
+  glm::vec3 object::transform::property::get_interpolated() const { return interpolated; }
+
+  void object::transform::property::update_previous() { previous = value; }
+
+  void object::transform::property::update_interpolated(float simulation_alpha)
+  {
+    interpolated = previous + ((value - previous) * simulation_alpha);
   }
 
   object::transform::transform(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_)
@@ -190,7 +201,15 @@ namespace cse::base
 
   void object::simulate(double simulation_alpha)
   {
-    if (handle_simulate) handle_simulate(simulation_alpha);
+    transform.translation.update_previous();
+    transform.rotation.update_previous();
+    transform.scale.update_previous();
+
+    if (handle_simulate) handle_simulate();
+
+    transform.translation.update_interpolated(static_cast<float>(simulation_alpha));
+    transform.rotation.update_interpolated(static_cast<float>(simulation_alpha));
+    transform.scale.update_interpolated(static_cast<float>(simulation_alpha));
   }
 
   void object::render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
@@ -206,14 +225,14 @@ namespace cse::base
     SDL_BindGPUIndexBuffer(render_pass, &buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 
     glm::mat4 model_matrix = glm::mat4(1.0f);
-    model_matrix = glm::translate(model_matrix, transform.translation.interpolated);
+    model_matrix = glm::translate(model_matrix, transform.translation.get_interpolated());
     model_matrix =
-      glm::rotate(model_matrix, glm::radians(transform.rotation.interpolated.x), glm::vec3(1.0f, 0.0f, 0.0f));
+      glm::rotate(model_matrix, glm::radians(transform.rotation.get_interpolated().x), glm::vec3(1.0f, 0.0f, 0.0f));
     model_matrix =
-      glm::rotate(model_matrix, glm::radians(transform.rotation.interpolated.y), glm::vec3(0.0f, 1.0f, 0.0f));
+      glm::rotate(model_matrix, glm::radians(transform.rotation.get_interpolated().y), glm::vec3(0.0f, 1.0f, 0.0f));
     model_matrix =
-      glm::rotate(model_matrix, glm::radians(transform.rotation.interpolated.z), glm::vec3(0.0f, 0.0f, 1.0f));
-    model_matrix = glm::scale(model_matrix, transform.scale.interpolated);
+      glm::rotate(model_matrix, glm::radians(transform.rotation.get_interpolated().z), glm::vec3(0.0f, 0.0f, 1.0f));
+    model_matrix = glm::scale(model_matrix, transform.scale.get_interpolated());
     std::array<glm::mat4, 3> matrices = {projection_matrix, view_matrix, model_matrix};
     SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
 

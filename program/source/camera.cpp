@@ -9,9 +9,20 @@
 namespace cse::base
 {
   camera::transform::property::property(const glm::vec3 &value_)
-    : current(value_), previous(value_), interpolated(value_), velocity(glm::vec3(0.0f, 0.0f, 0.0f)),
-      acceleration(glm::vec3(0.0f, 0.0f, 0.0f))
+    : value(value_), velocity(glm::vec3(0.0f, 0.0f, 0.0f)), acceleration(glm::vec3(0.0f, 0.0f, 0.0f)), previous(value_),
+      interpolated(value_)
   {
+  }
+
+  glm::vec3 camera::transform::property::get_previous() const { return previous; }
+
+  glm::vec3 camera::transform::property::get_interpolated() const { return interpolated; }
+
+  void camera::transform::property::update_previous() { previous = value; }
+
+  void camera::transform::property::update_interpolated(float simulation_alpha)
+  {
+    interpolated = previous + ((value - previous) * simulation_alpha);
   }
 
   camera::transform::transform(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
@@ -38,16 +49,24 @@ namespace cse::base
 
   void camera::simulate(double simulation_alpha)
   {
-    if (handle_simulate) handle_simulate(simulation_alpha);
+    transform.translation.update_previous();
+    transform.forward.update_previous();
+    transform.up.update_previous();
+
+    if (handle_simulate) handle_simulate();
+
+    transform.translation.update_interpolated(static_cast<float>(simulation_alpha));
+    transform.forward.update_interpolated(static_cast<float>(simulation_alpha));
+    transform.up.update_interpolated(static_cast<float>(simulation_alpha));
   }
 
   void camera::render(int width, int height)
   {
     graphics.projection_matrix =
       glm::perspective(glm::radians(fov), static_cast<float>(width) / static_cast<float>(height), near_clip, far_clip);
-    graphics.view_matrix =
-      glm::lookAt(transform.translation.interpolated,
-                  transform.translation.interpolated + transform.forward.interpolated, transform.up.interpolated);
+    graphics.view_matrix = glm::lookAt(transform.translation.get_interpolated(),
+                                       transform.translation.get_interpolated() + transform.forward.get_interpolated(),
+                                       transform.up.get_interpolated());
   }
 
   struct camera::graphics camera::get_graphics() const { return graphics; }

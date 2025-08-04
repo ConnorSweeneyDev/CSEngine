@@ -52,13 +52,12 @@ public:
       if (key_state[SDL_SCANCODE_O]) transform.translation.acceleration.z += 0.0005f;
     };
 
-    handle_simulate = [this](double simulation_alpha)
+    handle_simulate = [this]()
     {
-      transform.translation.previous = transform.translation.current;
       transform.translation.velocity += transform.translation.acceleration;
+      transform.translation.acceleration = glm::vec3(-0.0001f);
       for (int i = 0; i < 3; ++i)
       {
-        transform.translation.acceleration[i] = -0.0001f;
         if (transform.translation.velocity[i] < 0.0f)
           transform.translation.velocity[i] -= transform.translation.acceleration[i];
         if (transform.translation.velocity[i] > 0.0f)
@@ -67,10 +66,7 @@ public:
           transform.translation.velocity[i] = 0.0f;
       }
       transform.translation.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-      transform.translation.current += transform.translation.velocity;
-      transform.translation.interpolated =
-        transform.translation.previous +
-        ((transform.translation.current - transform.translation.previous) * static_cast<float>(simulation_alpha));
+      transform.translation.value += transform.translation.velocity;
     };
   }
 };
@@ -93,13 +89,12 @@ public:
       if (key_state[SDL_SCANCODE_R]) transform.translation.acceleration.z -= 0.0005f;
     };
 
-    handle_simulate = [this](double simulation_alpha)
+    handle_simulate = [this]()
     {
-      transform.translation.previous = transform.translation.current;
       transform.translation.velocity += transform.translation.acceleration;
+      transform.translation.acceleration = glm::vec3(-0.0001f);
       for (int i = 0; i < 3; ++i)
       {
-        transform.translation.acceleration[i] = -0.0001f;
         if (transform.translation.velocity[i] < 0.0f)
           transform.translation.velocity[i] -= transform.translation.acceleration[i];
         if (transform.translation.velocity[i] > 0.0f)
@@ -107,11 +102,8 @@ public:
         if (transform.translation.velocity[i] < 0.0001f && transform.translation.velocity[i] > -0.0001f)
           transform.translation.velocity[i] = 0.0f;
       }
-      transform.translation.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-      transform.translation.current += transform.translation.velocity;
-      transform.translation.interpolated =
-        transform.translation.previous +
-        ((transform.translation.current - transform.translation.previous) * static_cast<float>(simulation_alpha));
+      transform.translation.acceleration = glm::vec3(0.0f);
+      transform.translation.value += transform.translation.velocity;
     };
   }
 };
