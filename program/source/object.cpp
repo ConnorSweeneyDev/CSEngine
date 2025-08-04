@@ -59,7 +59,7 @@ namespace cse::base
     handle_input = nullptr;
   }
 
-  struct object::graphics object::get_graphics() const { return graphics; }
+  auto object::get_graphics() -> struct graphics const { return graphics; }
 
   void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {

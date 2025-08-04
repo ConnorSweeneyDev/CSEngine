@@ -56,7 +56,7 @@ namespace cse::base
     camera(camera &&) = delete;
     camera &operator=(camera &&) = delete;
 
-    graphics get_graphics() const;
+    auto get_graphics() -> graphics const;
 
     void input(const bool *key_state);
     void simulate(double simulation_alpha);

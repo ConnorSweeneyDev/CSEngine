@@ -32,6 +32,16 @@ namespace cse::base
     handle_input = nullptr;
   }
 
+  bool window::is_running() const { return running; }
+
+  const bool *window::get_key_state() const
+  {
+    if (!key_state) throw cse::utility::sdl_exception("Key state is not set for window {}", title);
+    return key_state;
+  }
+
+  auto window::get_graphics() -> struct graphics const { return graphics; }
+
   void window::initialize()
   {
     SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
@@ -146,16 +156,6 @@ namespace cse::base
     if (!SDL_SubmitGPUCommandBuffer(graphics.command_buffer))
       throw cse::utility::sdl_exception("Could not submit GPU command buffer");
   }
-
-  bool window::is_running() const { return running; }
-
-  const bool *window::get_key_state() const
-  {
-    if (!key_state) throw cse::utility::sdl_exception("Key state is not set for window {}", title);
-    return key_state;
-  }
-
-  struct window::graphics window::get_graphics() const { return graphics; }
 
   void window::quit() { running = false; }
 

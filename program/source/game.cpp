@@ -24,7 +24,7 @@ namespace cse
   void game::run()
   {
     initialize();
-    while (is_running())
+    while (window->is_running())
     {
       update_simulation_time();
       while (simulation_behind())
@@ -69,8 +69,6 @@ namespace cse
     if (auto scene = current_scene.lock()) scene->cleanup(window->get_graphics().gpu);
     window->cleanup();
   }
-
-  bool game::is_running() { return window->is_running(); }
 
   void game::input()
   {

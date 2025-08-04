@@ -85,7 +85,7 @@ namespace cse::base
     object(object &&) = delete;
     object &operator=(object &&) = delete;
 
-    graphics get_graphics() const;
+    auto get_graphics() -> graphics const;
 
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void cleanup(SDL_GPUDevice *gpu);

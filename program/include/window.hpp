@@ -33,15 +33,15 @@ namespace cse::base
     window(window &&) = delete;
     window &operator=(window &&) = delete;
 
+    bool is_running() const;
+    const bool *get_key_state() const;
+    auto get_graphics() -> graphics const;
+
     void initialize();
     void cleanup();
     void input();
     bool start_render();
     void end_render();
-
-    bool is_running() const;
-    const bool *get_key_state() const;
-    graphics get_graphics() const;
 
   protected:
     void quit();

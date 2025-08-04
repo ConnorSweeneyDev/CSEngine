@@ -30,7 +30,6 @@ namespace cse
   private:
     void initialize();
     void cleanup();
-    bool is_running();
     void input();
     void simulate();
     void render();

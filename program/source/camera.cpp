@@ -42,7 +42,7 @@ namespace cse::base
     handle_input = nullptr;
   }
 
-  struct camera::graphics camera::get_graphics() const { return graphics; }
+  auto camera::get_graphics() -> struct graphics const { return graphics; }
 
   void camera::input(const bool *key_state)
   {
