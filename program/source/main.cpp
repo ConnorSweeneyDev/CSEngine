@@ -19,9 +19,8 @@
 class custom_window : public cse::base::window
 {
 public:
-  custom_window(const std::string &i_title, int i_starting_width, int i_starting_height, bool i_fullscreen,
-                bool i_vsync)
-    : window(i_title, i_starting_width, i_starting_height, i_fullscreen, i_vsync)
+  custom_window(const std::string &title_, int starting_width_, int starting_height_, bool fullscreen_, bool vsync_)
+    : window(title_, starting_width_, starting_height_, fullscreen_, vsync_)
   {
     handle_input = [this](const SDL_KeyboardEvent &key)
     {
@@ -39,10 +38,9 @@ public:
 class custom_camera : public cse::base::camera
 {
 public:
-  custom_camera(const glm::vec3 &starting_translation, const glm::vec3 &starting_forward, const glm::vec3 &starting_up,
-                float starting_fov, float starting_near_clip, float starting_far_clip)
-    : cse::base::camera(starting_translation, starting_forward, starting_up, starting_fov, starting_near_clip,
-                        starting_far_clip)
+  custom_camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, float fov_,
+                float near_clip_, float far_clip_)
+    : cse::base::camera(translation_, forward_, up_, fov_, near_clip_, far_clip_)
   {
     handle_input = [this](const bool *key_state)
     {
@@ -80,10 +78,10 @@ public:
 class custom_object : public cse::base::object
 {
 public:
-  custom_object(const glm::vec3 &starting_translation, const glm::vec3 &starting_rotation,
-                const glm::vec3 &starting_scale, const cse::resource::compiled_shader &vertex_shader,
-                const cse::resource::compiled_shader &fragment_shader)
-    : cse::base::object(starting_translation, starting_rotation, starting_scale, vertex_shader, fragment_shader)
+  custom_object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
+                const cse::resource::compiled_shader &vertex_shader_,
+                const cse::resource::compiled_shader &fragment_shader_)
+    : cse::base::object(translation_, rotation_, scale_, vertex_shader_, fragment_shader_)
   {
     handle_input = [this](const bool *key_state)
     {
