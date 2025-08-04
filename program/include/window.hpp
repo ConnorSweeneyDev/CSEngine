@@ -28,6 +28,10 @@ namespace cse::base
   public:
     window(const std::string &title_, int starting_width_, int starting_height_, bool fullscreen_, bool vsync_);
     virtual ~window();
+    window(const window &) = delete;
+    window &operator=(const window &) = delete;
+    window(window &&) = delete;
+    window &operator=(window &&) = delete;
 
     void initialize();
     void cleanup();

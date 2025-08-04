@@ -39,6 +39,10 @@ namespace cse::base
     camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, const float fov_,
            const float near_clip_, const float far_clip_);
     virtual ~camera();
+    camera(const camera &) = delete;
+    camera &operator=(const camera &) = delete;
+    camera(camera &&) = delete;
+    camera &operator=(camera &&) = delete;
 
     void input(const bool *key_state);
     void simulate(double simulation_alpha);

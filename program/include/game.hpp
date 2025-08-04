@@ -14,6 +14,10 @@ namespace cse
   public:
     game();
     ~game();
+    game(const game &) = delete;
+    game &operator=(const game &) = delete;
+    game(game &&) = delete;
+    game &operator=(game &&) = delete;
 
     void run();
 

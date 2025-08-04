@@ -70,6 +70,10 @@ namespace cse::base
     object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
            const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_);
     virtual ~object();
+    object(const object &) = delete;
+    object &operator=(const object &) = delete;
+    object(object &&) = delete;
+    object &operator=(object &&) = delete;
 
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void cleanup(SDL_GPUDevice *gpu);

@@ -18,6 +18,10 @@ namespace cse::base
   public:
     scene();
     virtual ~scene();
+    scene(const scene &) = delete;
+    scene &operator=(const scene &) = delete;
+    scene(scene &&) = delete;
+    scene &operator=(scene &&) = delete;
 
     template <typename camera_type, typename... camera_arguments> void set_camera(camera_arguments &&...arguments);
     template <typename object_type, typename... object_arguments>
