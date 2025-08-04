@@ -56,11 +56,11 @@ namespace cse::base
     camera(camera &&) = delete;
     camera &operator=(camera &&) = delete;
 
+    graphics get_graphics() const;
+
     void input(const bool *key_state);
     void simulate(double simulation_alpha);
     void render(int width, int height);
-
-    graphics get_graphics() const;
 
   protected:
     std::function<void(const bool *key_state)> handle_input = nullptr;
@@ -70,6 +70,8 @@ namespace cse::base
     float near_clip = 0.0f;
     float far_clip = 0.0f;
     transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f)};
+
+  private:
     graphics graphics = {};
   };
 }

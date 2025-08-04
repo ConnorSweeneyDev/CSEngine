@@ -59,6 +59,8 @@ namespace cse::base
     handle_input = nullptr;
   }
 
+  struct object::graphics object::get_graphics() const { return graphics; }
+
   void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
     SDL_GPUShaderFormat current_format = SDL_GPU_SHADERFORMAT_INVALID;

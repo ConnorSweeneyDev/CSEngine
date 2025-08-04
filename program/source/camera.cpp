@@ -42,6 +42,8 @@ namespace cse::base
     handle_input = nullptr;
   }
 
+  struct camera::graphics camera::get_graphics() const { return graphics; }
+
   void camera::input(const bool *key_state)
   {
     if (handle_input) handle_input(key_state);
@@ -68,6 +70,4 @@ namespace cse::base
                                        transform.translation.get_interpolated() + transform.forward.get_interpolated(),
                                        transform.up.get_interpolated());
   }
-
-  struct camera::graphics camera::get_graphics() const { return graphics; }
 }

@@ -37,7 +37,6 @@ namespace cse::base
     std::function<void(const bool *key_state)> handle_input = nullptr;
     std::function<void(double simulation_alpha)> handle_simulate = nullptr;
 
-  private:
     std::unique_ptr<camera> camera = nullptr;
     std::unordered_map<std::string, std::shared_ptr<object>> objects = {};
   };

@@ -85,6 +85,8 @@ namespace cse::base
     object(object &&) = delete;
     object &operator=(object &&) = delete;
 
+    graphics get_graphics() const;
+
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void cleanup(SDL_GPUDevice *gpu);
     void input(const bool *key_state);
@@ -96,8 +98,9 @@ namespace cse::base
     std::function<void(const bool *key_state)> handle_input = nullptr;
     std::function<void()> handle_simulate = nullptr;
 
-  protected:
     transform transform;
+
+  private:
     graphics graphics;
   };
 }
