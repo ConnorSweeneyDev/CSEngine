@@ -48,7 +48,7 @@ namespace cse
     current_scene = scenes[name];
   }
 
-  std::shared_ptr<base::scene> game::get_scene(const std::string &name) const
+  std::weak_ptr<base::scene> game::get_scene(const std::string &name) const
   {
     auto iterator = scenes.find(name);
     if (iterator == scenes.end()) throw utility::exception("Scene with name '{}' does not exist", name);

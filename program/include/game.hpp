@@ -25,7 +25,7 @@ namespace cse
     template <typename scene_type, typename... scene_arguments>
     void add_scene(const std::string &name, scene_arguments &&...arguments);
     void set_current_scene(const std::string &name);
-    std::shared_ptr<base::scene> get_scene(const std::string &name) const;
+    std::weak_ptr<base::scene> get_scene(const std::string &name) const;
 
   private:
     void initialize();
