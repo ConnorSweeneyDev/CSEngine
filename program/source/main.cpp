@@ -19,8 +19,8 @@
 class custom_window : public cse::base::window
 {
 public:
-  custom_window(const std::string &title_, int starting_width_, int starting_height_, bool fullscreen_, bool vsync_)
-    : window(title_, starting_width_, starting_height_, fullscreen_, vsync_)
+  custom_window(const std::string &title_, int starting_width_, int starting_height_)
+    : window(title_, starting_width_, starting_height_, false, true)
   {
     handle_input = [this](const SDL_KeyboardEvent &key)
     {
@@ -38,9 +38,8 @@ public:
 class custom_camera : public cse::base::camera
 {
 public:
-  custom_camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, float fov_,
-                float near_clip_, float far_clip_)
-    : cse::base::camera(translation_, forward_, up_, fov_, near_clip_, far_clip_)
+  custom_camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
+    : cse::base::camera(translation_, forward_, up_, 45.0f, 0.1f, 10.0f)
   {
     handle_input = [this](const bool *key_state)
     {
@@ -113,11 +112,11 @@ int try_main(int argc, char *argv[])
   if (argc > 1 || !argv[0]) throw cse::utility::exception("Expected 1 argument, got {}", argc);
 
   auto game = std::make_unique<cse::game>();
-  game->set_window<custom_window>("CSE Example", 1280, 720, false, true);
+  game->set_window<custom_window>("CSE Example", 1280, 720);
 
   game->add_scene<cse::base::scene>("scene");
   game->get_scene("scene")->set_camera<custom_camera>(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, -1.0f),
-                                                      glm::vec3(0.0f, 1.0f, 0.0f), 45.0f, 0.01f, 10.0f);
+                                                      glm::vec3(0.0f, 1.0f, 0.0f));
   game->get_scene("scene")->add_object<custom_object>(
     "object", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
     cse::resource::main_vertex, cse::resource::main_fragment, cse::resource::main_texture);

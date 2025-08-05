@@ -49,7 +49,7 @@ namespace cse::base
   {
     camera->render(width, height);
     for (const auto &object : objects)
-      object.second->render(command_buffer, render_pass, camera->get_graphics().projection_matrix,
-                            camera->get_graphics().view_matrix);
+      object.second->render(command_buffer, render_pass, camera->get_graphics().get_projection_matrix(),
+                            camera->get_graphics().get_view_matrix());
   }
 }

@@ -59,7 +59,7 @@ namespace cse::base
     const int starting_width = 0;
     const int starting_height = 0;
     bool fullscreen = false;
-    bool vsync = true;
+    bool vsync = false;
     bool running = false;
     const bool *key_state = nullptr;
     graphics graphics = {0, 0};

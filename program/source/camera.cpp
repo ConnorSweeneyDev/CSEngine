@@ -30,9 +30,29 @@ namespace cse::base
   {
   }
 
-  camera::camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, const float fov_,
-                 const float near_clip_, const float far_clip_)
-    : fov(fov_), near_clip(near_clip_), far_clip(far_clip_), transform(translation_, forward_, up_), graphics()
+  camera::graphics::graphics(float fov_, float near_clip_, float far_clip_)
+    : fov(fov_), near_clip(near_clip_), far_clip(far_clip_)
+  {
+  }
+
+  glm::mat4 camera::graphics::get_projection_matrix() const { return projection_matrix; }
+
+  glm::mat4 camera::graphics::get_view_matrix() const { return view_matrix; }
+
+  void camera::graphics::update_projection_matrix(int width, int height)
+  {
+    projection_matrix =
+      glm::perspective(glm::radians(fov), static_cast<float>(width) / static_cast<float>(height), near_clip, far_clip);
+  }
+
+  void camera::graphics::update_view_matrix(const glm::vec3 &translation, const glm::vec3 &forward, const glm::vec3 &up)
+  {
+    view_matrix = glm::lookAt(translation, translation + forward, up);
+  }
+
+  camera::camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, float fov_,
+                 float near_clip_, float far_clip_)
+    : transform(translation_, forward_, up_), graphics(fov_, near_clip_, far_clip_)
   {
   }
 
@@ -64,10 +84,8 @@ namespace cse::base
 
   void camera::render(int width, int height)
   {
-    graphics.projection_matrix =
-      glm::perspective(glm::radians(fov), static_cast<float>(width) / static_cast<float>(height), near_clip, far_clip);
-    graphics.view_matrix = glm::lookAt(transform.translation.get_interpolated(),
-                                       transform.translation.get_interpolated() + transform.forward.get_interpolated(),
-                                       transform.up.get_interpolated());
+    graphics.update_projection_matrix(width, height);
+    graphics.update_view_matrix(transform.translation.get_interpolated(), transform.forward.get_interpolated(),
+                                transform.up.get_interpolated());
   }
 }
