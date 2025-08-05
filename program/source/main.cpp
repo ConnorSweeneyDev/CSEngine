@@ -55,14 +55,14 @@ public:
     {
       transform.translation.velocity += transform.translation.acceleration;
       transform.translation.acceleration = glm::vec3(-0.0001f);
-      for (int i = 0; i < 3; ++i)
+      for (int index = 0; index < 3; ++index)
       {
-        if (transform.translation.velocity[i] < 0.0f)
-          transform.translation.velocity[i] -= transform.translation.acceleration[i];
-        if (transform.translation.velocity[i] > 0.0f)
-          transform.translation.velocity[i] += transform.translation.acceleration[i];
-        if (transform.translation.velocity[i] < 0.0001f && transform.translation.velocity[i] > -0.0001f)
-          transform.translation.velocity[i] = 0.0f;
+        if (transform.translation.velocity[index] < 0.0f)
+          transform.translation.velocity[index] -= transform.translation.acceleration[index];
+        if (transform.translation.velocity[index] > 0.0f)
+          transform.translation.velocity[index] += transform.translation.acceleration[index];
+        if (transform.translation.velocity[index] < 0.0001f && transform.translation.velocity[index] > -0.0001f)
+          transform.translation.velocity[index] = 0.0f;
       }
       transform.translation.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
       transform.translation.value += transform.translation.velocity;
@@ -91,14 +91,14 @@ public:
     {
       transform.translation.velocity += transform.translation.acceleration;
       transform.translation.acceleration = glm::vec3(-0.0001f);
-      for (int i = 0; i < 3; ++i)
+      for (int index = 0; index < 3; ++index)
       {
-        if (transform.translation.velocity[i] < 0.0f)
-          transform.translation.velocity[i] -= transform.translation.acceleration[i];
-        if (transform.translation.velocity[i] > 0.0f)
-          transform.translation.velocity[i] += transform.translation.acceleration[i];
-        if (transform.translation.velocity[i] < 0.0001f && transform.translation.velocity[i] > -0.0001f)
-          transform.translation.velocity[i] = 0.0f;
+        if (transform.translation.velocity[index] < 0.0f)
+          transform.translation.velocity[index] -= transform.translation.acceleration[index];
+        if (transform.translation.velocity[index] > 0.0f)
+          transform.translation.velocity[index] += transform.translation.acceleration[index];
+        if (transform.translation.velocity[index] < 0.0001f && transform.translation.velocity[index] > -0.0001f)
+          transform.translation.velocity[index] = 0.0f;
       }
       transform.translation.acceleration = glm::vec3(0.0f);
       transform.translation.value += transform.translation.velocity;
