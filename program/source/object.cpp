@@ -45,27 +45,7 @@ namespace cse::base
   {
   }
 
-  object::object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
-                 const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-                 const resource::compiled_texture &texture_)
-    : transform(translation_, rotation_, scale_), graphics(vertex_shader_, fragment_shader_, texture_)
-  {
-  }
-
-  object::~object()
-  {
-    graphics.sampler_buffer = nullptr;
-    graphics.texture_buffer = nullptr;
-    graphics.index_buffer = nullptr;
-    graphics.vertex_buffer = nullptr;
-    graphics.pipeline = nullptr;
-    handle_simulate = nullptr;
-    handle_input = nullptr;
-  }
-
-  auto object::get_graphics() -> struct graphics const { return graphics; }
-
-  void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
+  void object::graphics::create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
     SDL_GPUShaderFormat current_format = SDL_GPU_SHADERFORMAT_INVALID;
     const SDL_GPUShaderFormat backend_formats = SDL_GetGPUShaderFormats(gpu);
@@ -77,10 +57,10 @@ namespace cse::base
       throw cse::utility::sdl_exception("Could not find supported shader format for object");
 
     SDL_GPUShaderCreateInfo vertex_shader_info = {};
-    vertex_shader_info.code = current_format == SDL_GPU_SHADERFORMAT_DXIL ? graphics.shader.vertex.dxil.data()
-                                                                          : graphics.shader.vertex.spirv.data();
-    vertex_shader_info.code_size = current_format == SDL_GPU_SHADERFORMAT_DXIL ? graphics.shader.vertex.dxil.size()
-                                                                               : graphics.shader.vertex.spirv.size();
+    vertex_shader_info.code =
+      current_format == SDL_GPU_SHADERFORMAT_DXIL ? shader.vertex.dxil.data() : shader.vertex.spirv.data();
+    vertex_shader_info.code_size =
+      current_format == SDL_GPU_SHADERFORMAT_DXIL ? shader.vertex.dxil.size() : shader.vertex.spirv.size();
     vertex_shader_info.format = current_format;
     vertex_shader_info.entrypoint = "main";
     vertex_shader_info.stage = SDL_GPU_SHADERSTAGE_VERTEX;
@@ -92,11 +72,10 @@ namespace cse::base
     if (!vertex_shader) throw cse::utility::sdl_exception("Could not create vertex shader for object");
 
     SDL_GPUShaderCreateInfo fragment_shader_info = {};
-    fragment_shader_info.code = current_format == SDL_GPU_SHADERFORMAT_DXIL ? graphics.shader.fragment.dxil.data()
-                                                                            : graphics.shader.fragment.spirv.data();
-    fragment_shader_info.code_size = current_format == SDL_GPU_SHADERFORMAT_DXIL
-                                       ? graphics.shader.fragment.dxil.size()
-                                       : graphics.shader.fragment.spirv.size();
+    fragment_shader_info.code =
+      current_format == SDL_GPU_SHADERFORMAT_DXIL ? shader.fragment.dxil.data() : shader.fragment.spirv.data();
+    fragment_shader_info.code_size =
+      current_format == SDL_GPU_SHADERFORMAT_DXIL ? shader.fragment.dxil.size() : shader.fragment.spirv.size();
     fragment_shader_info.format = current_format;
     fragment_shader_info.entrypoint = "main";
     fragment_shader_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
@@ -111,7 +90,7 @@ namespace cse::base
     vertex_buffer_description.slot = 0;
     vertex_buffer_description.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
     vertex_buffer_description.instance_step_rate = 0;
-    vertex_buffer_description.pitch = sizeof(graphics::vertex);
+    vertex_buffer_description.pitch = sizeof(vertex);
     std::array<SDL_GPUVertexAttribute, 3> vertex_attributes;
     vertex_attributes.at(0).buffer_slot = 0;
     vertex_attributes.at(0).format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
@@ -120,15 +99,12 @@ namespace cse::base
     vertex_attributes.at(1).buffer_slot = 0;
     vertex_attributes.at(1).format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
     vertex_attributes.at(1).location = 1;
-    vertex_attributes.at(1).offset =
-      sizeof(graphics::vertex::x) + sizeof(graphics::vertex::y) + sizeof(graphics::vertex::z);
+    vertex_attributes.at(1).offset = sizeof(vertex::x) + sizeof(vertex::y) + sizeof(vertex::z);
     vertex_attributes.at(2).buffer_slot = 0;
     vertex_attributes.at(2).format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
     vertex_attributes.at(2).location = 2;
-    vertex_attributes.at(2).offset = sizeof(graphics::vertex::x) + sizeof(graphics::vertex::y) +
-                                     sizeof(graphics::vertex::z) + sizeof(graphics::vertex::r) +
-                                     sizeof(graphics::vertex::g) + sizeof(graphics::vertex::b) +
-                                     sizeof(graphics::vertex::a);
+    vertex_attributes.at(2).offset = sizeof(vertex::x) + sizeof(vertex::y) + sizeof(vertex::z) + sizeof(vertex::r) +
+                                     sizeof(vertex::g) + sizeof(vertex::b) + sizeof(vertex::a);
     SDL_GPUVertexInputState vertex_input = {};
     vertex_input.num_vertex_buffers = 1;
     vertex_input.num_vertex_attributes = 3;
@@ -146,11 +122,30 @@ namespace cse::base
     pipeline_info.vertex_input_state = vertex_input;
     pipeline_info.target_info.num_color_targets = 1;
     pipeline_info.target_info.color_target_descriptions = &color_target_description;
-    graphics.pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &pipeline_info);
-    if (!graphics.pipeline) throw cse::utility::sdl_exception("Could not create graphics pipeline for object");
-    SDL_ReleaseGPUShader(gpu, vertex_shader);
-    SDL_ReleaseGPUShader(gpu, fragment_shader);
+    pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &pipeline_info);
+    if (!pipeline) throw cse::utility::sdl_exception("Could not create graphics pipeline for object");
 
+    SDL_ReleaseGPUShader(gpu, fragment_shader);
+    SDL_ReleaseGPUShader(gpu, vertex_shader);
+  }
+
+  void object::graphics::create_vertex_and_index(SDL_GPUDevice *gpu)
+  {
+    SDL_GPUBufferCreateInfo vertex_buffer_info = {};
+    vertex_buffer_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+    vertex_buffer_info.size = sizeof(quad_vertices);
+    vertex_buffer = SDL_CreateGPUBuffer(gpu, &vertex_buffer_info);
+    if (!vertex_buffer) throw cse::utility::sdl_exception("Could not create vertex buffer for object");
+
+    SDL_GPUBufferCreateInfo index_buffer_info = {};
+    index_buffer_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
+    index_buffer_info.size = sizeof(quad_indices);
+    index_buffer = SDL_CreateGPUBuffer(gpu, &index_buffer_info);
+    if (!index_buffer) throw cse::utility::sdl_exception("Could not create index buffer for object");
+  }
+
+  void object::graphics::create_sampler_and_texture(SDL_GPUDevice *gpu)
+  {
     SDL_GPUSamplerCreateInfo sampler_info = {};
     sampler_info.min_filter = SDL_GPU_FILTER_NEAREST;
     sampler_info.mag_filter = SDL_GPU_FILTER_NEAREST;
@@ -158,103 +153,173 @@ namespace cse::base
     sampler_info.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_info.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-    graphics.sampler_buffer = SDL_CreateGPUSampler(gpu, &sampler_info);
-    if (!graphics.sampler_buffer) throw cse::utility::sdl_exception("Could not create sampler for object");
+    sampler_buffer = SDL_CreateGPUSampler(gpu, &sampler_info);
+    if (!sampler_buffer) throw cse::utility::sdl_exception("Could not create sampler for object");
 
     SDL_GPUTextureCreateInfo texture_info = {};
     texture_info.type = SDL_GPU_TEXTURETYPE_2D;
     texture_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-    texture_info.width = static_cast<Uint32>(graphics.texture.raw.width);
-    texture_info.height = static_cast<Uint32>(graphics.texture.raw.height);
+    texture_info.width = static_cast<Uint32>(texture.raw.width);
+    texture_info.height = static_cast<Uint32>(texture.raw.height);
     texture_info.layer_count_or_depth = 1;
     texture_info.num_levels = 1;
     texture_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
-    graphics.texture_buffer = SDL_CreateGPUTexture(gpu, &texture_info);
-    if (!graphics.texture_buffer) throw cse::utility::sdl_exception("Could not create texture for object");
+    texture_buffer = SDL_CreateGPUTexture(gpu, &texture_info);
+    if (!texture_buffer) throw cse::utility::sdl_exception("Could not create texture for object");
+  }
 
-    SDL_GPUBufferCreateInfo vertex_buffer_info = {};
-    vertex_buffer_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-    vertex_buffer_info.size = sizeof(graphics::quad_vertices);
-    graphics.vertex_buffer = SDL_CreateGPUBuffer(gpu, &vertex_buffer_info);
-    if (!graphics.vertex_buffer) throw cse::utility::sdl_exception("Could not create vertex buffer for object");
-    SDL_GPUBufferCreateInfo index_buffer_info = {};
-    index_buffer_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
-    index_buffer_info.size = sizeof(graphics::quad_indices);
-    graphics.index_buffer = SDL_CreateGPUBuffer(gpu, &index_buffer_info);
-    if (!graphics.index_buffer) throw cse::utility::sdl_exception("Could not create index buffer for object");
-
+  void object::graphics::transfer_vertex_and_index(SDL_GPUDevice *gpu)
+  {
     SDL_GPUTransferBufferCreateInfo buffer_transfer_buffer_info = {};
     buffer_transfer_buffer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    buffer_transfer_buffer_info.size = sizeof(graphics::quad_vertices) + sizeof(graphics::quad_indices);
-    SDL_GPUTransferBuffer *buffer_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &buffer_transfer_buffer_info);
+    buffer_transfer_buffer_info.size = sizeof(quad_vertices) + sizeof(quad_indices);
+    buffer_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &buffer_transfer_buffer_info);
     if (!buffer_transfer_buffer)
       throw cse::utility::sdl_exception("Could not create transfer buffer for buffer object");
-    auto vertex_data =
-      reinterpret_cast<graphics::vertex *>(SDL_MapGPUTransferBuffer(gpu, buffer_transfer_buffer, false));
-    if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
-    std::copy(graphics::quad_vertices.begin(), graphics::quad_vertices.end(), vertex_data);
-    auto index_data = reinterpret_cast<Uint16 *>(&vertex_data[graphics::quad_vertices.size()]);
-    if (!index_data) throw cse::utility::sdl_exception("Could not map index data for object");
-    std::copy(graphics::quad_indices.begin(), graphics::quad_indices.end(), index_data);
-    SDL_UnmapGPUTransferBuffer(gpu, buffer_transfer_buffer);
 
+    auto vertex_data = reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, buffer_transfer_buffer, false));
+    if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
+    std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
+
+    auto index_data = reinterpret_cast<Uint16 *>(&vertex_data[quad_vertices.size()]);
+    if (!index_data) throw cse::utility::sdl_exception("Could not map index data for object");
+    std::copy(quad_indices.begin(), quad_indices.end(), index_data);
+
+    SDL_UnmapGPUTransferBuffer(gpu, buffer_transfer_buffer);
+  }
+
+  void object::graphics::transfer_texture(SDL_GPUDevice *gpu)
+  {
     SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info = {};
     texture_transfer_buffer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    texture_transfer_buffer_info.size = static_cast<Uint32>(graphics.texture.raw.width) *
-                                        static_cast<Uint32>(graphics.texture.raw.height) *
-                                        static_cast<Uint32>(graphics.texture.raw.channels);
-    SDL_GPUTransferBuffer *texture_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &texture_transfer_buffer_info);
+    texture_transfer_buffer_info.size = static_cast<Uint32>(texture.raw.width) *
+                                        static_cast<Uint32>(texture.raw.height) *
+                                        static_cast<Uint32>(texture.raw.channels);
+    texture_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &texture_transfer_buffer_info);
     if (!texture_transfer_buffer)
       throw cse::utility::sdl_exception("Could not create transfer buffer for texture for object");
+
     auto *texture_data = reinterpret_cast<Uint8 *>(SDL_MapGPUTransferBuffer(gpu, texture_transfer_buffer, false));
     if (!texture_data) throw cse::utility::sdl_exception("Could not map texture data for object");
-    SDL_memcpy(texture_data, graphics.texture.raw.image.data(),
-               graphics.texture.raw.width * graphics.texture.raw.height * graphics.texture.raw.channels);
-    SDL_UnmapGPUTransferBuffer(gpu, texture_transfer_buffer);
+    SDL_memcpy(texture_data, texture.raw.image.data(), texture.raw.width * texture.raw.height * texture.raw.channels);
 
+    SDL_UnmapGPUTransferBuffer(gpu, texture_transfer_buffer);
+  }
+
+  void object::graphics::upload_to_gpu(SDL_GPUDevice *gpu)
+  {
     SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
     if (!command_buffer) throw cse::utility::sdl_exception("Could not acquire GPU command buffer for object");
     SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass(command_buffer);
     if (!copy_pass) throw cse::utility::sdl_exception("Could not begin GPU copy pass for object");
+
     SDL_GPUTransferBufferLocation vertex_transfer_buffer_location = {};
     vertex_transfer_buffer_location.transfer_buffer = buffer_transfer_buffer;
     vertex_transfer_buffer_location.offset = 0;
     SDL_GPUBufferRegion vertex_buffer_region = {};
-    vertex_buffer_region.buffer = graphics.vertex_buffer;
+    vertex_buffer_region.buffer = vertex_buffer;
     vertex_buffer_region.offset = 0;
-    vertex_buffer_region.size = sizeof(graphics::quad_vertices);
+    vertex_buffer_region.size = sizeof(quad_vertices);
     SDL_UploadToGPUBuffer(copy_pass, &vertex_transfer_buffer_location, &vertex_buffer_region, false);
+
     SDL_GPUTransferBufferLocation index_transfer_buffer_location = {};
     index_transfer_buffer_location.transfer_buffer = buffer_transfer_buffer;
-    index_transfer_buffer_location.offset = sizeof(graphics::quad_vertices);
+    index_transfer_buffer_location.offset = sizeof(quad_vertices);
     SDL_GPUBufferRegion index_buffer_region = {};
-    index_buffer_region.buffer = graphics.index_buffer;
+    index_buffer_region.buffer = index_buffer;
     index_buffer_region.offset = 0;
-    index_buffer_region.size = sizeof(graphics::quad_indices);
+    index_buffer_region.size = sizeof(quad_indices);
     SDL_UploadToGPUBuffer(copy_pass, &index_transfer_buffer_location, &index_buffer_region, false);
+
     SDL_GPUTextureTransferInfo texture_transfer_info = {};
     texture_transfer_info.transfer_buffer = texture_transfer_buffer;
     texture_transfer_info.offset = 0;
     SDL_GPUTextureRegion texture_region = {};
-    texture_region.texture = graphics.texture_buffer;
-    texture_region.w = static_cast<Uint32>(graphics.texture.raw.width);
-    texture_region.h = static_cast<Uint32>(graphics.texture.raw.height);
+    texture_region.texture = texture_buffer;
+    texture_region.w = static_cast<Uint32>(texture.raw.width);
+    texture_region.h = static_cast<Uint32>(texture.raw.height);
     texture_region.d = 1;
     SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
+
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(gpu, buffer_transfer_buffer);
+
     SDL_ReleaseGPUTransferBuffer(gpu, texture_transfer_buffer);
+    SDL_ReleaseGPUTransferBuffer(gpu, buffer_transfer_buffer);
+    texture_transfer_buffer = nullptr;
+    buffer_transfer_buffer = nullptr;
   }
 
-  void object::cleanup(SDL_GPUDevice *gpu)
+  void object::graphics::bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass)
   {
-    SDL_ReleaseGPUSampler(gpu, graphics.sampler_buffer);
-    SDL_ReleaseGPUTexture(gpu, graphics.texture_buffer);
-    SDL_ReleaseGPUBuffer(gpu, graphics.index_buffer);
-    SDL_ReleaseGPUBuffer(gpu, graphics.vertex_buffer);
-    SDL_ReleaseGPUGraphicsPipeline(gpu, graphics.pipeline);
+    SDL_BindGPUGraphicsPipeline(render_pass, pipeline);
+    SDL_GPUBufferBinding vertex_buffer_binding = {};
+    vertex_buffer_binding.buffer = vertex_buffer;
+    vertex_buffer_binding.offset = 0;
+    SDL_BindGPUVertexBuffers(render_pass, 0, &vertex_buffer_binding, 1);
+    SDL_GPUBufferBinding index_buffer_binding = {};
+    index_buffer_binding.buffer = index_buffer;
+    index_buffer_binding.offset = 0;
+    SDL_BindGPUIndexBuffer(render_pass, &index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+    SDL_GPUTextureSamplerBinding texture_sampler_binding = {};
+    texture_sampler_binding.texture = texture_buffer;
+    texture_sampler_binding.sampler = sampler_buffer;
+    SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_sampler_binding, 1);
   }
+
+  void object::graphics::push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &model_matrix,
+                                           const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix)
+  {
+    std::array<glm::mat4, 3> matrices = {projection_matrix, view_matrix, model_matrix};
+    SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
+  }
+
+  void object::graphics::draw_primitives(SDL_GPURenderPass *render_pass)
+  {
+    SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0);
+  }
+
+  void object::graphics::cleanup(SDL_GPUDevice *gpu)
+  {
+    SDL_ReleaseGPUSampler(gpu, sampler_buffer);
+    SDL_ReleaseGPUTexture(gpu, texture_buffer);
+    SDL_ReleaseGPUBuffer(gpu, index_buffer);
+    SDL_ReleaseGPUBuffer(gpu, vertex_buffer);
+    SDL_ReleaseGPUGraphicsPipeline(gpu, pipeline);
+
+    sampler_buffer = nullptr;
+    texture_buffer = nullptr;
+    index_buffer = nullptr;
+    vertex_buffer = nullptr;
+    pipeline = nullptr;
+  }
+
+  object::object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
+                 const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
+                 const resource::compiled_texture &texture_)
+    : transform(translation_, rotation_, scale_), graphics(vertex_shader_, fragment_shader_, texture_)
+  {
+  }
+
+  object::~object()
+  {
+    handle_simulate = nullptr;
+    handle_input = nullptr;
+  }
+
+  auto object::get_graphics() -> struct graphics const { return graphics; }
+
+  void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
+  {
+    graphics.create_pipeline(instance, gpu);
+    graphics.create_vertex_and_index(gpu);
+    graphics.create_sampler_and_texture(gpu);
+    graphics.transfer_vertex_and_index(gpu);
+    graphics.transfer_texture(gpu);
+    graphics.upload_to_gpu(gpu);
+  }
+
+  void object::cleanup(SDL_GPUDevice *gpu) { graphics.cleanup(gpu); }
 
   void object::input(const bool *key_state)
   {
@@ -277,19 +342,7 @@ namespace cse::base
   void object::render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                       const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix)
   {
-    SDL_BindGPUGraphicsPipeline(render_pass, graphics.pipeline);
-    SDL_GPUBufferBinding vertex_buffer_binding = {};
-    vertex_buffer_binding.buffer = graphics.vertex_buffer;
-    vertex_buffer_binding.offset = 0;
-    SDL_BindGPUVertexBuffers(render_pass, 0, &vertex_buffer_binding, 1);
-    SDL_GPUBufferBinding index_buffer_binding = {};
-    index_buffer_binding.buffer = graphics.index_buffer;
-    index_buffer_binding.offset = 0;
-    SDL_BindGPUIndexBuffer(render_pass, &index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-    SDL_GPUTextureSamplerBinding texture_sampler_binding = {};
-    texture_sampler_binding.texture = graphics.texture_buffer;
-    texture_sampler_binding.sampler = graphics.sampler_buffer;
-    SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_sampler_binding, 1);
+    graphics.bind_pipeline_and_buffers(render_pass);
 
     glm::mat4 model_matrix = glm::mat4(1.0f);
     model_matrix = glm::translate(model_matrix, transform.translation.get_interpolated());
@@ -300,9 +353,8 @@ namespace cse::base
     model_matrix =
       glm::rotate(model_matrix, glm::radians(transform.rotation.get_interpolated().z), glm::vec3(0.0f, 0.0f, 1.0f));
     model_matrix = glm::scale(model_matrix, transform.scale.get_interpolated());
-    std::array<glm::mat4, 3> matrices = {projection_matrix, view_matrix, model_matrix};
-    SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
+    graphics.push_uniform_data(command_buffer, model_matrix, projection_matrix, view_matrix);
 
-    SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0);
+    graphics.draw_primitives(render_pass);
   }
 }

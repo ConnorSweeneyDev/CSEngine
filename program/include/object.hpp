@@ -49,6 +49,7 @@ namespace cse::base
     };
     struct graphics
     {
+    public:
       struct vertex
       {
         float x = 0.0f, y = 0.0f, z = 0.0f;
@@ -65,17 +66,34 @@ namespace cse::base
         resource::compiled_texture raw = {};
       };
 
+    public:
       graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
                const resource::compiled_texture &texture_);
 
+    public:
       shader shader = {};
       texture texture = {};
+
+      void create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu);
+      void create_vertex_and_index(SDL_GPUDevice *gpu);
+      void create_sampler_and_texture(SDL_GPUDevice *gpu);
+      void transfer_vertex_and_index(SDL_GPUDevice *gpu);
+      void transfer_texture(SDL_GPUDevice *gpu);
+      void upload_to_gpu(SDL_GPUDevice *gpu);
+      void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass);
+      void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &model_matrix,
+                             const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix);
+      void draw_primitives(SDL_GPURenderPass *render_pass);
+      void cleanup(SDL_GPUDevice *gpu);
+
+    private:
       SDL_GPUGraphicsPipeline *pipeline = nullptr;
       SDL_GPUBuffer *vertex_buffer = nullptr;
       SDL_GPUBuffer *index_buffer = nullptr;
       SDL_GPUTexture *texture_buffer = nullptr;
       SDL_GPUSampler *sampler_buffer = nullptr;
-
+      SDL_GPUTransferBuffer *buffer_transfer_buffer = nullptr;
+      SDL_GPUTransferBuffer *texture_transfer_buffer = nullptr;
       inline static const std::array<graphics::vertex, 4> quad_vertices = {
         graphics::vertex{0.5f, 0.5f, 0.0f, 0, 0, 0, 255, 1.0f, 1.0f},
         graphics::vertex{0.5f, -0.5f, 0.0f, 0, 0, 0, 255, 1.0f, 0.0f},
@@ -109,8 +127,6 @@ namespace cse::base
     std::function<void()> handle_simulate = nullptr;
 
     transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f)};
-
-  private:
     graphics graphics = {resource::compiled_shader(), resource::compiled_shader(), resource::compiled_texture()};
   };
 }
