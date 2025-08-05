@@ -52,6 +52,7 @@ namespace cse
   {
     auto iterator = scenes.find(name);
     if (iterator == scenes.end()) throw utility::exception("Scene with name '{}' does not exist", name);
+    if (iterator->second == nullptr) throw utility::exception("Scene with name '{}' is not initialized", name);
     return iterator->second;
   }
 
