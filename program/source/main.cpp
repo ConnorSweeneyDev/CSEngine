@@ -76,8 +76,8 @@ class custom_object : public cse::base::object
 public:
   custom_object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
                 const cse::resource::compiled_shader &vertex_shader_,
-                const cse::resource::compiled_shader &fragment_shader_)
-    : cse::base::object(translation_, rotation_, scale_, vertex_shader_, fragment_shader_)
+                const cse::resource::compiled_shader &fragment_shader_, const cse::resource::compiled_texture &texture_)
+    : cse::base::object(translation_, rotation_, scale_, vertex_shader_, fragment_shader_, texture_)
   {
     handle_input = [this](const bool *key_state)
     {
@@ -118,9 +118,9 @@ int try_main(int argc, char *argv[])
   game->add_scene<cse::base::scene>("scene");
   game->get_scene("scene")->set_camera<custom_camera>(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, -1.0f),
                                                       glm::vec3(0.0f, 1.0f, 0.0f), 45.0f, 0.01f, 10.0f);
-  game->get_scene("scene")->add_object<custom_object>("object", glm::vec3(0.0f, 0.0f, 0.0f),
-                                                      glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
-                                                      cse::resource::main_vertex, cse::resource::main_fragment);
+  game->get_scene("scene")->add_object<custom_object>(
+    "object", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
+    cse::resource::main_vertex, cse::resource::main_fragment, cse::resource::main_texture);
 
   game->set_current_scene("scene");
   game->run();

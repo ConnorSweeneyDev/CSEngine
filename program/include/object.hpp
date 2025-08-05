@@ -49,36 +49,46 @@ namespace cse::base
     };
     struct graphics
     {
-      struct position_color_vertex
+      struct vertex
       {
         float x = 0.0f, y = 0.0f, z = 0.0f;
         Uint8 r = 0, g = 0, b = 0, a = 0;
+        float u = 0.0f, v = 0.0f;
       };
       struct shader
       {
         resource::compiled_shader vertex = {};
         resource::compiled_shader fragment = {};
       };
+      struct texture
+      {
+        resource::compiled_texture raw = {};
+      };
 
-      graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_);
+      graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
+               const resource::compiled_texture &texture_);
 
       shader shader = {};
+      texture texture = {};
       SDL_GPUGraphicsPipeline *pipeline = nullptr;
       SDL_GPUBuffer *vertex_buffer = nullptr;
       SDL_GPUBuffer *index_buffer = nullptr;
+      SDL_GPUTexture *texture_buffer = nullptr;
+      SDL_GPUSampler *sampler_buffer = nullptr;
 
-      inline static const std::array<graphics::position_color_vertex, 4> default_quad_vertices = {
-        graphics::position_color_vertex{0.5f, 0.5f, 0.0f, 0, 0, 255, 255},
-        graphics::position_color_vertex{0.5f, -0.5f, 0.0f, 0, 255, 0, 255},
-        graphics::position_color_vertex{-0.5f, 0.5f, 0.0f, 255, 255, 255, 255},
-        graphics::position_color_vertex{-0.5f, -0.5f, 0.0f, 255, 0, 0, 255},
+      inline static const std::array<graphics::vertex, 4> quad_vertices = {
+        graphics::vertex{0.5f, 0.5f, 0.0f, 0, 0, 0, 255, 1.0f, 1.0f},
+        graphics::vertex{0.5f, -0.5f, 0.0f, 0, 0, 0, 255, 1.0f, 0.0f},
+        graphics::vertex{-0.5f, 0.5f, 0.0f, 0, 0, 0, 255, 0.0f, 1.0f},
+        graphics::vertex{-0.5f, -0.5f, 0.0f, 0, 0, 0, 255, 0.0f, 0.0f},
       };
-      inline static const std::array<Uint16, 6> default_quad_indices = {3, 1, 0, 3, 0, 2};
+      inline static const std::array<Uint16, 6> quad_indices = {3, 1, 0, 3, 0, 2};
     };
 
   public:
     object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
-           const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_);
+           const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
+           const resource::compiled_texture &texture_);
     virtual ~object();
     object(const object &) = delete;
     object &operator=(const object &) = delete;
@@ -98,9 +108,9 @@ namespace cse::base
     std::function<void(const bool *key_state)> handle_input = nullptr;
     std::function<void()> handle_simulate = nullptr;
 
-    transform transform;
+    transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f)};
 
   private:
-    graphics graphics;
+    graphics graphics = {resource::compiled_shader(), resource::compiled_shader(), resource::compiled_texture()};
   };
 }

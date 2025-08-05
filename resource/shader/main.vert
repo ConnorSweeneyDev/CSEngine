@@ -2,15 +2,17 @@ struct Input
 {
   float3 position : TEXCOORD0;
   float4 color : TEXCOORD1;
+  float2 texcoord : TEXCOORD2;
 };
 
 struct Output
 {
-  float4 color : TEXCOORD0;
   float4 position : SV_Position;
+  float4 color : TEXCOORD0;
+  float2 texcoord : TEXCOORD1;
 };
 
-cbuffer matrices : register(b0, space1)
+cbuffer Matrices : register(b0, space1)
 {
   float4x4 projection_matrix;
   float4x4 view_matrix;
@@ -20,7 +22,8 @@ cbuffer matrices : register(b0, space1)
 Output main(Input input)
 {
   Output output;
-  output.color = input.color;
   output.position = mul(projection_matrix, mul(view_matrix, mul(model_matrix, float4(input.position, 1.0f))));
+  output.color = input.color;
+  output.texcoord = input.texcoord;
   return output;
 }
