@@ -14,12 +14,18 @@
 
 namespace cse::base
 {
+  window::graphics::graphics(int starting_width_, int starting_height_)
+    : width(starting_width_), height(starting_height_)
+  {
+  }
+
   window::window(const std::string &title_, int starting_width_, int starting_height_, bool fullscreen_, bool vsync_)
     : title(title_), starting_width(starting_width_), starting_height(starting_height_), fullscreen(fullscreen_),
-      vsync(vsync_)
+      vsync(vsync_), graphics(starting_width_, starting_height_)
   {
-    graphics.width = starting_width;
-    graphics.height = starting_height;
+    if (title.empty()) throw cse::utility::exception("Window title cannot be empty");
+    if (starting_width <= 0 || starting_height <= 0)
+      throw cse::utility::exception("Window dimensions must be greater than zero");
   }
 
   window::~window()

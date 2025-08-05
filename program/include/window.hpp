@@ -14,6 +14,8 @@ namespace cse::base
   private:
     struct graphics
     {
+      graphics(int starting_width_, int starting_height_);
+
       int width = 0;
       int height = 0;
       int left = 0;
@@ -53,13 +55,13 @@ namespace cse::base
     std::function<void(const SDL_KeyboardEvent &key)> handle_input = nullptr;
 
   private:
-    std::string title = "CSE Window";
-    int starting_width = 1280;
-    int starting_height = 720;
+    const std::string title = "";
+    const int starting_width = 0;
+    const int starting_height = 0;
     bool fullscreen = false;
     bool vsync = true;
     bool running = false;
     const bool *key_state = nullptr;
-    graphics graphics = {};
+    graphics graphics = {0, 0};
   };
 }
