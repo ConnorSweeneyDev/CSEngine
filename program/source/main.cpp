@@ -114,10 +114,13 @@ int try_main(int argc, char *argv[])
   game->set_window<custom_window>("CSE Example", 1280, 720);
 
   game->add_scene<cse::base::scene>("scene");
-  game->get_scene("scene")->set_camera<custom_camera>(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, -1.0f),
-                                                      glm::vec3(0.0f, 1.0f, 0.0f));
-  game->get_scene("scene")->add_object<custom_object>("object", glm::vec3(0.0f, 0.0f, 0.0f),
-                                                      glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+  {
+    auto scene = game->get_scene("scene");
+    scene->set_camera<custom_camera>(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, -1.0f),
+                                     glm::vec3(0.0f, 1.0f, 0.0f));
+    scene->add_object<custom_object>("object", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+                                     glm::vec3(1.0f, 1.0f, 1.0f));
+  }
 
   game->set_current_scene("scene");
   game->run();
