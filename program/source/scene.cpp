@@ -47,9 +47,7 @@ namespace cse::base
 
   void scene::render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass, int width, int height)
   {
-    camera->render(width, height);
-    for (const auto &object : objects)
-      object.second->render(command_buffer, render_pass, camera->get_graphics().get_projection_matrix(),
-                            camera->get_graphics().get_view_matrix());
+    auto matrices = camera->render(width, height);
+    for (const auto &object : objects) object.second->render(command_buffer, render_pass, matrices[0], matrices[1]);
   }
 }

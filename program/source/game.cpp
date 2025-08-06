@@ -62,32 +62,44 @@ namespace cse
     if (scenes.empty()) throw cse::utility::exception("No scenes have been added to the game");
     if (current_scene.expired()) throw cse::utility::exception("No current scene has been set for the game");
     if (auto scene = current_scene.lock())
-      scene->initialize(window->get_graphics().instance, window->get_graphics().gpu);
+      scene->initialize(window->get_instance(), window->get_gpu());
+    else
+      throw cse::utility::exception("Current scene is not initialized");
   }
 
   void game::cleanup()
   {
-    if (auto scene = current_scene.lock()) scene->cleanup(window->get_graphics().gpu);
+    if (auto scene = current_scene.lock())
+      scene->cleanup(window->get_gpu());
+    else
+      throw cse::utility::exception("Current scene is not initialized");
     window->cleanup();
   }
 
   void game::input()
   {
     window->input();
-    if (auto scene = current_scene.lock()) scene->input(window->get_key_state());
+    if (auto scene = current_scene.lock())
+      scene->input(window->get_key_state());
+    else
+      throw cse::utility::exception("Current scene is not initialized");
   }
 
   void game::simulate()
   {
-    if (auto scene = current_scene.lock()) scene->simulate(simulation_alpha);
+    if (auto scene = current_scene.lock())
+      scene->simulate(simulation_alpha);
+    else
+      throw cse::utility::exception("Current scene is not initialized");
   }
 
   void game::render()
   {
     if (!window->start_render()) return;
     if (auto scene = current_scene.lock())
-      scene->render(window->get_graphics().command_buffer, window->get_graphics().render_pass,
-                    window->get_graphics().width, window->get_graphics().height);
+      scene->render(window->get_command_buffer(), window->get_render_pass(), window->get_width(), window->get_height());
+    else
+      throw cse::utility::exception("Current scene is not initialized");
     window->end_render();
   }
 

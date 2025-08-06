@@ -22,10 +22,6 @@ namespace cse::base
   {
   }
 
-  glm::vec3 object::transform::property::get_previous() const { return previous; }
-
-  glm::vec3 object::transform::property::get_interpolated() const { return interpolated; }
-
   void object::transform::property::update_previous() { previous = value; }
 
   void object::transform::property::update_interpolated(float simulation_alpha)
@@ -279,7 +275,7 @@ namespace cse::base
     SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0);
   }
 
-  void object::graphics::cleanup(SDL_GPUDevice *gpu)
+  void object::graphics::cleanup_object(SDL_GPUDevice *gpu)
   {
     SDL_ReleaseGPUSampler(gpu, sampler_buffer);
     SDL_ReleaseGPUTexture(gpu, texture_buffer);
@@ -307,8 +303,6 @@ namespace cse::base
     handle_input = nullptr;
   }
 
-  auto object::get_graphics() -> struct graphics const { return graphics; }
-
   void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
     graphics.create_pipeline(instance, gpu);
@@ -319,7 +313,7 @@ namespace cse::base
     graphics.upload_to_gpu(gpu);
   }
 
-  void object::cleanup(SDL_GPUDevice *gpu) { graphics.cleanup(gpu); }
+  void object::cleanup(SDL_GPUDevice *gpu) { graphics.cleanup_object(gpu); }
 
   void object::input(const bool *key_state)
   {
@@ -345,14 +339,14 @@ namespace cse::base
     graphics.bind_pipeline_and_buffers(render_pass);
 
     glm::mat4 model_matrix = glm::mat4(1.0f);
-    model_matrix = glm::translate(model_matrix, transform.translation.get_interpolated());
+    model_matrix = glm::translate(model_matrix, transform.translation.interpolated);
     model_matrix =
-      glm::rotate(model_matrix, glm::radians(transform.rotation.get_interpolated().x), glm::vec3(1.0f, 0.0f, 0.0f));
+      glm::rotate(model_matrix, glm::radians(transform.rotation.interpolated.x), glm::vec3(1.0f, 0.0f, 0.0f));
     model_matrix =
-      glm::rotate(model_matrix, glm::radians(transform.rotation.get_interpolated().y), glm::vec3(0.0f, 1.0f, 0.0f));
+      glm::rotate(model_matrix, glm::radians(transform.rotation.interpolated.y), glm::vec3(0.0f, 1.0f, 0.0f));
     model_matrix =
-      glm::rotate(model_matrix, glm::radians(transform.rotation.get_interpolated().z), glm::vec3(0.0f, 0.0f, 1.0f));
-    model_matrix = glm::scale(model_matrix, transform.scale.get_interpolated());
+      glm::rotate(model_matrix, glm::radians(transform.rotation.interpolated.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    model_matrix = glm::scale(model_matrix, transform.scale.interpolated);
     graphics.push_uniform_data(command_buffer, model_matrix, projection_matrix, view_matrix);
 
     graphics.draw_primitives(render_pass);

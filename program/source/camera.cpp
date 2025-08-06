@@ -1,5 +1,7 @@
 #include "camera.hpp"
 
+#include <array>
+
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
@@ -13,10 +15,6 @@ namespace cse::base
       interpolated(value_)
   {
   }
-
-  glm::vec3 camera::transform::property::get_previous() const { return previous; }
-
-  glm::vec3 camera::transform::property::get_interpolated() const { return interpolated; }
 
   void camera::transform::property::update_previous() { previous = value; }
 
@@ -34,10 +32,6 @@ namespace cse::base
     : fov(fov_), near_clip(near_clip_), far_clip(far_clip_)
   {
   }
-
-  glm::mat4 camera::graphics::get_projection_matrix() const { return projection_matrix; }
-
-  glm::mat4 camera::graphics::get_view_matrix() const { return view_matrix; }
 
   void camera::graphics::update_projection_matrix(int width, int height)
   {
@@ -62,8 +56,6 @@ namespace cse::base
     handle_input = nullptr;
   }
 
-  auto camera::get_graphics() -> struct graphics const { return graphics; }
-
   void camera::input(const bool *key_state)
   {
     if (handle_input) handle_input(key_state);
@@ -82,10 +74,11 @@ namespace cse::base
     transform.up.update_interpolated(static_cast<float>(simulation_alpha));
   }
 
-  void camera::render(int width, int height)
+  std::array<glm::mat4, 2> camera::render(int width, int height)
   {
     graphics.update_projection_matrix(width, height);
-    graphics.update_view_matrix(transform.translation.get_interpolated(), transform.forward.get_interpolated(),
-                                transform.up.get_interpolated());
+    graphics.update_view_matrix(transform.translation.interpolated, transform.forward.interpolated,
+                                transform.up.interpolated);
+    return {graphics.projection_matrix, graphics.view_matrix};
   }
 }

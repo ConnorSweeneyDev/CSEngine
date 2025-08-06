@@ -21,11 +21,12 @@ namespace cse::base
     private:
       struct property
       {
+        friend class object;
+
       public:
         property(const glm::vec3 &value_);
 
-        glm::vec3 get_previous() const;
-        glm::vec3 get_interpolated() const;
+      private:
         void update_previous();
         void update_interpolated(float simulation_alpha);
 
@@ -49,7 +50,9 @@ namespace cse::base
     };
     struct graphics
     {
-    public:
+      friend class object;
+
+    private:
       struct vertex
       {
         float x = 0.0f, y = 0.0f, z = 0.0f;
@@ -70,10 +73,7 @@ namespace cse::base
       graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
                const resource::compiled_texture &texture_);
 
-    public:
-      shader shader = {};
-      texture texture = {};
-
+    private:
       void create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu);
       void create_vertex_and_index(SDL_GPUDevice *gpu);
       void create_sampler_and_texture(SDL_GPUDevice *gpu);
@@ -84,7 +84,11 @@ namespace cse::base
       void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &model_matrix,
                              const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix);
       void draw_primitives(SDL_GPURenderPass *render_pass);
-      void cleanup(SDL_GPUDevice *gpu);
+      void cleanup_object(SDL_GPUDevice *gpu);
+
+    public:
+      shader shader = {};
+      texture texture = {};
 
     private:
       SDL_GPUGraphicsPipeline *pipeline = nullptr;
@@ -113,8 +117,6 @@ namespace cse::base
     object(object &&) = delete;
     object &operator=(object &&) = delete;
 
-    auto get_graphics() -> graphics const;
-
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void cleanup(SDL_GPUDevice *gpu);
     void input(const bool *key_state);
@@ -126,7 +128,7 @@ namespace cse::base
     std::function<void(const bool *key_state)> handle_input = nullptr;
     std::function<void()> handle_simulate = nullptr;
 
-    transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f)};
+    transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)};
     graphics graphics = {resource::compiled_shader(), resource::compiled_shader(), resource::compiled_texture()};
   };
 }

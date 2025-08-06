@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <functional>
 
 #include "glm/ext/matrix_float4x4.hpp"
@@ -15,11 +16,12 @@ namespace cse::base
     private:
       struct property
       {
+        friend class camera;
+
       public:
         property(const glm::vec3 &value_);
 
-        glm::vec3 get_previous() const;
-        glm::vec3 get_interpolated() const;
+      private:
         void update_previous();
         void update_interpolated(float simulation_alpha);
 
@@ -43,11 +45,12 @@ namespace cse::base
     };
     struct graphics
     {
+      friend class camera;
+
     public:
       graphics(float fov_, float near_clip_, float far_clip_);
 
-      glm::mat4 get_projection_matrix() const;
-      glm::mat4 get_view_matrix() const;
+    private:
       void update_projection_matrix(int width, int height);
       void update_view_matrix(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_);
 
@@ -70,11 +73,9 @@ namespace cse::base
     camera(camera &&) = delete;
     camera &operator=(camera &&) = delete;
 
-    auto get_graphics() -> graphics const;
-
     void input(const bool *key_state);
     void simulate(double simulation_alpha);
-    void render(int width, int height);
+    std::array<glm::mat4, 2> render(int width, int height);
 
   protected:
     std::function<void(const bool *key_state)> handle_input = nullptr;
