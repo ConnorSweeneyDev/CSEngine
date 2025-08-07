@@ -75,7 +75,7 @@ class custom_object : public cse::base::object
 public:
   custom_object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_)
     : cse::base::object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
-                        cse::resource::main_texture)
+                        cse::resource::main_texture, 50, 2, 0)
   {
     handle_input = [this](const bool *key_state)
     {
@@ -116,7 +116,7 @@ int try_main(int argc, char *argv[])
   game->add_scene<cse::base::scene>("scene");
   if (auto scene = game->get_scene("scene").lock())
   {
-    scene->set_camera<custom_camera>(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, -1.0f),
+    scene->set_camera<custom_camera>(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, -1.0f),
                                      glm::vec3(0.0f, 1.0f, 0.0f));
     scene->add_object<custom_object>("object", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f),
                                      glm::vec3(1.0f, 1.0f, 1.0f));

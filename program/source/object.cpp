@@ -36,8 +36,9 @@ namespace cse::base
 
   object::graphics::graphics(const resource::compiled_shader &vertex_shader_,
                              const resource::compiled_shader &fragment_shader_,
-                             const resource::compiled_texture &texture_)
-    : shader(vertex_shader_, fragment_shader_), texture(texture_)
+                             const resource::compiled_texture &texture_, int frame_width_, int frame_count_,
+                             int current_frame_)
+    : shader(vertex_shader_, fragment_shader_), texture(texture_, frame_width_, frame_count_, current_frame_)
   {
   }
 
@@ -175,10 +176,25 @@ namespace cse::base
 
     auto vertex_data = reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, buffer_transfer_buffer, false));
     if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
+    if (texture.frame_width * texture.current_frame >= texture.raw.width)
+      throw cse::utility::exception("Current frame width exceeds texture width for object");
+    float top_left_u = static_cast<float>(texture.current_frame) / static_cast<float>(texture.frame_count);
+    float top_left_v = 1.0f;
+    float top_right_u = top_left_u + static_cast<float>(texture.frame_width) / static_cast<float>(texture.raw.width);
+    float top_right_v = 1.0f;
+    float bottom_left_u = top_left_u;
+    float bottom_left_v = 0.0f;
+    float bottom_right_u = top_right_u;
+    float bottom_right_v = 0.0f;
+    quad_vertices = {vertex{1.0f, 1.0f, 0.0f, 0, 0, 0, 255, top_right_u, top_right_v},
+                     vertex{1.0f, -1.0f, 0.0f, 0, 0, 0, 255, bottom_right_u, bottom_right_v},
+                     vertex{-1.0f, 1.0f, 0.0f, 0, 0, 0, 255, top_left_u, top_left_v},
+                     vertex{-1.0f, -1.0f, 0.0f, 0, 0, 0, 255, bottom_left_u, bottom_left_v}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
 
     auto index_data = reinterpret_cast<Uint16 *>(&vertex_data[quad_vertices.size()]);
     if (!index_data) throw cse::utility::sdl_exception("Could not map index data for object");
+    quad_indices = {3, 1, 0, 3, 0, 2};
     std::copy(quad_indices.begin(), quad_indices.end(), index_data);
 
     SDL_UnmapGPUTransferBuffer(gpu, buffer_transfer_buffer);
@@ -292,8 +308,9 @@ namespace cse::base
 
   object::object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
                  const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-                 const resource::compiled_texture &texture_)
-    : transform(translation_, rotation_, scale_), graphics(vertex_shader_, fragment_shader_, texture_)
+                 const resource::compiled_texture &texture_, int frame_width_, int frame_count_, int current_frame_)
+    : transform(translation_, rotation_, scale_),
+      graphics(vertex_shader_, fragment_shader_, texture_, frame_width_, frame_count_, current_frame_)
   {
   }
 

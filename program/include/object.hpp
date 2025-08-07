@@ -61,17 +61,20 @@ namespace cse::base
       };
       struct shader
       {
-        resource::compiled_shader vertex = {};
-        resource::compiled_shader fragment = {};
+        const resource::compiled_shader vertex = {};
+        const resource::compiled_shader fragment = {};
       };
       struct texture
       {
-        resource::compiled_texture raw = {};
+        const resource::compiled_texture raw = {};
+        const int frame_width = 0;
+        const int frame_count = 0;
+        const int current_frame = 0;
       };
 
     public:
       graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-               const resource::compiled_texture &texture_);
+               const resource::compiled_texture &texture_, int frame_width_, int frame_count_, int current_frame_);
 
     private:
       void create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu);
@@ -98,19 +101,14 @@ namespace cse::base
       SDL_GPUSampler *sampler_buffer = nullptr;
       SDL_GPUTransferBuffer *buffer_transfer_buffer = nullptr;
       SDL_GPUTransferBuffer *texture_transfer_buffer = nullptr;
-      inline static const std::array<graphics::vertex, 4> quad_vertices = {
-        graphics::vertex{0.5f, 0.5f, 0.0f, 0, 0, 0, 255, 1.0f, 1.0f},
-        graphics::vertex{0.5f, -0.5f, 0.0f, 0, 0, 0, 255, 1.0f, 0.0f},
-        graphics::vertex{-0.5f, 0.5f, 0.0f, 0, 0, 0, 255, 0.0f, 1.0f},
-        graphics::vertex{-0.5f, -0.5f, 0.0f, 0, 0, 0, 255, 0.0f, 0.0f},
-      };
-      inline static const std::array<Uint16, 6> quad_indices = {3, 1, 0, 3, 0, 2};
+      std::array<vertex, 4> quad_vertices = {};
+      std::array<Uint16, 6> quad_indices = {};
     };
 
   public:
     object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
            const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-           const resource::compiled_texture &texture_);
+           const resource::compiled_texture &texture_, int frame_width_, int frame_count_, int current_frame_);
     virtual ~object();
     object(const object &) = delete;
     object &operator=(const object &) = delete;
@@ -129,6 +127,7 @@ namespace cse::base
     std::function<void()> handle_simulate = nullptr;
 
     transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)};
-    graphics graphics = {resource::compiled_shader(), resource::compiled_shader(), resource::compiled_texture()};
+    graphics graphics = {
+      resource::compiled_shader(), resource::compiled_shader(), resource::compiled_texture(), 0, 0, 0};
   };
 }

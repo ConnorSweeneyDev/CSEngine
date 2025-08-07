@@ -1,7 +1,7 @@
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/Manage.cmake")
 set(SDL_VERSION "3.2.16")
-set(GLM_VERSION "1.0.1")
 set(CSRESOURCE_VERSION "0.0.0")
+set(GLM_VERSION "1.0.1")
 
 CPMAddPackage(
   URI
@@ -11,10 +11,6 @@ CPMAddPackage(
 )
 list(APPEND SYSTEM_INCLUDE_DIRECTORIES "${sdl_SOURCE_DIR}/include")
 list(APPEND LIBRARIES "SDL3-static")
-
-CPMAddPackage(URI "gh:g-truc/glm#${GLM_VERSION}" NAME "glm" OPTIONS "BUILD_SHARED_LIBS OFF" "GLM_BUILD_TESTS OFF")
-list(APPEND SYSTEM_INCLUDE_DIRECTORIES "${glm_SOURCE_DIR}")
-list(APPEND LIBRARIES "glm::glm")
 
 CPMAddPackage(URI "gh:ConnorSweeneyDev/CSResource#v${CSRESOURCE_VERSION}" NAME "csresource")
 set(SHADER_SOURCE_DIRECTORY "resource/shader")
@@ -45,3 +41,7 @@ endif()
 if(NOT "${RESOURCE_HPP_FILE}" IN_LIST HEADER_FILES)
   list(APPEND HEADER_FILES "${RESOURCE_HPP_FILE}")
 endif()
+
+CPMAddPackage(URI "gh:g-truc/glm#${GLM_VERSION}" NAME "glm" OPTIONS "BUILD_SHARED_LIBS OFF" "GLM_BUILD_TESTS OFF")
+list(APPEND SYSTEM_INCLUDE_DIRECTORIES "${glm_SOURCE_DIR}")
+list(APPEND LIBRARIES "glm::glm")
