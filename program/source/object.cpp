@@ -178,18 +178,18 @@ namespace cse::base
     if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
     if (texture.frame_width * texture.current_frame >= texture.raw.width)
       throw cse::utility::exception("Current frame width exceeds texture width for object");
-    float top_left_u = static_cast<float>(texture.current_frame) / static_cast<float>(texture.frame_count);
-    float top_left_v = 1.0f;
-    float top_right_u = top_left_u + static_cast<float>(texture.frame_width) / static_cast<float>(texture.raw.width);
-    float top_right_v = 1.0f;
-    float bottom_left_u = top_left_u;
-    float bottom_left_v = 0.0f;
-    float bottom_right_u = top_right_u;
-    float bottom_right_v = 0.0f;
-    quad_vertices = {vertex{1.0f, 1.0f, 0.0f, 0, 0, 0, 255, top_right_u, top_right_v},
-                     vertex{1.0f, -1.0f, 0.0f, 0, 0, 0, 255, bottom_right_u, bottom_right_v},
-                     vertex{-1.0f, 1.0f, 0.0f, 0, 0, 0, 255, top_left_u, top_left_v},
-                     vertex{-1.0f, -1.0f, 0.0f, 0, 0, 0, 255, bottom_left_u, bottom_left_v}};
+    quad_vertices = {vertex{1.0f, 1.0f, 0.0f, 0, 0, 0, 255,
+                            (static_cast<float>(texture.current_frame) / static_cast<float>(texture.frame_count)) +
+                              static_cast<float>(texture.frame_width) / static_cast<float>(texture.raw.width),
+                            1.0f},
+                     vertex{1.0f, -1.0f, 0.0f, 0, 0, 0, 255,
+                            (static_cast<float>(texture.current_frame) / static_cast<float>(texture.frame_count)) +
+                              static_cast<float>(texture.frame_width) / static_cast<float>(texture.raw.width),
+                            0.0f},
+                     vertex{-1.0f, 1.0f, 0.0f, 0, 0, 0, 255,
+                            static_cast<float>(texture.current_frame) / static_cast<float>(texture.frame_count), 1.0f},
+                     vertex{-1.0f, -1.0f, 0.0f, 0, 0, 0, 255,
+                            static_cast<float>(texture.current_frame) / static_cast<float>(texture.frame_count), 0.0f}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
 
     auto index_data = reinterpret_cast<Uint16 *>(&vertex_data[quad_vertices.size()]);
