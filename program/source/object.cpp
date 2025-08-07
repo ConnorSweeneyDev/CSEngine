@@ -36,9 +36,8 @@ namespace cse::base
 
   object::graphics::graphics(const resource::compiled_shader &vertex_shader_,
                              const resource::compiled_shader &fragment_shader_,
-                             const resource::compiled_texture &texture_, int frame_width_, int frame_count_,
-                             int current_frame_)
-    : shader(vertex_shader_, fragment_shader_), texture(texture_, frame_width_, frame_count_, current_frame_)
+                             const resource::compiled_texture &texture_, unsigned int current_frame_)
+    : shader(vertex_shader_, fragment_shader_), texture(texture_, current_frame_)
   {
   }
 
@@ -176,20 +175,21 @@ namespace cse::base
 
     auto vertex_data = reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, buffer_transfer_buffer, false));
     if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
-    if (texture.frame_width * texture.current_frame >= texture.raw.width)
+    if (texture.raw.frame_width * texture.current_frame >= texture.raw.width)
       throw cse::utility::exception("Current frame width exceeds texture width for object");
-    quad_vertices = {vertex{1.0f, 1.0f, 0.0f, 0, 0, 0, 255,
-                            (static_cast<float>(texture.current_frame) / static_cast<float>(texture.frame_count)) +
-                              static_cast<float>(texture.frame_width) / static_cast<float>(texture.raw.width),
-                            1.0f},
-                     vertex{1.0f, -1.0f, 0.0f, 0, 0, 0, 255,
-                            (static_cast<float>(texture.current_frame) / static_cast<float>(texture.frame_count)) +
-                              static_cast<float>(texture.frame_width) / static_cast<float>(texture.raw.width),
-                            0.0f},
-                     vertex{-1.0f, 1.0f, 0.0f, 0, 0, 0, 255,
-                            static_cast<float>(texture.current_frame) / static_cast<float>(texture.frame_count), 1.0f},
-                     vertex{-1.0f, -1.0f, 0.0f, 0, 0, 0, 255,
-                            static_cast<float>(texture.current_frame) / static_cast<float>(texture.frame_count), 0.0f}};
+    quad_vertices = {
+      vertex{1.0f, 1.0f, 0.0f, 0, 0, 0, 255,
+             (static_cast<float>(texture.current_frame) / static_cast<float>(texture.raw.frame_count)) +
+               static_cast<float>(texture.raw.frame_width) / static_cast<float>(texture.raw.width),
+             1.0f},
+      vertex{1.0f, -1.0f, 0.0f, 0, 0, 0, 255,
+             (static_cast<float>(texture.current_frame) / static_cast<float>(texture.raw.frame_count)) +
+               static_cast<float>(texture.raw.frame_width) / static_cast<float>(texture.raw.width),
+             0.0f},
+      vertex{-1.0f, 1.0f, 0.0f, 0, 0, 0, 255,
+             static_cast<float>(texture.current_frame) / static_cast<float>(texture.raw.frame_count), 1.0f},
+      vertex{-1.0f, -1.0f, 0.0f, 0, 0, 0, 255,
+             static_cast<float>(texture.current_frame) / static_cast<float>(texture.raw.frame_count), 0.0f}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
 
     auto index_data = reinterpret_cast<Uint16 *>(&vertex_data[quad_vertices.size()]);
@@ -308,9 +308,8 @@ namespace cse::base
 
   object::object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
                  const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-                 const resource::compiled_texture &texture_, int frame_width_, int frame_count_, int current_frame_)
-    : transform(translation_, rotation_, scale_),
-      graphics(vertex_shader_, fragment_shader_, texture_, frame_width_, frame_count_, current_frame_)
+                 const resource::compiled_texture &texture_, unsigned int current_frame_)
+    : transform(translation_, rotation_, scale_), graphics(vertex_shader_, fragment_shader_, texture_, current_frame_)
   {
   }
 

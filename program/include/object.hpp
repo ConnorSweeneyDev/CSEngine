@@ -67,14 +67,12 @@ namespace cse::base
       struct texture
       {
         const resource::compiled_texture raw = {};
-        const int frame_width = 0;
-        const int frame_count = 0;
-        const int current_frame = 0;
+        const unsigned int current_frame = 0;
       };
 
     public:
       graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-               const resource::compiled_texture &texture_, int frame_width_, int frame_count_, int current_frame_);
+               const resource::compiled_texture &texture_, unsigned int current_frame_);
 
     private:
       void create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu);
@@ -108,7 +106,7 @@ namespace cse::base
   public:
     object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
            const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-           const resource::compiled_texture &texture_, int frame_width_, int frame_count_, int current_frame_);
+           const resource::compiled_texture &texture_, unsigned int current_frame_);
     virtual ~object();
     object(const object &) = delete;
     object &operator=(const object &) = delete;
@@ -127,7 +125,6 @@ namespace cse::base
     std::function<void()> handle_simulate = nullptr;
 
     transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)};
-    graphics graphics = {
-      resource::compiled_shader(), resource::compiled_shader(), resource::compiled_texture(), 0, 0, 0};
+    graphics graphics = {resource::compiled_shader(), resource::compiled_shader(), resource::compiled_texture(), 0};
   };
 }
