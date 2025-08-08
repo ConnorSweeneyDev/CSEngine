@@ -75,7 +75,7 @@ class custom_object : public cse::base::object
 public:
   custom_object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_)
     : cse::base::object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
-                        cse::resource::main_texture, 1)
+                        cse::resource::main_texture, 0)
   {
     handle_input = [this](const bool *key_state)
     {
