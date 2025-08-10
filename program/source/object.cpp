@@ -175,21 +175,21 @@ namespace cse::base
 
     auto vertex_data = reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, buffer_transfer_buffer, false));
     if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
-    if (texture.raw.frame_width * texture.current_frame >= texture.raw.width)
-      throw cse::utility::exception("Current frame width exceeds texture width for object");
+
+    if (texture.current_frame >= texture.raw.frame_count)
+      throw cse::utility::exception("Current frame {} (index {}) exceeds total frames {}", texture.current_frame + 1,
+                                    texture.current_frame, texture.raw.frame_count);
+    unsigned int frames_per_row = texture.raw.width / texture.raw.frame_width;
+    unsigned int frames_per_column = texture.raw.height / texture.raw.frame_height;
+    unsigned int frame_x = texture.current_frame % frames_per_row;
+    unsigned int frame_y = (frames_per_column - 1) - (texture.current_frame / frames_per_row);
+    float left = static_cast<float>(frame_x * texture.raw.frame_width) / static_cast<float>(texture.raw.width);
+    float right = static_cast<float>((frame_x + 1) * texture.raw.frame_width) / static_cast<float>(texture.raw.width);
+    float top = static_cast<float>((frame_y + 1) * texture.raw.frame_height) / static_cast<float>(texture.raw.height);
+    float bottom = static_cast<float>(frame_y * texture.raw.frame_height) / static_cast<float>(texture.raw.height);
     quad_vertices = {
-      vertex{1.0f, 1.0f, 0.0f, 0, 0, 0, 255,
-             (static_cast<float>(texture.current_frame) / static_cast<float>(texture.raw.frame_count)) +
-               static_cast<float>(texture.raw.frame_width) / static_cast<float>(texture.raw.width),
-             1.0f},
-      vertex{1.0f, -1.0f, 0.0f, 0, 0, 0, 255,
-             (static_cast<float>(texture.current_frame) / static_cast<float>(texture.raw.frame_count)) +
-               static_cast<float>(texture.raw.frame_width) / static_cast<float>(texture.raw.width),
-             0.0f},
-      vertex{-1.0f, 1.0f, 0.0f, 0, 0, 0, 255,
-             static_cast<float>(texture.current_frame) / static_cast<float>(texture.raw.frame_count), 1.0f},
-      vertex{-1.0f, -1.0f, 0.0f, 0, 0, 0, 255,
-             static_cast<float>(texture.current_frame) / static_cast<float>(texture.raw.frame_count), 0.0f}};
+      vertex{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, right, top}, vertex{1.0f, -1.0f, 0.0f, 0, 0, 0, 0, right, bottom},
+      vertex{-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, left, top}, vertex{-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, left, bottom}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
 
     auto index_data = reinterpret_cast<Uint16 *>(&vertex_data[quad_vertices.size()]);
