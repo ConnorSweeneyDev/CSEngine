@@ -175,21 +175,9 @@ namespace cse::base
 
     auto vertex_data = reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, buffer_transfer_buffer, false));
     if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
-
-    if (texture.current_frame >= texture.raw.frame_count)
-      throw cse::utility::exception("Current frame {} (index {}) exceeds total frames {}", texture.current_frame + 1,
-                                    texture.current_frame, texture.raw.frame_count);
-    unsigned int frames_per_row = texture.raw.width / texture.raw.frame_width;
-    unsigned int frames_per_column = texture.raw.height / texture.raw.frame_height;
-    unsigned int frame_x = texture.current_frame % frames_per_row;
-    unsigned int frame_y = (frames_per_column - 1) - (texture.current_frame / frames_per_row);
-    float left = static_cast<float>(frame_x * texture.raw.frame_width) / static_cast<float>(texture.raw.width);
-    float right = static_cast<float>((frame_x + 1) * texture.raw.frame_width) / static_cast<float>(texture.raw.width);
-    float top = static_cast<float>((frame_y + 1) * texture.raw.frame_height) / static_cast<float>(texture.raw.height);
-    float bottom = static_cast<float>(frame_y * texture.raw.frame_height) / static_cast<float>(texture.raw.height);
     quad_vertices = {
-      vertex{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, right, top}, vertex{1.0f, -1.0f, 0.0f, 0, 0, 0, 0, right, bottom},
-      vertex{-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, left, top}, vertex{-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, left, bottom}};
+      vertex{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 1.0f}, vertex{1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 0.0f},
+      vertex{-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 1.0f}, vertex{-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 0.0f}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
 
     auto index_data = reinterpret_cast<Uint16 *>(&vertex_data[quad_vertices.size()]);
@@ -260,6 +248,54 @@ namespace cse::base
     SDL_ReleaseGPUTransferBuffer(gpu, buffer_transfer_buffer);
     texture_transfer_buffer = nullptr;
     buffer_transfer_buffer = nullptr;
+  }
+
+  void object::graphics::update_vertex(SDL_GPUDevice *gpu)
+  {
+    SDL_GPUTransferBufferCreateInfo buffer_info = {};
+    buffer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    buffer_info.size = sizeof(quad_vertices);
+    SDL_GPUTransferBuffer *transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &buffer_info);
+    if (!transfer_buffer) throw cse::utility::sdl_exception("Could not create transfer buffer for vertex object");
+
+    auto vertex_data = reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, transfer_buffer, false));
+    if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
+    if (texture.current_frame >= texture.raw.frame_count)
+      throw cse::utility::exception("Current frame {} (index {}) exceeds total frames {}", texture.current_frame + 1,
+                                    texture.current_frame, texture.raw.frame_count);
+    unsigned int frames_per_row = texture.raw.width / texture.raw.frame_width;
+    unsigned int frames_per_column = texture.raw.height / texture.raw.frame_height;
+    unsigned int frame_x = texture.current_frame % frames_per_row;
+    unsigned int frame_y = (frames_per_column - 1) - (texture.current_frame / frames_per_row);
+    float left = static_cast<float>(frame_x * texture.raw.frame_width) / static_cast<float>(texture.raw.width);
+    float right = static_cast<float>((frame_x + 1) * texture.raw.frame_width) / static_cast<float>(texture.raw.width);
+    float top = static_cast<float>((frame_y + 1) * texture.raw.frame_height) / static_cast<float>(texture.raw.height);
+    float bottom = static_cast<float>(frame_y * texture.raw.frame_height) / static_cast<float>(texture.raw.height);
+    quad_vertices = {
+      vertex{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, right, top}, vertex{1.0f, -1.0f, 0.0f, 0, 0, 0, 0, right, bottom},
+      vertex{-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, left, top}, vertex{-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, left, bottom}};
+    std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
+    SDL_UnmapGPUTransferBuffer(gpu, transfer_buffer);
+
+    SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
+    if (!command_buffer) throw cse::utility::sdl_exception("Could not acquire GPU command buffer for object");
+    SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass(command_buffer);
+    if (!copy_pass) throw cse::utility::sdl_exception("Could not begin GPU copy pass for object");
+
+    SDL_GPUTransferBufferLocation transfer_location = {};
+    transfer_location.transfer_buffer = transfer_buffer;
+    transfer_location.offset = 0;
+    SDL_GPUBufferRegion buffer_region = {};
+    buffer_region.buffer = vertex_buffer;
+    buffer_region.offset = 0;
+    buffer_region.size = sizeof(quad_vertices);
+    SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, false);
+
+    SDL_EndGPUCopyPass(copy_pass);
+    SDL_SubmitGPUCommandBuffer(command_buffer);
+
+    SDL_ReleaseGPUTransferBuffer(gpu, transfer_buffer);
+    transfer_buffer = nullptr;
   }
 
   void object::graphics::bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass)
@@ -349,9 +385,10 @@ namespace cse::base
     transform.scale.update_interpolated(static_cast<float>(simulation_alpha));
   }
 
-  void object::render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
+  void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                       const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix)
   {
+    graphics.update_vertex(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
 
     glm::mat4 model_matrix = glm::mat4(1.0f);

@@ -31,7 +31,8 @@ namespace cse::base
     void cleanup(SDL_GPUDevice *gpu);
     void input(const bool *key_state);
     void simulate(double simulation_alpha);
-    void render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass, int width, int height);
+    void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass, int width,
+                int height);
 
   protected:
     std::function<void(const bool *key_state)> handle_input = nullptr;

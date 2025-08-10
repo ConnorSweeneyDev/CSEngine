@@ -97,7 +97,8 @@ namespace cse
   {
     if (!window->start_render()) return;
     if (auto scene = current_scene.lock())
-      scene->render(window->get_command_buffer(), window->get_render_pass(), window->get_width(), window->get_height());
+      scene->render(window->get_gpu(), window->get_command_buffer(), window->get_render_pass(), window->get_width(),
+                    window->get_height());
     else
       throw cse::utility::exception("Current scene is not initialized");
     window->end_render();

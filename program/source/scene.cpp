@@ -45,9 +45,11 @@ namespace cse::base
     for (const auto &object : objects) object.second->simulate(simulation_alpha);
   }
 
-  void scene::render(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass, int width, int height)
+  void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
+                     int width, int height)
   {
     auto matrices = camera->render(width, height);
-    for (const auto &object : objects) object.second->render(command_buffer, render_pass, matrices[0], matrices[1]);
+    for (const auto &object : objects)
+      object.second->render(gpu, command_buffer, render_pass, matrices[0], matrices[1]);
   }
 }
