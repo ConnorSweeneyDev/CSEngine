@@ -33,7 +33,7 @@ namespace cse
         simulate();
       }
       update_simulation_alpha();
-      if (render_behind())
+      if (should_render())
       {
         render();
         update_fps();
@@ -125,7 +125,7 @@ namespace cse
 
   void game::update_simulation_alpha() { simulation_alpha = simulation_accumulator / target_simulation_time; }
 
-  bool game::render_behind()
+  bool game::should_render()
   {
     double current_render_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
     if (current_render_time - last_render_time >= target_render_time)

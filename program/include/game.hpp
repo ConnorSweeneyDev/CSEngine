@@ -37,7 +37,7 @@ namespace cse
     void update_simulation_time();
     bool simulation_behind();
     void update_simulation_alpha();
-    bool render_behind();
+    bool should_render();
     void update_fps();
 
   private:
