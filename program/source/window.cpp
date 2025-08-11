@@ -245,9 +245,7 @@ namespace cse::base
   {
     key_state = SDL_GetKeyboardState(nullptr);
     SDL_Event event = {};
-    while (SDL_PollEvent(&event))
-    {
-      switch (event.type)
+    while (SDL_PollEvent(&event)) switch (event.type)
       {
         case SDL_EVENT_QUIT: quit(); break;
         case SDL_EVENT_WINDOW_MOVED: move(); break;
@@ -255,7 +253,6 @@ namespace cse::base
           if (handle_input) handle_input(event.key);
           break;
       }
-    }
   }
 
   bool window::start_render()
