@@ -38,7 +38,7 @@ namespace cse::base
     for (const auto &object : objects) object.second->input(key_state);
   }
 
-  void scene::simulate(double simulation_alpha)
+  void scene::simulate(const double simulation_alpha)
   {
     if (handle_simulate) { handle_simulate(simulation_alpha); }
     camera->simulate(simulation_alpha);
@@ -46,7 +46,7 @@ namespace cse::base
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     int width, int height)
+                     const int width, const int height)
   {
     auto matrices = camera->render(width, height);
     for (const auto &object : objects)

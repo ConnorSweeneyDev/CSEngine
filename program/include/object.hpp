@@ -8,6 +8,7 @@
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
+#include "glm/ext/vector_int3.hpp"
 
 #include "resource.hpp"
 
@@ -105,9 +106,9 @@ namespace cse::base
     };
 
   public:
-    object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
+    object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_,
            const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-           const resource::compiled_texture &texture_, unsigned int current_frame_);
+           const resource::compiled_texture &texture_, const unsigned int current_frame_);
     virtual ~object();
     object(const object &) = delete;
     object &operator=(const object &) = delete;

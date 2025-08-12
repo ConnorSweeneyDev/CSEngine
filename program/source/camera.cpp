@@ -8,6 +8,8 @@
 #include "glm/ext/vector_float3.hpp"
 #include "glm/trigonometric.hpp"
 
+#include "game.hpp"
+
 namespace cse::base
 {
   camera::transform::property::property(const glm::vec3 &value_)
@@ -18,7 +20,7 @@ namespace cse::base
 
   void camera::transform::property::update_previous() { previous = value; }
 
-  void camera::transform::property::update_interpolated(float simulation_alpha)
+  void camera::transform::property::update_interpolated(const float simulation_alpha)
   {
     interpolated = previous + ((value - previous) * simulation_alpha);
   }
@@ -28,12 +30,12 @@ namespace cse::base
   {
   }
 
-  camera::graphics::graphics(float fov_, float near_clip_, float far_clip_)
+  camera::graphics::graphics(const float fov_, const float near_clip_, const float far_clip_)
     : fov(fov_), near_clip(near_clip_), far_clip(far_clip_)
   {
   }
 
-  void camera::graphics::update_projection_matrix(int width, int height)
+  void camera::graphics::update_projection_matrix(const int width, const int height)
   {
     projection_matrix =
       glm::perspective(glm::radians(fov), static_cast<float>(width) / static_cast<float>(height), near_clip, far_clip);
@@ -44,9 +46,8 @@ namespace cse::base
     view_matrix = glm::lookAt(translation, translation + forward, up);
   }
 
-  camera::camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, float fov_,
-                 float near_clip_, float far_clip_)
-    : transform(translation_, forward_, up_), graphics(fov_, near_clip_, far_clip_)
+  camera::camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, const float fov_)
+    : transform(translation_, forward_, up_), graphics(fov_, 0.01f, 100.0f)
   {
   }
 
@@ -61,7 +62,7 @@ namespace cse::base
     if (handle_input) handle_input(key_state);
   }
 
-  void camera::simulate(double simulation_alpha)
+  void camera::simulate(const double simulation_alpha)
   {
     transform.translation.update_previous();
     transform.forward.update_previous();
@@ -74,10 +75,10 @@ namespace cse::base
     transform.up.update_interpolated(static_cast<float>(simulation_alpha));
   }
 
-  std::array<glm::mat4, 2> camera::render(int width, int height)
+  std::array<glm::mat4, 2> camera::render(const int width, const int height)
   {
     graphics.update_projection_matrix(width, height);
-    graphics.update_view_matrix(transform.translation.interpolated, transform.forward.interpolated,
+    graphics.update_view_matrix(transform.translation.interpolated * game::scale_factor, transform.forward.interpolated,
                                 transform.up.interpolated);
     return {graphics.projection_matrix, graphics.view_matrix};
   }

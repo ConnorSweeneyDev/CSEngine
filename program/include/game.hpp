@@ -40,6 +40,9 @@ namespace cse
     bool should_render();
     void update_fps();
 
+  public:
+    inline static const float scale_factor = 0.04f;
+
   private:
     std::unique_ptr<base::window> window = nullptr;
     std::unordered_map<std::string, std::shared_ptr<base::scene>> scenes = {};

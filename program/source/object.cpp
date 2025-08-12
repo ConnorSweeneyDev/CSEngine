@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_stdinc.h"
@@ -9,9 +10,11 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_float3.hpp"
+#include "glm/ext/vector_int3.hpp"
 #include "glm/trigonometric.hpp"
 
 #include "exception.hpp"
+#include "game.hpp"
 #include "resource.hpp"
 
 namespace cse::base
@@ -101,21 +104,21 @@ namespace cse::base
     vertex_attributes.at(2).location = 2;
     vertex_attributes.at(2).offset = sizeof(vertex::x) + sizeof(vertex::y) + sizeof(vertex::z) + sizeof(vertex::r) +
                                      sizeof(vertex::g) + sizeof(vertex::b) + sizeof(vertex::a);
-    SDL_GPUVertexInputState vertex_input = {};
-    vertex_input.num_vertex_buffers = 1;
-    vertex_input.num_vertex_attributes = 3;
-    vertex_input.vertex_buffer_descriptions = &vertex_buffer_description;
-    vertex_input.vertex_attributes = vertex_attributes.data();
+    SDL_GPUVertexInputState vertex_input_state = {};
+    vertex_input_state.num_vertex_buffers = 1;
+    vertex_input_state.num_vertex_attributes = 3;
+    vertex_input_state.vertex_buffer_descriptions = &vertex_buffer_description;
+    vertex_input_state.vertex_attributes = vertex_attributes.data();
 
     SDL_GPUColorTargetDescription color_target_description = {};
     color_target_description.format = SDL_GetGPUSwapchainTextureFormat(gpu, instance);
     SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
+    pipeline_info.vertex_input_state = vertex_input_state;
     pipeline_info.vertex_shader = vertex_shader;
     pipeline_info.fragment_shader = fragment_shader;
     pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
     pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
     pipeline_info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_BACK;
-    pipeline_info.vertex_input_state = vertex_input;
     pipeline_info.target_info.num_color_targets = 1;
     pipeline_info.target_info.color_target_descriptions = &color_target_description;
     pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &pipeline_info);
@@ -342,10 +345,16 @@ namespace cse::base
     pipeline = nullptr;
   }
 
-  object::object(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_,
+  object::object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_,
                  const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-                 const resource::compiled_texture &texture_, unsigned int current_frame_)
-    : transform(translation_, rotation_, scale_), graphics(vertex_shader_, fragment_shader_, texture_, current_frame_)
+                 const resource::compiled_texture &texture_, const unsigned int current_frame_)
+    : transform(glm::vec3(static_cast<float>(translation_.x) * game::scale_factor,
+                          static_cast<float>(translation_.y) * game::scale_factor,
+                          static_cast<float>(translation_.z) * game::scale_factor),
+                glm::vec3(static_cast<float>(rotation_.x) * 90.0f, static_cast<float>(rotation_.y) * 90.0f,
+                          static_cast<float>(rotation_.z) * 90.0f),
+                glm::vec3(scale_.x, scale_.y, scale_.z)),
+      graphics(vertex_shader_, fragment_shader_, texture_, current_frame_)
   {
   }
 
@@ -392,14 +401,25 @@ namespace cse::base
     graphics.bind_pipeline_and_buffers(render_pass);
 
     glm::mat4 model_matrix = glm::mat4(1.0f);
-    model_matrix = glm::translate(model_matrix, transform.translation.interpolated);
-    model_matrix =
-      glm::rotate(model_matrix, glm::radians(transform.rotation.interpolated.x), glm::vec3(1.0f, 0.0f, 0.0f));
-    model_matrix =
-      glm::rotate(model_matrix, glm::radians(transform.rotation.interpolated.y), glm::vec3(0.0f, 1.0f, 0.0f));
-    model_matrix =
-      glm::rotate(model_matrix, glm::radians(transform.rotation.interpolated.z), glm::vec3(0.0f, 0.0f, 1.0f));
-    model_matrix = glm::scale(model_matrix, transform.scale.interpolated);
+    glm::vec3 translation_target = {
+      std::floor((transform.translation.interpolated.x * game::scale_factor) / game::scale_factor) * game::scale_factor,
+      std::floor((transform.translation.interpolated.y * game::scale_factor) / game::scale_factor) * game::scale_factor,
+      std::floor((transform.translation.interpolated.z * game::scale_factor) / game::scale_factor) *
+        game::scale_factor};
+    model_matrix = glm::translate(model_matrix, translation_target);
+    glm::vec3 rotation_target = {std::floor(transform.rotation.interpolated.x / 90.0f) * 90.0f,
+                                 std::floor(transform.rotation.interpolated.y / 90.0f) * 90.0f,
+                                 std::floor(transform.rotation.interpolated.z / 90.0f) * 90.0f};
+    model_matrix = glm::rotate(model_matrix, glm::radians(rotation_target.x), glm::vec3(1.0f, 0.0f, 0.0f));
+    model_matrix = glm::rotate(model_matrix, glm::radians(rotation_target.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    model_matrix = glm::rotate(model_matrix, glm::radians(rotation_target.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::vec3 scale_target = {
+      std::floor(transform.scale.interpolated.x) *
+        (static_cast<float>(graphics.texture.raw.frame_width) / (game::scale_factor * 1250.0f)),
+      std::floor(transform.scale.interpolated.y) *
+        (static_cast<float>(graphics.texture.raw.frame_height) / (game::scale_factor * 1250.0f)),
+      std::floor(transform.scale.interpolated.z)};
+    model_matrix = glm::scale(model_matrix, scale_target);
     graphics.push_uniform_data(command_buffer, model_matrix, projection_matrix, view_matrix);
 
     graphics.draw_primitives(render_pass);

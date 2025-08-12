@@ -14,7 +14,7 @@
 
 namespace cse::base
 {
-  window::graphics::graphics(const std::string &title_, int starting_width_, int starting_height_)
+  window::graphics::graphics(const std::string &title_, const int starting_width_, const int starting_height_)
     : title(title_), width(starting_width_), height(starting_height_), starting_width(starting_width_),
       starting_height(starting_height_)
   {
@@ -167,7 +167,8 @@ namespace cse::base
     instance = nullptr;
   }
 
-  window::window(const std::string &title_, int starting_width_, int starting_height_, bool fullscreen_, bool vsync_)
+  window::window(const std::string &title_, const int starting_width_, const int starting_height_,
+                 const bool fullscreen_, const bool vsync_)
     : fullscreen(fullscreen_), vsync(vsync_), graphics(title_, starting_width_, starting_height_)
   {
     if (title_.empty()) throw cse::utility::exception("Window title cannot be empty");

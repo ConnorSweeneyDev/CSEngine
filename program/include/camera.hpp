@@ -23,7 +23,7 @@ namespace cse::base
 
       private:
         void update_previous();
-        void update_interpolated(float simulation_alpha);
+        void update_interpolated(const float simulation_alpha);
 
       public:
         glm::vec3 value = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -48,10 +48,10 @@ namespace cse::base
       friend class camera;
 
     public:
-      graphics(float fov_, float near_clip_, float far_clip_);
+      graphics(const float fov_, const float near_clip_, const float far_clip_);
 
     private:
-      void update_projection_matrix(int width, int height);
+      void update_projection_matrix(const int width, const int height);
       void update_view_matrix(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_);
 
     public:
@@ -65,8 +65,7 @@ namespace cse::base
     };
 
   public:
-    camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, float fov_, float near_clip_,
-           float far_clip_);
+    camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, const float fov_);
     virtual ~camera();
     camera(const camera &) = delete;
     camera &operator=(const camera &) = delete;
@@ -74,8 +73,8 @@ namespace cse::base
     camera &operator=(camera &&) = delete;
 
     void input(const bool *key_state);
-    void simulate(double simulation_alpha);
-    std::array<glm::mat4, 2> render(int width, int height);
+    void simulate(const double simulation_alpha);
+    std::array<glm::mat4, 2> render(const int width, const int height);
 
   protected:
     std::function<void(const bool *key_state)> handle_input = nullptr;

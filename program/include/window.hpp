@@ -17,7 +17,7 @@ namespace cse::base
       friend class window;
 
     public:
-      graphics(const std::string &title_, int starting_width_, int starting_height_);
+      graphics(const std::string &title_, const int starting_width_, const int starting_height_);
 
     private:
       void initialize_window();
@@ -50,7 +50,8 @@ namespace cse::base
     };
 
   public:
-    window(const std::string &title_, int starting_width_, int starting_height_, bool fullscreen_, bool vsync_);
+    window(const std::string &title_, const int starting_width_, const int starting_height_, const bool fullscreen_,
+           const bool vsync_);
     virtual ~window();
     window(const window &) = delete;
     window &operator=(const window &) = delete;

@@ -30,13 +30,13 @@ namespace cse::base
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void cleanup(SDL_GPUDevice *gpu);
     void input(const bool *key_state);
-    void simulate(double simulation_alpha);
-    void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass, int width,
-                int height);
+    void simulate(const double simulation_alpha);
+    void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
+                const int width, const int height);
 
   protected:
     std::function<void(const bool *key_state)> handle_input = nullptr;
-    std::function<void(double simulation_alpha)> handle_simulate = nullptr;
+    std::function<void(const double simulation_alpha)> handle_simulate = nullptr;
 
     std::unique_ptr<camera> camera = nullptr;
     std::unordered_map<std::string, std::shared_ptr<object>> objects = {};
