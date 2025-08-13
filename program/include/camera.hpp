@@ -15,6 +15,9 @@ namespace cse::core
   private:
     struct transform
     {
+      friend class camera;
+
+    private:
       struct property
       {
         friend class camera;
@@ -31,6 +34,7 @@ namespace cse::core
         glm::vec3 interpolated = glm::vec3(0.0f, 0.0f, 0.0f);
       };
 
+    public:
       transform(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_);
 
       property translation = glm::vec3(0.0f, 0.0f, 0.0f);
