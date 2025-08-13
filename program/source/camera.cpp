@@ -28,7 +28,7 @@ namespace cse::core
 
   camera::graphics::graphics(const float fov_) : fov(fov_), near_clip(0.01f), far_clip(100.0f) {}
 
-  glm::mat4 camera::graphics::calculate_projection_matrix(const int width, const int height)
+  glm::mat4 camera::graphics::calculate_projection_matrix(const unsigned int width, const unsigned int height)
   {
     projection_matrix =
       glm::perspective(glm::radians(fov), static_cast<float>(width) / static_cast<float>(height), near_clip, far_clip);
@@ -71,7 +71,7 @@ namespace cse::core
     transform.up.interpolate(simulation_alpha);
   }
 
-  std::array<glm::mat4, 2> camera::render(const int width, const int height, const float scale_factor)
+  std::array<glm::mat4, 2> camera::render(const unsigned int width, const unsigned int height, const float scale_factor)
   {
     return {graphics.calculate_projection_matrix(width, height),
             graphics.calculate_view_matrix(transform.translation.interpolated, transform.forward.interpolated,

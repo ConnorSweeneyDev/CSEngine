@@ -53,7 +53,7 @@ namespace cse::core
       graphics(const float fov_);
 
     private:
-      glm::mat4 calculate_projection_matrix(const int width, const int height);
+      glm::mat4 calculate_projection_matrix(const unsigned int width, const unsigned int height);
       glm::mat4 calculate_view_matrix(const glm::vec3 &translation, const glm::vec3 &forward, const glm::vec3 &up,
                                       const float scale_factor);
 
@@ -78,7 +78,7 @@ namespace cse::core
   private:
     void input(const bool *key_state);
     void simulate(const double simulation_alpha);
-    std::array<glm::mat4, 2> render(const int width, const int height, const float scale_factor);
+    std::array<glm::mat4, 2> render(const unsigned int width, const unsigned int height, const float scale_factor);
 
   protected:
     std::function<void(const bool *key_state)> handle_input = nullptr;

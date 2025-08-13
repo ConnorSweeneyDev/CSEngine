@@ -15,8 +15,8 @@
 
 namespace cse::core
 {
-  window::frame::frame(const std::string &title_, const int starting_width_, const int starting_height_,
-                       const bool fullscreen_)
+  window::frame::frame(const std::string &title_, const unsigned int starting_width_,
+                       const unsigned int starting_height_, const bool fullscreen_)
     : title(title_), starting_width(starting_width_), starting_height(starting_height_), width(starting_width_),
       height(starting_height_), fullscreen(fullscreen_)
   {
@@ -24,13 +24,11 @@ namespace cse::core
 
   window::graphics::graphics(const bool vsync_) : vsync(vsync_) {}
 
-  window::window(const std::string &title_, const int starting_width_, const int starting_height_,
+  window::window(const std::string &title_, const unsigned int starting_width_, const unsigned int starting_height_,
                  const bool fullscreen_, const bool vsync_)
     : frame(title_, starting_width_, starting_height_, fullscreen_), graphics(vsync_)
   {
     if (title_.empty()) throw cse::utility::exception("Window title cannot be empty");
-    if (starting_width_ <= 0 || starting_height_ <= 0)
-      throw cse::utility::exception("Window dimensions must be greater than zero");
   }
 
   window::~window()
@@ -55,7 +53,8 @@ namespace cse::core
     {
       if (!SDL_SetWindowBordered(graphics.instance, true))
         throw utility::sdl_exception("Could not set bordered for window {}", frame.title);
-      if (!SDL_SetWindowSize(graphics.instance, frame.starting_width, frame.starting_height))
+      if (!SDL_SetWindowSize(graphics.instance, static_cast<int>(frame.starting_width),
+                             static_cast<int>(frame.starting_height)))
         throw utility::sdl_exception("Could not set window size to ({}, {})", frame.starting_width,
                                      frame.starting_height);
       frame.width = frame.starting_width;
@@ -73,8 +72,8 @@ namespace cse::core
       if (!SDL_SetWindowSize(graphics.instance, display_bounds.w, display_bounds.h))
         throw utility::sdl_exception("Could not set window size to ({}, {}) on display {}", display_bounds.w,
                                      display_bounds.h, frame.display_index);
-      frame.width = display_bounds.w;
-      frame.height = display_bounds.h;
+      frame.width = static_cast<unsigned int>(display_bounds.w);
+      frame.height = static_cast<unsigned int>(display_bounds.h);
       if (!SDL_SetWindowPosition(graphics.instance, SDL_WINDOWPOS_CENTERED_DISPLAY(frame.display_index),
                                  SDL_WINDOWPOS_CENTERED_DISPLAY(frame.display_index)))
         throw utility::sdl_exception("Could not set window position centered on display {}", frame.display_index);
@@ -116,8 +115,8 @@ namespace cse::core
     if (!SDL_Init(SDL_INIT_VIDEO))
       throw cse::utility::sdl_exception("SDL could not be initialized for window {}", frame.title);
 
-    graphics.instance =
-      SDL_CreateWindow(frame.title.c_str(), frame.starting_width, frame.starting_height, SDL_WINDOW_HIDDEN);
+    graphics.instance = SDL_CreateWindow(frame.title.c_str(), static_cast<int>(frame.starting_width),
+                                         static_cast<int>(frame.starting_height), SDL_WINDOW_HIDDEN);
     if (!graphics.instance) throw cse::utility::sdl_exception("Could not create window {}", frame.title);
     frame.display_index = SDL_GetPrimaryDisplay();
     if (frame.display_index == 0)

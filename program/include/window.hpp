@@ -16,13 +16,14 @@ namespace cse::core
   private:
     struct frame
     {
-      frame(const std::string &title_, const int starting_width_, const int starting_height_, const bool fullscreen_);
+      frame(const std::string &title_, const unsigned int starting_width_, const unsigned int starting_height_,
+            const bool fullscreen_);
 
       const std::string title = "";
-      const int starting_width = 0;
-      const int starting_height = 0;
-      int width = 0;
-      int height = 0;
+      const unsigned int starting_width = 0;
+      const unsigned int starting_height = 0;
+      unsigned int width = 0;
+      unsigned int height = 0;
       int left = 0;
       int top = 0;
       SDL_DisplayID display_index = 0;
@@ -40,8 +41,8 @@ namespace cse::core
     };
 
   public:
-    window(const std::string &title_, const int starting_width_, const int starting_height_, const bool fullscreen_,
-           const bool vsync_);
+    window(const std::string &title_, const unsigned int starting_width_, const unsigned int starting_height_,
+           const bool fullscreen_, const bool vsync_);
     virtual ~window();
     window(const window &) = delete;
     window &operator=(const window &) = delete;
@@ -61,9 +62,9 @@ namespace cse::core
     void end_render();
 
   protected:
-    bool running = false;
-
     std::function<void(const SDL_KeyboardEvent &key)> handle_input = nullptr;
+
+    bool running = false;
 
   private:
     frame frame = {"", 0, 0, false};

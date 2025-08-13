@@ -35,7 +35,7 @@ namespace cse::core
     void input(const bool *key_state);
     void simulate(const double simulation_alpha);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const int width, const int height, const float scale_factor);
+                const unsigned int width, const unsigned int height, const float scale_factor);
 
   protected:
     std::function<void(const bool *key_state)> handle_input = nullptr;

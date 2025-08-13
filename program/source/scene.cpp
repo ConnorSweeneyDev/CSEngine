@@ -46,7 +46,7 @@ namespace cse::core
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     const int width, const int height, const float scale_factor)
+                     const unsigned int width, const unsigned int height, const float scale_factor)
   {
     auto matrices = camera->render(width, height, scale_factor);
     for (const auto &object : objects)
