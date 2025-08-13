@@ -25,6 +25,9 @@ namespace cse::core
       public:
         property(const glm::vec3 &value_);
 
+        void interpolate(const double alpha);
+
+      public:
         glm::vec3 value = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 velocity = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -37,6 +40,7 @@ namespace cse::core
     public:
       transform(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_);
 
+    public:
       property translation = glm::vec3(0.0f, 0.0f, 0.0f);
       property forward = glm::vec3(0.0f, 0.0f, 0.0f);
       property up = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -48,6 +52,12 @@ namespace cse::core
     public:
       graphics(const float fov_);
 
+    private:
+      glm::mat4 calculate_projection_matrix(const int width, const int height);
+      glm::mat4 calculate_view_matrix(const glm::vec3 &translation, const glm::vec3 &forward, const glm::vec3 &up,
+                                      const float scale_factor);
+
+    public:
       float fov = 0.0f;
 
     private:

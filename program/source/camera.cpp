@@ -16,12 +16,31 @@ namespace cse::core
   {
   }
 
+  void camera::transform::property::interpolate(const double alpha)
+  {
+    interpolated = previous + ((value - previous) * static_cast<float>(alpha));
+  }
+
   camera::transform::transform(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
     : translation(translation_), forward(forward_), up(up_)
   {
   }
 
   camera::graphics::graphics(const float fov_) : fov(fov_), near_clip(0.01f), far_clip(100.0f) {}
+
+  glm::mat4 camera::graphics::calculate_projection_matrix(const int width, const int height)
+  {
+    projection_matrix =
+      glm::perspective(glm::radians(fov), static_cast<float>(width) / static_cast<float>(height), near_clip, far_clip);
+    return projection_matrix;
+  }
+
+  glm::mat4 camera::graphics::calculate_view_matrix(const glm::vec3 &translation, const glm::vec3 &forward,
+                                                    const glm::vec3 &up, const float scale_factor)
+  {
+    view_matrix = glm::lookAt(translation * scale_factor, (translation * scale_factor) + forward, up);
+    return view_matrix;
+  }
 
   camera::camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, const float fov_)
     : transform(translation_, forward_, up_), graphics(fov_)
@@ -47,24 +66,15 @@ namespace cse::core
 
     if (handle_simulate) handle_simulate();
 
-    transform.translation.interpolated =
-      transform.translation.previous +
-      ((transform.translation.value - transform.translation.previous) * static_cast<float>(simulation_alpha));
-    transform.forward.interpolated =
-      transform.forward.previous +
-      ((transform.forward.value - transform.forward.previous) * static_cast<float>(simulation_alpha));
-    transform.up.interpolated =
-      transform.up.previous + ((transform.up.value - transform.up.previous) * static_cast<float>(simulation_alpha));
+    transform.translation.interpolate(simulation_alpha);
+    transform.forward.interpolate(simulation_alpha);
+    transform.up.interpolate(simulation_alpha);
   }
 
   std::array<glm::mat4, 2> camera::render(const int width, const int height, const float scale_factor)
   {
-    graphics.projection_matrix =
-      glm::perspective(glm::radians(graphics.fov), static_cast<float>(width) / static_cast<float>(height),
-                       graphics.near_clip, graphics.far_clip);
-    graphics.view_matrix = glm::lookAt(
-      transform.translation.interpolated * scale_factor,
-      (transform.translation.interpolated * scale_factor) + transform.forward.interpolated, transform.up.interpolated);
-    return {graphics.projection_matrix, graphics.view_matrix};
+    return {graphics.calculate_projection_matrix(width, height),
+            graphics.calculate_view_matrix(transform.translation.interpolated, transform.forward.interpolated,
+                                           transform.up.interpolated, scale_factor)};
   }
 }

@@ -31,6 +31,9 @@ namespace cse::core
       public:
         property(const glm::vec3 &value_);
 
+        void interpolate(const double alpha);
+
+      public:
         glm::vec3 value = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 velocity = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -43,6 +46,7 @@ namespace cse::core
     public:
       transform(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_);
 
+    public:
       property translation = glm::vec3(0.0f, 0.0f, 0.0f);
       property rotation = glm::vec3(0.0f, 0.0f, 0.0f);
       property scale = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -82,6 +86,8 @@ namespace cse::core
       void upload_to_gpu(SDL_GPUDevice *gpu);
       void update_vertex(SDL_GPUDevice *gpu);
       void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass);
+      glm::mat4 calculate_model_matrix(const glm::vec3 &translation, const glm::vec3 &rotation, const glm::vec3 &scale,
+                                       const float scale_factor);
       void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &model_matrix,
                              const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix);
       void draw_primitives(SDL_GPURenderPass *render_pass);
