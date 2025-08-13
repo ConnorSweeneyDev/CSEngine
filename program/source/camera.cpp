@@ -16,36 +16,15 @@ namespace cse::core
   {
   }
 
-  void camera::transform::property::update_previous() { previous = value; }
-
-  void camera::transform::property::update_interpolated(const float simulation_alpha)
-  {
-    interpolated = previous + ((value - previous) * simulation_alpha);
-  }
-
   camera::transform::transform(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
     : translation(translation_), forward(forward_), up(up_)
   {
   }
 
-  camera::graphics::graphics(const float fov_, const float near_clip_, const float far_clip_)
-    : fov(fov_), near_clip(near_clip_), far_clip(far_clip_)
-  {
-  }
-
-  void camera::graphics::update_projection_matrix(const int width, const int height)
-  {
-    projection_matrix =
-      glm::perspective(glm::radians(fov), static_cast<float>(width) / static_cast<float>(height), near_clip, far_clip);
-  }
-
-  void camera::graphics::update_view_matrix(const glm::vec3 &translation, const glm::vec3 &forward, const glm::vec3 &up)
-  {
-    view_matrix = glm::lookAt(translation, translation + forward, up);
-  }
+  camera::graphics::graphics(const float fov_) : fov(fov_), near_clip(0.01f), far_clip(100.0f) {}
 
   camera::camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, const float fov_)
-    : transform(translation_, forward_, up_), graphics(fov_, 0.01f, 100.0f)
+    : transform(translation_, forward_, up_), graphics(fov_)
   {
   }
 
@@ -62,22 +41,30 @@ namespace cse::core
 
   void camera::simulate(const double simulation_alpha)
   {
-    transform.translation.update_previous();
-    transform.forward.update_previous();
-    transform.up.update_previous();
+    transform.translation.previous = transform.translation.value;
+    transform.forward.previous = transform.forward.value;
+    transform.up.previous = transform.up.value;
 
     if (handle_simulate) handle_simulate();
 
-    transform.translation.update_interpolated(static_cast<float>(simulation_alpha));
-    transform.forward.update_interpolated(static_cast<float>(simulation_alpha));
-    transform.up.update_interpolated(static_cast<float>(simulation_alpha));
+    transform.translation.interpolated =
+      transform.translation.previous +
+      ((transform.translation.value - transform.translation.previous) * static_cast<float>(simulation_alpha));
+    transform.forward.interpolated =
+      transform.forward.previous +
+      ((transform.forward.value - transform.forward.previous) * static_cast<float>(simulation_alpha));
+    transform.up.interpolated =
+      transform.up.previous + ((transform.up.value - transform.up.previous) * static_cast<float>(simulation_alpha));
   }
 
   std::array<glm::mat4, 2> camera::render(const int width, const int height, const float scale_factor)
   {
-    graphics.update_projection_matrix(width, height);
-    graphics.update_view_matrix(transform.translation.interpolated * scale_factor, transform.forward.interpolated,
-                                transform.up.interpolated);
+    graphics.projection_matrix =
+      glm::perspective(glm::radians(graphics.fov), static_cast<float>(width) / static_cast<float>(height),
+                       graphics.near_clip, graphics.far_clip);
+    graphics.view_matrix = glm::lookAt(
+      transform.translation.interpolated * scale_factor,
+      (transform.translation.interpolated * scale_factor) + transform.forward.interpolated, transform.up.interpolated);
     return {graphics.projection_matrix, graphics.view_matrix};
   }
 }

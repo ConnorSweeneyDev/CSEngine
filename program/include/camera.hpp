@@ -10,10 +10,11 @@ namespace cse::core
 {
   class camera
   {
+    friend class scene;
+
   private:
     struct transform
     {
-    private:
       struct property
       {
         friend class camera;
@@ -21,11 +22,6 @@ namespace cse::core
       public:
         property(const glm::vec3 &value_);
 
-      private:
-        void update_previous();
-        void update_interpolated(const float simulation_alpha);
-
-      public:
         glm::vec3 value = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 velocity = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -35,31 +31,24 @@ namespace cse::core
         glm::vec3 interpolated = glm::vec3(0.0f, 0.0f, 0.0f);
       };
 
-    public:
       transform(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_);
 
-    public:
       property translation = glm::vec3(0.0f, 0.0f, 0.0f);
-      property forward = glm::vec3(0.0f, 0.0f, -1.0f);
-      property up = glm::vec3(0.0f, 1.0f, 0.0f);
+      property forward = glm::vec3(0.0f, 0.0f, 0.0f);
+      property up = glm::vec3(0.0f, 0.0f, 0.0f);
     };
     struct graphics
     {
       friend class camera;
 
     public:
-      graphics(const float fov_, const float near_clip_, const float far_clip_);
+      graphics(const float fov_);
+
+      float fov = 0.0f;
 
     private:
-      void update_projection_matrix(const int width, const int height);
-      void update_view_matrix(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_);
-
-    public:
-      float fov = 0.0f;
       float near_clip = 0.0f;
       float far_clip = 0.0f;
-
-    private:
       glm::mat4 projection_matrix = glm::mat4(1.0f);
       glm::mat4 view_matrix = glm::mat4(1.0f);
     };
@@ -72,6 +61,7 @@ namespace cse::core
     camera(camera &&) = delete;
     camera &operator=(camera &&) = delete;
 
+  private:
     void input(const bool *key_state);
     void simulate(const double simulation_alpha);
     std::array<glm::mat4, 2> render(const int width, const int height, const float scale_factor);
@@ -81,6 +71,6 @@ namespace cse::core
     std::function<void()> handle_simulate = nullptr;
 
     transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)};
-    graphics graphics = {0.0f, 0.0f, 0.0f};
+    graphics graphics = {0.0f};
   };
 }
