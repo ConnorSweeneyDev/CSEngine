@@ -10,7 +10,7 @@
 #include "scene.hpp"
 #include "window.hpp"
 
-namespace cse
+namespace cse::core
 {
   game::game() {}
 
@@ -24,7 +24,7 @@ namespace cse
   void game::run()
   {
     initialize();
-    while (window->is_running())
+    while (window->running)
     {
       update_simulation_time();
       while (simulation_behind())
@@ -48,7 +48,7 @@ namespace cse
     current_scene = scenes[name];
   }
 
-  std::weak_ptr<base::scene> game::get_scene(const std::string &name) const
+  std::weak_ptr<scene> game::get_scene(const std::string &name) const
   {
     auto iterator = scenes.find(name);
     if (iterator == scenes.end()) throw utility::exception("Scene with name '{}' does not exist", name);
@@ -62,7 +62,7 @@ namespace cse
     if (scenes.empty()) throw cse::utility::exception("No scenes have been added to the game");
     if (current_scene.expired()) throw cse::utility::exception("No current scene has been set for the game");
     if (auto scene = current_scene.lock())
-      scene->initialize(window->get_instance(), window->get_gpu());
+      scene->initialize(window->graphics.instance, window->graphics.gpu);
     else
       throw cse::utility::exception("Current scene is not initialized");
   }
@@ -70,7 +70,7 @@ namespace cse
   void game::cleanup()
   {
     if (auto scene = current_scene.lock())
-      scene->cleanup(window->get_gpu());
+      scene->cleanup(window->graphics.gpu);
     else
       throw cse::utility::exception("Current scene is not initialized");
     window->cleanup();
@@ -80,7 +80,7 @@ namespace cse
   {
     window->input();
     if (auto scene = current_scene.lock())
-      scene->input(window->get_key_state());
+      scene->input(window->key_state);
     else
       throw cse::utility::exception("Current scene is not initialized");
   }
@@ -97,8 +97,8 @@ namespace cse
   {
     if (!window->start_render()) return;
     if (auto scene = current_scene.lock())
-      scene->render(window->get_gpu(), window->get_command_buffer(), window->get_render_pass(), window->get_width(),
-                    window->get_height());
+      scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass,
+                    window->frame.width, window->frame.height, scale_factor);
     else
       throw cse::utility::exception("Current scene is not initialized");
     window->end_render();

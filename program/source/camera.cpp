@@ -8,9 +8,7 @@
 #include "glm/ext/vector_float3.hpp"
 #include "glm/trigonometric.hpp"
 
-#include "game.hpp"
-
-namespace cse::base
+namespace cse::core
 {
   camera::transform::property::property(const glm::vec3 &value_)
     : value(value_), velocity(glm::vec3(0.0f, 0.0f, 0.0f)), acceleration(glm::vec3(0.0f, 0.0f, 0.0f)), previous(value_),
@@ -75,10 +73,10 @@ namespace cse::base
     transform.up.update_interpolated(static_cast<float>(simulation_alpha));
   }
 
-  std::array<glm::mat4, 2> camera::render(const int width, const int height)
+  std::array<glm::mat4, 2> camera::render(const int width, const int height, const float scale_factor)
   {
     graphics.update_projection_matrix(width, height);
-    graphics.update_view_matrix(transform.translation.interpolated * game::scale_factor, transform.forward.interpolated,
+    graphics.update_view_matrix(transform.translation.interpolated * scale_factor, transform.forward.interpolated,
                                 transform.up.interpolated);
     return {graphics.projection_matrix, graphics.view_matrix};
   }

@@ -6,7 +6,7 @@
 
 #include "exception.hpp"
 
-namespace cse
+namespace cse::core
 {
   template <typename window_type, typename... window_arguments> void game::set_window(window_arguments &&...arguments)
   {

@@ -7,7 +7,7 @@
 #include "scene.hpp"
 #include "window.hpp"
 
-namespace cse
+namespace cse::core
 {
   class game
   {
@@ -25,7 +25,7 @@ namespace cse
     template <typename scene_type, typename... scene_arguments>
     void add_scene(const std::string &name, scene_arguments &&...arguments);
     void set_current_scene(const std::string &name);
-    std::weak_ptr<base::scene> get_scene(const std::string &name) const;
+    std::weak_ptr<scene> get_scene(const std::string &name) const;
 
   private:
     void initialize();
@@ -40,13 +40,10 @@ namespace cse
     bool should_render();
     void update_fps();
 
-  public:
-    inline static const float scale_factor = 0.04f;
-
   private:
-    std::unique_ptr<base::window> window = nullptr;
-    std::unordered_map<std::string, std::shared_ptr<base::scene>> scenes = {};
-    std::weak_ptr<base::scene> current_scene = {};
+    std::unique_ptr<window> window = nullptr;
+    std::unordered_map<std::string, std::shared_ptr<scene>> scenes = {};
+    std::weak_ptr<scene> current_scene = {};
 
     const double target_simulation_time = 1.0 / 60.0;
     double last_simulation_time = 0.0;
@@ -56,6 +53,7 @@ namespace cse
     double last_render_time = 0.0;
     double last_fps_time = 0;
     int frame_count = 0;
+    const float scale_factor = 0.04f;
   };
 }
 

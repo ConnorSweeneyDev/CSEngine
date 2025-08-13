@@ -9,7 +9,7 @@
 #include "camera.hpp"
 #include "object.hpp"
 
-namespace cse::base
+namespace cse::core
 {
   scene::scene() {}
 
@@ -46,10 +46,10 @@ namespace cse::base
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     const int width, const int height)
+                     const int width, const int height, const float scale_factor)
   {
-    auto matrices = camera->render(width, height);
+    auto matrices = camera->render(width, height, scale_factor);
     for (const auto &object : objects)
-      object.second->render(gpu, command_buffer, render_pass, matrices[0], matrices[1]);
+      object.second->render(gpu, command_buffer, render_pass, matrices[0], matrices[1], scale_factor);
   }
 }

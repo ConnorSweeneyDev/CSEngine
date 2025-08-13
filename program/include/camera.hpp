@@ -6,7 +6,7 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
 
-namespace cse::base
+namespace cse::core
 {
   class camera
   {
@@ -74,7 +74,7 @@ namespace cse::base
 
     void input(const bool *key_state);
     void simulate(const double simulation_alpha);
-    std::array<glm::mat4, 2> render(const int width, const int height);
+    std::array<glm::mat4, 2> render(const int width, const int height, const float scale_factor);
 
   protected:
     std::function<void(const bool *key_state)> handle_input = nullptr;

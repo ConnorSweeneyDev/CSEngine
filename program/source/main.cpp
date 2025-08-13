@@ -17,7 +17,7 @@
 #include "scene.hpp"
 #include "window.hpp"
 
-class custom_window : public cse::base::window
+class custom_window : public cse::core::window
 {
 public:
   custom_window(const std::string &title_, const int starting_width_, const int starting_height_)
@@ -36,11 +36,17 @@ public:
   }
 };
 
-class custom_camera : public cse::base::camera
+class custom_scene : public cse::core::scene
+{
+public:
+  custom_scene() {}
+};
+
+class custom_camera : public cse::core::camera
 {
 public:
   custom_camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
-    : cse::base::camera(translation_, forward_, up_, 45.0f)
+    : cse::core::camera(translation_, forward_, up_, 45.0f)
   {
     handle_input = [this](const bool *key_state)
     {
@@ -71,11 +77,11 @@ public:
   }
 };
 
-class custom_object : public cse::base::object
+class custom_object : public cse::core::object
 {
 public:
   custom_object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_)
-    : cse::base::object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
+    : cse::core::object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
                         cse::resource::main_texture, 0)
   {
     handle_input = [this](const bool *key_state)
@@ -111,10 +117,10 @@ int try_main(int argc, char *argv[])
 {
   if (argc > 1 || !argv[0]) throw cse::utility::exception("Expected 1 argument, got {}", argc);
 
-  auto game = std::make_unique<cse::game>();
+  auto game = std::make_unique<cse::core::game>();
   game->set_window<custom_window>("CSE Example", 1280, 720);
 
-  game->add_scene<cse::base::scene>("scene");
+  game->add_scene<custom_scene>("scene");
   if (auto scene = game->get_scene("scene").lock())
   {
     scene->set_camera<custom_camera>(glm::vec3(0.0f, 0.0f, 80.0f), glm::vec3(0.0f, 0.0f, -1.0f),

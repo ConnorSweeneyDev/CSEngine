@@ -6,7 +6,7 @@
 
 #include "exception.hpp"
 
-namespace cse::base
+namespace cse::core
 {
   template <typename camera_type, typename... camera_arguments> void scene::set_camera(camera_arguments &&...arguments)
   {

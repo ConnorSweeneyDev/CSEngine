@@ -14,10 +14,9 @@
 #include "glm/trigonometric.hpp"
 
 #include "exception.hpp"
-#include "game.hpp"
 #include "resource.hpp"
 
-namespace cse::base
+namespace cse::core
 {
   object::transform::property::property(const glm::vec3 &value_)
     : value(value_), velocity(glm::vec3(0.0f, 0.0f, 0.0f)), acceleration(glm::vec3(0.0f, 0.0f, 0.0f)), previous(value_),
@@ -391,17 +390,16 @@ namespace cse::base
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                      const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix)
+                      const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float scale_factor)
   {
     graphics.update_vertex(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
 
     glm::mat4 model_matrix = glm::mat4(1.0f);
     glm::vec3 translation_target = {
-      std::floor((transform.translation.interpolated.x * game::scale_factor) / game::scale_factor) * game::scale_factor,
-      std::floor((transform.translation.interpolated.y * game::scale_factor) / game::scale_factor) * game::scale_factor,
-      std::floor((transform.translation.interpolated.z * game::scale_factor) / game::scale_factor) *
-        game::scale_factor};
+      std::floor((transform.translation.interpolated.x * scale_factor) / scale_factor) * scale_factor,
+      std::floor((transform.translation.interpolated.y * scale_factor) / scale_factor) * scale_factor,
+      std::floor((transform.translation.interpolated.z * scale_factor) / scale_factor) * scale_factor};
     model_matrix = glm::translate(model_matrix, translation_target);
     glm::vec3 rotation_target = {std::floor((transform.rotation.interpolated.x * 90.0f) / 90.0f) * 90.0f,
                                  std::floor((transform.rotation.interpolated.y * 90.0f) / 90.0f) * 90.0f,
@@ -409,12 +407,11 @@ namespace cse::base
     model_matrix = glm::rotate(model_matrix, glm::radians(rotation_target.x), glm::vec3(1.0f, 0.0f, 0.0f));
     model_matrix = glm::rotate(model_matrix, glm::radians(rotation_target.y), glm::vec3(0.0f, 1.0f, 0.0f));
     model_matrix = glm::rotate(model_matrix, glm::radians(rotation_target.z), glm::vec3(0.0f, 0.0f, 1.0f));
-    glm::vec3 scale_target = {
-      std::floor(transform.scale.interpolated.x) *
-        (static_cast<float>(graphics.texture.raw.frame_width) / (game::scale_factor * 1250.0f)),
-      std::floor(transform.scale.interpolated.y) *
-        (static_cast<float>(graphics.texture.raw.frame_height) / (game::scale_factor * 1250.0f)),
-      std::floor(transform.scale.interpolated.z)};
+    glm::vec3 scale_target = {std::floor(transform.scale.interpolated.x) *
+                                (static_cast<float>(graphics.texture.raw.frame_width) / (scale_factor * 1250.0f)),
+                              std::floor(transform.scale.interpolated.y) *
+                                (static_cast<float>(graphics.texture.raw.frame_height) / (scale_factor * 1250.0f)),
+                              std::floor(transform.scale.interpolated.z)};
     model_matrix = glm::scale(model_matrix, scale_target);
     graphics.push_uniform_data(command_buffer, model_matrix, projection_matrix, view_matrix);
 

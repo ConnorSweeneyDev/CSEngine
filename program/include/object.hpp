@@ -12,7 +12,7 @@
 
 #include "resource.hpp"
 
-namespace cse::base
+namespace cse::core
 {
   class object
   {
@@ -120,7 +120,7 @@ namespace cse::base
     void input(const bool *key_state);
     void simulate(double simulation_alpha);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix);
+                const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float scale_factor);
 
   protected:
     std::function<void(const bool *key_state)> handle_input = nullptr;

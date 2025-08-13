@@ -11,10 +11,12 @@
 #include "camera.hpp"
 #include "object.hpp"
 
-namespace cse::base
+namespace cse::core
 {
   class scene
   {
+    friend class game;
+
   public:
     scene();
     virtual ~scene();
@@ -27,17 +29,19 @@ namespace cse::base
     template <typename object_type, typename... object_arguments>
     void add_object(const std::string &name, object_arguments &&...arguments);
 
+  private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void cleanup(SDL_GPUDevice *gpu);
     void input(const bool *key_state);
     void simulate(const double simulation_alpha);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const int width, const int height);
+                const int width, const int height, const float scale_factor);
 
   protected:
     std::function<void(const bool *key_state)> handle_input = nullptr;
     std::function<void(const double simulation_alpha)> handle_simulate = nullptr;
 
+  private:
     std::unique_ptr<camera> camera = nullptr;
     std::unordered_map<std::string, std::shared_ptr<object>> objects = {};
   };
