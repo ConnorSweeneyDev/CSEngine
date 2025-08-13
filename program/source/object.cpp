@@ -348,12 +348,8 @@ namespace cse::base
   object::object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_,
                  const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
                  const resource::compiled_texture &texture_, const unsigned int current_frame_)
-    : transform(glm::vec3(static_cast<float>(translation_.x) * game::scale_factor,
-                          static_cast<float>(translation_.y) * game::scale_factor,
-                          static_cast<float>(translation_.z) * game::scale_factor),
-                glm::vec3(static_cast<float>(rotation_.x) * 90.0f, static_cast<float>(rotation_.y) * 90.0f,
-                          static_cast<float>(rotation_.z) * 90.0f),
-                glm::vec3(scale_.x, scale_.y, scale_.z)),
+    : transform({translation_.x, translation_.y, translation_.z}, {rotation_.x, rotation_.y, rotation_.z},
+                {scale_.x, scale_.y, scale_.z}),
       graphics(vertex_shader_, fragment_shader_, texture_, current_frame_)
   {
   }
@@ -407,9 +403,9 @@ namespace cse::base
       std::floor((transform.translation.interpolated.z * game::scale_factor) / game::scale_factor) *
         game::scale_factor};
     model_matrix = glm::translate(model_matrix, translation_target);
-    glm::vec3 rotation_target = {std::floor(transform.rotation.interpolated.x / 90.0f) * 90.0f,
-                                 std::floor(transform.rotation.interpolated.y / 90.0f) * 90.0f,
-                                 std::floor(transform.rotation.interpolated.z / 90.0f) * 90.0f};
+    glm::vec3 rotation_target = {std::floor((transform.rotation.interpolated.x * 90.0f) / 90.0f) * 90.0f,
+                                 std::floor((transform.rotation.interpolated.y * 90.0f) / 90.0f) * 90.0f,
+                                 std::floor((transform.rotation.interpolated.z * 90.0f) / 90.0f) * 90.0f};
     model_matrix = glm::rotate(model_matrix, glm::radians(rotation_target.x), glm::vec3(1.0f, 0.0f, 0.0f));
     model_matrix = glm::rotate(model_matrix, glm::radians(rotation_target.y), glm::vec3(0.0f, 1.0f, 0.0f));
     model_matrix = glm::rotate(model_matrix, glm::radians(rotation_target.z), glm::vec3(0.0f, 0.0f, 1.0f));
