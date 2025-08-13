@@ -27,7 +27,7 @@ public:
     {
       switch (key.scancode)
       {
-        case SDL_SCANCODE_ESCAPE: quit(); break;
+        case SDL_SCANCODE_ESCAPE: running = false; break;
         case SDL_SCANCODE_F11: toggle_fullscreen(); break;
         case SDL_SCANCODE_F12: toggle_vsync(); break;
         default: break;

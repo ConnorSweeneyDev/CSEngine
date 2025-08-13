@@ -8,6 +8,7 @@
 #include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_log.h"
 #include "SDL3/SDL_rect.h"
+#include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 
 #include "exception.hpp"
@@ -37,8 +38,6 @@ namespace cse::core
     key_state = nullptr;
     handle_input = nullptr;
   }
-
-  void window::quit() { running = false; }
 
   void window::move()
   {
@@ -171,7 +170,7 @@ namespace cse::core
     SDL_Event event = {};
     while (SDL_PollEvent(&event)) switch (event.type)
       {
-        case SDL_EVENT_QUIT: quit(); break;
+        case SDL_EVENT_QUIT: running = false; break;
         case SDL_EVENT_WINDOW_MOVED: move(); break;
         case SDL_EVENT_KEY_DOWN:
           if (handle_input) handle_input(event.key);
@@ -195,19 +194,11 @@ namespace cse::core
       return false;
     }
 
-    SDL_GPUColorTargetInfo color_target_info = {};
-    color_target_info.store_op = SDL_GPU_STOREOP_STORE;
-    color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
-    color_target_info.texture = swapchain_texture;
-    color_target_info.clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
+    SDL_GPUColorTargetInfo color_target_info(swapchain_texture, Uint32(), Uint32(), {0.1f, 0.1f, 0.1f, 1.0f},
+                                             SDL_GPU_LOADOP_CLEAR, SDL_GPU_STOREOP_STORE);
     graphics.render_pass = SDL_BeginGPURenderPass(graphics.command_buffer, &color_target_info, 1, nullptr);
     if (!graphics.render_pass) throw cse::utility::sdl_exception("Could not begin GPU render pass");
-
-    SDL_GPUViewport viewport = {};
-    viewport.w = static_cast<float>(frame.width);
-    viewport.h = static_cast<float>(frame.height);
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
+    SDL_GPUViewport viewport(0.0f, 0.0f, static_cast<float>(frame.width), static_cast<float>(frame.height));
     SDL_SetGPUViewport(graphics.render_pass, &viewport);
 
     return true;

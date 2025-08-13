@@ -49,7 +49,6 @@ namespace cse::core
     window &operator=(window &&) = delete;
 
   protected:
-    void quit();
     void move();
     void toggle_fullscreen();
     void toggle_vsync();
@@ -62,12 +61,14 @@ namespace cse::core
     void end_render();
 
   protected:
+    bool running = false;
+
     std::function<void(const SDL_KeyboardEvent &key)> handle_input = nullptr;
 
   private:
-    bool running = false;
-    const bool *key_state = nullptr;
     frame frame = {"", 0, 0, false};
     graphics graphics = {false};
+
+    const bool *key_state = nullptr;
   };
 }

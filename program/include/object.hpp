@@ -16,9 +16,13 @@ namespace cse::core
 {
   class object
   {
+    friend class scene;
+
   private:
     struct transform
     {
+      friend class object;
+
     private:
       struct property
       {
@@ -27,11 +31,6 @@ namespace cse::core
       public:
         property(const glm::vec3 &value_);
 
-      private:
-        void update_previous();
-        void update_interpolated(float simulation_alpha);
-
-      public:
         glm::vec3 value = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 velocity = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -44,7 +43,6 @@ namespace cse::core
     public:
       transform(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_);
 
-    public:
       property translation = glm::vec3(0.0f, 0.0f, 0.0f);
       property rotation = glm::vec3(0.0f, 0.0f, 0.0f);
       property scale = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -115,6 +113,7 @@ namespace cse::core
     object(object &&) = delete;
     object &operator=(object &&) = delete;
 
+  private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void cleanup(SDL_GPUDevice *gpu);
     void input(const bool *key_state);
