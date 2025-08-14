@@ -71,7 +71,7 @@ public:
         if (transform.translation.velocity[index] < 0.002f && transform.translation.velocity[index] > -0.002f)
           transform.translation.velocity[index] = 0.0f;
       }
-      transform.translation.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
+      transform.translation.acceleration = glm::vec3(0.0f);
       transform.translation.value += transform.translation.velocity;
     };
   }
