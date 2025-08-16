@@ -19,6 +19,10 @@ namespace cse::core
       frame(const std::string &title_, const unsigned int starting_width_, const unsigned int starting_height_,
             const bool fullscreen_);
 
+      void handle_move(SDL_Window *instance);
+      void enable_fullscreen(SDL_Window *instance);
+      void disable_fullscreen(SDL_Window *instance);
+
       const std::string title = "";
       const unsigned int starting_width = 0;
       const unsigned int starting_height = 0;
@@ -32,6 +36,9 @@ namespace cse::core
     struct graphics
     {
       graphics(const bool vsync_);
+
+      void enable_vsync(const std::string &title);
+      void disable_vsync(const std::string &title);
 
       bool vsync = false;
       SDL_Window *instance = nullptr;
@@ -50,7 +57,6 @@ namespace cse::core
     window &operator=(window &&) = delete;
 
   protected:
-    void move();
     void toggle_fullscreen();
     void toggle_vsync();
 
@@ -69,7 +75,6 @@ namespace cse::core
   private:
     frame frame = {"", 0, 0, false};
     graphics graphics = {false};
-
     const bool *key_state = nullptr;
   };
 }
