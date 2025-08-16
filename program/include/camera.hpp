@@ -25,6 +25,7 @@ namespace cse::core
       public:
         property(const glm::vec3 &value_);
 
+      private:
         void interpolate(const double alpha);
 
       public:
