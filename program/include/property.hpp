@@ -17,48 +17,48 @@ namespace cse::helper
     operator type() const;
 
     property &operator=(const type &value_);
-    property &operator=(const property &other);
+    property &operator=(const property &other_);
 
     property &operator+=(const type &value_);
     property &operator++();
     property operator++(int);
     property operator+(const type &value_) const;
-    property operator+(const property &other) const;
+    property operator+(const property &other_) const;
 
     property &operator-=(const type &value_);
     property &operator--();
     property operator--(int);
     property operator-(const type &value_) const;
-    property operator-(const property &other) const;
+    property operator-(const property &other_) const;
 
     property &operator*=(const type &value_);
     property operator*(const type &value_) const;
-    property operator*(const property &other) const;
+    property operator*(const property &other_) const;
 
     property &operator/=(const type &value_);
     property operator/(const type &value_) const;
-    property operator/(const property &other) const;
+    property operator/(const property &other_) const;
 
     property &operator%=(const type &value_);
     property operator%(const type &value_) const;
-    property operator%(const property &other) const;
+    property operator%(const property &other_) const;
 
     bool operator==(const type &value_) const;
-    bool operator==(const property &other) const;
+    bool operator==(const property &other_) const;
     bool operator!=(const type &value_) const;
-    bool operator!=(const property &other) const;
+    bool operator!=(const property &other_) const;
     bool operator<=(const type &value_) const;
-    bool operator<=(const property &other) const;
+    bool operator<=(const property &other_) const;
     bool operator<(const type &value_) const;
-    bool operator<(const property &other) const;
+    bool operator<(const property &other_) const;
     bool operator>=(const type &value_) const;
-    bool operator>=(const property &other) const;
+    bool operator>=(const property &other_) const;
     bool operator>(const type &value_) const;
-    bool operator>(const property &other) const;
+    bool operator>(const property &other_) const;
 
     bool operator!() const;
-    bool operator&&(const property &other) const;
-    bool operator||(const property &other) const;
+    bool operator&&(const property &other_) const;
+    bool operator||(const property &other_) const;
 
   public:
     std::function<void()> on_change = nullptr;

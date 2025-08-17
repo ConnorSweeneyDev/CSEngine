@@ -19,9 +19,9 @@ namespace cse::helper
     return *this;
   }
 
-  template <typename type> property<type> &property<type>::operator=(const property<type> &other)
+  template <typename type> property<type> &property<type>::operator=(const property<type> &other_)
   {
-    value = other.value;
+    value = other_.value;
     if (on_change) on_change();
     return *this;
   }
@@ -67,11 +67,11 @@ namespace cse::helper
     return result;
   }
 
-  template <typename type> property<type> property<type>::operator+(const property<type> &other) const
+  template <typename type> property<type> property<type>::operator+(const property<type> &other_) const
   {
     property<type> result(*this);
     if constexpr (std::is_same_v<type, std::string> || std::is_same_v<type, float> || std::is_same_v<type, int>)
-      result.value += other.value;
+      result.value += other_.value;
     else
       throw utility::exception("Unsupported operation (+) for type '{}'", typeid(type).name());
     return result;
@@ -118,11 +118,11 @@ namespace cse::helper
     return result;
   }
 
-  template <typename type> property<type> property<type>::operator-(const property<type> &other) const
+  template <typename type> property<type> property<type>::operator-(const property<type> &other_) const
   {
     property<type> result(*this);
     if constexpr (std::is_same_v<type, float> || std::is_same_v<type, int>)
-      result.value -= other.value;
+      result.value -= other_.value;
     else
       throw utility::exception("Unsupported operation (-) for type '{}'", typeid(type).name());
     return result;
@@ -148,11 +148,11 @@ namespace cse::helper
     return result;
   }
 
-  template <typename type> property<type> property<type>::operator*(const property<type> &other) const
+  template <typename type> property<type> property<type>::operator*(const property<type> &other_) const
   {
     property<type> result(*this);
     if constexpr (std::is_same_v<type, float> || std::is_same_v<type, int>)
-      result.value *= other.value;
+      result.value *= other_.value;
     else
       throw utility::exception("Unsupported operation (*) for type '{}'", typeid(type).name());
     return result;
@@ -178,11 +178,11 @@ namespace cse::helper
     return result;
   }
 
-  template <typename type> property<type> property<type>::operator/(const property<type> &other) const
+  template <typename type> property<type> property<type>::operator/(const property<type> &other_) const
   {
     property<type> result(*this);
     if constexpr (std::is_same_v<type, float> || std::is_same_v<type, int>)
-      result.value /= other.value;
+      result.value /= other_.value;
     else
       throw utility::exception("Unsupported operation (/) for type '{}'", typeid(type).name());
     return result;
@@ -208,11 +208,11 @@ namespace cse::helper
     return result;
   }
 
-  template <typename type> property<type> property<type>::operator%(const property<type> &other) const
+  template <typename type> property<type> property<type>::operator%(const property<type> &other_) const
   {
     property<type> result(*this);
     if constexpr (std::is_same_v<type, int>)
-      result.value %= other.value;
+      result.value %= other_.value;
     else
       throw utility::exception("Unsupported operation (%) for type '{}'", typeid(type).name());
     return result;
@@ -220,44 +220,44 @@ namespace cse::helper
 
   template <typename type> bool property<type>::operator==(const type &value_) const { return value == value_; }
 
-  template <typename type> bool property<type>::operator==(const property<type> &other) const
+  template <typename type> bool property<type>::operator==(const property<type> &other_) const
   {
-    return value == other.value;
+    return value == other_.value;
   }
 
   template <typename type> bool property<type>::operator!=(const type &value_) const { return value != value_; }
 
-  template <typename type> bool property<type>::operator!=(const property<type> &other) const
+  template <typename type> bool property<type>::operator!=(const property<type> &other_) const
   {
-    return value != other.value;
+    return value != other_.value;
   }
 
   template <typename type> bool property<type>::operator<=(const type &value_) const { return value <= value_; }
 
-  template <typename type> bool property<type>::operator<=(const property<type> &other) const
+  template <typename type> bool property<type>::operator<=(const property<type> &other_) const
   {
-    return value <= other.value;
+    return value <= other_.value;
   }
 
   template <typename type> bool property<type>::operator<(const type &value_) const { return value < value_; }
 
-  template <typename type> bool property<type>::operator<(const property<type> &other) const
+  template <typename type> bool property<type>::operator<(const property<type> &other_) const
   {
-    return value < other.value;
+    return value < other_.value;
   }
 
   template <typename type> bool property<type>::operator>=(const type &value_) const { return value >= value_; }
 
-  template <typename type> bool property<type>::operator>=(const property<type> &other) const
+  template <typename type> bool property<type>::operator>=(const property<type> &other_) const
   {
-    return value >= other.value;
+    return value >= other_.value;
   }
 
   template <typename type> bool property<type>::operator>(const type &value_) const { return value > value_; }
 
-  template <typename type> bool property<type>::operator>(const property<type> &other) const
+  template <typename type> bool property<type>::operator>(const property<type> &other_) const
   {
-    return value > other.value;
+    return value > other_.value;
   }
 
   template <typename type> bool property<type>::operator!() const
@@ -272,26 +272,26 @@ namespace cse::helper
       throw utility::exception("Unsupported operation (!) for type '{}'", typeid(type).name());
   }
 
-  template <typename type> bool property<type>::operator&&(const property<type> &other) const
+  template <typename type> bool property<type>::operator&&(const property<type> &other_) const
   {
     if constexpr (std::is_same_v<type, bool>)
-      return value && other.value;
+      return value && other_.value;
     else if constexpr (std::is_same_v<type, float> || std::is_same_v<type, int>)
-      return (value != type{}) && (other.value != type{});
+      return (value != type{}) && (other_.value != type{});
     else if constexpr (std::is_same_v<type, std::string>)
-      return !value.empty() && !other.value.empty();
+      return !value.empty() && !other_.value.empty();
     else
       throw utility::exception("Unsupported operation (&&) for type '{}'", typeid(type).name());
   }
 
-  template <typename type> bool property<type>::operator||(const property<type> &other) const
+  template <typename type> bool property<type>::operator||(const property<type> &other_) const
   {
     if constexpr (std::is_same_v<type, bool>)
-      return value || other.value;
+      return value || other_.value;
     else if constexpr (std::is_same_v<type, float> || std::is_same_v<type, int>)
-      return (value != type{}) || (other.value != type{});
+      return (value != type{}) || (other_.value != type{});
     else if constexpr (std::is_same_v<type, std::string>)
-      return !value.empty() || !other.value.empty();
+      return !value.empty() || !other_.value.empty();
     else
       throw utility::exception("Unsupported operation (||) for type '{}'", typeid(type).name());
   }
