@@ -28,8 +28,8 @@ public:
       switch (key.scancode)
       {
         case SDL_SCANCODE_ESCAPE: running = false; break;
-        case SDL_SCANCODE_F11: toggle_fullscreen(); break;
-        case SDL_SCANCODE_F12: toggle_vsync(); break;
+        case SDL_SCANCODE_F11: graphics.fullscreen = !graphics.fullscreen; break;
+        case SDL_SCANCODE_F12: graphics.vsync = !graphics.vsync; break;
         default: break;
       }
     };

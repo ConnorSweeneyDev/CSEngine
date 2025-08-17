@@ -98,7 +98,7 @@ namespace cse::core
     if (!window->start_render()) return;
     if (auto scene = current_scene.lock())
       scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass,
-                    window->frame.width, window->frame.height, scale_factor);
+                    window->graphics.width, window->graphics.height, scale_factor);
     else
       throw cse::utility::exception("Current scene is not initialized");
     window->end_render();
