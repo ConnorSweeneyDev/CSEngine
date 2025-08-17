@@ -6,6 +6,8 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
 
+#include "transform.hpp"
+
 namespace cse::core
 {
   class camera
@@ -13,39 +15,6 @@ namespace cse::core
     friend class scene;
 
   private:
-    struct transform
-    {
-      friend class camera;
-
-    private:
-      struct property
-      {
-        friend class camera;
-
-      public:
-        property(const glm::vec3 &value_);
-
-      private:
-        void interpolate(const double alpha);
-
-      public:
-        glm::vec3 value = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-
-      private:
-        glm::vec3 previous = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 interpolated = glm::vec3(0.0f, 0.0f, 0.0f);
-      };
-
-    public:
-      transform(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_);
-
-    public:
-      property translation = glm::vec3(0.0f, 0.0f, 0.0f);
-      property forward = glm::vec3(0.0f, 0.0f, 0.0f);
-      property up = glm::vec3(0.0f, 0.0f, 0.0f);
-    };
     struct graphics
     {
       friend class camera;
@@ -85,7 +54,8 @@ namespace cse::core
     std::function<void(const bool *key_state)> handle_input = nullptr;
     std::function<void()> handle_simulate = nullptr;
 
-    transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)};
+    helper::camera_transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+                                          glm::vec3(0.0f, 0.0f, 0.0f)};
     graphics graphics = {0.0f};
   };
 }

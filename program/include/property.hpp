@@ -6,7 +6,7 @@
 
 namespace cse::helper
 {
-  template <typename type> class property
+  template <typename type> struct property
   {
     static_assert(std::is_same_v<type, std::string> || std::is_same_v<type, float> || std::is_same_v<type, int> ||
                     std::is_same_v<type, bool>,

@@ -10,22 +10,6 @@
 
 namespace cse::core
 {
-  camera::transform::property::property(const glm::vec3 &value_)
-    : value(value_), velocity(glm::vec3(0.0f, 0.0f, 0.0f)), acceleration(glm::vec3(0.0f, 0.0f, 0.0f)), previous(value_),
-      interpolated(value_)
-  {
-  }
-
-  void camera::transform::property::interpolate(const double alpha)
-  {
-    interpolated = previous + ((value - previous) * static_cast<float>(alpha));
-  }
-
-  camera::transform::transform(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
-    : translation(translation_), forward(forward_), up(up_)
-  {
-  }
-
   camera::graphics::graphics(const float fov_) : fov(fov_), near_clip(0.01f), far_clip(100.0f) {}
 
   glm::mat4 camera::graphics::calculate_projection_matrix(const unsigned int width, const unsigned int height)

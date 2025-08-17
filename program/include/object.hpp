@@ -11,6 +11,7 @@
 #include "glm/ext/vector_int3.hpp"
 
 #include "resource.hpp"
+#include "transform.hpp"
 
 namespace cse::core
 {
@@ -19,39 +20,6 @@ namespace cse::core
     friend class scene;
 
   private:
-    struct transform
-    {
-      friend class object;
-
-    private:
-      struct property
-      {
-        friend class object;
-
-      public:
-        property(const glm::vec3 &value_);
-
-      private:
-        void interpolate(const double alpha);
-
-      public:
-        glm::vec3 value = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-
-      private:
-        glm::vec3 previous = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 interpolated = glm::vec3(0.0f, 0.0f, 0.0f);
-      };
-
-    public:
-      transform(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_);
-
-    public:
-      property translation = glm::vec3(0.0f, 0.0f, 0.0f);
-      property rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-      property scale = glm::vec3(1.0f, 1.0f, 1.0f);
-    };
     struct graphics
     {
       friend class object;
@@ -132,7 +100,8 @@ namespace cse::core
     std::function<void(const bool *key_state)> handle_input = nullptr;
     std::function<void()> handle_simulate = nullptr;
 
-    transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)};
+    helper::object_transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+                                          glm::vec3(0.0f, 0.0f, 0.0f)};
     graphics graphics = {resource::compiled_shader(), resource::compiled_shader(), resource::compiled_texture(), 0};
   };
 }

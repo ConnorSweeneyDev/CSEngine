@@ -18,22 +18,6 @@
 
 namespace cse::core
 {
-  object::transform::property::property(const glm::vec3 &value_)
-    : value(value_), velocity(glm::vec3(0.0f, 0.0f, 0.0f)), acceleration(glm::vec3(0.0f, 0.0f, 0.0f)), previous(value_),
-      interpolated(value_)
-  {
-  }
-
-  void object::transform::property::interpolate(const double alpha)
-  {
-    interpolated = previous + ((value - previous) * static_cast<float>(alpha));
-  }
-
-  object::transform::transform(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_)
-    : translation(translation_), rotation(rotation_), scale(scale_)
-  {
-  }
-
   object::graphics::graphics(const resource::compiled_shader &vertex_shader_,
                              const resource::compiled_shader &fragment_shader_,
                              const resource::compiled_texture &texture_, unsigned int current_frame_)
