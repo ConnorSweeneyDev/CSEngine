@@ -1,7 +1,6 @@
 #include "game.hpp"
 
 #include <memory>
-#include <stdexcept>
 #include <string>
 
 #include "SDL3/SDL_log.h"
@@ -45,16 +44,9 @@ namespace cse::core
 
   std::weak_ptr<scene> game::get_scene(const std::string &name) const
   {
-    try
-    {
-      auto scene = scenes.at(name);
-      if (!scene) throw utility::exception("Scene with name '{}' is not initialized", name);
-      return scene;
-    }
-    catch (const std::out_of_range &)
-    {
-      throw utility::exception("Scene with name '{}' does not exist", name);
-    }
+    if (!scenes.contains(name)) throw utility::exception("Scene with name '{}' does not exist", name);
+    if (auto scene = scenes.at(name); scene) return scene;
+    throw utility::exception("Scene with name '{}' is not initialized", name);
   }
 
   void game::set_current_scene(const std::string &name)
