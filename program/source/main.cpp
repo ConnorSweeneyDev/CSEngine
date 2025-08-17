@@ -120,15 +120,14 @@ int try_main(int argc, char *argv[])
   auto game = std::make_unique<cse::core::game>();
   game->set_window<custom_window>("CSE Example", 1280, 720);
 
-  game->add_scene<custom_scene>("scene");
-  if (auto scene = game->get_scene("scene").lock())
+  if (auto scene = game->add_scene<custom_scene>("scene").lock())
   {
     scene->set_camera<custom_camera>(glm::vec3(0.0f, 0.0f, 80.0f), glm::vec3(0.0f, 0.0f, -1.0f),
                                      glm::vec3(0.0f, 1.0f, 0.0f));
     scene->add_object<custom_object>("object", glm::ivec3(0, 0, 0), glm::ivec3(0, 0, 0), glm::ivec3(1, 1, 1));
   }
   else
-    throw cse::utility::exception("Failed to get scene with name '{}'", "scene");
+    throw cse::utility::exception("Failed to add scene with name '{}'", "scene");
 
   game->set_current_scene("scene");
   game->run();

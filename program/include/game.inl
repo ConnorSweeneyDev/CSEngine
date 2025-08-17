@@ -2,9 +2,11 @@
 
 #include "game.hpp"
 
+#include <memory>
 #include <string>
 
 #include "exception.hpp"
+#include "scene.hpp"
 
 namespace cse::core
 {
@@ -14,9 +16,10 @@ namespace cse::core
   }
 
   template <typename scene_type, typename... scene_arguments>
-  void game::add_scene(const std::string &name, scene_arguments &&...arguments)
+  std::weak_ptr<scene> game::add_scene(const std::string &name, scene_arguments &&...arguments)
   {
-    if (scenes.find(name) != scenes.end()) throw utility::exception("Scene with name '{}' already exists", name);
-    scenes[name] = std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...);
+    if (scenes.contains(name)) throw utility::exception("Scene with name '{}' already exists", name);
+    scenes.emplace(name, std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...));
+    return get_scene(name);
   }
 }

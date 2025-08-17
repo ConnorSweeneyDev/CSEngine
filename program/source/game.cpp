@@ -1,6 +1,7 @@
 #include "game.hpp"
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 #include "SDL3/SDL_log.h"
@@ -42,18 +43,26 @@ namespace cse::core
     cleanup();
   }
 
-  void game::set_current_scene(const std::string &name)
-  {
-    if (scenes.find(name) == scenes.end()) throw utility::exception("Scene with name '{}' does not exist", name);
-    current_scene = scenes[name];
-  }
-
   std::weak_ptr<scene> game::get_scene(const std::string &name) const
   {
-    auto iterator = scenes.find(name);
-    if (iterator == scenes.end()) throw utility::exception("Scene with name '{}' does not exist", name);
-    if (iterator->second == nullptr) throw utility::exception("Scene with name '{}' is not initialized", name);
-    return iterator->second;
+    try
+    {
+      auto scene = scenes.at(name);
+      if (!scene) throw utility::exception("Scene with name '{}' is not initialized", name);
+      return scene;
+    }
+    catch (const std::out_of_range &)
+    {
+      throw utility::exception("Scene with name '{}' does not exist", name);
+    }
+  }
+
+  void game::set_current_scene(const std::string &name)
+  {
+    if (auto scene = get_scene(name).lock())
+      current_scene = scene;
+    else
+      throw utility::exception("Scene with name '{}' is not initialized", name);
   }
 
   void game::initialize()

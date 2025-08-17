@@ -16,7 +16,7 @@ namespace cse::core
   template <typename object_type, typename... object_arguments>
   void scene::add_object(const std::string &name, object_arguments &&...arguments)
   {
-    if (objects.find(name) != objects.end()) throw utility::exception("Object with name '{}' already exists", name);
-    objects[name] = std::make_shared<object_type>(std::forward<object_arguments>(arguments)...);
+    if (objects.contains(name)) throw utility::exception("Object with name '{}' already exists", name);
+    objects.emplace(name, std::make_shared<object_type>(std::forward<object_arguments>(arguments)...));
   }
 }

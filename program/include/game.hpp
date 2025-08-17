@@ -21,10 +21,10 @@ namespace cse::core
     void run();
 
     template <typename window_type, typename... window_arguments> void set_window(window_arguments &&...arguments);
-    template <typename scene_type, typename... scene_arguments>
-    void add_scene(const std::string &name, scene_arguments &&...arguments);
-    void set_current_scene(const std::string &name);
     std::weak_ptr<scene> get_scene(const std::string &name) const;
+    template <typename scene_type, typename... scene_arguments>
+    std::weak_ptr<scene> add_scene(const std::string &name, scene_arguments &&...arguments);
+    void set_current_scene(const std::string &name);
 
   private:
     void initialize();
