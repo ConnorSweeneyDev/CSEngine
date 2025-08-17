@@ -1,16 +1,14 @@
 #pragma once
 
-#include <array>
 #include <functional>
 
 #include "SDL3/SDL_gpu.h"
-#include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
-#include "glm/ext/vector_float3.hpp"
 #include "glm/ext/vector_int3.hpp"
 
 #include "declaration.hpp"
+#include "graphics.hpp"
 #include "resource.hpp"
 #include "transform.hpp"
 
@@ -19,66 +17,6 @@ namespace cse::core
   class object
   {
     friend class scene;
-
-  private:
-    struct graphics
-    {
-      friend class object;
-
-    private:
-      struct vertex
-      {
-        float x = {}, y = {}, z = {};
-        Uint8 r = {}, g = {}, b = {}, a = {};
-        float u = {}, v = {};
-      };
-      struct shader
-      {
-        const resource::compiled_shader vertex = {};
-        const resource::compiled_shader fragment = {};
-      };
-      struct texture
-      {
-        const resource::compiled_texture raw = {};
-        unsigned int current_frame = {};
-      };
-
-    public:
-      graphics() = default;
-      graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-               const resource::compiled_texture &texture_, unsigned int current_frame_);
-
-    private:
-      void create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu);
-      void create_vertex_and_index(SDL_GPUDevice *gpu);
-      void create_sampler_and_texture(SDL_GPUDevice *gpu);
-      void transfer_vertex_and_index(SDL_GPUDevice *gpu);
-      void transfer_texture(SDL_GPUDevice *gpu);
-      void upload_to_gpu(SDL_GPUDevice *gpu);
-      void update_vertex(SDL_GPUDevice *gpu);
-      void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass);
-      glm::mat4 calculate_model_matrix(const glm::vec3 &translation, const glm::vec3 &rotation, const glm::vec3 &scale,
-                                       const float scale_factor);
-      void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &model_matrix,
-                             const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix);
-      void draw_primitives(SDL_GPURenderPass *render_pass);
-      void cleanup_object(SDL_GPUDevice *gpu);
-
-    public:
-      shader shader = {};
-      texture texture = {};
-
-    private:
-      SDL_GPUGraphicsPipeline *pipeline = {};
-      SDL_GPUBuffer *vertex_buffer = {};
-      SDL_GPUBuffer *index_buffer = {};
-      SDL_GPUTexture *texture_buffer = {};
-      SDL_GPUSampler *sampler_buffer = {};
-      SDL_GPUTransferBuffer *buffer_transfer_buffer = {};
-      SDL_GPUTransferBuffer *texture_transfer_buffer = {};
-      std::array<vertex, 4> quad_vertices = {};
-      std::array<Uint16, 6> quad_indices = {};
-    };
 
   public:
     object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_,
@@ -103,6 +41,6 @@ namespace cse::core
     std::function<void()> handle_simulate = {};
 
     helper::object_transform transform = {};
-    graphics graphics = {};
+    helper::object_graphics graphics = {};
   };
 }

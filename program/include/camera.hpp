@@ -7,6 +7,7 @@
 #include "glm/ext/vector_float3.hpp"
 
 #include "declaration.hpp"
+#include "graphics.hpp"
 #include "transform.hpp"
 
 namespace cse::core
@@ -14,28 +15,6 @@ namespace cse::core
   class camera
   {
     friend class scene;
-
-  private:
-    struct graphics
-    {
-      friend class camera;
-
-    public:
-      graphics() = default;
-      graphics(const float fov_);
-
-    private:
-      glm::mat4 calculate_projection_matrix(const unsigned int width, const unsigned int height);
-      glm::mat4 calculate_view_matrix(const glm::vec3 &translation, const glm::vec3 &forward, const glm::vec3 &up,
-                                      const float scale_factor);
-
-    public:
-      float fov = {};
-
-    private:
-      float near_clip = {};
-      float far_clip = {};
-    };
 
   public:
     camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, const float fov_);
@@ -55,6 +34,6 @@ namespace cse::core
     std::function<void()> handle_simulate = {};
 
     helper::camera_transform transform = {};
-    graphics graphics = {};
+    helper::camera_graphics graphics = {};
   };
 }
