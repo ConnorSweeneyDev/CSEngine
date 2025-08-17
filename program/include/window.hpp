@@ -7,6 +7,7 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 
+#include "declaration.hpp"
 #include "property.hpp"
 
 namespace cse::core
@@ -22,6 +23,7 @@ namespace cse::core
       friend class window;
 
     public:
+      graphics() = default;
       graphics(const std::string &title_, const unsigned int starting_width_, const unsigned int starting_height_,
                const bool fullscreen_, const bool vsync_);
       ~graphics();
@@ -40,8 +42,8 @@ namespace cse::core
       void cleanup_gpu_and_instance();
 
     public:
-      helper::property<bool> fullscreen = {false};
-      helper::property<bool> vsync = {false};
+      helper::property<bool> fullscreen = false;
+      helper::property<bool> vsync = false;
 
     private:
       const std::string title = "";
@@ -79,7 +81,7 @@ namespace cse::core
     std::function<void(const SDL_KeyboardEvent &key)> handle_input = nullptr;
 
     bool running = false;
-    graphics graphics = {"", 0, 0, false, false};
+    graphics graphics = {};
 
   private:
     const bool *key_state = nullptr;

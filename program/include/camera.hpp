@@ -6,6 +6,7 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
 
+#include "declaration.hpp"
 #include "transform.hpp"
 
 namespace cse::core
@@ -20,6 +21,7 @@ namespace cse::core
       friend class camera;
 
     public:
+      graphics() = default;
       graphics(const float fov_);
 
     private:
@@ -54,8 +56,7 @@ namespace cse::core
     std::function<void(const bool *key_state)> handle_input = nullptr;
     std::function<void()> handle_simulate = nullptr;
 
-    helper::camera_transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                                          glm::vec3(0.0f, 0.0f, 0.0f)};
-    graphics graphics = {0.0f};
+    helper::camera_transform transform = {};
+    graphics graphics = {};
   };
 }

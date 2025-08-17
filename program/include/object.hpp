@@ -10,6 +10,7 @@
 #include "glm/ext/vector_float3.hpp"
 #include "glm/ext/vector_int3.hpp"
 
+#include "declaration.hpp"
 #include "resource.hpp"
 #include "transform.hpp"
 
@@ -43,6 +44,7 @@ namespace cse::core
       };
 
     public:
+      graphics() = default;
       graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
                const resource::compiled_texture &texture_, unsigned int current_frame_);
 
@@ -100,8 +102,7 @@ namespace cse::core
     std::function<void(const bool *key_state)> handle_input = nullptr;
     std::function<void()> handle_simulate = nullptr;
 
-    helper::object_transform transform = {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                                          glm::vec3(0.0f, 0.0f, 0.0f)};
-    graphics graphics = {resource::compiled_shader(), resource::compiled_shader(), resource::compiled_texture(), 0};
+    helper::object_transform transform = {};
+    graphics graphics = {};
   };
 }

@@ -17,6 +17,12 @@
 #include "scene.hpp"
 #include "window.hpp"
 
+class custom_scene : public cse::core::scene
+{
+public:
+  custom_scene() {}
+};
+
 class custom_window : public cse::core::window
 {
 public:
@@ -34,12 +40,6 @@ public:
       }
     };
   }
-};
-
-class custom_scene : public cse::core::scene
-{
-public:
-  custom_scene() {}
 };
 
 class custom_camera : public cse::core::camera

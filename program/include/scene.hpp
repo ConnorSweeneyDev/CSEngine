@@ -8,8 +8,7 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 
-#include "camera.hpp"
-#include "object.hpp"
+#include "declaration.hpp"
 
 namespace cse::core
 {

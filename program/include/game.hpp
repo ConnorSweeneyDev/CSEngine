@@ -4,8 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "scene.hpp"
-#include "window.hpp"
+#include "declaration.hpp"
 
 namespace cse::core
 {
