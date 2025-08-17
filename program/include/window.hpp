@@ -7,6 +7,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
+#include "state.hpp"
 
 namespace cse::core
 {
@@ -32,12 +33,9 @@ namespace cse::core
 
   protected:
     std::function<void(const SDL_KeyboardEvent &key)> handle_event = {};
-    std::function<void(const bool *key_state)> handle_input = {};
+    std::function<void(const bool *keys)> handle_input = {};
 
-    bool running = {};
+    helper::window_state state = {};
     helper::window_graphics graphics = {};
-
-  private:
-    const bool *keys = {};
   };
 }

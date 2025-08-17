@@ -24,7 +24,7 @@ namespace cse::core
   void game::run()
   {
     initialize();
-    while (window->running)
+    while (window->state.running)
     {
       update_simulation_time();
       while (simulation_behind())
@@ -80,7 +80,7 @@ namespace cse::core
   {
     window->input();
     if (auto scene = current_scene.lock())
-      scene->input(window->keys);
+      scene->input(window->state.keys);
     else
       throw cse::utility::exception("Current scene is not initialized");
   }

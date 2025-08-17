@@ -37,9 +37,9 @@ namespace cse::core
 
   void object::cleanup(SDL_GPUDevice *gpu) { graphics.cleanup_object(gpu); }
 
-  void object::input(const bool *key_state)
+  void object::input(const bool *keys)
   {
-    if (handle_input) handle_input(key_state);
+    if (handle_input) handle_input(keys);
   }
 
   void object::simulate(double simulation_alpha)

@@ -25,12 +25,12 @@ namespace cse::core
     camera &operator=(camera &&) = delete;
 
   private:
-    void input(const bool *key_state);
+    void input(const bool *keys);
     void simulate(const double simulation_alpha);
     std::array<glm::mat4, 2> render(const unsigned int width, const unsigned int height, const float scale_factor);
 
   protected:
-    std::function<void(const bool *key_state)> handle_input = {};
+    std::function<void(const bool *keys)> handle_input = {};
     std::function<void()> handle_simulate = {};
 
     helper::camera_transform transform = {};

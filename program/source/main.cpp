@@ -33,7 +33,7 @@ public:
     {
       switch (key.scancode)
       {
-        case SDL_SCANCODE_ESCAPE: running = false; break;
+        case SDL_SCANCODE_ESCAPE: state.running = false; break;
         case SDL_SCANCODE_F11: graphics.fullscreen = !graphics.fullscreen; break;
         case SDL_SCANCODE_F12: graphics.vsync = !graphics.vsync; break;
         default: break;
@@ -48,14 +48,14 @@ public:
   custom_camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
     : cse::core::camera(translation_, forward_, up_, 45.0f)
   {
-    handle_input = [this](const bool *key_state)
+    handle_input = [this](const bool *keys)
     {
-      if (key_state[SDL_SCANCODE_I]) transform.translation.acceleration.y += 0.01f;
-      if (key_state[SDL_SCANCODE_K]) transform.translation.acceleration.y -= 0.01f;
-      if (key_state[SDL_SCANCODE_L]) transform.translation.acceleration.x += 0.01f;
-      if (key_state[SDL_SCANCODE_J]) transform.translation.acceleration.x -= 0.01f;
-      if (key_state[SDL_SCANCODE_U]) transform.translation.acceleration.z -= 0.01f;
-      if (key_state[SDL_SCANCODE_O]) transform.translation.acceleration.z += 0.01f;
+      if (keys[SDL_SCANCODE_I]) transform.translation.acceleration.y += 0.01f;
+      if (keys[SDL_SCANCODE_K]) transform.translation.acceleration.y -= 0.01f;
+      if (keys[SDL_SCANCODE_L]) transform.translation.acceleration.x += 0.01f;
+      if (keys[SDL_SCANCODE_J]) transform.translation.acceleration.x -= 0.01f;
+      if (keys[SDL_SCANCODE_U]) transform.translation.acceleration.z -= 0.01f;
+      if (keys[SDL_SCANCODE_O]) transform.translation.acceleration.z += 0.01f;
     };
 
     handle_simulate = [this]()
@@ -84,14 +84,14 @@ public:
     : cse::core::object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
                         cse::resource::main_texture, 0)
   {
-    handle_input = [this](const bool *key_state)
+    handle_input = [this](const bool *keys)
     {
-      if (key_state[SDL_SCANCODE_E]) transform.translation.acceleration.y += 0.01f;
-      if (key_state[SDL_SCANCODE_D]) transform.translation.acceleration.y -= 0.01f;
-      if (key_state[SDL_SCANCODE_F]) transform.translation.acceleration.x += 0.01f;
-      if (key_state[SDL_SCANCODE_S]) transform.translation.acceleration.x -= 0.01f;
-      if (key_state[SDL_SCANCODE_W]) transform.translation.acceleration.z += 0.01f;
-      if (key_state[SDL_SCANCODE_R]) transform.translation.acceleration.z -= 0.01f;
+      if (keys[SDL_SCANCODE_E]) transform.translation.acceleration.y += 0.01f;
+      if (keys[SDL_SCANCODE_D]) transform.translation.acceleration.y -= 0.01f;
+      if (keys[SDL_SCANCODE_F]) transform.translation.acceleration.x += 0.01f;
+      if (keys[SDL_SCANCODE_S]) transform.translation.acceleration.x -= 0.01f;
+      if (keys[SDL_SCANCODE_W]) transform.translation.acceleration.z += 0.01f;
+      if (keys[SDL_SCANCODE_R]) transform.translation.acceleration.z -= 0.01f;
     };
 
     handle_simulate = [this]()

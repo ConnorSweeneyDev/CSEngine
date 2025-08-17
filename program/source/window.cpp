@@ -32,28 +32,28 @@ namespace cse::core
   {
     graphics.initialize_app();
     graphics.create_window();
-    running = true;
+    state.running = true;
   }
 
   void window::cleanup()
   {
-    keys = nullptr;
+    state.keys = nullptr;
     graphics.cleanup_gpu_and_app();
   }
 
   void window::input()
   {
-    keys = SDL_GetKeyboardState(nullptr);
+    state.keys = SDL_GetKeyboardState(nullptr);
     SDL_Event event = {};
     while (SDL_PollEvent(&event)) switch (event.type)
       {
-        case SDL_EVENT_QUIT: running = false; break;
+        case SDL_EVENT_QUIT: state.running = false; break;
         case SDL_EVENT_WINDOW_MOVED: graphics.handle_move(); break;
         case SDL_EVENT_KEY_DOWN:
           if (handle_event) handle_event(event.key);
           break;
       }
-    if (handle_input) handle_input(keys);
+    if (handle_input) handle_input(state.keys);
   }
 
   bool window::start_render()

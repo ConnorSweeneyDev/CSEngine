@@ -13,11 +13,13 @@ namespace cse::helper
 {
   template <typename type> class property;
 
-  class window_graphics;
-  class camera_graphics;
-  class object_graphics;
+  struct window_state;
 
   class transform_value;
   struct camera_transform;
   struct object_transform;
+
+  class window_graphics;
+  class camera_graphics;
+  class object_graphics;
 }

@@ -31,13 +31,13 @@ namespace cse::core
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void cleanup(SDL_GPUDevice *gpu);
-    void input(const bool *key_state);
+    void input(const bool *keys);
     void simulate(double simulation_alpha);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float scale_factor);
 
   protected:
-    std::function<void(const bool *key_state)> handle_input = {};
+    std::function<void(const bool *keys)> handle_input = {};
     std::function<void()> handle_simulate = {};
 
     helper::object_transform transform = {};

@@ -18,9 +18,9 @@ namespace cse::core
     handle_input = nullptr;
   }
 
-  void camera::input(const bool *key_state)
+  void camera::input(const bool *keys)
   {
-    if (handle_input) handle_input(key_state);
+    if (handle_input) handle_input(keys);
   }
 
   void camera::simulate(const double simulation_alpha)

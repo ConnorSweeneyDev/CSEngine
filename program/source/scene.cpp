@@ -31,11 +31,11 @@ namespace cse::core
     for (const auto &object : objects) object.second->cleanup(gpu);
   }
 
-  void scene::input(const bool *key_state)
+  void scene::input(const bool *keys)
   {
-    if (handle_input) { handle_input(key_state); }
-    camera->input(key_state);
-    for (const auto &object : objects) object.second->input(key_state);
+    if (handle_input) { handle_input(keys); }
+    camera->input(keys);
+    for (const auto &object : objects) object.second->input(keys);
   }
 
   void scene::simulate(const double simulation_alpha)
