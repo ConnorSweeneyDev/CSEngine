@@ -27,7 +27,17 @@ namespace cse::core
       ~graphics();
 
     private:
+      void initialize_app();
+      void create_window();
+      bool create_command_and_swapchain();
+      void create_render_pass();
+      void end_render_and_submit_command();
+      void enable_fullscreen();
+      void disable_fullscreen();
+      void enable_vsync();
+      void disable_vsync();
       void handle_move();
+      void cleanup_gpu_and_instance();
 
     public:
       helper::property<bool> fullscreen = {false};
@@ -45,6 +55,7 @@ namespace cse::core
       SDL_Window *instance = nullptr;
       SDL_GPUDevice *gpu = nullptr;
       SDL_GPUCommandBuffer *command_buffer = nullptr;
+      SDL_GPUTexture *swapchain_texture = nullptr;
       SDL_GPURenderPass *render_pass = nullptr;
     };
 

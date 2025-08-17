@@ -23,47 +23,17 @@ namespace cse::core
     fullscreen.on_change = [this]()
     {
       if (fullscreen)
-      {
-        SDL_Rect display_bounds;
-        if (!SDL_GetDisplayBounds(display_index, &display_bounds))
-          throw utility::sdl_exception("Could not get bounds for display ({}) for window '{}'", display_index, title);
-        if (!SDL_SetWindowBordered(instance, false))
-          throw utility::sdl_exception("Could not set borderless for window '{}'", title);
-        if (!SDL_SetWindowSize(instance, display_bounds.w, display_bounds.h))
-          throw utility::sdl_exception("Could not set size to ({}, {}) on display ({}) for window '{}'",
-                                       display_bounds.w, display_bounds.h, display_index, title);
-        width = static_cast<unsigned int>(display_bounds.w);
-        height = static_cast<unsigned int>(display_bounds.h);
-        if (!SDL_SetWindowPosition(instance, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
-                                   SDL_WINDOWPOS_CENTERED_DISPLAY(display_index)))
-          throw utility::sdl_exception("Could not set position centered on display ({}) for window '{}'",
-                                       display_index);
-      }
+        enable_fullscreen();
       else
-      {
-        if (!SDL_SetWindowBordered(instance, true))
-          throw utility::sdl_exception("Could not set bordered for window '{}'", title);
-        if (!SDL_SetWindowSize(instance, static_cast<int>(starting_width), static_cast<int>(starting_height)))
-          throw utility::sdl_exception("Could not set size to ({}, {}) for window '{}'", starting_width,
-                                       starting_height, title);
-        width = starting_width;
-        height = starting_height;
-        if (!SDL_SetWindowPosition(instance, left, top))
-          throw utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", left, top, title);
-      }
+        disable_fullscreen();
     };
 
     vsync.on_change = [this]()
     {
       if (vsync)
-      {
-        if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
-          throw utility::sdl_exception("Could not enable VSYNC for window '{}'", title);
-      }
-      else if (SDL_WindowSupportsGPUPresentMode(gpu, instance, SDL_GPU_PRESENTMODE_IMMEDIATE))
-        if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
-                                           SDL_GPU_PRESENTMODE_IMMEDIATE))
-          throw utility::sdl_exception("Could not disable VSYNC for window '{}'", title);
+        enable_vsync();
+      else
+        disable_vsync();
     };
   }
 
@@ -71,6 +41,126 @@ namespace cse::core
   {
     fullscreen.on_change = nullptr;
     vsync.on_change = nullptr;
+  }
+
+  void window::graphics::initialize_app()
+  {
+    SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
+      throw cse::utility::sdl_exception("Could not set app metadata type for window '{}'", title);
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "Connor.Sweeney.Engine"))
+      throw cse::utility::sdl_exception("Could not set app metadata identifier for window '{}'", title);
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, "CSEngine"))
+      throw cse::utility::sdl_exception("Could not set app metadata name for window '{}'", title);
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "0.0.0"))
+      throw cse::utility::sdl_exception("Could not set app metadata version for window '{}'", title);
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
+      throw cse::utility::sdl_exception("Could not set app metadata creator for window '{}'", title);
+    if (!SDL_Init(SDL_INIT_VIDEO))
+      throw cse::utility::sdl_exception("SDL could not be initialized for window '{}'", title);
+  }
+
+  void window::graphics::create_window()
+  {
+    instance = SDL_CreateWindow(title.c_str(), static_cast<int>(starting_width), static_cast<int>(starting_height),
+                                SDL_WINDOW_HIDDEN);
+    if (!instance) throw cse::utility::sdl_exception("Could not create window '{}'", title);
+    display_index = SDL_GetPrimaryDisplay();
+    if (display_index == 0) throw cse::utility::sdl_exception("Could not get primary display for window '{}'", title);
+    left = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
+    top = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
+    if (!SDL_SetWindowPosition(instance, left, top))
+      throw cse::utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", left, top, title);
+    if (fullscreen) fullscreen.on_change();
+
+    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, false, nullptr);
+    if (!gpu) throw cse::utility::sdl_exception("Could not create GPU device for window '{}'", title);
+    if (!SDL_ClaimWindowForGPUDevice(gpu, instance))
+      throw cse::utility::sdl_exception("Could not claim window for GPU device for window '{}'", title);
+    if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
+      throw cse::utility::sdl_exception("Could not enable VSYNC for window '{}'", title);
+    if (!vsync) vsync.on_change();
+
+    SDL_ShowWindow(instance);
+  }
+
+  bool window::graphics::create_command_and_swapchain()
+  {
+    command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
+    if (!command_buffer)
+      throw cse::utility::sdl_exception("Could not acquire GPU command buffer for window '{}'", title);
+
+    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, nullptr, nullptr))
+      throw cse::utility::sdl_exception("Could not acquire GPU swapchain texture for window '{}'", title);
+    if (!swapchain_texture)
+    {
+      if (!SDL_SubmitGPUCommandBuffer(command_buffer))
+        throw cse::utility::sdl_exception("Could not submit GPU command buffer for window '{}'", title);
+      return false;
+    }
+
+    return true;
+  }
+
+  void window::graphics::create_render_pass()
+  {
+    SDL_GPUColorTargetInfo color_target_info(swapchain_texture, Uint32(), Uint32(), {0.1f, 0.1f, 0.1f, 1.0f},
+                                             SDL_GPU_LOADOP_CLEAR, SDL_GPU_STOREOP_STORE);
+    render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
+    if (!render_pass) throw cse::utility::sdl_exception("Could not begin GPU render pass for window '{}'", title);
+    SDL_GPUViewport viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
+    SDL_SetGPUViewport(render_pass, &viewport);
+  }
+
+  void window::graphics::end_render_and_submit_command()
+  {
+    SDL_EndGPURenderPass(render_pass);
+    if (!SDL_SubmitGPUCommandBuffer(command_buffer))
+      throw cse::utility::sdl_exception("Could not submit GPU command buffer for window '{}'", title);
+  }
+
+  void window::graphics::enable_fullscreen()
+  {
+    SDL_Rect display_bounds;
+    if (!SDL_GetDisplayBounds(display_index, &display_bounds))
+      throw utility::sdl_exception("Could not get bounds for display ({}) for window '{}'", display_index, title);
+    if (!SDL_SetWindowBordered(instance, false))
+      throw utility::sdl_exception("Could not set borderless for window '{}'", title);
+    if (!SDL_SetWindowSize(instance, display_bounds.w, display_bounds.h))
+      throw utility::sdl_exception("Could not set size to ({}, {}) on display ({}) for window '{}'", display_bounds.w,
+                                   display_bounds.h, display_index, title);
+    width = static_cast<unsigned int>(display_bounds.w);
+    height = static_cast<unsigned int>(display_bounds.h);
+    if (!SDL_SetWindowPosition(instance, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
+                               SDL_WINDOWPOS_CENTERED_DISPLAY(display_index)))
+      throw utility::sdl_exception("Could not set position centered on display ({}) for window '{}'", display_index);
+  }
+
+  void window::graphics::disable_fullscreen()
+  {
+    if (!SDL_SetWindowBordered(instance, true))
+      throw utility::sdl_exception("Could not set bordered for window '{}'", title);
+    if (!SDL_SetWindowSize(instance, static_cast<int>(starting_width), static_cast<int>(starting_height)))
+      throw utility::sdl_exception("Could not set size to ({}, {}) for window '{}'", starting_width, starting_height,
+                                   title);
+    width = starting_width;
+    height = starting_height;
+    if (!SDL_SetWindowPosition(instance, left, top))
+      throw utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", left, top, title);
+  }
+
+  void window::graphics::enable_vsync()
+  {
+    if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
+      throw utility::sdl_exception("Could not enable VSYNC for window '{}'", title);
+  }
+
+  void window::graphics::disable_vsync()
+  {
+    if (SDL_WindowSupportsGPUPresentMode(gpu, instance, SDL_GPU_PRESENTMODE_IMMEDIATE))
+      if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
+                                         SDL_GPU_PRESENTMODE_IMMEDIATE))
+        throw utility::sdl_exception("Could not disable VSYNC for window '{}'", title);
   }
 
   void window::graphics::handle_move()
@@ -82,6 +172,19 @@ namespace cse::core
     if (display_index == 0) throw utility::sdl_exception("Could not get display index for window '{}'", title);
   }
 
+  void window::graphics::cleanup_gpu_and_instance()
+  {
+    SDL_ReleaseWindowFromGPUDevice(gpu, instance);
+    SDL_DestroyGPUDevice(gpu);
+    SDL_DestroyWindow(instance);
+    render_pass = nullptr;
+    swapchain_texture = nullptr;
+    command_buffer = nullptr;
+    gpu = nullptr;
+    instance = nullptr;
+    SDL_Quit();
+  }
+
   window::window(const std::string &title_, const unsigned int starting_width_, const unsigned int starting_height_,
                  const bool fullscreen_, const bool vsync_)
     : graphics(title_, starting_width_, starting_height_, fullscreen_, vsync_)
@@ -89,73 +192,25 @@ namespace cse::core
     if (title_.empty())
       throw cse::utility::exception("Window title cannot be empty for window with dimensions ({}, {})", starting_width_,
                                     starting_height_);
-  }
-
-  window::~window()
-  {
-    key_state = nullptr;
-    handle_input = nullptr;
-  }
-
-  void window::initialize()
-  {
     if (!graphics.fullscreen.on_change)
       throw cse::utility::exception("Fullscreen on_change callback must be set for window '{}'", graphics.title);
     if (!graphics.vsync.on_change)
       throw cse::utility::exception("Vsync on_change callback must be set for window '{}'", graphics.title);
+  }
 
-    SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
-      throw cse::utility::sdl_exception("Could not set app metadata type for window '{}'", graphics.title);
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "Connor.Sweeney.Engine"))
-      throw cse::utility::sdl_exception("Could not set app metadata identifier for window '{}'", graphics.title);
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, "CSEngine"))
-      throw cse::utility::sdl_exception("Could not set app metadata name for window '{}'", graphics.title);
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "0.0.0"))
-      throw cse::utility::sdl_exception("Could not set app metadata version for window '{}'", graphics.title);
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
-      throw cse::utility::sdl_exception("Could not set app metadata creator for window '{}'", graphics.title);
-    if (!SDL_Init(SDL_INIT_VIDEO))
-      throw cse::utility::sdl_exception("SDL could not be initialized for window '{}'", graphics.title);
+  window::~window() { handle_input = nullptr; }
 
-    graphics.instance = SDL_CreateWindow(graphics.title.c_str(), static_cast<int>(graphics.starting_width),
-                                         static_cast<int>(graphics.starting_height), SDL_WINDOW_HIDDEN);
-    if (!graphics.instance) throw cse::utility::sdl_exception("Could not create window '{}'", graphics.title);
-    graphics.display_index = SDL_GetPrimaryDisplay();
-    if (graphics.display_index == 0)
-      throw cse::utility::sdl_exception("Could not get primary display for window '{}'", graphics.title);
-    graphics.left = SDL_WINDOWPOS_CENTERED_DISPLAY(graphics.display_index);
-    graphics.top = SDL_WINDOWPOS_CENTERED_DISPLAY(graphics.display_index);
-    if (!SDL_SetWindowPosition(graphics.instance, graphics.left, graphics.top))
-      throw cse::utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", graphics.left,
-                                        graphics.top, graphics.title);
-    if (graphics.fullscreen) graphics.fullscreen.on_change();
-
-    graphics.gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, false, nullptr);
-    if (!graphics.gpu) throw cse::utility::sdl_exception("Could not create GPU device for window '{}'", graphics.title);
-    if (!SDL_ClaimWindowForGPUDevice(graphics.gpu, graphics.instance))
-      throw cse::utility::sdl_exception("Could not claim window for GPU device for window '{}'", graphics.title);
-    if (!SDL_SetGPUSwapchainParameters(graphics.gpu, graphics.instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
-                                       SDL_GPU_PRESENTMODE_VSYNC))
-      throw cse::utility::sdl_exception("Could not enable VSYNC for window '{}'", graphics.title);
-    if (!graphics.vsync) graphics.vsync.on_change();
-
-    SDL_ShowWindow(graphics.instance);
+  void window::initialize()
+  {
+    graphics.initialize_app();
+    graphics.create_window();
     running = true;
   }
 
   void window::cleanup()
   {
-    SDL_ReleaseWindowFromGPUDevice(graphics.gpu, graphics.instance);
-    SDL_DestroyGPUDevice(graphics.gpu);
-    SDL_DestroyWindow(graphics.instance);
-
-    graphics.render_pass = nullptr;
-    graphics.command_buffer = nullptr;
-    graphics.gpu = nullptr;
-    graphics.instance = nullptr;
-
-    SDL_Quit();
+    key_state = nullptr;
+    graphics.cleanup_gpu_and_instance();
   }
 
   void window::input()
@@ -174,36 +229,10 @@ namespace cse::core
 
   bool window::start_render()
   {
-    graphics.command_buffer = SDL_AcquireGPUCommandBuffer(graphics.gpu);
-    if (!graphics.command_buffer)
-      throw cse::utility::sdl_exception("Could not acquire GPU command buffer for window '{}'", graphics.title);
-
-    SDL_GPUTexture *swapchain_texture = nullptr;
-    if (!SDL_WaitAndAcquireGPUSwapchainTexture(graphics.command_buffer, graphics.instance, &swapchain_texture, nullptr,
-                                               nullptr))
-      throw cse::utility::sdl_exception("Could not acquire GPU swapchain texture for window '{}'", graphics.title);
-    if (!swapchain_texture)
-    {
-      if (!SDL_SubmitGPUCommandBuffer(graphics.command_buffer))
-        throw cse::utility::sdl_exception("Could not submit GPU command buffer for window '{}'", graphics.title);
-      return false;
-    }
-
-    SDL_GPUColorTargetInfo color_target_info(swapchain_texture, Uint32(), Uint32(), {0.1f, 0.1f, 0.1f, 1.0f},
-                                             SDL_GPU_LOADOP_CLEAR, SDL_GPU_STOREOP_STORE);
-    graphics.render_pass = SDL_BeginGPURenderPass(graphics.command_buffer, &color_target_info, 1, nullptr);
-    if (!graphics.render_pass)
-      throw cse::utility::sdl_exception("Could not begin GPU render pass for window '{}'", graphics.title);
-    SDL_GPUViewport viewport(0.0f, 0.0f, static_cast<float>(graphics.width), static_cast<float>(graphics.height));
-    SDL_SetGPUViewport(graphics.render_pass, &viewport);
-
+    if (!graphics.create_command_and_swapchain()) return false;
+    graphics.create_render_pass();
     return true;
   }
 
-  void window::end_render()
-  {
-    SDL_EndGPURenderPass(graphics.render_pass);
-    if (!SDL_SubmitGPUCommandBuffer(graphics.command_buffer))
-      throw cse::utility::sdl_exception("Could not submit GPU command buffer for window '{}'", graphics.title);
-  }
+  void window::end_render() { graphics.end_render_and_submit_command(); }
 }
