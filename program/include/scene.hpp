@@ -37,11 +37,11 @@ namespace cse::core
                 const unsigned int width, const unsigned int height, const float scale_factor);
 
   protected:
-    std::function<void(const bool *key_state)> handle_input = nullptr;
-    std::function<void(const double simulation_alpha)> handle_simulate = nullptr;
+    std::function<void(const bool *key_state)> handle_input = {};
+    std::function<void(const double simulation_alpha)> handle_simulate = {};
 
   private:
-    std::unique_ptr<camera> camera = nullptr;
+    std::unique_ptr<camera> camera = {};
     std::unordered_map<std::string, std::shared_ptr<object>> objects = {};
   };
 }

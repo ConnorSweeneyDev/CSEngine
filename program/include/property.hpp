@@ -62,7 +62,7 @@ namespace cse::helper
     bool operator||(const property &other_) const;
 
   public:
-    std::function<void()> on_change = nullptr;
+    std::function<void()> on_change = {};
 
   private:
     type value = {};

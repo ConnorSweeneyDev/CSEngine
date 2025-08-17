@@ -42,23 +42,23 @@ namespace cse::core
       void cleanup_gpu_and_instance();
 
     public:
-      helper::property<bool> fullscreen = false;
-      helper::property<bool> vsync = false;
+      helper::property<bool> fullscreen = {};
+      helper::property<bool> vsync = {};
 
     private:
-      const std::string title = "";
-      const unsigned int starting_width = 0;
-      const unsigned int starting_height = 0;
-      unsigned int width = 0;
-      unsigned int height = 0;
-      int left = 0;
-      int top = 0;
-      SDL_DisplayID display_index = 0;
-      SDL_Window *instance = nullptr;
-      SDL_GPUDevice *gpu = nullptr;
-      SDL_GPUCommandBuffer *command_buffer = nullptr;
-      SDL_GPUTexture *swapchain_texture = nullptr;
-      SDL_GPURenderPass *render_pass = nullptr;
+      const std::string title = {};
+      const unsigned int starting_width = {};
+      const unsigned int starting_height = {};
+      unsigned int width = {};
+      unsigned int height = {};
+      int left = {};
+      int top = {};
+      SDL_DisplayID display_index = {};
+      SDL_Window *instance = {};
+      SDL_GPUDevice *gpu = {};
+      SDL_GPUCommandBuffer *command_buffer = {};
+      SDL_GPUTexture *swapchain_texture = {};
+      SDL_GPURenderPass *render_pass = {};
     };
 
   public:
@@ -78,12 +78,13 @@ namespace cse::core
     void end_render();
 
   protected:
-    std::function<void(const SDL_KeyboardEvent &key)> handle_input = nullptr;
+    std::function<void(const SDL_KeyboardEvent &key)> handle_event = {};
+    std::function<void(const bool *key_state)> handle_input = {};
 
-    bool running = false;
+    bool running = {};
     graphics graphics = {};
 
   private:
-    const bool *key_state = nullptr;
+    const bool *keys = {};
   };
 }

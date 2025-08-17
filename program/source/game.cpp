@@ -80,7 +80,7 @@ namespace cse::core
   {
     window->input();
     if (auto scene = current_scene.lock())
-      scene->input(window->key_state);
+      scene->input(window->keys);
     else
       throw cse::utility::exception("Current scene is not initialized");
   }

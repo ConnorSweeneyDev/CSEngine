@@ -40,18 +40,18 @@ namespace cse::core
     void update_fps();
 
   private:
-    std::unique_ptr<window> window = nullptr;
+    std::unique_ptr<window> window = {};
     std::unordered_map<std::string, std::shared_ptr<scene>> scenes = {};
     std::weak_ptr<scene> current_scene = {};
 
     const double target_simulation_time = 1.0 / 60.0;
-    double last_simulation_time = 0.0;
-    double simulation_accumulator = 0.0;
-    double simulation_alpha = 0.0;
+    double last_simulation_time = {};
+    double simulation_accumulator = {};
+    double simulation_alpha = {};
     const double target_render_time = 1.0 / 144.0;
-    double last_render_time = 0.0;
-    double last_fps_time = 0;
-    int frame_count = 0;
+    double last_render_time = {};
+    double last_fps_time = {};
+    int frame_count = {};
     const float scale_factor = 0.04f;
   };
 }

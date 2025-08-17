@@ -28,9 +28,9 @@ namespace cse::core
     private:
       struct vertex
       {
-        float x = 0.0f, y = 0.0f, z = 0.0f;
-        Uint8 r = 0, g = 0, b = 0, a = 0;
-        float u = 0.0f, v = 0.0f;
+        float x = {}, y = {}, z = {};
+        Uint8 r = {}, g = {}, b = {}, a = {};
+        float u = {}, v = {};
       };
       struct shader
       {
@@ -40,7 +40,7 @@ namespace cse::core
       struct texture
       {
         const resource::compiled_texture raw = {};
-        unsigned int current_frame = 0;
+        unsigned int current_frame = {};
       };
 
     public:
@@ -69,13 +69,13 @@ namespace cse::core
       texture texture = {};
 
     private:
-      SDL_GPUGraphicsPipeline *pipeline = nullptr;
-      SDL_GPUBuffer *vertex_buffer = nullptr;
-      SDL_GPUBuffer *index_buffer = nullptr;
-      SDL_GPUTexture *texture_buffer = nullptr;
-      SDL_GPUSampler *sampler_buffer = nullptr;
-      SDL_GPUTransferBuffer *buffer_transfer_buffer = nullptr;
-      SDL_GPUTransferBuffer *texture_transfer_buffer = nullptr;
+      SDL_GPUGraphicsPipeline *pipeline = {};
+      SDL_GPUBuffer *vertex_buffer = {};
+      SDL_GPUBuffer *index_buffer = {};
+      SDL_GPUTexture *texture_buffer = {};
+      SDL_GPUSampler *sampler_buffer = {};
+      SDL_GPUTransferBuffer *buffer_transfer_buffer = {};
+      SDL_GPUTransferBuffer *texture_transfer_buffer = {};
       std::array<vertex, 4> quad_vertices = {};
       std::array<Uint16, 6> quad_indices = {};
     };
@@ -99,8 +99,8 @@ namespace cse::core
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float scale_factor);
 
   protected:
-    std::function<void(const bool *key_state)> handle_input = nullptr;
-    std::function<void()> handle_simulate = nullptr;
+    std::function<void(const bool *key_state)> handle_input = {};
+    std::function<void()> handle_simulate = {};
 
     helper::object_transform transform = {};
     graphics graphics = {};

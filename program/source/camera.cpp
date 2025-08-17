@@ -14,7 +14,7 @@ namespace cse::core
 
   glm::mat4 camera::graphics::calculate_projection_matrix(const unsigned int width, const unsigned int height)
   {
-    projection_matrix =
+    glm::mat4 projection_matrix =
       glm::perspective(glm::radians(fov), static_cast<float>(width) / static_cast<float>(height), near_clip, far_clip);
     return projection_matrix;
   }
@@ -22,7 +22,7 @@ namespace cse::core
   glm::mat4 camera::graphics::calculate_view_matrix(const glm::vec3 &translation, const glm::vec3 &forward,
                                                     const glm::vec3 &up, const float scale_factor)
   {
-    view_matrix = glm::lookAt(translation * scale_factor, (translation * scale_factor) + forward, up);
+    glm::mat4 view_matrix = glm::lookAt(translation * scale_factor, (translation * scale_factor) + forward, up);
     return view_matrix;
   }
 

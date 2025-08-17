@@ -4,11 +4,7 @@
 
 namespace cse::helper
 {
-  transform_value::transform_value(const glm::vec3 &value_)
-    : value(value_), velocity(glm::vec3(0.0f, 0.0f, 0.0f)), acceleration(glm::vec3(0.0f, 0.0f, 0.0f)), previous(value_),
-      interpolated(value_)
-  {
-  }
+  transform_value::transform_value(const glm::vec3 &value_) : value(value_), previous(value_), interpolated(value_) {}
 
   void transform_value::interpolate(const double alpha)
   {

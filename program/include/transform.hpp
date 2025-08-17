@@ -12,19 +12,20 @@ namespace cse::helper
     friend class core::object;
 
   public:
+    transform_value() = default;
     transform_value(const glm::vec3 &value_);
 
   private:
     void interpolate(const double alpha);
 
   public:
-    glm::vec3 value = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 value = {};
+    glm::vec3 velocity = {};
+    glm::vec3 acceleration = {};
 
   private:
-    glm::vec3 previous = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 interpolated = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 previous = {};
+    glm::vec3 interpolated = {};
   };
 
   struct camera_transform
@@ -32,9 +33,9 @@ namespace cse::helper
     camera_transform() = default;
     camera_transform(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_);
 
-    transform_value translation = {glm::vec3(0.0f, 0.0f, 0.0f)};
-    transform_value forward = {glm::vec3(0.0f, 0.0f, 0.0f)};
-    transform_value up = {glm::vec3(0.0f, 0.0f, 0.0f)};
+    transform_value translation = {};
+    transform_value forward = {};
+    transform_value up = {};
   };
 
   struct object_transform
@@ -42,8 +43,8 @@ namespace cse::helper
     object_transform() = default;
     object_transform(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_);
 
-    transform_value translation = {glm::vec3(0.0f, 0.0f, 0.0f)};
-    transform_value rotation = {glm::vec3(0.0f, 0.0f, 0.0f)};
-    transform_value scale = {glm::vec3(0.0f, 0.0f, 0.0f)};
+    transform_value translation = {};
+    transform_value rotation = {};
+    transform_value scale = {};
   };
 }

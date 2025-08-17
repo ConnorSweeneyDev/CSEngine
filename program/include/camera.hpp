@@ -30,13 +30,11 @@ namespace cse::core
                                       const float scale_factor);
 
     public:
-      float fov = 0.0f;
+      float fov = {};
 
     private:
-      float near_clip = 0.0f;
-      float far_clip = 0.0f;
-      glm::mat4 projection_matrix = glm::mat4(1.0f);
-      glm::mat4 view_matrix = glm::mat4(1.0f);
+      float near_clip = {};
+      float far_clip = {};
     };
 
   public:
@@ -53,8 +51,8 @@ namespace cse::core
     std::array<glm::mat4, 2> render(const unsigned int width, const unsigned int height, const float scale_factor);
 
   protected:
-    std::function<void(const bool *key_state)> handle_input = nullptr;
-    std::function<void()> handle_simulate = nullptr;
+    std::function<void(const bool *key_state)> handle_input = {};
+    std::function<void()> handle_simulate = {};
 
     helper::camera_transform transform = {};
     graphics graphics = {};

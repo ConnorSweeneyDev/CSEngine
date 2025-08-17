@@ -121,7 +121,7 @@ namespace cse::core
 
   void window::graphics::enable_fullscreen()
   {
-    SDL_Rect display_bounds;
+    SDL_Rect display_bounds = {};
     if (!SDL_GetDisplayBounds(display_index, &display_bounds))
       throw utility::sdl_exception("Could not get bounds for display ({}) for window '{}'", display_index, title);
     if (!SDL_SetWindowBordered(instance, false))
@@ -198,7 +198,11 @@ namespace cse::core
       throw cse::utility::exception("Vsync on_change callback must be set for window '{}'", graphics.title);
   }
 
-  window::~window() { handle_input = nullptr; }
+  window::~window()
+  {
+    handle_event = nullptr;
+    handle_input = nullptr;
+  }
 
   void window::initialize()
   {
@@ -209,22 +213,23 @@ namespace cse::core
 
   void window::cleanup()
   {
-    key_state = nullptr;
+    keys = nullptr;
     graphics.cleanup_gpu_and_instance();
   }
 
   void window::input()
   {
-    key_state = SDL_GetKeyboardState(nullptr);
+    keys = SDL_GetKeyboardState(nullptr);
     SDL_Event event = {};
     while (SDL_PollEvent(&event)) switch (event.type)
       {
         case SDL_EVENT_QUIT: running = false; break;
         case SDL_EVENT_WINDOW_MOVED: graphics.handle_move(); break;
         case SDL_EVENT_KEY_DOWN:
-          if (handle_input) handle_input(event.key);
+          if (handle_event) handle_event(event.key);
           break;
       }
+    if (handle_input) handle_input(keys);
   }
 
   bool window::start_render()

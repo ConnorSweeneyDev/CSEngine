@@ -29,7 +29,7 @@ public:
   custom_window(const std::string &title_, const unsigned int starting_width_, const unsigned int starting_height_)
     : window(title_, starting_width_, starting_height_, false, true)
   {
-    handle_input = [this](const SDL_KeyboardEvent &key)
+    handle_event = [this](const SDL_KeyboardEvent &key)
     {
       switch (key.scancode)
       {
