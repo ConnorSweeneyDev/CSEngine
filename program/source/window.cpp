@@ -37,18 +37,22 @@ namespace cse::core
     graphics.cleanup_gpu_and_app();
   }
 
+  void window::event()
+  {
+    switch (state.event.type)
+    {
+      case SDL_EVENT_QUIT: state.running = false; break;
+      case SDL_EVENT_WINDOW_MOVED: graphics.handle_move(); break;
+      case SDL_EVENT_KEY_DOWN:
+        if (handle_event) handle_event(state.event.key);
+        break;
+      default: break;
+    }
+  }
+
   void window::input()
   {
     state.keys = SDL_GetKeyboardState(nullptr);
-    SDL_Event event = {};
-    while (SDL_PollEvent(&event)) switch (event.type)
-      {
-        case SDL_EVENT_QUIT: state.running = false; break;
-        case SDL_EVENT_WINDOW_MOVED: graphics.handle_move(); break;
-        case SDL_EVENT_KEY_DOWN:
-          if (handle_event) handle_event(event.key);
-          break;
-      }
     if (handle_input) handle_input(state.keys);
   }
 

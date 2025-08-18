@@ -1,5 +1,6 @@
 #include "object.hpp"
 
+#include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
@@ -36,6 +37,17 @@ namespace cse::core
   }
 
   void object::cleanup(SDL_GPUDevice *gpu) { graphics.cleanup_object(gpu); }
+
+  void object::event(const SDL_Event &event)
+  {
+    switch (event.type)
+    {
+      case SDL_EVENT_KEY_DOWN:
+        if (handle_event) handle_event(event.key);
+        break;
+      default: break;
+    }
+  }
 
   void object::input(const bool *keys)
   {

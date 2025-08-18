@@ -2,6 +2,7 @@
 
 #include <array>
 
+#include "SDL3/SDL_events.h"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
 
@@ -16,6 +17,17 @@ namespace cse::core
   {
     handle_simulate = nullptr;
     handle_input = nullptr;
+  }
+
+  void camera::event(const SDL_Event &event)
+  {
+    switch (event.type)
+    {
+      case SDL_EVENT_KEY_DOWN:
+        if (handle_event) handle_event(event.key);
+        break;
+      default: break;
+    }
   }
 
   void camera::input(const bool *keys)

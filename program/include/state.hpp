@@ -2,6 +2,8 @@
 
 #include "declaration.hpp"
 
+#include "SDL3/SDL_events.h"
+
 namespace cse::helper
 {
   struct window_state
@@ -10,9 +12,10 @@ namespace cse::helper
     friend class core::window;
 
   public:
-    bool running = true;
+    bool running = {};
 
   private:
-    const bool *keys = nullptr;
+    SDL_Event event = {};
+    const bool *keys = {};
   };
 }

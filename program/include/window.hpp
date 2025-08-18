@@ -27,6 +27,7 @@ namespace cse::core
   private:
     void initialize();
     void cleanup();
+    void event();
     void input();
     bool start_render();
     void end_render();

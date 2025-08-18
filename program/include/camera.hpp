@@ -3,6 +3,7 @@
 #include <array>
 #include <functional>
 
+#include "SDL3/SDL_events.h"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
 
@@ -25,11 +26,13 @@ namespace cse::core
     camera &operator=(camera &&) = delete;
 
   private:
+    void event(const SDL_Event &event);
     void input(const bool *keys);
     void simulate(const double simulation_alpha);
     std::array<glm::mat4, 2> render(const unsigned int width, const unsigned int height, const float scale_factor);
 
   protected:
+    std::function<void(const SDL_KeyboardEvent &key)> handle_event = {};
     std::function<void(const bool *keys)> handle_input = {};
     std::function<void()> handle_simulate = {};
 

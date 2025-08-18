@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 
@@ -31,12 +32,14 @@ namespace cse::core
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void cleanup(SDL_GPUDevice *gpu);
+    void event(const SDL_Event &event);
     void input(const bool *keys);
     void simulate(const double simulation_alpha);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const unsigned int width, const unsigned int height, const float scale_factor);
 
   protected:
+    std::function<void(const SDL_KeyboardEvent &key)> handle_event = {};
     std::function<void(const bool *keys)> handle_input = {};
     std::function<void(const double simulation_alpha)> handle_simulate = {};
 

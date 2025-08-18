@@ -1,5 +1,6 @@
 #include "game.hpp"
 
+#include <SDL3/SDL_events.h>
 #include <memory>
 #include <string>
 
@@ -29,6 +30,7 @@ namespace cse::core
       update_simulation_time();
       while (simulation_behind())
       {
+        event();
         input();
         simulate();
       }
@@ -75,6 +77,18 @@ namespace cse::core
     else
       throw cse::utility::exception("Current scene is not initialized");
     window->cleanup();
+  }
+
+  void game::event()
+  {
+    while (SDL_PollEvent(&window->state.event))
+    {
+      window->event();
+      if (auto scene = current_scene.lock())
+        scene->event(window->state.event);
+      else
+        throw cse::utility::exception("Current scene is not initialized");
+    }
   }
 
   void game::input()

@@ -2,6 +2,7 @@
 
 #include <functional>
 
+#include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
@@ -31,12 +32,14 @@ namespace cse::core
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void cleanup(SDL_GPUDevice *gpu);
+    void event(const SDL_Event &event);
     void input(const bool *keys);
     void simulate(double simulation_alpha);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float scale_factor);
 
   protected:
+    std::function<void(const SDL_KeyboardEvent &key)> handle_event = {};
     std::function<void(const bool *keys)> handle_input = {};
     std::function<void()> handle_simulate = {};
 

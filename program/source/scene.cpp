@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 
+#include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 
@@ -31,16 +32,29 @@ namespace cse::core
     for (const auto &object : objects) object.second->cleanup(gpu);
   }
 
+  void scene::event(const SDL_Event &event)
+  {
+    switch (event.type)
+    {
+      case SDL_EVENT_KEY_DOWN:
+        if (handle_event) handle_event(event.key);
+        break;
+      default: break;
+    }
+    camera->event(event);
+    for (const auto &object : objects) object.second->event(event);
+  }
+
   void scene::input(const bool *keys)
   {
-    if (handle_input) { handle_input(keys); }
+    if (handle_input) handle_input(keys);
     camera->input(keys);
     for (const auto &object : objects) object.second->input(keys);
   }
 
   void scene::simulate(const double simulation_alpha)
   {
-    if (handle_simulate) { handle_simulate(simulation_alpha); }
+    if (handle_simulate) handle_simulate(simulation_alpha);
     camera->simulate(simulation_alpha);
     for (const auto &object : objects) object.second->simulate(simulation_alpha);
   }
