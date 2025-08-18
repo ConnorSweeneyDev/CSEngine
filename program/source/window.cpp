@@ -16,10 +16,6 @@ namespace cse::core
     if (title_.empty())
       throw cse::utility::exception("Window title cannot be empty for window with dimensions ({}, {})", starting_width_,
                                     starting_height_);
-    if (!graphics.fullscreen.on_change)
-      throw cse::utility::exception("Fullscreen on_change callback must be set for window '{}'", graphics.title);
-    if (!graphics.vsync.on_change)
-      throw cse::utility::exception("Vsync on_change callback must be set for window '{}'", graphics.title);
   }
 
   window::~window()
