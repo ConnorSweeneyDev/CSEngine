@@ -8,9 +8,37 @@
 
 namespace cse::helper
 {
-  template <typename type> property<type>::property(const type &value_) : value(value_) {}
+  template <typename type> bool is_valid_type()
+  {
+    return std::is_same_v<type, std::string> || std::is_same_v<type, float> || std::is_same_v<type, int> ||
+           std::is_same_v<type, bool>;
+  }
+
+  template <typename type> property<type>::property()
+    : value(
+        []
+        {
+          if (!is_valid_type<type>())
+            throw utility::exception("Unsupported type '{}' for property", typeid(type).name());
+          return type();
+        }())
+  {
+  }
+
+  template <typename type> property<type>::property(const type &value_)
+    : value(
+        [&value_]
+        {
+          if (!is_valid_type<type>())
+            throw utility::exception("Unsupported type '{}' for property", typeid(type).name());
+          return value_;
+        }())
+  {
+  }
 
   template <typename type> property<type>::operator type() const { return value; }
+
+  template <typename type> const type *property<type>::operator->() const { return &value; }
 
   template <typename type> property<type> &property<type>::operator=(const type &value_)
   {
