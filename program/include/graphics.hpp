@@ -40,8 +40,8 @@ namespace cse::helper
     void cleanup_gpu_and_app();
 
   public:
-    helper::property<bool> fullscreen = {};
-    helper::property<bool> vsync = {};
+    property<bool> fullscreen = {};
+    property<bool> vsync = {};
 
   private:
     const std::string title = {};
