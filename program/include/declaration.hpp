@@ -11,11 +11,8 @@ namespace cse::core
 
 namespace cse::helper
 {
-  template <typename type> class property;
-
   struct window_state;
 
-  class transform_value;
   struct camera_transform;
   struct object_transform;
 
