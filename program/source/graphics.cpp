@@ -219,10 +219,10 @@ namespace cse::helper
   {
     SDL_GPUShaderFormat current_format = SDL_GPU_SHADERFORMAT_INVALID;
     const SDL_GPUShaderFormat backend_formats = SDL_GetGPUShaderFormats(gpu);
-    if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV)
-      current_format = SDL_GPU_SHADERFORMAT_SPIRV;
-    else if (backend_formats & SDL_GPU_SHADERFORMAT_DXIL)
+    if (backend_formats & SDL_GPU_SHADERFORMAT_DXIL)
       current_format = SDL_GPU_SHADERFORMAT_DXIL;
+    else if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV)
+      current_format = SDL_GPU_SHADERFORMAT_SPIRV;
     else
       throw cse::utility::sdl_exception("Could not find supported shader format for object");
 
