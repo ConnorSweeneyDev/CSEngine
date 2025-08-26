@@ -1,9 +1,9 @@
 #include "game.hpp"
 
-#include <SDL3/SDL_events.h>
 #include <memory>
 #include <string>
 
+#include "SDL3/SDL_events.h"
 #include "SDL3/SDL_log.h"
 #include "SDL3/SDL_timer.h"
 

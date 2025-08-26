@@ -80,7 +80,7 @@ namespace cse::helper
       throw cse::utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", left, top, title);
     if (fullscreen) fullscreen.on_change();
 
-    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, false, nullptr);
+    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, "vulkan");
     if (!gpu) throw cse::utility::sdl_exception("Could not create GPU device for window '{}'", title);
     if (!SDL_ClaimWindowForGPUDevice(gpu, instance))
       throw cse::utility::sdl_exception("Could not claim window for GPU device for window '{}'", title);
@@ -217,25 +217,16 @@ namespace cse::helper
 
   void object_graphics::create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
-    SDL_GPUShaderFormat current_format = SDL_GPU_SHADERFORMAT_INVALID;
     const SDL_GPUShaderFormat backend_formats = SDL_GetGPUShaderFormats(gpu);
-    if (backend_formats & SDL_GPU_SHADERFORMAT_DXIL)
-      current_format = SDL_GPU_SHADERFORMAT_DXIL;
-    else if (backend_formats & SDL_GPU_SHADERFORMAT_SPIRV)
-      current_format = SDL_GPU_SHADERFORMAT_SPIRV;
-    else
-      throw cse::utility::sdl_exception("Could not find supported shader format for object");
+    if (!(backend_formats & SDL_GPU_SHADERFORMAT_SPIRV))
+      throw cse::utility::sdl_exception("No supported vulkan shader formats for object");
 
-    SDL_GPUShaderCreateInfo vertex_shader_info(
-      current_format == SDL_GPU_SHADERFORMAT_DXIL ? shader.vertex.dxil.size() : shader.vertex.spirv.size(),
-      current_format == SDL_GPU_SHADERFORMAT_DXIL ? shader.vertex.dxil.data() : shader.vertex.spirv.data(), "main",
-      current_format, SDL_GPU_SHADERSTAGE_VERTEX, 0, 0, 0, 1);
+    SDL_GPUShaderCreateInfo vertex_shader_info(shader.vertex.length, shader.vertex.source.data(), "main",
+                                               SDL_GPU_SHADERFORMAT_SPIRV, SDL_GPU_SHADERSTAGE_VERTEX, 0, 0, 0, 1);
     SDL_GPUShader *vertex_shader = SDL_CreateGPUShader(gpu, &vertex_shader_info);
     if (!vertex_shader) throw cse::utility::sdl_exception("Could not create vertex shader for object");
-    SDL_GPUShaderCreateInfo fragment_shader_info(
-      current_format == SDL_GPU_SHADERFORMAT_DXIL ? shader.fragment.dxil.size() : shader.fragment.spirv.size(),
-      current_format == SDL_GPU_SHADERFORMAT_DXIL ? shader.fragment.dxil.data() : shader.fragment.spirv.data(), "main",
-      current_format, SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
+    SDL_GPUShaderCreateInfo fragment_shader_info(shader.fragment.length, shader.fragment.source.data(), "main",
+                                                 SDL_GPU_SHADERFORMAT_SPIRV, SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
     SDL_GPUShader *fragment_shader = SDL_CreateGPUShader(gpu, &fragment_shader_info);
     if (!fragment_shader) throw cse::utility::sdl_exception("Could not create fragment shader for object");
 
