@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <string>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
@@ -22,7 +23,7 @@ namespace cse::core
   public:
     object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_,
            const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-           const resource::compiled_texture &texture_, const unsigned int current_frame_);
+           const resource::compiled_texture &texture_, const std::string &current_group_);
     virtual ~object();
     object(const object &) = delete;
     object &operator=(const object &) = delete;

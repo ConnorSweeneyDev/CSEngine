@@ -82,8 +82,18 @@ class custom_object : public cse::core::object
 public:
   custom_object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_)
     : cse::core::object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
-                        cse::resource::main_texture, 0)
+                        cse::resource::main_texture, "main")
   {
+    handle_event = [this](const SDL_KeyboardEvent &key)
+    {
+      switch (key.scancode)
+      {
+        case SDL_SCANCODE_8: graphics.texture.current_group = "main"; break;
+        case SDL_SCANCODE_9: graphics.texture.current_group = "other"; break;
+        default: break;
+      }
+    };
+
     handle_input = [this](const bool *keys)
     {
       if (keys[SDL_SCANCODE_E]) transform.translation.acceleration.y += 0.01f;

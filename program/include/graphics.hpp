@@ -99,13 +99,13 @@ namespace cse::helper
     struct texture
     {
       const resource::compiled_texture raw = {};
-      unsigned int current_frame = {};
+      std::string current_group = {};
     };
 
   public:
     object_graphics() = default;
     object_graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-                    const resource::compiled_texture &texture_, unsigned int current_frame_);
+                    const resource::compiled_texture &texture_, const std::string &current_group_);
 
   private:
     void create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu);
