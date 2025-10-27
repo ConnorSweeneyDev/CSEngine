@@ -41,7 +41,7 @@ namespace cse::core
     void update_fps();
 
   private:
-    std::unique_ptr<window> window = {};
+    std::unique_ptr<class window> window = {};
     std::unordered_map<std::string, std::shared_ptr<scene>> scenes = {};
     std::weak_ptr<scene> current_scene = {};
 

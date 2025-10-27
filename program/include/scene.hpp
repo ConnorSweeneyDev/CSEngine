@@ -44,9 +44,12 @@ namespace cse::core
     std::function<void(const double simulation_alpha)> handle_simulate = {};
 
   private:
-    std::unique_ptr<camera> camera = {};
+    std::unique_ptr<class camera> camera = {};
     std::unordered_map<std::string, std::shared_ptr<object>> objects = {};
   };
 }
+
+#include "camera.hpp"
+#include "object.hpp"
 
 #include "scene.inl"
