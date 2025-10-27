@@ -1,8 +1,6 @@
 #!/bin/bash
 
-GENERATOR="Visual Studio 17 2022"
-TYPE="Release"
-# TYPE="Debug"
-
-cmake -S . -B build -G "$GENERATOR" -DCMAKE_BUILD_TYPE="$TYPE"
-cmake --build build --config "$TYPE"
+mkdir -p build
+g++ -std=c++20 -O2 -o build/csb csb.cpp
+if [ $? -ne 0 ]; then exit $?; fi
+./build/csb
