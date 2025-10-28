@@ -20,7 +20,7 @@ int csb_main()
                       "ole32",    "oleaut32", "advapi32", "dinput8",     "winmm", "winspool",
                       "setupapi", "uuid",     "version",  "SDL3-static", "glm"};
   else if (csb::current_platform == LINUX)
-    csb::libraries = {"pthread", "dl", "m", "SDL3", "glm"};
+    csb::libraries = {"c", "m", "pthread", "dl", "SDL3", "glm"};
 
   csb::vcpkg_install("2025.08.27");
   csb::subproject_install({{"ConnorSweeneyDev/CSResource", "0.0.0", EXECUTABLE}});
