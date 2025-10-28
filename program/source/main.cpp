@@ -5,6 +5,7 @@
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_log.h"
+#include "SDL3/SDL_main.h"
 #include "SDL3/SDL_scancode.h"
 #include "glm/ext/vector_float3.hpp"
 #include "glm/ext/vector_int3.hpp"
