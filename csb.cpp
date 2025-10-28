@@ -1,6 +1,5 @@
 #include "csb.hpp"
 
-#include <filesystem>
 #include <format>
 #include <string>
 
@@ -25,13 +24,11 @@ int csb_main()
   csb::vcpkg_install("2025.08.27");
   csb::subproject_install({{"ConnorSweeneyDev/CSResource", "0.0.0", EXECUTABLE}});
 
-  auto dxc_directory = std::filesystem::path("build") / "subproject" / "CSResource" / "build" / "dxc";
+  if (csb::current_platform == LINUX) csb::prepend_environment_variable("LD_LIBRARY_PATH", "temp_dxc");
   auto resources = csb::files_from({"program/shader", "program/texture"}, {".vert", ".frag", ".png"});
-  std::string command = "CSResource compile";
-  for (const auto &resource : resources) command += " " + resource.string();
-  command += std::format(" {} build/csresource program/include program/source", dxc_directory.string());
-  if (csb::current_platform == LINUX) csb::prepend_environment_variable("LD_LIBRARY_PATH", dxc_directory.string());
-  csb::task_run(command, resources, {"program/include/resource.hpp", "program/source/resource.cpp"});
+  csb::task_run(
+    std::format("CSResource compile {} build/csresource program/include program/source", csb::unpack(resources)),
+    resources, {"program/include/resource.hpp", "program/source/resource.cpp"});
 
   csb::generate_compile_commands();
   csb::clang_format("21.1.1", {"program/include/resource.hpp", "program/source/resource.cpp"});
