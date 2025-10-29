@@ -1,4 +1,4 @@
-// Version 1.2.2
+// Version 1.2.7
 
 #pragma once
 
@@ -197,17 +197,9 @@ namespace csb::utility
     return result;
   }
 
-  inline std::string remove_trailing_and_leading_newlines(const std::string &input)
-  {
-    size_t start = input.find_first_not_of('\n');
-    size_t end = input.find_last_not_of('\n');
-    if (start == std::string::npos)
-      return "";
-    else
-      return input.substr(start, end - start + 1);
-  }
-
-  inline std::string path_placeholder_replace(const std::filesystem::path &path, const std::string &placeholder)
+  inline std::string placeholder_path_replace(const std::string &placeholder,
+                                              const std::vector<std::filesystem::path> &paths,
+                                              const std::vector<std::filesystem::path> &full_list = {})
   {
     std::string result = placeholder;
     size_t pos = 0;
@@ -231,35 +223,56 @@ namespace csb::utility
       if (end_pos == std::string::npos) break;
 
       std::string placeholder_content = result.substr(pos + 1, end_pos - pos - 1);
-      std::filesystem::path current_path = path;
-
-      if (!placeholder_content.empty())
+      std::vector<std::filesystem::path> target_paths = {};
+      if (auto all_pos = placeholder_content.find("ALL"); all_pos != std::string::npos)
       {
-        size_t method_start = 0;
-        size_t method_end = 0;
-        while (method_end != std::string::npos)
+        if (full_list.empty()) throw std::runtime_error("Path placeholder 'ALL' requires multi_task_run() usage.");
+        target_paths = full_list;
+        placeholder_content.erase(all_pos, 3);
+      }
+      else
+        target_paths = paths;
+      for (auto &path : target_paths)
+      {
+        if (!placeholder_content.empty())
         {
-          method_end = placeholder_content.find(".", method_start);
-          std::string method = placeholder_content.substr(
-            method_start, method_end == std::string::npos ? std::string::npos : method_end - method_start);
-          if (!method.empty())
+          size_t method_start = 0;
+          size_t method_end = 0;
+          while (method_end != std::string::npos)
           {
-            if (method == "filename")
-              current_path = current_path.filename();
-            else if (method == "stem")
-              current_path = current_path.stem();
-            else if (method == "extension")
-              current_path = current_path.extension();
-            else if (method == "parent_path")
-              current_path = current_path.parent_path();
-            else
-              throw std::runtime_error("Unknown path placeholder method: " + method + ".");
+            method_end = placeholder_content.find(".", method_start);
+            std::string method = placeholder_content.substr(
+              method_start, method_end == std::string::npos ? std::string::npos : method_end - method_start);
+            if (!method.empty())
+            {
+              if (method == "filename")
+                path = path.filename();
+              else if (method == "stem")
+                path = path.stem();
+              else if (method == "extension")
+                path = path.extension();
+              else if (method == "parent_path")
+                path = path.parent_path();
+              else if (method == "lexically_normal")
+                path = path.lexically_normal();
+              else if (method == "absolute")
+                path = std::filesystem::absolute(path);
+              else if (method == "relative")
+                path = std::filesystem::relative(path);
+              else if (method == "canonical")
+                path = std::filesystem::canonical(path);
+              else if (method == "quoted")
+                path = std::format("\"{}\"", path.string());
+              else
+                throw std::runtime_error("Unknown path placeholder method: " + method + ".");
+            }
+            method_start = method_end + 1;
           }
-          method_start = method_end + 1;
         }
       }
-
-      std::string replacement = current_path.string();
+      std::string replacement = {};
+      for (const auto &path : target_paths) replacement += path.string() + " ";
+      if (!replacement.empty()) replacement.pop_back();
       result.replace(pos, end_pos - pos + 1, replacement);
       pos += replacement.length();
     }
@@ -310,59 +323,93 @@ namespace csb::utility
                                         const std::string &, const int, const std::string &)>
                        on_failure = nullptr)
   {
+    std::vector<std::filesystem::path> all_items = {};
+    if constexpr (std::same_as<std::remove_cvref_t<container_type>, std::vector<std::filesystem::path>>)
+      all_items = std::vector<std::filesystem::path>(container.begin(), container.end());
+    else
+      for (const auto &item : container) all_items.push_back(item.first);
+
     std::vector<std::exception_ptr> exceptions = {};
     std::mutex exceptions_mutex = {};
-    std::atomic<bool> should_stop = false;
-    std::for_each(std::execution::par, container.begin(), container.end(),
-                  [&](const auto &item)
-                  {
-                    std::filesystem::path item_path = {};
-                    std::vector<std::filesystem::path> item_dependencies = {};
-                    if constexpr (std::same_as<std::remove_cvref_t<decltype(item)>, std::filesystem::path>)
-                      item_path = item;
-                    else
-                    {
-                      item_path = item.first;
-                      item_dependencies = item.second;
-                    }
+    std::for_each(
+      std::execution::par, container.begin(), container.end(),
+      [&](const auto &item)
+      {
+        std::filesystem::path item_path = {};
+        std::vector<std::filesystem::path> item_dependencies = {};
+        if constexpr (std::same_as<std::remove_cvref_t<decltype(item)>, std::filesystem::path>)
+          item_path = item;
+        else
+        {
+          item_path = item.first;
+          item_dependencies = item.second;
+        }
 
-                    std::string item_command = path_placeholder_replace(item_path, command);
-                    FILE *pipe = pipe_open((item_command + " 2>&1").c_str(), "r");
-                    if (!pipe)
-                    {
-                      std::lock_guard<std::mutex> lock(exceptions_mutex);
-                      exceptions.push_back(std::make_exception_ptr(std::runtime_error(
-                        std::format("{}: Failed to execute command: '{}'.", item_path.string(), item_command))));
-                      return;
-                    }
-                    char buffer[512];
-                    std::string result = {};
-                    while (fgets(buffer, sizeof(buffer), pipe)) result += buffer;
-                    int return_code = pipe_close(pipe);
-                    if (return_code != 0)
-                    {
-                      should_stop = true;
-                      if (on_failure) on_failure(item_path, item_dependencies, item_command, return_code, result);
-                    }
-                    else if (on_success)
-                    {
-                      if (on_success) on_success(item_path, item_dependencies, item_command, result);
-                    }
-                  });
+        std::string item_command = {};
+        try
+        {
+          item_command = placeholder_path_replace(command, {item_path}, all_items);
+        }
+        catch (const std::exception &error)
+        {
+          std::lock_guard<std::mutex> lock(exceptions_mutex);
+          exceptions.push_back(
+            std::make_exception_ptr(std::runtime_error(std::format("{}: {}", item_path.string(), error.what()))));
+          return;
+        }
+        FILE *pipe = pipe_open((item_command + " 2>&1").c_str(), "r");
+        if (!pipe)
+        {
+          std::lock_guard<std::mutex> lock(exceptions_mutex);
+          exceptions.push_back(std::make_exception_ptr(
+            std::runtime_error(std::format("{}: Failed to execute command: '{}'.", item_path.string(), item_command))));
+          return;
+        }
+        char buffer[512];
+        std::string result = {};
+        while (fgets(buffer, sizeof(buffer), pipe)) result += buffer;
+        int return_code = pipe_close(pipe);
+        if (return_code != 0)
+        {
+          try
+          {
+            if (on_failure) on_failure(item_path, item_dependencies, item_command, return_code, result);
+          }
+          catch (const std::exception &error)
+          {
+            std::lock_guard<std::mutex> lock(exceptions_mutex);
+            exceptions.push_back(
+              std::make_exception_ptr(std::runtime_error(std::format("{}: {}", item_path.string(), error.what()))));
+          }
+        }
+        else if (on_success)
+        {
+          try
+          {
+            if (on_success) on_success(item_path, item_dependencies, item_command, result);
+          }
+          catch (const std::exception &error)
+          {
+            std::lock_guard<std::mutex> lock(exceptions_mutex);
+            exceptions.push_back(
+              std::make_exception_ptr(std::runtime_error(std::format("{}: {}", item_path.string(), error.what()))));
+          }
+        }
+      });
     if (!exceptions.empty())
     {
+      std::cout << std::endl;
       for (const auto &exception : exceptions) try
         {
           if (exception) std::rethrow_exception(exception);
         }
-        catch (const std::exception &e)
+        catch (const std::exception &error)
         {
-          std::cerr << e.what() << std::endl;
-          should_stop = true;
+          std::cerr << error.what() << std::endl;
         }
+      throw std::runtime_error("Tasks failed.");
       return;
     }
-    if (should_stop) throw std::runtime_error("Errors occurred.");
   }
 
   inline void live_execute(const std::string &command, const std::string &error_message, bool print_command)
@@ -383,19 +430,6 @@ namespace csb::utility
     if (return_code != 0) throw std::runtime_error(error_message);
   }
 
-  inline void touch(const std::filesystem::path &path)
-  {
-    if (!std::filesystem::exists(path.parent_path())) std::filesystem::create_directories(path.parent_path());
-    if (std::filesystem::exists(path))
-      std::filesystem::last_write_time(path, std::filesystem::file_time_type::clock::now());
-    else
-    {
-      std::ofstream file(path, std::ios::app);
-      if (!file.is_open()) throw std::runtime_error("Failed to touch file: " + path.string());
-      file.close();
-    }
-  }
-
   inline std::unordered_map<std::filesystem::path, std::vector<std::filesystem::path>> find_modified_files(
     const std::vector<std::filesystem::path> &target_files, const std::vector<std::filesystem::path> &check_files,
     const std::function<bool(const std::filesystem::path &, const std::vector<std::filesystem::path> &)>
@@ -406,13 +440,14 @@ namespace csb::utility
     {
       std::vector<std::filesystem::path> target_check_files = {};
       for (const auto &check_file : check_files)
-        target_check_files.push_back(std::filesystem::path(path_placeholder_replace(target_file, check_file.string())));
+        target_check_files.push_back(
+          std::filesystem::path(placeholder_path_replace(check_file.string(), {target_file})));
 
       std::vector<std::filesystem::path> valid_files;
       bool any_missing = false;
       for (const auto &check_file : check_files)
       {
-        std::filesystem::path check_path = path_placeholder_replace(target_file, check_file.string());
+        std::filesystem::path check_path = placeholder_path_replace(check_file.string(), {target_file});
         if (!std::filesystem::exists(check_path))
         {
           any_missing = true;
@@ -639,6 +674,29 @@ namespace csb
     set_env(name, current_value);
   }
 
+  inline void touch(const std::filesystem::path &path)
+  {
+    if (!std::filesystem::exists(path.parent_path())) std::filesystem::create_directories(path.parent_path());
+    if (std::filesystem::exists(path))
+      std::filesystem::last_write_time(path, std::filesystem::file_time_type::clock::now());
+    else
+    {
+      std::ofstream file(path, std::ios::app);
+      if (!file.is_open()) throw std::runtime_error("Failed to touch file: " + path.string());
+      file.close();
+    }
+  }
+
+  inline std::string remove_trailing_and_leading_newlines(const std::string &input)
+  {
+    size_t start = input.find_first_not_of('\n');
+    size_t end = input.find_last_not_of('\n');
+    if (start == std::string::npos)
+      return "";
+    else
+      return input.substr(start, end - start + 1);
+  }
+
   template <utility::iterable_string container_type> std::string unpack(const container_type &container)
   {
     std::string result = {};
@@ -694,13 +752,14 @@ namespace csb
         command,
         [&](const std::string &real_command, std::string result)
         {
-          result = utility::remove_trailing_and_leading_newlines(result);
+          result = remove_trailing_and_leading_newlines(result);
           std::cout << real_command + "\n" + (result.empty() ? "" : result + "\n");
         },
         [&](const std::string &real_command, const int return_code, std::string result)
         {
-          result = utility::remove_trailing_and_leading_newlines(result);
-          std::cerr << real_command + " -> " + std::to_string(return_code) + "\n" + result + "\n";
+          result = remove_trailing_and_leading_newlines(result);
+          std::cout << real_command + " -> " + std::to_string(return_code) + "\n" + result + "\n\n";
+          throw std::runtime_error("Task failed.");
         });
     }
     else if (std::holds_alternative<std::function<void()>>(task))
@@ -721,23 +780,24 @@ namespace csb
     {
       auto command = std::get<std::string>(task);
       utility::execute(
-        command,
+        utility::placeholder_path_replace(command, {check_file}),
         [&](const std::string &real_command, std::string result)
         {
-          result = utility::remove_trailing_and_leading_newlines(result);
+          result = remove_trailing_and_leading_newlines(result);
           std::cout << real_command + "\n" + (result.empty() ? "" : result + "\n");
-          utility::touch(check_file);
+          touch(check_file);
         },
         [&](const std::string &real_command, const int return_code, std::string result)
         {
-          result = utility::remove_trailing_and_leading_newlines(result);
-          std::cerr << real_command + " -> " + std::to_string(return_code) + "\n" + result + "\n";
+          result = remove_trailing_and_leading_newlines(result);
+          std::cout << real_command + " -> " + std::to_string(return_code) + "\n" + result + "\n\n";
+          throw std::runtime_error("Task failed.");
         });
     }
     else if (std::holds_alternative<std::function<void()>>(task))
     {
       std::get<std::function<void()>>(task)();
-      utility::touch(check_file);
+      touch(check_file);
     }
     else
       throw std::runtime_error("Invalid task variant.");
@@ -759,25 +819,26 @@ namespace csb
     {
       auto command = std::get<std::string>(task);
       utility::execute(
-        command,
+        utility::placeholder_path_replace(command, target_files),
         [&](const std::string &real_command, std::string result)
         {
-          result = utility::remove_trailing_and_leading_newlines(result);
+          result = remove_trailing_and_leading_newlines(result);
           std::cout << real_command + "\n" + (result.empty() ? "" : result + "\n");
           for (const auto &file : modified_files)
-            for (const auto &dependency : file.second) utility::touch(dependency);
+            for (const auto &dependency : file.second) touch(dependency);
         },
         [&](const std::string &real_command, const int return_code, std::string result)
         {
-          result = utility::remove_trailing_and_leading_newlines(result);
-          std::cerr << real_command + " -> " + std::to_string(return_code) + "\n" + result + "\n";
+          result = remove_trailing_and_leading_newlines(result);
+          std::cout << real_command + " -> " + std::to_string(return_code) + "\n" + result + "\n\n";
+          throw std::runtime_error("Task failed.");
         });
     }
     else if (std::holds_alternative<std::function<void()>>(task))
     {
       std::get<std::function<void()>>(task)();
       for (const auto &file : modified_files)
-        for (const auto &dependency : file.second) utility::touch(dependency);
+        for (const auto &dependency : file.second) touch(dependency);
     }
     else
       throw std::runtime_error("Invalid task variant.");
@@ -803,15 +864,16 @@ namespace csb
         [](const std::filesystem::path &item, const std::vector<std::filesystem::path> &,
            const std::string &item_command, std::string result)
         {
-          result = utility::remove_trailing_and_leading_newlines(result);
+          result = remove_trailing_and_leading_newlines(result);
           std::cout << "\n" + item_command + "\n" + (result.empty() ? "" : result + "\n");
-          utility::touch(item);
+          touch(item);
         },
         [](const std::filesystem::path &, const std::vector<std::filesystem::path> &, const std::string &item_command,
            const int return_code, std::string result)
         {
-          result = utility::remove_trailing_and_leading_newlines(result);
-          std::cerr << "\n" + item_command + " -> " + std::to_string(return_code) + "\n" + result + "\n";
+          result = remove_trailing_and_leading_newlines(result);
+          std::cout << "\n" + item_command + " -> " + std::to_string(return_code) + "\n" + result + "\n";
+          throw std::runtime_error("Task failed.");
         });
     }
     else if (std::holds_alternative<std::function<void(const std::filesystem::path &)>>(task))
@@ -847,7 +909,7 @@ namespace csb
         return;
       }
       if (should_stop) throw std::runtime_error("Task function errors occurred.");
-      for (const auto &file : target_files) utility::touch(file);
+      for (const auto &file : target_files) touch(file);
     }
     else
       throw std::runtime_error("Invalid task variant.");
@@ -874,15 +936,16 @@ namespace csb
         [](const std::filesystem::path &, const std::vector<std::filesystem::path> &dependencies,
            const std::string &item_command, std::string result)
         {
-          result = utility::remove_trailing_and_leading_newlines(result);
+          result = remove_trailing_and_leading_newlines(result);
           std::cout << "\n" + item_command + "\n" + (result.empty() ? "" : result + "\n");
-          for (const auto &dependency : dependencies) utility::touch(dependency);
+          for (const auto &dependency : dependencies) touch(dependency);
         },
         [](const std::filesystem::path &, const std::vector<std::filesystem::path> &, const std::string &item_command,
            const int return_code, std::string result)
         {
-          result = utility::remove_trailing_and_leading_newlines(result);
-          std::cerr << "\n" + item_command + " -> " + std::to_string(return_code) + "\n" + result + "\n";
+          result = remove_trailing_and_leading_newlines(result);
+          std::cout << "\n" + item_command + " -> " + std::to_string(return_code) + "\n" + result + "\n";
+          throw std::runtime_error("Task failed.");
         });
     }
     else if (std::holds_alternative<std::function<void(const std::filesystem::path &)>>(task))
@@ -896,7 +959,7 @@ namespace csb
                       try
                       {
                         std::get<std::function<void(const std::filesystem::path &)>>(task)(file.first);
-                        for (const auto &dependency : file.second) utility::touch(dependency);
+                        for (const auto &dependency : file.second) touch(dependency);
                       }
                       catch (const std::exception &error)
                       {
@@ -941,7 +1004,7 @@ namespace csb
     std::cout << std::endl << utility::small_section_divider << std::endl;
 
     utility::live_execute(command, "Failed to run task: " + command, true);
-    utility::touch(check_file);
+    touch(check_file);
 
     std::cout << utility::small_section_divider << std::endl;
   }
@@ -958,7 +1021,7 @@ namespace csb
 
     utility::live_execute(command, "Failed to run task: " + command, true);
     for (const auto &file : modified_files)
-      for (const auto &dependency : file.second) utility::touch(dependency);
+      for (const auto &dependency : file.second) touch(dependency);
 
     std::cout << utility::small_section_divider << std::endl;
   }
@@ -1168,9 +1231,10 @@ namespace csb
   }
 
   inline void
-  embed(std::pair<std::string, std::string> start_content,
+  embed(const std::pair<std::string, std::string> &start_content,
         const std::tuple<std::function<std::string(const std::filesystem::path &, const std::string &, size_t)>,
                          std::function<std::string(const std::filesystem::path &, const std::string &, size_t)>,
+                         std::function<std::vector<unsigned char>(const std::filesystem::path &)>,
                          std::function<std::string(const std::vector<unsigned char> &, size_t,
                                                    std::function<std::string(unsigned char)>)>> &middle_content,
         const std::pair<
@@ -1181,19 +1245,25 @@ namespace csb
         const std::pair<std::filesystem::path, std::filesystem::path> &outputs)
   {
     if (resources.empty()) throw std::runtime_error("No resources to embed.");
+    if (outputs.first.empty() || outputs.second.empty()) throw std::runtime_error("Embed output files not set.");
 
-    auto unsigned_char_to_hex = [](unsigned char character) -> std::string
-    {
-      std::stringstream ss;
-      ss << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(character);
-      return ss.str();
-    };
+    auto [header_start_content, source_start_content] = start_content;
+    auto [header_function, source_function, data_retrieval_function, data_format_function] = middle_content;
+    auto [header_end_function, source_end_function] = end_content;
+    auto [output_header, output_source] = outputs;
 
     auto substitute_file_data =
       [&](std::string placeholder, const std::vector<unsigned char> &file_data,
           const std::function<std::string(const std::vector<unsigned char> &, size_t,
                                           std::function<std::string(unsigned char)>)> &handler) -> std::string
     {
+      auto unsigned_char_to_hex = [](unsigned char character) -> std::string
+      {
+        std::stringstream ss;
+        ss << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(character);
+        return ss.str();
+      };
+
       size_t pos = 0;
       while ((pos = placeholder.find("[[", pos)) != std::string::npos)
       {
@@ -1211,7 +1281,10 @@ namespace csb
       if (pos != std::string::npos)
       {
         std::string hex_data = {};
-        if (!handler)
+        if (handler)
+          hex_data = handler(file_data, file_data.size(),
+                             [&](unsigned char character) -> std::string { return unsigned_char_to_hex(character); });
+        else
         {
           for (size_t index = 0; index < file_data.size(); ++index)
           {
@@ -1226,9 +1299,6 @@ namespace csb
             }
           }
         }
-        else
-          hex_data = handler(file_data, file_data.size(),
-                             [&](unsigned char character) -> std::string { return unsigned_char_to_hex(character); });
         placeholder.replace(pos, 2, hex_data);
       }
 
@@ -1255,6 +1325,9 @@ namespace csb
                        outputs.second.string() + "'... ";
         std::cout.flush();
 
+        auto header_content = header_start_content;
+        auto source_content = source_start_content;
+
         std::vector<std::tuple<std::filesystem::path, std::string, size_t>> files = {};
         for (const auto &resource : resources)
         {
@@ -1263,47 +1336,51 @@ namespace csb
                                      ".");
 
           std::vector<unsigned char> file_data = {};
-          std::ifstream resource_file(resource, std::ios::binary | std::ios::ate);
-          if (!resource_file) throw std::runtime_error("Failed to open resource file: " + resource.string() + ".");
-          std::streamsize size = resource_file.tellg();
-          file_data.resize(static_cast<size_t>(size));
-          resource_file.seekg(0, std::ios::beg);
-          if (!resource_file.read(reinterpret_cast<char *>(file_data.data()), size))
-            throw std::runtime_error("Failed to read resource file: " + resource.string() + ".");
-          resource_file.close();
+          if (data_retrieval_function)
+            file_data = data_retrieval_function(resource);
+          else
+          {
+            std::ifstream resource_file(resource, std::ios::binary | std::ios::ate);
+            if (!resource_file) throw std::runtime_error("Failed to open resource file: " + resource.string() + ".");
+            std::streamsize size = resource_file.tellg();
+            file_data.resize(static_cast<size_t>(size));
+            resource_file.seekg(0, std::ios::beg);
+            if (!resource_file.read(reinterpret_cast<char *>(file_data.data()), size))
+              throw std::runtime_error("Failed to read resource file: " + resource.string() + ".");
+            resource_file.close();
+          }
 
           std::string name = resource.filename().string();
           std::replace(name.begin(), name.end(), '.', '_');
           std::replace(name.begin(), name.end(), '-', '_');
           const size_t file_size = file_data.size();
-          auto [middle_content_first, middle_content_second, middle_content_third] = middle_content;
-          if (middle_content_first)
-            start_content.first +=
-              substitute_file_data(middle_content_first(resource, name, file_size), file_data, middle_content_third);
-          if (middle_content_second)
-            start_content.second +=
-              substitute_file_data(middle_content_second(resource, name, file_size), file_data, middle_content_third);
+          if (header_function)
+            header_content +=
+              substitute_file_data(header_function(resource, name, file_size), file_data, data_format_function);
+          if (source_function)
+            source_content +=
+              substitute_file_data(source_function(resource, name, file_size), file_data, data_format_function);
           files.push_back(std::make_tuple(resource, name, file_size));
         }
-        if (end_content.first) start_content.first += end_content.first(files);
-        if (end_content.second) start_content.second += end_content.second(files);
+        if (header_end_function) header_content += header_end_function(files);
+        if (source_end_function) source_content += source_end_function(files);
 
-        std::ofstream include_output_file(outputs.first);
-        if (!include_output_file.is_open())
-          throw std::runtime_error("Failed to open embed include output file for writing: " + outputs.first.string() +
-                                   ".");
-        include_output_file << start_content.first;
-        include_output_file.close();
-        std::ofstream source_output_file(outputs.second);
-        if (!source_output_file.is_open())
-          throw std::runtime_error("Failed to open embed source output file for writing: " + outputs.second.string() +
-                                   ".");
-        source_output_file << start_content.second;
-        source_output_file.close();
+        std::ofstream output_header_file(output_header);
+        if (!output_header_file.is_open())
+          throw std::runtime_error(
+            std::format("Failed to open embed header output file for writing: {}.", outputs.first.string()));
+        output_header_file << header_content;
+        output_header_file.close();
+        std::ofstream output_source_file(output_source);
+        if (!output_source_file.is_open())
+          throw std::runtime_error(
+            std::format("Failed to open embed source output file for writing: {}.", outputs.second.string()));
+        output_source_file << source_content;
+        output_source_file.close();
 
         std::cout << "done." << std::endl;
       },
-      resources, {outputs.first, outputs.second});
+      resources, {output_header, output_source});
   }
 
   inline void generate_compile_commands()

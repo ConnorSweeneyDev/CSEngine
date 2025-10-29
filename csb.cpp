@@ -1,8 +1,5 @@
 #include "csb.hpp"
 
-#include <format>
-#include <string>
-
 int csb_main()
 {
   csb::target_name = "CSEngine";
@@ -25,10 +22,9 @@ int csb_main()
   csb::subproject_install({{"ConnorSweeneyDev/CSResource", "0.0.0", EXECUTABLE}});
 
   if (csb::current_platform == LINUX) csb::prepend_environment_variable("LD_LIBRARY_PATH", "temp_dxc");
-  auto resources = csb::files_from({"program/shader", "program/texture"}, {".vert", ".frag", ".png"});
-  csb::task_run(
-    std::format("CSResource compile {} build/csresource program/include program/source", csb::unpack(resources)),
-    resources, {"program/include/resource.hpp", "program/source/resource.cpp"});
+  csb::task_run("CSResource compile [] build/csresource program/include program/source",
+                csb::files_from({"program/shader", "program/texture"}, {".vert", ".frag", ".png"}),
+                {"program/include/resource.hpp", "program/source/resource.cpp"});
 
   csb::generate_compile_commands();
   csb::clang_format("21.1.1", {"program/include/resource.hpp", "program/source/resource.cpp"});
