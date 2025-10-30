@@ -28,8 +28,8 @@ int clean()
 
 int build()
 {
-  csb::vcpkg_install("2025.08.27");
   csb::subproject_install({{"ConnorSweeneyDev/CSResource", "0.0.0", EXECUTABLE}});
+  csb::vcpkg_install("2025.08.27");
 
   if (csb::current_platform == LINUX) csb::prepend_environment_variable("LD_LIBRARY_PATH", "temp_dxc");
   csb::task_run("CSResource compile [] build/csresource program/include program/source",
