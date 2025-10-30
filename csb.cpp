@@ -1,6 +1,6 @@
 #include "csb.hpp"
 
-int csb_main()
+void configure()
 {
   csb::target_name = "CSEngine";
   csb::target_artifact = EXECUTABLE;
@@ -17,7 +17,17 @@ int csb_main()
                       "setupapi", "uuid",     "version",  "SDL3-static", "glm"};
   else if (csb::current_platform == LINUX)
     csb::libraries = {"c", "m", "pthread", "dl", "SDL3", "glm"};
+}
 
+int clean()
+{
+  csb::clean_build_directory();
+  csb::remove_files({"program/include/resource.hpp", "program/source/resource.cpp"});
+  return CSB_SUCCESS;
+}
+
+int build()
+{
   csb::vcpkg_install("2025.08.27");
   csb::subproject_install({{"ConnorSweeneyDev/CSResource", "0.0.0", EXECUTABLE}});
 
@@ -30,7 +40,12 @@ int csb_main()
   csb::clang_format("21.1.1", {"program/include/resource.hpp", "program/source/resource.cpp"});
   csb::compile();
   csb::link();
+  return CSB_SUCCESS;
+}
 
+int run()
+{
+  csb::execute_target();
   return CSB_SUCCESS;
 }
 
