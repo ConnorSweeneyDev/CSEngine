@@ -15,7 +15,7 @@
 
 namespace cse::helper
 {
-  class window_graphics
+  struct window_graphics
   {
     friend class core::game;
     friend class core::window;
@@ -59,7 +59,7 @@ namespace cse::helper
     SDL_GPURenderPass *render_pass = {};
   };
 
-  class camera_graphics
+  struct camera_graphics
   {
     friend class core::camera;
 
@@ -80,7 +80,7 @@ namespace cse::helper
     float far_clip = {};
   };
 
-  class object_graphics
+  struct object_graphics
   {
     friend class core::object;
 
@@ -98,14 +98,15 @@ namespace cse::helper
     };
     struct texture
     {
-      const resource::compiled_texture raw = {};
-      std::string current_group = {};
+      const resource::compiled_texture data = {};
+      std::string frame_group = {};
+      unsigned int frame_id = {};
     };
 
   public:
     object_graphics() = default;
     object_graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-                    const resource::compiled_texture &texture_, const std::string &current_group_);
+                    const resource::compiled_texture &texture_, const std::string &frame_group_);
 
   private:
     void create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu);

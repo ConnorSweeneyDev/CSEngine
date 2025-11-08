@@ -89,8 +89,8 @@ public:
     {
       switch (key.scancode)
       {
-        case SDL_SCANCODE_8: graphics.texture.current_group = "main"; break;
-        case SDL_SCANCODE_9: graphics.texture.current_group = "other"; break;
+        case SDL_SCANCODE_8: graphics.texture.frame_group = "main"; break;
+        case SDL_SCANCODE_9: graphics.texture.frame_group = "other"; break;
         default: break;
       }
     };

@@ -23,7 +23,7 @@ namespace cse::core
   public:
     object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_,
            const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-           const resource::compiled_texture &texture_, const std::string &current_group_);
+           const resource::compiled_texture &texture_, const std::string &frame_group_);
     virtual ~object();
     object(const object &) = delete;
     object &operator=(const object &) = delete;

@@ -210,8 +210,8 @@ namespace cse::helper
 
   object_graphics::object_graphics(const resource::compiled_shader &vertex_shader_,
                                    const resource::compiled_shader &fragment_shader_,
-                                   const resource::compiled_texture &texture_, const std::string &current_group_)
-    : shader(vertex_shader_, fragment_shader_), texture(texture_, current_group_)
+                                   const resource::compiled_texture &texture_, const std::string &frame_group_)
+    : shader(vertex_shader_, fragment_shader_), texture(texture_, frame_group_)
   {
   }
 
@@ -275,7 +275,7 @@ namespace cse::helper
 
     SDL_GPUTextureCreateInfo texture_info(
       SDL_GPU_TEXTURETYPE_2D, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, SDL_GPU_TEXTUREUSAGE_SAMPLER,
-      static_cast<Uint32>(texture.raw.image_data.width), static_cast<Uint32>(texture.raw.image_data.height), 1, 1);
+      static_cast<Uint32>(texture.data.image_data.width), static_cast<Uint32>(texture.data.image_data.height), 1, 1);
     texture_buffer = SDL_CreateGPUTexture(gpu, &texture_info);
     if (!texture_buffer) throw cse::utility::sdl_exception("Could not create texture for object");
   }
@@ -307,17 +307,17 @@ namespace cse::helper
   void object_graphics::transfer_texture(SDL_GPUDevice *gpu)
   {
     SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info(
-      SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, static_cast<Uint32>(texture.raw.image_data.width) *
-                                            static_cast<Uint32>(texture.raw.image_data.height) *
-                                            static_cast<Uint32>(texture.raw.image_data.channels));
+      SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, static_cast<Uint32>(texture.data.image_data.width) *
+                                            static_cast<Uint32>(texture.data.image_data.height) *
+                                            static_cast<Uint32>(texture.data.image_data.channels));
     texture_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &texture_transfer_buffer_info);
     if (!texture_transfer_buffer)
       throw cse::utility::sdl_exception("Could not create transfer buffer for texture for object");
 
     auto *texture_data = reinterpret_cast<Uint8 *>(SDL_MapGPUTransferBuffer(gpu, texture_transfer_buffer, false));
     if (!texture_data) throw cse::utility::sdl_exception("Could not map texture data for object");
-    SDL_memcpy(texture_data, texture.raw.image.data(),
-               texture.raw.image_data.width * texture.raw.image_data.height * texture.raw.image_data.channels);
+    SDL_memcpy(texture_data, texture.data.image.data(),
+               texture.data.image_data.width * texture.data.image_data.height * texture.data.image_data.channels);
 
     SDL_UnmapGPUTransferBuffer(gpu, texture_transfer_buffer);
   }
@@ -338,8 +338,8 @@ namespace cse::helper
 
     SDL_GPUTextureTransferInfo texture_transfer_info(texture_transfer_buffer, 0);
     SDL_GPUTextureRegion texture_region(texture_buffer, Uint32(), Uint32(), Uint32(), Uint32(), Uint32(),
-                                        static_cast<Uint32>(texture.raw.image_data.width),
-                                        static_cast<Uint32>(texture.raw.image_data.height), 1);
+                                        static_cast<Uint32>(texture.data.image_data.width),
+                                        static_cast<Uint32>(texture.data.image_data.height), 1);
     SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
 
     SDL_EndGPUCopyPass(copy_pass);
@@ -359,16 +359,13 @@ namespace cse::helper
 
     auto vertex_data = reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, transfer_buffer, false));
     if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
-    if (texture.raw.frame_data.groups.find(texture.current_group) == texture.raw.frame_data.groups.end())
-      throw cse::utility::exception("Could not find '{}' frame group for object texture", texture.current_group);
-    const float top = texture.raw.frame_data.groups.at(texture.current_group).frames[0].coords.top;
-    const float left = texture.raw.frame_data.groups.at(texture.current_group).frames[0].coords.left;
-    const float bottom = texture.raw.frame_data.groups.at(texture.current_group).frames[0].coords.bottom;
-    const float right = texture.raw.frame_data.groups.at(texture.current_group).frames[0].coords.right;
-    quad_vertices = std::array<vertex, 4>({{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, right, top},
-                                           {1.0f, -1.0f, 0.0f, 0, 0, 0, 0, right, bottom},
-                                           {-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, left, top},
-                                           {-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, left, bottom}});
+    if (texture.data.frame_data.groups.find(texture.frame_group) == texture.data.frame_data.groups.end())
+      throw cse::utility::exception("Could not find '{}' frame group for object texture", texture.frame_group);
+    const auto &frame_coords = texture.data.frame_data.groups.at(texture.frame_group).frames[texture.frame_id].coords;
+    quad_vertices = std::array<vertex, 4>({{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, frame_coords.right, frame_coords.top},
+                                           {1.0f, -1.0f, 0.0f, 0, 0, 0, 0, frame_coords.right, frame_coords.bottom},
+                                           {-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, frame_coords.left, frame_coords.top},
+                                           {-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, frame_coords.left, frame_coords.bottom}});
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
     SDL_UnmapGPUTransferBuffer(gpu, transfer_buffer);
 
@@ -414,8 +411,8 @@ namespace cse::helper
     model_matrix = glm::rotate(model_matrix, glm::radians(std::floor((rotation.z * 90.0f) / 90.0f) * 90.0f),
                                glm::vec3(0.0f, 0.0f, 1.0f));
     model_matrix =
-      glm::scale(model_matrix, {std::floor(scale.x) * (static_cast<float>(texture.raw.frame_data.width) / 50.0f),
-                                std::floor(scale.y) * (static_cast<float>(texture.raw.frame_data.height) / 50.0f),
+      glm::scale(model_matrix, {std::floor(scale.x) * (static_cast<float>(texture.data.frame_data.width) / 50.0f),
+                                std::floor(scale.y) * (static_cast<float>(texture.data.frame_data.height) / 50.0f),
                                 std::floor(scale.z)});
     return model_matrix;
   }

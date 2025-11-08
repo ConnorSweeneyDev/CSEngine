@@ -16,7 +16,7 @@ namespace cse::helper
   struct camera_transform;
   struct object_transform;
 
-  class window_graphics;
-  class camera_graphics;
-  class object_graphics;
+  struct window_graphics;
+  struct camera_graphics;
+  struct object_graphics;
 }

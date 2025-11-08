@@ -15,10 +15,10 @@ namespace cse::core
 {
   object::object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_,
                  const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-                 const resource::compiled_texture &texture_, const std::string &current_group_)
+                 const resource::compiled_texture &texture_, const std::string &frame_group_)
     : transform({translation_.x, translation_.y, translation_.z}, {rotation_.x, rotation_.y, rotation_.z},
                 {scale_.x, scale_.y, scale_.z}),
-      graphics(vertex_shader_, fragment_shader_, texture_, current_group_)
+      graphics(vertex_shader_, fragment_shader_, texture_, frame_group_)
   {
   }
 
