@@ -23,7 +23,6 @@ class custom_scene : public cse::core::scene
 public:
   custom_scene() {}
 };
-
 class custom_window : public cse::core::window
 {
 public:
