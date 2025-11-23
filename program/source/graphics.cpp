@@ -359,9 +359,7 @@ namespace cse::helper
 
     auto vertex_data = reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, transfer_buffer, false));
     if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
-    if (texture.data.frame_data.groups.find(texture.frame_group) == texture.data.frame_data.groups.end())
-      throw cse::utility::exception("Could not find '{}' frame group for object texture", texture.frame_group);
-    const auto &frame_coords = texture.data.frame_data.groups.at(texture.frame_group).frames[texture.frame_id].coords;
+    const auto &frame_coords = texture.data.frame_data.find_group(texture.frame_group).frames[texture.frame_id].coords;
     quad_vertices = std::array<vertex, 4>({{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, frame_coords.right, frame_coords.top},
                                            {1.0f, -1.0f, 0.0f, 0, 0, 0, 0, frame_coords.right, frame_coords.bottom},
                                            {-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, frame_coords.left, frame_coords.top},
