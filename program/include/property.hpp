@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <istream>
 
 namespace cse::helper
 {
@@ -14,47 +15,20 @@ namespace cse::helper
 
     property &operator=(const type &value_);
     property &operator=(const property &other_);
-
     property &operator+=(const type &value_);
+    property &operator-=(const type &value_);
+    property &operator*=(const type &value_);
+    property &operator/=(const type &value_);
+    property &operator%=(const type &value_);
+    property &operator&=(const type &value_);
+    property &operator|=(const type &value_);
+    property &operator^=(const type &value_);
+    property &operator<<=(const type &value_);
+    property &operator>>=(const type &value_);
     property &operator++();
     property operator++(int);
-    property operator+(const type &value_) const;
-    property operator+(const property &other_) const;
-
-    property &operator-=(const type &value_);
     property &operator--();
     property operator--(int);
-    property operator-(const type &value_) const;
-    property operator-(const property &other_) const;
-
-    property &operator*=(const type &value_);
-    property operator*(const type &value_) const;
-    property operator*(const property &other_) const;
-
-    property &operator/=(const type &value_);
-    property operator/(const type &value_) const;
-    property operator/(const property &other_) const;
-
-    property &operator%=(const type &value_);
-    property operator%(const type &value_) const;
-    property operator%(const property &other_) const;
-
-    bool operator==(const type &value_) const;
-    bool operator==(const property &other_) const;
-    bool operator!=(const type &value_) const;
-    bool operator!=(const property &other_) const;
-    bool operator<=(const type &value_) const;
-    bool operator<=(const property &other_) const;
-    bool operator<(const type &value_) const;
-    bool operator<(const property &other_) const;
-    bool operator>=(const type &value_) const;
-    bool operator>=(const property &other_) const;
-    bool operator>(const type &value_) const;
-    bool operator>(const property &other_) const;
-
-    bool operator!() const;
-    bool operator&&(const property &other_) const;
-    bool operator||(const property &other_) const;
 
   public:
     std::function<void()> on_change = {};
@@ -62,6 +36,8 @@ namespace cse::helper
   private:
     type value = {};
   };
+
+  template <typename type> std::istream &operator>>(std::istream &stream_, property<type> &destination_);
 }
 
 #include "property.inl"

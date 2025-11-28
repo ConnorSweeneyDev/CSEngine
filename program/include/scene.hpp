@@ -9,7 +9,9 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 
+#include "camera.hpp"
 #include "declaration.hpp"
+#include "object.hpp"
 
 namespace cse::core
 {
@@ -48,8 +50,5 @@ namespace cse::core
     std::unordered_map<std::string, std::shared_ptr<object>> objects = {};
   };
 }
-
-#include "camera.hpp"
-#include "object.hpp"
 
 #include "scene.inl"
