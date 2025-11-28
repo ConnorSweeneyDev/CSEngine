@@ -32,15 +32,15 @@ public:
   {
     handle_event = [this](const SDL_Event &event)
     {
-      if (event.type != SDL_EVENT_KEY_DOWN && event.type != SDL_EVENT_KEY_UP) return;
+      if (event.type != SDL_EVENT_KEY_DOWN) return;
       switch (const auto &key = event.key; key.scancode)
       {
         case SDL_SCANCODE_ESCAPE: state.running = false; break;
         case SDL_SCANCODE_F11:
-          if (!key.repeat && key.type == SDL_EVENT_KEY_DOWN) graphics.fullscreen = !graphics.fullscreen;
+          if (!key.repeat) graphics.fullscreen = !graphics.fullscreen;
           break;
         case SDL_SCANCODE_F12:
-          if (!key.repeat && key.type == SDL_EVENT_KEY_DOWN) graphics.vsync = !graphics.vsync;
+          if (!key.repeat) graphics.vsync = !graphics.vsync;
           break;
         default: break;
       }
