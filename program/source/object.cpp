@@ -58,9 +58,9 @@ namespace cse::core
 
   void object::simulate(double simulation_alpha)
   {
-    transform.translation.previous = transform.translation.value;
-    transform.rotation.previous = transform.rotation.value;
-    transform.scale.previous = transform.scale.value;
+    transform.translation.update();
+    transform.rotation.update();
+    transform.scale.update();
 
     if (handle_simulate) handle_simulate();
 

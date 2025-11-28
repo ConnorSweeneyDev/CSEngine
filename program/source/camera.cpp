@@ -37,9 +37,9 @@ namespace cse::core
 
   void camera::simulate(const double simulation_alpha)
   {
-    transform.translation.previous = transform.translation.value;
-    transform.forward.previous = transform.forward.value;
-    transform.up.previous = transform.up.value;
+    transform.translation.update();
+    transform.forward.update();
+    transform.up.update();
 
     if (handle_simulate) handle_simulate();
 

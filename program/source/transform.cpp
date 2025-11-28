@@ -11,6 +11,8 @@ namespace cse::helper
     interpolated = previous + ((value - previous) * static_cast<float>(alpha));
   }
 
+  void transform_value::update() { previous = value; }
+
   camera_transform::camera_transform(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
     : translation(translation_), forward(forward_), up(up_)
   {

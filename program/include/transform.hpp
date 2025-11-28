@@ -16,6 +16,7 @@ namespace cse::helper
     transform_value(const glm::vec3 &value_);
 
   private:
+    void update();
     void interpolate(const double alpha);
 
   public:

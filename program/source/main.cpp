@@ -4,7 +4,6 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
-#include "SDL3/SDL_log.h"
 #include "SDL3/SDL_main.h"
 #include "SDL3/SDL_scancode.h"
 #include "glm/ext/vector_float3.hpp"
@@ -14,6 +13,7 @@
 #include "exception.hpp"
 #include "game.hpp"
 #include "object.hpp"
+#include "print.hpp"
 #include "resource.hpp"
 #include "scene.hpp"
 #include "window.hpp"
@@ -144,7 +144,7 @@ int try_main(int argc, char *argv[])
   game->run();
   game.reset();
 
-  SDL_Log("Exiting application...");
+  cse::utility::print("Exiting application...\n");
   return EXIT_SUCCESS;
 }
 
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
   }
   catch (const std::exception &error)
   {
-    SDL_Log("%s", error.what());
+    cse::utility::print_format("{}\n", error.what());
     return EXIT_FAILURE;
   }
 }
