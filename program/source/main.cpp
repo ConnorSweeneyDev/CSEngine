@@ -30,13 +30,18 @@ public:
   custom_window(const std::string &title_, const unsigned int starting_width_, const unsigned int starting_height_)
     : window(title_, starting_width_, starting_height_, false, true)
   {
-    handle_event = [this](const SDL_KeyboardEvent &key)
+    handle_event = [this](const SDL_Event &event)
     {
-      switch (key.scancode)
+      if (event.type != SDL_EVENT_KEY_DOWN && event.type != SDL_EVENT_KEY_UP) return;
+      switch (const auto &key = event.key; key.scancode)
       {
         case SDL_SCANCODE_ESCAPE: state.running = false; break;
-        case SDL_SCANCODE_F11: graphics.fullscreen = !graphics.fullscreen; break;
-        case SDL_SCANCODE_F12: graphics.vsync = !graphics.vsync; break;
+        case SDL_SCANCODE_F11:
+          if (!key.repeat && key.type == SDL_EVENT_KEY_DOWN) graphics.fullscreen = !graphics.fullscreen;
+          break;
+        case SDL_SCANCODE_F12:
+          if (!key.repeat && key.type == SDL_EVENT_KEY_DOWN) graphics.vsync = !graphics.vsync;
+          break;
         default: break;
       }
     };
@@ -85,12 +90,17 @@ public:
     : cse::core::object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
                         cse::resource::main_texture, "main")
   {
-    handle_event = [this](const SDL_KeyboardEvent &key)
+    handle_event = [this](const SDL_Event &event)
     {
-      switch (key.scancode)
+      if (event.type != SDL_EVENT_KEY_DOWN && event.type != SDL_EVENT_KEY_UP) return;
+      switch (const auto &key = event.key; key.scancode)
       {
-        case SDL_SCANCODE_8: graphics.texture.frame_group = "main"; break;
-        case SDL_SCANCODE_9: graphics.texture.frame_group = "other"; break;
+        case SDL_SCANCODE_9:
+          if (!key.repeat && key.type == SDL_EVENT_KEY_DOWN)
+            graphics.texture.frame_group = "other";
+          else if (key.type == SDL_EVENT_KEY_UP)
+            graphics.texture.frame_group = "main";
+          break;
         default: break;
       }
     };

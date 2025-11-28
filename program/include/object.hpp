@@ -40,7 +40,7 @@ namespace cse::core
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float scale_factor);
 
   protected:
-    std::function<void(const SDL_KeyboardEvent &key)> handle_event = {};
+    std::function<void(const SDL_Event &key)> handle_event = {};
     std::function<void(const bool *keys)> handle_input = {};
     std::function<void()> handle_simulate = {};
 

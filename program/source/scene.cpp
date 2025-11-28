@@ -34,13 +34,7 @@ namespace cse::core
 
   void scene::event(const SDL_Event &event)
   {
-    switch (event.type)
-    {
-      case SDL_EVENT_KEY_DOWN:
-        if (handle_event) handle_event(event.key);
-        break;
-      default: break;
-    }
+    if (handle_event) handle_event(event);
     camera->event(event);
     for (const auto &object : objects) object.second->event(event);
   }

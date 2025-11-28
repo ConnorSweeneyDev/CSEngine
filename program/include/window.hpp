@@ -33,7 +33,7 @@ namespace cse::core
     void end_render();
 
   protected:
-    std::function<void(const SDL_KeyboardEvent &key)> handle_event = {};
+    std::function<void(const SDL_Event &key)> handle_event = {};
     std::function<void(const bool *keys)> handle_input = {};
 
     helper::window_state state = {};

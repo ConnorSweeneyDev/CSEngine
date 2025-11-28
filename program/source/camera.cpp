@@ -21,13 +21,7 @@ namespace cse::core
 
   void camera::event(const SDL_Event &event)
   {
-    switch (event.type)
-    {
-      case SDL_EVENT_KEY_DOWN:
-        if (handle_event) handle_event(event.key);
-        break;
-      default: break;
-    }
+    if (handle_event) handle_event(event);
   }
 
   void camera::input(const bool *keys)

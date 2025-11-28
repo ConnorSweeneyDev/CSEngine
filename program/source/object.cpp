@@ -42,13 +42,7 @@ namespace cse::core
 
   void object::event(const SDL_Event &event)
   {
-    switch (event.type)
-    {
-      case SDL_EVENT_KEY_DOWN:
-        if (handle_event) handle_event(event.key);
-        break;
-      default: break;
-    }
+    if (handle_event) handle_event(event);
   }
 
   void object::input(const bool *keys)

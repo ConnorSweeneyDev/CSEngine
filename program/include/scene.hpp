@@ -41,7 +41,7 @@ namespace cse::core
                 const unsigned int width, const unsigned int height, const float scale_factor);
 
   protected:
-    std::function<void(const SDL_KeyboardEvent &key)> handle_event = {};
+    std::function<void(const SDL_Event &key)> handle_event = {};
     std::function<void(const bool *keys)> handle_input = {};
     std::function<void(const double simulation_alpha)> handle_simulate = {};
 

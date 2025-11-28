@@ -43,10 +43,9 @@ namespace cse::core
     {
       case SDL_EVENT_QUIT: state.running = false; break;
       case SDL_EVENT_WINDOW_MOVED: graphics.handle_move(); break;
-      case SDL_EVENT_KEY_DOWN:
-        if (handle_event) handle_event(state.event.key);
+      default:
+        if (handle_event) handle_event(state.event);
         break;
-      default: break;
     }
   }
 
