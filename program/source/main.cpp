@@ -27,8 +27,8 @@ public:
 class custom_window : public cse::core::window
 {
 public:
-  custom_window(const std::string &title_, const unsigned int starting_width_, const unsigned int starting_height_)
-    : window(title_, starting_width_, starting_height_, false, true)
+  custom_window(const std::string &title, const unsigned int width, const unsigned int height)
+    : window(title, width, height, false, true)
   {
     handle_event = [this](const SDL_Event &event)
     {
@@ -51,8 +51,8 @@ public:
 class custom_camera : public cse::core::camera
 {
 public:
-  custom_camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
-    : cse::core::camera(translation_, forward_, up_, 45.0f)
+  custom_camera(const glm::vec3 &translation, const glm::vec3 &forward, const glm::vec3 &up)
+    : cse::core::camera(translation, forward, up, 45.0f)
   {
     handle_input = [this](const bool *keys)
     {
@@ -86,8 +86,8 @@ public:
 class custom_object : public cse::core::object
 {
 public:
-  custom_object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_)
-    : cse::core::object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
+  custom_object(const glm::ivec3 &translation, const glm::ivec3 &rotation, const glm::ivec3 &scale)
+    : cse::core::object(translation, rotation, scale, cse::resource::main_vertex, cse::resource::main_fragment,
                         cse::resource::main_texture, "main")
   {
     handle_event = [this](const SDL_Event &event)

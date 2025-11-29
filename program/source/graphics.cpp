@@ -22,25 +22,52 @@
 
 namespace cse::helper
 {
-  window_graphics::window_graphics(const std::string &title_, const unsigned int starting_width_,
-                                   const unsigned int starting_height_, const bool fullscreen_, const bool vsync_)
-    : fullscreen(fullscreen_), vsync(vsync_), title(title_), starting_width(starting_width_),
-      starting_height(starting_height_), width(starting_width_), height(starting_height_)
+  window_graphics::window_graphics(const std::string &title_, const unsigned int width_, const unsigned int height_,
+                                   const bool fullscreen_, const bool vsync_)
+    : fullscreen(fullscreen_), vsync(vsync_), title(title_), width(width_), height(height_), windowed_width(width_),
+      windowed_height(height_)
   {
     fullscreen.on_change = [this]()
     {
       if (fullscreen)
-        enable_fullscreen();
-      else
-        disable_fullscreen();
+      {
+        SDL_Rect display_bounds = {};
+        if (!SDL_GetDisplayBounds(display_index, &display_bounds))
+          throw utility::sdl_exception("Could not get bounds for display ({}) for window '{}'", display_index, title);
+        if (!SDL_SetWindowBordered(instance, false))
+          throw utility::sdl_exception("Could not set borderless for window '{}'", title);
+        if (!SDL_SetWindowSize(instance, display_bounds.w, display_bounds.h))
+          throw utility::sdl_exception("Could not set size to ({}, {}) on display ({}) for window '{}'",
+                                       display_bounds.w, display_bounds.h, display_index, title);
+        if (!SDL_SetWindowPosition(instance, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
+                                   SDL_WINDOWPOS_CENTERED_DISPLAY(display_index)))
+          throw utility::sdl_exception("Could not set position centered on display ({}) for window '{}'",
+                                       display_index);
+        return;
+      }
+
+      if (!SDL_SetWindowBordered(instance, true))
+        throw utility::sdl_exception("Could not set bordered for window '{}'", title);
+      if (!SDL_SetWindowSize(instance, static_cast<int>(windowed_width), static_cast<int>(windowed_height)))
+        throw utility::sdl_exception("Could not set size to ({}, {}) for window '{}'", windowed_width, windowed_height,
+                                     title);
+      if (!SDL_SetWindowPosition(instance, left, top))
+        throw utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", left, top, title);
     };
 
     vsync.on_change = [this]()
     {
       if (vsync)
-        enable_vsync();
-      else
-        disable_vsync();
+      {
+        if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
+          throw utility::sdl_exception("Could not enable VSYNC for window '{}'", title);
+        return;
+      }
+
+      if (SDL_WindowSupportsGPUPresentMode(gpu, instance, SDL_GPU_PRESENTMODE_IMMEDIATE))
+        if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
+                                           SDL_GPU_PRESENTMODE_IMMEDIATE))
+          throw utility::sdl_exception("Could not disable VSYNC for window '{}'", title);
     };
   }
 
@@ -69,7 +96,7 @@ namespace cse::helper
 
   void window_graphics::create_window()
   {
-    instance = SDL_CreateWindow(title.c_str(), static_cast<int>(starting_width), static_cast<int>(starting_height),
+    instance = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height),
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
     if (!instance) throw cse::utility::sdl_exception("Could not create window '{}'", title);
 
@@ -177,46 +204,6 @@ namespace cse::helper
       throw cse::utility::sdl_exception("Could not submit GPU command buffer for window '{}'", title);
   }
 
-  void window_graphics::enable_fullscreen()
-  {
-    SDL_Rect display_bounds = {};
-    if (!SDL_GetDisplayBounds(display_index, &display_bounds))
-      throw utility::sdl_exception("Could not get bounds for display ({}) for window '{}'", display_index, title);
-    if (!SDL_SetWindowBordered(instance, false))
-      throw utility::sdl_exception("Could not set borderless for window '{}'", title);
-    if (!SDL_SetWindowSize(instance, display_bounds.w, display_bounds.h))
-      throw utility::sdl_exception("Could not set size to ({}, {}) on display ({}) for window '{}'", display_bounds.w,
-                                   display_bounds.h, display_index, title);
-    if (!SDL_SetWindowPosition(instance, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
-                               SDL_WINDOWPOS_CENTERED_DISPLAY(display_index)))
-      throw utility::sdl_exception("Could not set position centered on display ({}) for window '{}'", display_index);
-  }
-
-  void window_graphics::disable_fullscreen()
-  {
-    if (!SDL_SetWindowBordered(instance, true))
-      throw utility::sdl_exception("Could not set bordered for window '{}'", title);
-    if (!SDL_SetWindowSize(instance, static_cast<int>(starting_width), static_cast<int>(starting_height)))
-      throw utility::sdl_exception("Could not set size to ({}, {}) for window '{}'", starting_width, starting_height,
-                                   title);
-    if (!SDL_SetWindowPosition(instance, left, top))
-      throw utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", left, top, title);
-  }
-
-  void window_graphics::enable_vsync()
-  {
-    if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
-      throw utility::sdl_exception("Could not enable VSYNC for window '{}'", title);
-  }
-
-  void window_graphics::disable_vsync()
-  {
-    if (SDL_WindowSupportsGPUPresentMode(gpu, instance, SDL_GPU_PRESENTMODE_IMMEDIATE))
-      if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
-                                         SDL_GPU_PRESENTMODE_IMMEDIATE))
-        throw utility::sdl_exception("Could not disable VSYNC for window '{}'", title);
-  }
-
   void window_graphics::handle_move()
   {
     if (fullscreen) return;
@@ -229,6 +216,11 @@ namespace cse::helper
   void window_graphics::handle_resize()
   {
     SDL_GetWindowSize(instance, reinterpret_cast<int *>(&width), reinterpret_cast<int *>(&height));
+    if (!fullscreen)
+    {
+      windowed_width = width;
+      windowed_height = height;
+    }
     create_or_update_depth_texture();
   }
 

@@ -22,9 +22,13 @@ namespace cse::helper
 
   public:
     window_graphics() = default;
-    window_graphics(const std::string &title_, const unsigned int starting_width_, const unsigned int starting_height_,
+    window_graphics(const std::string &title_, const unsigned int width_, const unsigned int height_,
                     const bool fullscreen_, const bool vsync_);
     ~window_graphics();
+    window_graphics(const window_graphics &) = delete;
+    window_graphics &operator=(const window_graphics &) = delete;
+    window_graphics(window_graphics &&) = delete;
+    window_graphics &operator=(window_graphics &&) = delete;
 
   private:
     void initialize_app();
@@ -33,10 +37,6 @@ namespace cse::helper
     bool create_command_and_swapchain();
     void create_render_pass(const float target_aspect_ratio);
     void end_render_and_submit_command();
-    void enable_fullscreen();
-    void disable_fullscreen();
-    void enable_vsync();
-    void disable_vsync();
     void handle_move();
     void handle_resize();
     void cleanup_gpu_and_app();
@@ -47,10 +47,10 @@ namespace cse::helper
 
   private:
     const std::string title = {};
-    const unsigned int starting_width = {};
-    const unsigned int starting_height = {};
     unsigned int width = {};
     unsigned int height = {};
+    unsigned int windowed_width = {};
+    unsigned int windowed_height = {};
     int left = {};
     int top = {};
     SDL_DisplayID display_index = {};
