@@ -37,7 +37,7 @@ namespace cse::core
     void input(const bool *keys);
     void simulate(double simulation_alpha);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float scale_factor);
+                const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float global_scale_factor);
 
   protected:
     std::function<void(const SDL_Event &key)> handle_event = {};

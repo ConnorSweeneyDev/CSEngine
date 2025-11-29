@@ -1,7 +1,7 @@
 #pragma once
 
-#include <array>
 #include <functional>
+#include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "glm/ext/matrix_float4x4.hpp"
@@ -29,7 +29,7 @@ namespace cse::core
     void event(const SDL_Event &event);
     void input(const bool *keys);
     void simulate(const double simulation_alpha);
-    std::array<glm::mat4, 2> render(const unsigned int width, const unsigned int height, const float scale_factor);
+    std::pair<glm::mat4, glm::mat4> render(const float target_aspect_ratio, const float global_scale_factor);
 
   protected:
     std::function<void(const SDL_Event &key)> handle_event = {};

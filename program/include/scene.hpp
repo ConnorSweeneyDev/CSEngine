@@ -38,7 +38,7 @@ namespace cse::core
     void input(const bool *keys);
     void simulate(const double simulation_alpha);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const unsigned int width, const unsigned int height, const float scale_factor);
+                const float target_aspect_ratio, const float global_scale_factor);
 
   protected:
     std::function<void(const SDL_Event &key)> handle_event = {};

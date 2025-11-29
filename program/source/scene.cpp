@@ -54,10 +54,10 @@ namespace cse::core
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     const unsigned int width, const unsigned int height, const float scale_factor)
+                     const float target_aspect_ratio, const float global_scale_factor)
   {
-    auto matrices = camera->render(width, height, scale_factor);
+    auto matrices = camera->render(target_aspect_ratio, global_scale_factor);
     for (const auto &object : objects)
-      object.second->render(gpu, command_buffer, render_pass, matrices[0], matrices[1], scale_factor);
+      object.second->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, global_scale_factor);
   }
 }

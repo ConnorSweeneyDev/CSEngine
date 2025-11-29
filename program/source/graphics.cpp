@@ -70,7 +70,7 @@ namespace cse::helper
   void window_graphics::create_window()
   {
     instance = SDL_CreateWindow(title.c_str(), static_cast<int>(starting_width), static_cast<int>(starting_height),
-                                SDL_WINDOW_HIDDEN);
+                                SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
     if (!instance) throw cse::utility::sdl_exception("Could not create window '{}'", title);
 
     display_index = SDL_GetPrimaryDisplay();
@@ -88,12 +88,12 @@ namespace cse::helper
 
     if (fullscreen) fullscreen.on_change();
     if (!vsync) vsync.on_change();
-    if (!depth_texture) update_depth_texture();
+    if (!depth_texture) create_or_update_depth_texture();
 
     SDL_ShowWindow(instance);
   }
 
-  void window_graphics::update_depth_texture()
+  void window_graphics::create_or_update_depth_texture()
   {
     if (depth_texture)
     {
@@ -131,11 +131,11 @@ namespace cse::helper
     return true;
   }
 
-  void window_graphics::create_render_pass()
+  void window_graphics::create_render_pass(const float target_aspect_ratio)
   {
     SDL_GPUColorTargetInfo color_target_info = {};
     color_target_info.texture = swapchain_texture;
-    color_target_info.clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
+    color_target_info.clear_color = {0.0f, 0.0f, 0.0f, 1.0f};
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     SDL_GPUDepthStencilTargetInfo depth_stencil_target_info = {};
@@ -145,10 +145,26 @@ namespace cse::helper
     depth_stencil_target_info.store_op = SDL_GPU_STOREOP_STORE;
     render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, &depth_stencil_target_info);
     if (!render_pass) throw cse::utility::sdl_exception("Could not begin GPU render pass for window '{}'", title);
-    SDL_GPUViewport viewport = {.x = 0.0f,
-                                .y = 0.0f,
-                                .w = static_cast<float>(width),
-                                .h = static_cast<float>(height),
+
+    float viewport_x = {}, viewport_y = {}, viewport_width = {}, viewport_height = {};
+    if ((static_cast<float>(width) / static_cast<float>(height)) > target_aspect_ratio)
+    {
+      viewport_height = static_cast<float>(height);
+      viewport_width = viewport_height * target_aspect_ratio;
+      viewport_y = 0.0f;
+      viewport_x = (static_cast<float>(width) - viewport_width) / 2.0f;
+    }
+    else
+    {
+      viewport_width = static_cast<float>(width);
+      viewport_height = viewport_width / target_aspect_ratio;
+      viewport_x = 0.0f;
+      viewport_y = (static_cast<float>(height) - viewport_height) / 2.0f;
+    }
+    SDL_GPUViewport viewport = {.x = viewport_x,
+                                .y = viewport_y,
+                                .w = viewport_width,
+                                .h = viewport_height,
                                 .min_depth = 0.0f,
                                 .max_depth = 1.0f};
     SDL_SetGPUViewport(render_pass, &viewport);
@@ -171,13 +187,9 @@ namespace cse::helper
     if (!SDL_SetWindowSize(instance, display_bounds.w, display_bounds.h))
       throw utility::sdl_exception("Could not set size to ({}, {}) on display ({}) for window '{}'", display_bounds.w,
                                    display_bounds.h, display_index, title);
-    width = static_cast<unsigned int>(display_bounds.w);
-    height = static_cast<unsigned int>(display_bounds.h);
     if (!SDL_SetWindowPosition(instance, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
                                SDL_WINDOWPOS_CENTERED_DISPLAY(display_index)))
       throw utility::sdl_exception("Could not set position centered on display ({}) for window '{}'", display_index);
-
-    update_depth_texture();
   }
 
   void window_graphics::disable_fullscreen()
@@ -187,12 +199,8 @@ namespace cse::helper
     if (!SDL_SetWindowSize(instance, static_cast<int>(starting_width), static_cast<int>(starting_height)))
       throw utility::sdl_exception("Could not set size to ({}, {}) for window '{}'", starting_width, starting_height,
                                    title);
-    width = starting_width;
-    height = starting_height;
     if (!SDL_SetWindowPosition(instance, left, top))
       throw utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", left, top, title);
-
-    update_depth_texture();
   }
 
   void window_graphics::enable_vsync()
@@ -218,6 +226,12 @@ namespace cse::helper
     if (display_index == 0) throw utility::sdl_exception("Could not get display index for window '{}'", title);
   }
 
+  void window_graphics::handle_resize()
+  {
+    SDL_GetWindowSize(instance, reinterpret_cast<int *>(&width), reinterpret_cast<int *>(&height));
+    create_or_update_depth_texture();
+  }
+
   void window_graphics::cleanup_gpu_and_app()
   {
     SDL_ReleaseGPUTexture(gpu, depth_texture);
@@ -235,18 +249,15 @@ namespace cse::helper
 
   camera_graphics::camera_graphics(const float fov_) : fov(fov_), near_clip(0.01f), far_clip(100.0f) {}
 
-  glm::mat4 camera_graphics::calculate_projection_matrix(const unsigned int width, const unsigned int height)
+  glm::mat4 camera_graphics::calculate_projection_matrix(const float target_aspect_ratio)
   {
-    glm::mat4 projection_matrix =
-      glm::perspective(glm::radians(fov), static_cast<float>(width) / static_cast<float>(height), near_clip, far_clip);
-    return projection_matrix;
+    return glm::perspective(glm::radians(fov), target_aspect_ratio, near_clip, far_clip);
   }
 
   glm::mat4 camera_graphics::calculate_view_matrix(const glm::vec3 &translation, const glm::vec3 &forward,
-                                                   const glm::vec3 &up, const float scale_factor)
+                                                   const glm::vec3 &up, const float global_scale_factor)
   {
-    glm::mat4 view_matrix = glm::lookAt(translation * scale_factor, (translation * scale_factor) + forward, up);
-    return view_matrix;
+    return glm::lookAt(translation * global_scale_factor, (translation * global_scale_factor) + forward, up);
   }
 
   object_graphics::object_graphics(const resource::compiled_shader &vertex_shader_,
@@ -493,13 +504,13 @@ namespace cse::helper
   }
 
   glm::mat4 object_graphics::calculate_model_matrix(const glm::vec3 &translation, const glm::vec3 &rotation,
-                                                    const glm::vec3 &scale, const float scale_factor)
+                                                    const glm::vec3 &scale, const float global_scale_factor)
   {
     glm::mat4 model_matrix = glm::mat4(1.0f);
-    model_matrix =
-      glm::translate(model_matrix, {std::floor((translation.x * scale_factor) / scale_factor) * scale_factor,
-                                    std::floor((translation.y * scale_factor) / scale_factor) * scale_factor,
-                                    std::floor((translation.z * scale_factor) / scale_factor) * scale_factor});
+    model_matrix = glm::translate(
+      model_matrix, {std::floor((translation.x * global_scale_factor) / global_scale_factor) * global_scale_factor,
+                     std::floor((translation.y * global_scale_factor) / global_scale_factor) * global_scale_factor,
+                     std::floor((translation.z * global_scale_factor) / global_scale_factor) * global_scale_factor});
     model_matrix = glm::rotate(model_matrix, glm::radians(std::floor((rotation.x * 90.0f) / 90.0f) * 90.0f),
                                glm::vec3(1.0f, 0.0f, 0.0f));
     model_matrix = glm::rotate(model_matrix, glm::radians(std::floor((rotation.y * 90.0f) / 90.0f) * 90.0f),

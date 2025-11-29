@@ -1,6 +1,6 @@
 #include "camera.hpp"
 
-#include <array>
+#include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "glm/ext/matrix_float4x4.hpp"
@@ -42,10 +42,10 @@ namespace cse::core
     transform.up.interpolate(simulation_alpha);
   }
 
-  std::array<glm::mat4, 2> camera::render(const unsigned int width, const unsigned int height, const float scale_factor)
+  std::pair<glm::mat4, glm::mat4> camera::render(const float target_aspect_ratio, const float global_scale_factor)
   {
-    return {graphics.calculate_projection_matrix(width, height),
+    return {graphics.calculate_projection_matrix(target_aspect_ratio),
             graphics.calculate_view_matrix(transform.translation.interpolated, transform.forward.interpolated,
-                                           transform.up.interpolated, scale_factor)};
+                                           transform.up.interpolated, global_scale_factor)};
   }
 }

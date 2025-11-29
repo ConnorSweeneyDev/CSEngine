@@ -110,10 +110,10 @@ namespace cse::core
 
   void game::render()
   {
-    if (!window->start_render()) return;
+    if (!window->start_render(target_aspect_ratio)) return;
     if (auto scene = current_scene.lock())
       scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass,
-                    window->graphics.width, window->graphics.height, scale_factor);
+                    target_aspect_ratio, global_scale_factor);
     else
       throw cse::utility::exception("Current scene is not initialized");
     window->end_render();
@@ -153,13 +153,13 @@ namespace cse::core
 
   void game::update_fps()
   {
-    frame_count++;
+    current_period_frame_count++;
     double current_fps_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
     if (current_fps_time - last_fps_time >= 1.0)
     {
-      utility::print_format("{} FPS\n", frame_count);
+      utility::print_format("{} FPS\n", current_period_frame_count);
       last_fps_time = current_fps_time;
-      frame_count = 0;
+      current_period_frame_count = 0;
     }
   }
 }

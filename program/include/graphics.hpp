@@ -29,15 +29,16 @@ namespace cse::helper
   private:
     void initialize_app();
     void create_window();
-    void update_depth_texture();
+    void create_or_update_depth_texture();
     bool create_command_and_swapchain();
-    void create_render_pass();
+    void create_render_pass(const float target_aspect_ratio);
     void end_render_and_submit_command();
     void enable_fullscreen();
     void disable_fullscreen();
     void enable_vsync();
     void disable_vsync();
     void handle_move();
+    void handle_resize();
     void cleanup_gpu_and_app();
 
   public:
@@ -70,9 +71,9 @@ namespace cse::helper
     camera_graphics(const float fov_);
 
   private:
-    glm::mat4 calculate_projection_matrix(const unsigned int width, const unsigned int height);
+    glm::mat4 calculate_projection_matrix(const float target_aspect_ratio);
     glm::mat4 calculate_view_matrix(const glm::vec3 &translation, const glm::vec3 &forward, const glm::vec3 &up,
-                                    const float scale_factor);
+                                    const float global_scale_factor);
 
   public:
     float fov = {};
@@ -120,7 +121,7 @@ namespace cse::helper
     void update_vertex(SDL_GPUDevice *gpu);
     void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass);
     glm::mat4 calculate_model_matrix(const glm::vec3 &translation, const glm::vec3 &rotation, const glm::vec3 &scale,
-                                     const float scale_factor);
+                                     const float global_scale_factor);
     void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &model_matrix,
                            const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix);
     void draw_primitives(SDL_GPURenderPass *render_pass);

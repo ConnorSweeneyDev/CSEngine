@@ -29,7 +29,7 @@ namespace cse::core
     void cleanup();
     void event();
     void input();
-    bool start_render();
+    bool start_render(const float target_aspect_ratio);
     void end_render();
 
   protected:

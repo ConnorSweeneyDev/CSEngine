@@ -43,6 +43,7 @@ namespace cse::core
     {
       case SDL_EVENT_QUIT: state.running = false; break;
       case SDL_EVENT_WINDOW_MOVED: graphics.handle_move(); break;
+      case SDL_EVENT_WINDOW_RESIZED: graphics.handle_resize(); break;
       default:
         if (handle_event) handle_event(state.event);
         break;
@@ -55,10 +56,10 @@ namespace cse::core
     if (handle_input) handle_input(state.keys);
   }
 
-  bool window::start_render()
+  bool window::start_render(const float target_aspect_ratio)
   {
     if (!graphics.create_command_and_swapchain()) return false;
-    graphics.create_render_pass();
+    graphics.create_render_pass(target_aspect_ratio);
     return true;
   }
 
