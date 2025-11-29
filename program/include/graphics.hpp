@@ -29,6 +29,7 @@ namespace cse::helper
   private:
     void initialize_app();
     void create_window();
+    void update_depth_texture();
     bool create_command_and_swapchain();
     void create_render_pass();
     void end_render_and_submit_command();
@@ -56,6 +57,7 @@ namespace cse::helper
     SDL_GPUDevice *gpu = {};
     SDL_GPUCommandBuffer *command_buffer = {};
     SDL_GPUTexture *swapchain_texture = {};
+    SDL_GPUTexture *depth_texture = {};
     SDL_GPURenderPass *render_pass = {};
   };
 

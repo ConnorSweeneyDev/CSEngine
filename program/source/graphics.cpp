@@ -72,23 +72,45 @@ namespace cse::helper
     instance = SDL_CreateWindow(title.c_str(), static_cast<int>(starting_width), static_cast<int>(starting_height),
                                 SDL_WINDOW_HIDDEN);
     if (!instance) throw cse::utility::sdl_exception("Could not create window '{}'", title);
+
     display_index = SDL_GetPrimaryDisplay();
     if (display_index == 0) throw cse::utility::sdl_exception("Could not get primary display for window '{}'", title);
     left = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
     top = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
     if (!SDL_SetWindowPosition(instance, left, top))
       throw cse::utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", left, top, title);
-    if (fullscreen) fullscreen.on_change();
-
     gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, "vulkan");
     if (!gpu) throw cse::utility::sdl_exception("Could not create GPU device for window '{}'", title);
     if (!SDL_ClaimWindowForGPUDevice(gpu, instance))
       throw cse::utility::sdl_exception("Could not claim window for GPU device for window '{}'", title);
     if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
       throw cse::utility::sdl_exception("Could not enable VSYNC for window '{}'", title);
+
+    if (fullscreen) fullscreen.on_change();
     if (!vsync) vsync.on_change();
+    if (!depth_texture) update_depth_texture();
 
     SDL_ShowWindow(instance);
+  }
+
+  void window_graphics::update_depth_texture()
+  {
+    if (depth_texture)
+    {
+      SDL_ReleaseGPUTexture(gpu, depth_texture);
+      depth_texture = nullptr;
+    }
+    SDL_GPUTextureCreateInfo depth_texture_info = {.type = SDL_GPU_TEXTURETYPE_2D,
+                                                   .format = SDL_GPU_TEXTUREFORMAT_D24_UNORM,
+                                                   .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
+                                                   .width = width,
+                                                   .height = height,
+                                                   .layer_count_or_depth = 1,
+                                                   .num_levels = 1,
+                                                   .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                                   .props = 0};
+    depth_texture = SDL_CreateGPUTexture(gpu, &depth_texture_info);
+    if (!depth_texture) throw cse::utility::sdl_exception("Could not create depth texture for window '{}'", title);
   }
 
   bool window_graphics::create_command_and_swapchain()
@@ -116,13 +138,19 @@ namespace cse::helper
     color_target_info.clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
-    render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr);
+    SDL_GPUDepthStencilTargetInfo depth_stencil_target_info = {};
+    depth_stencil_target_info.texture = depth_texture;
+    depth_stencil_target_info.clear_depth = 1.0f;
+    depth_stencil_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
+    depth_stencil_target_info.store_op = SDL_GPU_STOREOP_STORE;
+    render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, &depth_stencil_target_info);
     if (!render_pass) throw cse::utility::sdl_exception("Could not begin GPU render pass for window '{}'", title);
-    SDL_GPUViewport viewport = {};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.w = static_cast<float>(width);
-    viewport.h = static_cast<float>(height);
+    SDL_GPUViewport viewport = {.x = 0.0f,
+                                .y = 0.0f,
+                                .w = static_cast<float>(width),
+                                .h = static_cast<float>(height),
+                                .min_depth = 0.0f,
+                                .max_depth = 1.0f};
     SDL_SetGPUViewport(render_pass, &viewport);
   }
 
@@ -148,6 +176,8 @@ namespace cse::helper
     if (!SDL_SetWindowPosition(instance, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
                                SDL_WINDOWPOS_CENTERED_DISPLAY(display_index)))
       throw utility::sdl_exception("Could not set position centered on display ({}) for window '{}'", display_index);
+
+    update_depth_texture();
   }
 
   void window_graphics::disable_fullscreen()
@@ -161,6 +191,8 @@ namespace cse::helper
     height = starting_height;
     if (!SDL_SetWindowPosition(instance, left, top))
       throw utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", left, top, title);
+
+    update_depth_texture();
   }
 
   void window_graphics::enable_vsync()
@@ -188,10 +220,12 @@ namespace cse::helper
 
   void window_graphics::cleanup_gpu_and_app()
   {
+    SDL_ReleaseGPUTexture(gpu, depth_texture);
     SDL_ReleaseWindowFromGPUDevice(gpu, instance);
     SDL_DestroyGPUDevice(gpu);
     SDL_DestroyWindow(instance);
     render_pass = nullptr;
+    depth_texture = nullptr;
     swapchain_texture = nullptr;
     command_buffer = nullptr;
     gpu = nullptr;
@@ -272,15 +306,22 @@ namespace cse::helper
     rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
     SDL_GPUColorTargetDescription color_target_description = {};
     color_target_description.format = SDL_GetGPUSwapchainTextureFormat(gpu, instance);
+    SDL_GPUDepthStencilState depth_stencil_state = {};
+    depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS;
+    depth_stencil_state.enable_depth_test = true;
+    depth_stencil_state.enable_depth_write = true;
     SDL_GPUGraphicsPipelineTargetInfo target_info = {};
     target_info.color_target_descriptions = &color_target_description;
     target_info.num_color_targets = 1;
+    target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
+    target_info.has_depth_stencil_target = true;
     SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
     pipeline_info.vertex_shader = vertex_shader;
     pipeline_info.fragment_shader = fragment_shader;
     pipeline_info.vertex_input_state = vertex_input_state;
     pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
     pipeline_info.rasterizer_state = rasterizer_state;
+    pipeline_info.depth_stencil_state = depth_stencil_state;
     pipeline_info.target_info = target_info;
     pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &pipeline_info);
     if (!pipeline) throw cse::utility::sdl_exception("Could not create graphics pipeline for object");
@@ -317,8 +358,8 @@ namespace cse::helper
     SDL_GPUTextureCreateInfo texture_info = {.type = SDL_GPU_TEXTURETYPE_2D,
                                              .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
                                              .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
-                                             .width = static_cast<Uint32>(texture.data.image_data.width),
-                                             .height = static_cast<Uint32>(texture.data.image_data.height),
+                                             .width = texture.data.image_data.width,
+                                             .height = texture.data.image_data.height,
                                              .layer_count_or_depth = 1,
                                              .num_levels = 1,
                                              .sample_count = SDL_GPU_SAMPLECOUNT_1,
