@@ -12,7 +12,10 @@ namespace cse::utility
     std::cout << message;
     std::cout.flush();
   }
+}
 
+namespace cse::utility
+{
   const char *exception::what() const noexcept
   {
     if (message.empty()) return "Unknown exception.";
