@@ -1,11 +1,21 @@
 #pragma once
 
-#include "exception.hpp"
+#include "utility.hpp"
 
 #include <format>
 #include <string>
 
 #include "SDL3/SDL_error.h"
+
+namespace cse::utility
+{
+  template <typename... message_arguments>
+    requires formattable_arguments<message_arguments...>
+  void print_format(std::format_string<message_arguments...> message, message_arguments &&...arguments)
+  {
+    print(std::format(message, std::forward<message_arguments>(arguments)...));
+  }
+}
 
 namespace cse::utility
 {

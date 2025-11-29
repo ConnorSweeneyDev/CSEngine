@@ -5,7 +5,7 @@
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_keyboard.h"
 
-#include "exception.hpp"
+#include "utility.hpp"
 
 namespace cse::core
 {

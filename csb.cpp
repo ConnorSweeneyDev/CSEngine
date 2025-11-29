@@ -107,13 +107,13 @@ int build()
      "#include <span>\n"
      "#include <string_view>\n"
      "#include <utility>\n\n"
-     "#include \"exception.hpp\"\n\n"
+     "#include \"utility.hpp\"\n\n"
      "namespace cse::resource\n"
      "{\n"
      "  struct compiled_shader\n"
      "  {\n"
      "    const std::span<const unsigned char> source = {};\n"
-     "    const size_t length = {};\n"
+     "    const std::size_t length = {};\n"
      "  };\n"
      "  struct compiled_texture\n"
      "  {\n"
@@ -196,7 +196,7 @@ int build()
          if (!shader_file) throw std::runtime_error(std::format("Could not open shader file '{}'", file.string()));
          const std::streamsize size = shader_file.tellg();
          shader_file.seekg(0, std::ios::beg);
-         shader_data.resize(static_cast<size_t>(size));
+         shader_data.resize(static_cast<std::size_t>(size));
          if (!shader_file.read(reinterpret_cast<char *>(shader_data.data()), size))
            throw std::runtime_error(std::format("Could not read shader file '{}'", file.string()));
          return {shader_data, {}};
@@ -220,7 +220,7 @@ int build()
        auto &[data_vector, texture_config] = data;
 
        std::string data_vector_result = {};
-       for (size_t index = 0; index < data_vector.size(); ++index)
+       for (std::size_t index = 0; index < data_vector.size(); ++index)
        {
          data_vector_result += csb::unsigned_char_to_hex(data_vector[index]);
          if (index < data_vector.size() - 1)

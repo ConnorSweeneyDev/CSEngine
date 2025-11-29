@@ -6,9 +6,8 @@
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_timer.h"
 
-#include "exception.hpp"
-#include "print.inl"
 #include "scene.hpp"
+#include "utility.hpp"
 #include "window.hpp"
 
 namespace cse::core

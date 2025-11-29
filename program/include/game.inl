@@ -5,8 +5,8 @@
 #include <memory>
 #include <string>
 
-#include "exception.hpp"
 #include "scene.hpp"
+#include "utility.hpp"
 
 namespace cse::core
 {

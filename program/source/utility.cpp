@@ -1,4 +1,4 @@
-#include "print.hpp"
+#include "utility.hpp"
 
 #include <iostream>
 #include <mutex>
@@ -11,5 +11,11 @@ namespace cse::utility
     std::lock_guard<std::mutex> lock(print_mutex);
     std::cout << message;
     std::cout.flush();
+  }
+
+  const char *exception::what() const noexcept
+  {
+    if (message.empty()) return "Unknown exception.";
+    return message.c_str();
   }
 }

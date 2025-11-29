@@ -10,12 +10,11 @@
 #include "glm/ext/vector_int3.hpp"
 
 #include "camera.hpp"
-#include "exception.hpp"
 #include "game.hpp"
 #include "object.hpp"
-#include "print.hpp"
 #include "resource.hpp"
 #include "scene.hpp"
+#include "utility.hpp"
 #include "window.hpp"
 
 class custom_scene : public cse::core::scene
