@@ -14,9 +14,8 @@ namespace cse::utility
     CLOG
   };
 
-  template <print_stream stream = COUT> void print(const std::string &message);
-  template <print_stream stream = COUT, typename... message_arguments>
-  void print_format(std::format_string<message_arguments...> message, message_arguments &&...arguments);
+  template <print_stream stream, typename... message_arguments>
+  void print(std::format_string<message_arguments...> message, message_arguments &&...arguments);
 
   inline static std::mutex print_mutex = {};
 }

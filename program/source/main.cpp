@@ -153,7 +153,7 @@ int try_main(int argc, char *argv[])
   game->run();
   game.reset();
 
-  cse::utility::print("Exiting application...\n");
+  cse::utility::print<cse::utility::COUT>("Exiting application...\n");
   return EXIT_SUCCESS;
 }
 
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
   }
   catch (const std::exception &error)
   {
-    cse::utility::print_format<cse::utility::CERR>("{}\n", error.what());
+    cse::utility::print<cse::utility::CERR>("{}\n", error.what());
     return EXIT_FAILURE;
   }
 }

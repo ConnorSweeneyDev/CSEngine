@@ -156,7 +156,7 @@ namespace cse::core
     double current_fps_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
     if (current_fps_time - last_fps_time >= 1.0)
     {
-      utility::print_format("{} FPS\n", current_period_frame_count);
+      utility::print<utility::CLOG>("{} FPS\n", current_period_frame_count);
       last_fps_time = current_fps_time;
       current_period_frame_count = 0;
     }
