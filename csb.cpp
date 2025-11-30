@@ -270,9 +270,8 @@ int build()
        for (const auto &frame_group : sorted_frame_groups)
        {
          const auto &[group_name, start_frame, end_frame] = frame_group;
-         groups_result += std::format(
-           "{{\"{}\", {{{}, {}, {}_{}_frames}}}}",
-           group_name, start_frame, end_frame, name, group_name);
+         groups_result +=
+           std::format("{{\"{}\", {{{}, {}, {}_{}_frames}}}}", group_name, start_frame, end_frame, name, group_name);
          if (&frame_group != &sorted_frame_groups.back()) groups_result += ",\n     ";
        }
        groups_result += "}};";
@@ -301,8 +300,7 @@ int build()
          {
            const auto &shader_data = std::get<0>(data);
            result +=
-             std::format("  const compiled_shader {} = {{\n    {}_data,\n    {}}};\n",
-                         name, name, shader_data.size());
+             std::format("  const compiled_shader {} = {{\n    {}_data,\n    {}}};\n", name, name, shader_data.size());
          }
          else
          {
