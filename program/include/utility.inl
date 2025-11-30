@@ -3,17 +3,40 @@
 #include "utility.hpp"
 
 #include <format>
+#include <iostream>
+#include <mutex>
 #include <string>
 
 #include "SDL3/SDL_error.h"
 
 namespace cse::utility
 {
-  template <typename... message_arguments>
-    requires formattable_arguments<message_arguments...>
+  template <print_stream stream> void print(const std::string &message)
+  {
+    std::lock_guard<std::mutex> lock(print_mutex);
+    if constexpr (stream == COUT)
+    {
+      std::cout << message;
+      std::cout.flush();
+    }
+    else if constexpr (stream == CERR)
+    {
+      std::cerr << message;
+      std::cerr.flush();
+    }
+    else if constexpr (stream == CLOG)
+    {
+      std::clog << message;
+      std::clog.flush();
+    }
+    else
+      throw exception("Invalid print stream specification");
+  }
+
+  template <print_stream stream, typename... message_arguments>
   void print_format(std::format_string<message_arguments...> message, message_arguments &&...arguments)
   {
-    print(std::format(message, std::forward<message_arguments>(arguments)...));
+    print<stream>(std::format(message, std::forward<message_arguments>(arguments)...));
   }
 }
 

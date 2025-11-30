@@ -7,15 +7,18 @@
 
 namespace cse::utility
 {
-  inline static std::mutex print_mutex = {};
+  enum print_stream
+  {
+    COUT,
+    CERR,
+    CLOG
+  };
 
-  void print(const std::string &message);
-
-  template <typename... arguments>
-  concept formattable_arguments = requires { typename std::format_string<arguments...>; };
-  template <typename... message_arguments>
-    requires formattable_arguments<message_arguments...>
+  template <print_stream stream = COUT> void print(const std::string &message);
+  template <print_stream stream = COUT, typename... message_arguments>
   void print_format(std::format_string<message_arguments...> message, message_arguments &&...arguments);
+
+  inline static std::mutex print_mutex = {};
 }
 
 namespace cse::utility

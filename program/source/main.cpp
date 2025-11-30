@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
   }
   catch (const std::exception &error)
   {
-    cse::utility::print_format("{}\n", error.what());
+    cse::utility::print_format<cse::utility::CERR>("{}\n", error.what());
     return EXIT_FAILURE;
   }
 }
