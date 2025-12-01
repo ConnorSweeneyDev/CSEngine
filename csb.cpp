@@ -5,7 +5,6 @@
 #include <format>
 #include <fstream>
 #include <ios>
-#include <istream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -68,10 +67,8 @@ int build()
   using frame_group = std::tuple<std::string, int, int>;
   using texture = std::tuple<int, int, std::vector<frame_group>>;
   std::unordered_map<std::filesystem::path, texture> texture_configs = {};
-  std::ifstream config_file("program/texture/config.txt");
-  if (!config_file.is_open()) throw std::runtime_error("Could not open texture config file");
-  std::string line = {};
-  while (std::getline(config_file, line))
+  auto config_file = csb::read_file<std::vector<std::string>>("program/texture/config.txt");
+  for (const auto &line : config_file)
   {
     if (line.empty() || line[0] == '#') continue;
     std::istringstream line_stream(line);
@@ -94,7 +91,6 @@ int build()
     }
     texture_configs.emplace(path, std::make_tuple(frame_width, frame_height, group_configs));
   }
-  config_file.close();
 
   using binary_data = std::vector<unsigned char>;
   using pixel_data = std::tuple<int, int, int, texture>;
