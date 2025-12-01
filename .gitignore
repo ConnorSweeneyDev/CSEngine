@@ -9,3 +9,6 @@ build/
 compile_commands.json
 program/include/resource.hpp
 program/source/resource.cpp
+
+# User Files
+.env
