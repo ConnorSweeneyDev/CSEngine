@@ -38,7 +38,9 @@ int csb::clean()
 
 int csb::build()
 {
-  csb::vcpkg_install("2025.08.27");
+  if (!csb::is_subproject)
+    csb::clang_format("21.1.1", csb::files_from({"program/shader"}),
+                      {"program/include/resource.hpp", "program/source/resource.cpp"});
 
   csb::archive_install(
     {{csb::host_platform == WINDOWS
@@ -303,14 +305,12 @@ int csb::build()
     csb::files_from({"build/shader", "program/texture"}),
     {"program/include/resource.hpp", "program/source/resource.cpp"});
 
-  if (!csb::is_subproject)
-  {
-    csb::clang_format("21.1.1", {"program/include/resource.hpp", "program/source/resource.cpp"});
-    csb::generate_compile_commands();
-  }
+  csb::vcpkg_install("2025.08.27");
 
+  csb::generate_compile_commands();
   csb::compile();
   csb::link();
+
   csb::run();
   return CSB_SUCCESS;
 }
