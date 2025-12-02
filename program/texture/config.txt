@@ -1,5 +1,0 @@
-background1.png 500:250 main:1:1
-background2.png 500:250 main:1:1
-background3.png 500:250 main:1:1
-main.png 50:50 main:1:1 other:2:2
-shop.png 120:100 main:1:1

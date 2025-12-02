@@ -3,8 +3,6 @@
 #include <cstddef>
 #include <filesystem>
 #include <format>
-#include <sstream>
-#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -66,31 +64,24 @@ int csb::build()
 
   using frame_group = std::tuple<std::string, int, int>;
   using texture = std::tuple<int, int, std::vector<frame_group>>;
-  std::unordered_map<std::filesystem::path, texture> texture_configs = {};
-  auto config_file = csb::read_file<std::vector<std::string>>("program/texture/config.txt");
-  for (const auto &line : config_file)
+  auto texture_configs = []()
   {
-    if (line.empty() || line[0] == '#') continue;
-    std::istringstream line_stream(line);
-
-    std::filesystem::path path = {};
-    line_stream >> path;
-    int frame_width = 0, frame_height = 0;
-    char colon1;
-    line_stream >> frame_width >> colon1 >> frame_height;
-    std::vector<frame_group> group_configs = {};
-    std::string group_section = {};
-    while (line_stream >> group_section)
-    {
-      std::istringstream group_stream(group_section);
-      std::string group_name = {}, group_start = {}, group_end = {};
-      std::getline(group_stream, group_name, ':');
-      std::getline(group_stream, group_start, ':');
-      std::getline(group_stream, group_end);
-      group_configs.emplace_back(group_name, std::stoi(group_start), std::stoi(group_end));
-    }
-    texture_configs.emplace(path, std::make_tuple(frame_width, frame_height, group_configs));
-  }
+    std::unordered_map<std::filesystem::path, texture> configs;
+    auto textures = csb::read_file<nlohmann::json>("program/texture/textures.json");
+    for (const auto &texture : textures)
+      configs.emplace(texture["file"].get<std::string>(),
+                      std::make_tuple(texture["frame_dimensions"]["width"].get<int>(),
+                                      texture["frame_dimensions"]["height"].get<int>(),
+                                      [&]()
+                                      {
+                                        std::vector<frame_group> groups;
+                                        for (const auto &group : texture["frame_groups"])
+                                          groups.emplace_back(group["name"].get<std::string>(),
+                                                              group["start"].get<int>(), group["end"].get<int>());
+                                        return groups;
+                                      }()));
+    return configs;
+  }();
 
   using binary_data = std::vector<std::byte>;
   using pixel_data = std::tuple<int, int, int, texture>;
@@ -191,15 +182,9 @@ int csb::build()
        else
        {
          stbi_set_flip_vertically_on_load(true);
-         int width = 0, height = 0, channels = 0;
-         unsigned char *image_data = stbi_load(file.string().c_str(), &width, &height, &channels, 4);
-         if (!image_data)
-           throw std::runtime_error(std::format("Could not load texture image file '{}'", file.string()));
-         binary_data image_vector(reinterpret_cast<std::byte *>(image_data),
-                                  reinterpret_cast<std::byte *>(image_data) + (width * height * channels));
-         stbi_image_free(image_data);
+         auto image = csb::read_file<csb::image>(file);
          auto &[frame_width, frame_height, frame_groups] = texture_configs.at(file.filename());
-         return {image_vector, {width, height, channels, {frame_width, frame_height, frame_groups}}};
+         return {image.data, {image.width, image.height, image.channels, {frame_width, frame_height, frame_groups}}};
        }
      },
      [](const auto &name, const auto &data)

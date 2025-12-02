@@ -1,0 +1,30 @@
+[
+  {
+    "file": "background1.png",
+    "frame_dimensions": { "width": 500, "height": 250 },
+    "frame_groups": [{ "name": "main", "start": 1, "end": 1 }]
+  },
+  {
+    "file": "background2.png",
+    "frame_dimensions": { "width": 500, "height": 250 },
+    "frame_groups": [{ "name": "main", "start": 1, "end": 1 }]
+  },
+  {
+    "file": "background3.png",
+    "frame_dimensions": { "width": 500, "height": 250 },
+    "frame_groups": [{ "name": "main", "start": 1, "end": 1 }]
+  },
+  {
+    "file": "main.png",
+    "frame_dimensions": { "width": 50, "height": 50 },
+    "frame_groups": [
+      { "name": "main", "start": 1, "end": 1 },
+      { "name": "other", "start": 2, "end": 2 }
+    ]
+  },
+  {
+    "file": "shop.png",
+    "frame_dimensions": { "width": 120, "height": 100 },
+    "frame_groups": [{ "name": "main", "start": 1, "end": 1 }]
+  }
+]
