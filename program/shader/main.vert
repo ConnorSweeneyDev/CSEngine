@@ -21,9 +21,7 @@ cbuffer Matrices : register(b0, space1)
 
 Output main(Input input)
 {
-  Output output;
-  output.position = mul(projection_matrix, mul(view_matrix, mul(model_matrix, float4(input.position, 1.0f))));
-  output.color = input.color;
-  output.texcoord = input.texcoord;
+  Output output = {mul(projection_matrix, mul(view_matrix, mul(model_matrix, float4(input.position, 1.0f)))),
+                   input.color, input.texcoord};
   return output;
 }
