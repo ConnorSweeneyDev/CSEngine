@@ -10,11 +10,12 @@
 #include "glm/ext/vector_int3.hpp"
 
 #include "camera.hpp"
+#include "exception.hpp"
 #include "game.hpp"
 #include "object.hpp"
+#include "print.hpp"
 #include "resource.hpp"
 #include "scene.hpp"
-#include "utility.hpp"
 #include "window.hpp"
 
 class custom_scene : public cse::core::scene
@@ -153,7 +154,7 @@ int try_main(int argc, char *argv[])
   game->run();
   game.reset();
 
-  cse::utility::print<cse::utility::COUT>("Exiting application...\n");
+  cse::utility::print<COUT>("Exiting application...\n");
   return EXIT_SUCCESS;
 }
 
@@ -165,7 +166,7 @@ int main(int argc, char *argv[])
   }
   catch (const std::exception &error)
   {
-    cse::utility::print<cse::utility::CERR>("{}\n", error.what());
+    cse::utility::print<CERR>("{}\n", error.what());
     return EXIT_FAILURE;
   }
 }

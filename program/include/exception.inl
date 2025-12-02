@@ -1,40 +1,11 @@
 #pragma once
 
-#include "utility.hpp"
+#include "exception.hpp"
 
 #include <format>
-#include <iostream>
-#include <mutex>
 #include <string>
 
 #include "SDL3/SDL_error.h"
-
-namespace cse::utility
-{
-  template <print_stream stream, typename... message_arguments>
-  void print(std::format_string<message_arguments...> message, message_arguments &&...arguments)
-  {
-    std::lock_guard<std::mutex> lock(print_mutex);
-    auto formatted_message = std::format(message, std::forward<message_arguments>(arguments)...);
-    if constexpr (stream == COUT)
-    {
-      std::cout << formatted_message;
-      std::cout.flush();
-    }
-    else if constexpr (stream == CERR)
-    {
-      std::cerr << formatted_message;
-      std::cerr.flush();
-    }
-    else if constexpr (stream == CLOG)
-    {
-      std::clog << formatted_message;
-      std::clog.flush();
-    }
-    else
-      throw exception("Invalid print stream specification");
-  }
-}
 
 namespace cse::utility
 {

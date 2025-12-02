@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include "utility.hpp"
+#include "exception.hpp"
 
 namespace cse::core
 {

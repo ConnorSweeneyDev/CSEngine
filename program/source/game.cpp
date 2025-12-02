@@ -6,8 +6,9 @@
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_timer.h"
 
+#include "exception.hpp"
+#include "print.hpp"
 #include "scene.hpp"
-#include "utility.hpp"
 #include "window.hpp"
 
 namespace cse::core
@@ -156,7 +157,7 @@ namespace cse::core
     double current_fps_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
     if (current_fps_time - last_fps_time >= 1.0)
     {
-      utility::print<utility::CLOG>("{} FPS\n", current_period_frame_count);
+      utility::print<CLOG>("{} FPS\n", current_period_frame_count);
       last_fps_time = current_fps_time;
       current_period_frame_count = 0;
     }

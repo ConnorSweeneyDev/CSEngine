@@ -101,7 +101,7 @@ int csb::build()
      "#include <span>\n"
      "#include <string_view>\n"
      "#include <utility>\n\n"
-     "#include \"utility.hpp\"\n\n"
+     "#include \"exception.hpp\"\n\n"
      "namespace cse::resource\n"
      "{\n"
      "  struct compiled_shader\n"

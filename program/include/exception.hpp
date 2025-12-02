@@ -1,24 +1,7 @@
 #pragma once
 
 #include <exception>
-#include <format>
-#include <mutex>
 #include <string>
-
-namespace cse::utility
-{
-  enum print_stream
-  {
-    COUT,
-    CERR,
-    CLOG
-  };
-
-  template <print_stream stream, typename... message_arguments>
-  void print(std::format_string<message_arguments...> message, message_arguments &&...arguments);
-
-  inline static std::mutex print_mutex = {};
-}
 
 namespace cse::utility
 {
@@ -41,4 +24,4 @@ namespace cse::utility
   };
 }
 
-#include "utility.inl"
+#include "exception.inl"

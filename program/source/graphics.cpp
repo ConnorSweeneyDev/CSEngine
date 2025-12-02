@@ -17,8 +17,8 @@
 #include "glm/ext/vector_float3.hpp"
 #include "glm/trigonometric.hpp"
 
+#include "exception.hpp"
 #include "resource.hpp"
-#include "utility.hpp"
 
 namespace cse::helper
 {
