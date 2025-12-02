@@ -162,7 +162,7 @@ namespace cse::helper
   {
     SDL_GPUColorTargetInfo color_target_info = {};
     color_target_info.texture = swapchain_texture;
-    color_target_info.clear_color = {0.0f, 0.0f, 0.0f, 1.0f};
+    color_target_info.clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     SDL_GPUDepthStencilTargetInfo depth_stencil_target_info = {};
@@ -461,10 +461,11 @@ namespace cse::helper
     auto vertex_data = reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, transfer_buffer, false));
     if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
     const auto &frame_coords = texture.data.frame_data.find_group(texture.frame_group).frames[texture.frame_id].coords;
-    quad_vertices = std::array<vertex, 4>({{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, frame_coords.right, frame_coords.top},
-                                           {1.0f, -1.0f, 0.0f, 0, 0, 0, 0, frame_coords.right, frame_coords.bottom},
-                                           {-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, frame_coords.left, frame_coords.top},
-                                           {-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, frame_coords.left, frame_coords.bottom}});
+    quad_vertices =
+      std::array<vertex, 4>({{1.0f, 1.0f, 0.0f, 255, 255, 255, 255, frame_coords.right, frame_coords.top},
+                             {1.0f, -1.0f, 0.0f, 255, 255, 255, 255, frame_coords.right, frame_coords.bottom},
+                             {-1.0f, 1.0f, 0.0f, 255, 255, 255, 255, frame_coords.left, frame_coords.top},
+                             {-1.0f, -1.0f, 0.0f, 255, 255, 255, 255, frame_coords.left, frame_coords.bottom}});
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
     SDL_UnmapGPUTransferBuffer(gpu, transfer_buffer);
 
