@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-void configure()
+void csb::configure()
 {
   csb::target_name = "CSEngine";
   csb::target_artifact = EXECUTABLE;
@@ -29,14 +29,14 @@ void configure()
     csb::libraries = {"c", "m", "pthread", "dl", "SDL3", "glm"};
 }
 
-int clean()
+int csb::clean()
 {
   csb::clean_build_directory();
   csb::remove_files({"program/include/resource.hpp", "program/source/resource.cpp"});
   return CSB_SUCCESS;
 }
 
-int build()
+int csb::build()
 {
   csb::vcpkg_install("2025.08.27");
 
@@ -311,10 +311,11 @@ int build()
 
   csb::compile();
   csb::link();
+  csb::run();
   return CSB_SUCCESS;
 }
 
-int run()
+int csb::run()
 {
   csb::run_target();
   return CSB_SUCCESS;
