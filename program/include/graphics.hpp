@@ -31,15 +31,14 @@ namespace cse::helper
     window_graphics &operator=(window_graphics &&) = delete;
 
   private:
-    void initialize_app();
-    void create_window();
-    void create_or_update_depth_texture();
-    bool create_command_and_swapchain();
-    void create_render_pass(const float target_aspect_ratio);
-    void end_render_and_submit_command();
+    void create_app_and_window();
+    void generate_depth_texture();
+    bool acquire_swapchain_texture();
+    void start_render_pass(const float target_aspect_ratio);
+    void end_render_pass();
     void handle_move();
     void handle_resize();
-    void cleanup_gpu_and_app();
+    void destroy_window_and_app();
 
   public:
     property<bool> fullscreen = {};
@@ -113,17 +112,15 @@ namespace cse::helper
 
   private:
     void create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu);
-    void create_vertex_and_index(SDL_GPUDevice *gpu);
-    void create_sampler_and_texture(SDL_GPUDevice *gpu);
-    void transfer_vertex_and_index(SDL_GPUDevice *gpu);
-    void transfer_texture(SDL_GPUDevice *gpu);
-    void upload_to_gpu(SDL_GPUDevice *gpu);
-    void update_vertex(SDL_GPUDevice *gpu);
+    void create_buffers(SDL_GPUDevice *gpu);
+    void transfer_buffers(SDL_GPUDevice *gpu);
+    void upload_static_buffers(SDL_GPUDevice *gpu);
+    void upload_dynamic_buffers(SDL_GPUDevice *gpu);
     void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass);
     glm::mat4 calculate_model_matrix(const glm::vec3 &translation, const glm::vec3 &rotation, const glm::vec3 &scale,
                                      const float global_scale_factor);
-    void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &model_matrix,
-                           const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix);
+    void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &projection_matrix,
+                           const glm::mat4 &view_matrix, const glm::mat4 &model_matrix);
     void draw_primitives(SDL_GPURenderPass *render_pass);
     void cleanup_object(SDL_GPUDevice *gpu);
 
@@ -137,7 +134,7 @@ namespace cse::helper
     SDL_GPUBuffer *index_buffer = {};
     SDL_GPUTexture *texture_buffer = {};
     SDL_GPUSampler *sampler_buffer = {};
-    SDL_GPUTransferBuffer *buffer_transfer_buffer = {};
+    SDL_GPUTransferBuffer *vertex_transfer_buffer = {};
     SDL_GPUTransferBuffer *texture_transfer_buffer = {};
     std::array<vertex, 4> quad_vertices = {};
     std::array<Uint16, 6> quad_indices = {};

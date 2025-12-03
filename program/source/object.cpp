@@ -31,11 +31,10 @@ namespace cse::core
   void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
     graphics.create_pipeline(instance, gpu);
-    graphics.create_vertex_and_index(gpu);
-    graphics.create_sampler_and_texture(gpu);
-    graphics.transfer_vertex_and_index(gpu);
-    graphics.transfer_texture(gpu);
-    graphics.upload_to_gpu(gpu);
+    graphics.create_buffers(gpu);
+    graphics.transfer_buffers(gpu);
+    graphics.upload_static_buffers(gpu);
+    graphics.upload_dynamic_buffers(gpu);
   }
 
   void object::cleanup(SDL_GPUDevice *gpu) { graphics.cleanup_object(gpu); }
@@ -66,13 +65,12 @@ namespace cse::core
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                       const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float global_scale_factor)
   {
-    graphics.update_vertex(gpu);
+    graphics.upload_dynamic_buffers(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
-    graphics.push_uniform_data(command_buffer,
+    graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix,
                                graphics.calculate_model_matrix(transform.translation.interpolated,
                                                                transform.rotation.interpolated,
-                                                               transform.scale.interpolated, global_scale_factor),
-                               projection_matrix, view_matrix);
+                                                               transform.scale.interpolated, global_scale_factor));
     graphics.draw_primitives(render_pass);
   }
 }

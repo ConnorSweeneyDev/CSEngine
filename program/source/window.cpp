@@ -26,15 +26,14 @@ namespace cse::core
 
   void window::initialize()
   {
-    graphics.initialize_app();
-    graphics.create_window();
+    graphics.create_app_and_window();
     state.running = true;
   }
 
   void window::cleanup()
   {
     state.keys = nullptr;
-    graphics.cleanup_gpu_and_app();
+    graphics.destroy_window_and_app();
   }
 
   void window::event()
@@ -58,10 +57,10 @@ namespace cse::core
 
   bool window::start_render(const float target_aspect_ratio)
   {
-    if (!graphics.create_command_and_swapchain()) return false;
-    graphics.create_render_pass(target_aspect_ratio);
+    if (!graphics.acquire_swapchain_texture()) return false;
+    graphics.start_render_pass(target_aspect_ratio);
     return true;
   }
 
-  void window::end_render() { graphics.end_render_and_submit_command(); }
+  void window::end_render() { graphics.end_render_pass(); }
 }
