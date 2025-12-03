@@ -289,12 +289,24 @@ int csb::build()
     csb::files_from({"build/shader", "program/texture"}),
     {"program/include/resource.hpp", "program/source/resource.cpp"});
 
-  csb::vcpkg_install(
-    "2025.08.27",
-    nlohmann::json{
-      {"builtin-baseline", "120deac3062162151622ca4860575a33844ba10b"},
-      {"dependencies", {{{"name", "sdl3"}, {"features", {"vulkan"}}}, "glm"}},
-      {"overrides", {{{"name", "sdl3"}, {"version", "3.2.18"}}, {{"name", "glm"}, {"version", "1.0.1#3"}}}}});
+  csb::vcpkg_install("2025.08.27", {{"builtin-baseline", "120deac3062162151622ca4860575a33844ba10b"},
+                                    {"dependencies",
+                                     {
+                                       {
+                                         {"name", "sdl3"},
+                                         {"features", {"vulkan"}},
+                                       },
+                                       "glm",
+                                     }},
+                                    {"overrides",
+                                     {{
+                                        {"name", "sdl3"},
+                                        {"version", "3.2.18"},
+                                      },
+                                      {
+                                        {"name", "glm"},
+                                        {"version", "1.0.1#3"},
+                                      }}}});
 
   csb::generate_compile_commands();
   csb::compile();
