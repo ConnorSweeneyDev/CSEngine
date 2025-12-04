@@ -437,11 +437,11 @@ namespace cse::helper
     auto vertex_data = reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false));
     if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
     const auto &frame_coords = texture.data.frame_data.find_group(texture.frame_group).frames[texture.frame_id].coords;
-    quad_vertices =
-      std::array<vertex, 4>({{1.0f, 1.0f, 0.0f, 255, 255, 255, 255, frame_coords.right, frame_coords.top},
-                             {1.0f, -1.0f, 0.0f, 255, 255, 255, 255, frame_coords.right, frame_coords.bottom},
-                             {-1.0f, 1.0f, 0.0f, 255, 255, 255, 255, frame_coords.left, frame_coords.top},
-                             {-1.0f, -1.0f, 0.0f, 255, 255, 255, 255, frame_coords.left, frame_coords.bottom}});
+    quad_vertices = std::array<vertex, 4>(
+      {{1.0f, 1.0f, 0.0f, tint.r, tint.g, tint.b, tint.a, frame_coords.right, frame_coords.top},
+       {1.0f, -1.0f, 0.0f, tint.r, tint.g, tint.b, tint.a, frame_coords.right, frame_coords.bottom},
+       {-1.0f, 1.0f, 0.0f, tint.r, tint.g, tint.b, tint.a, frame_coords.left, frame_coords.top},
+       {-1.0f, -1.0f, 0.0f, tint.r, tint.g, tint.b, tint.a, frame_coords.left, frame_coords.bottom}});
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
 
