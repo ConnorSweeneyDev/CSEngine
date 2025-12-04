@@ -1,0 +1,30 @@
+[
+  {
+    "file": "background1.png",
+    "frame_dimensions": [500, 250],
+    "frame_groups": [{ "name": "main", "range": [1, 1] }]
+  },
+  {
+    "file": "background2.png",
+    "frame_dimensions": [500, 250],
+    "frame_groups": [{ "name": "main", "range": [1, 1] }]
+  },
+  {
+    "file": "background3.png",
+    "frame_dimensions": [500, 250],
+    "frame_groups": [{ "name": "main", "range": [1, 1] }]
+  },
+  {
+    "file": "main.png",
+    "frame_dimensions": [50, 50],
+    "frame_groups": [
+      { "name": "main", "range": [1, 1] },
+      { "name": "other", "range": [2, 2] }
+    ]
+  },
+  {
+    "file": "shop.png",
+    "frame_dimensions": [120, 100],
+    "frame_groups": [{ "name": "main", "range": [1, 1] }]
+  }
+]

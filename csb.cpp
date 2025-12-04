@@ -69,34 +69,21 @@ int csb::build()
   using frame_groups = std::vector<frame_group>;
   using frame_dimensions = std::pair<int, int>;
   using frame_data = std::pair<frame_dimensions, frame_groups>;
-  std::unordered_map<std::filesystem::path, frame_data> frame_map = {
-    {"background1.png",
-     {{500, 250},
-      {
-        {"main", {1, 1}},
-      }}},
-    {"background2.png",
-     {{500, 250},
-      {
-        {"main", {1, 1}},
-      }}},
-    {"background3.png",
-     {{500, 250},
-      {
-        {"main", {1, 1}},
-      }}},
-    {"main.png",
-     {{50, 50},
-      {
-        {"main", {1, 1}},
-        {"other", {2, 2}},
-      }}},
-    {"shop.png",
-     {{120, 100},
-      {
-        {"main", {1, 1}},
-      }}},
-  };
+  std::unordered_map<std::filesystem::path, frame_data> frame_map = []()
+  {
+    std::unordered_map<std::filesystem::path, frame_data> result = {};
+    auto frame_json = csb::read_file<nlohmann::json>("program/texture/frames.json");
+    for (const auto &object : frame_json)
+    {
+      const auto &file = object["file"].get<std::string>();
+      const auto &dimensions = object["frame_dimensions"].get<frame_dimensions>();
+      frame_groups groups = {};
+      for (const auto &group : object["frame_groups"])
+        groups.emplace_back(group["name"].get<std::string>(), group["range"].get<frame_range>());
+      result.emplace(file, frame_data{dimensions, groups});
+    }
+    return result;
+  }();
 
   using binary_data = std::vector<std::byte>;
   using image_data = std::tuple<int, int, int>;
