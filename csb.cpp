@@ -56,7 +56,7 @@ int csb::build()
     csb::prepend_environment_variable("LD_LIBRARY_PATH", "build/dxc");
   }
   csb::multi_task_run(
-    [](const auto &file, const auto &, const auto &)
+    [](const std::filesystem::path &file, const auto &, const auto &) -> std::string
     {
       return std::format("{} -spirv -T {}_6_0 -E main () -Fo []",
                          csb::host_platform == WINDOWS ? "build\\dxc\\dxc.exe" : "./build/dxc/dxc",
@@ -64,29 +64,29 @@ int csb::build()
     },
     csb::files_from({"program/shader"}), {"build/shader/(filename).spv"});
 
-  using frame_range = std::pair<int, int>;
-  using frame_group = std::pair<std::string, frame_range>;
+  using group_name = std::string;
+  using group_range = std::pair<unsigned int, unsigned int>;
+  using frame_group = std::pair<group_name, group_range>;
   using frame_groups = std::vector<frame_group>;
-  using frame_dimensions = std::pair<int, int>;
+  using frame_dimensions = std::pair<unsigned int, unsigned int>;
   using frame_data = std::pair<frame_dimensions, frame_groups>;
-  std::unordered_map<std::filesystem::path, frame_data> frame_map = []()
+  auto frame_json = csb::read_file<nlohmann::json>("program/texture/frames.json");
+  std::unordered_map<std::filesystem::path, frame_data> frame_map = {};
+  for (const auto &object : frame_json)
   {
-    std::unordered_map<std::filesystem::path, frame_data> result = {};
-    auto frame_json = csb::read_file<nlohmann::json>("program/texture/frames.json");
-    for (const auto &object : frame_json)
-    {
-      const auto &file = object["file"].get<std::string>();
-      const auto &dimensions = object["frame_dimensions"].get<frame_dimensions>();
-      frame_groups groups = {};
-      for (const auto &group : object["frame_groups"])
-        groups.emplace_back(group["name"].get<std::string>(), group["range"].get<frame_range>());
-      result.emplace(file, frame_data{dimensions, groups});
-    }
-    return result;
-  }();
+    const auto &file = object["file"].get<std::filesystem::path>();
+    const auto &dimensions = object["frame_dimensions"].get<frame_dimensions>();
+    frame_groups groups = {};
+    for (const auto &group : object["frame_groups"])
+      groups.emplace_back(group["name"].get<group_name>(), group["range"].get<group_range>());
+    frame_map.emplace(file, frame_data{dimensions, groups});
+  }
 
   using binary_data = std::vector<std::byte>;
-  using image_data = std::tuple<int, int, int>;
+  using width = unsigned int;
+  using height = unsigned int;
+  using channels = unsigned int;
+  using image_data = std::tuple<width, height, channels>;
   using texture_data = std::tuple<image_data, frame_data>;
   using resource = std::tuple<binary_data, texture_data>;
   csb::embed<resource>(
@@ -217,8 +217,8 @@ int csb::build()
        const auto &[frame_width, frame_height] = frame_dimensions;
        if (width == 0 || height == 0 || channels == 0 || frame_width == 0 || frame_height == 0 || frame_groups.empty())
          return results;
-       const int frames_per_row = width / frame_width;
-       const int frames_per_column = height / frame_height;
+       const unsigned int frames_per_row = width / frame_width;
+       const unsigned int frames_per_column = height / frame_height;
        std::string groups_result = {};
        for (const auto &frame_group : frame_groups)
        {
@@ -227,10 +227,10 @@ int csb::build()
          groups_result += std::format("  static constexpr std::array<const compiled_texture::frame_data::group::frame, "
                                       "{}> {}_{}_frames = {{\n    {{",
                                       end_frame - start_frame + 1, name, group_name);
-         for (int frame_index = start_frame - 1; frame_index < end_frame; ++frame_index)
+         for (unsigned int frame_index = start_frame - 1; frame_index < end_frame; ++frame_index)
          {
-           const int frame_x = frame_index % frames_per_row;
-           const int frame_y = (frames_per_column - 1) - (frame_index / frames_per_row);
+           const unsigned int frame_x = frame_index % frames_per_row;
+           const unsigned int frame_y = (frames_per_column - 1) - (frame_index / frames_per_row);
            const float top = static_cast<float>((frame_y + 1) * frame_height) / static_cast<float>(height);
            const float left = static_cast<float>(frame_x * frame_width) / static_cast<float>(width);
            const float bottom = static_cast<float>(frame_y * frame_height) / static_cast<float>(height);
