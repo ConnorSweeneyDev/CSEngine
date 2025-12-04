@@ -33,7 +33,7 @@ int csb::clean()
 {
   csb::clean_build_directory();
   csb::remove_files({"program/include/resource.hpp", "program/source/resource.cpp"});
-  return CSB_SUCCESS;
+  return csb::build();
 }
 
 int csb::build()
@@ -321,9 +321,7 @@ int csb::build()
   csb::generate_compile_commands();
   csb::compile();
   csb::link();
-
-  csb::run();
-  return CSB_SUCCESS;
+  return csb::run();
 }
 
 int csb::run()
