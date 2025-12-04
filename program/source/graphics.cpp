@@ -15,6 +15,7 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_float3.hpp"
+#include "glm/ext/vector_uint4_sized.hpp"
 #include "glm/trigonometric.hpp"
 
 #include "exception.hpp"
@@ -251,8 +252,9 @@ namespace cse::helper
 
   object_graphics::object_graphics(const resource::compiled_shader &vertex_shader_,
                                    const resource::compiled_shader &fragment_shader_,
-                                   const resource::compiled_texture &texture_, const std::string &frame_group_)
-    : shader(vertex_shader_, fragment_shader_), texture(texture_, frame_group_)
+                                   const resource::compiled_texture &texture_, const std::string &frame_group_,
+                                   const glm::u8vec4 &tint_)
+    : shader(vertex_shader_, fragment_shader_), texture(texture_, frame_group_), tint(tint_)
   {
   }
 

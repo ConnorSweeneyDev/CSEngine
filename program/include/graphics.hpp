@@ -109,7 +109,8 @@ namespace cse::helper
   public:
     object_graphics() = default;
     object_graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-                    const resource::compiled_texture &texture_, const std::string &frame_group_);
+                    const resource::compiled_texture &texture_, const std::string &frame_group_,
+                    const glm::u8vec4 &tint_);
 
   private:
     void create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu);
@@ -128,7 +129,7 @@ namespace cse::helper
   public:
     shader shader = {};
     texture texture = {};
-    glm::u8vec4 tint = {255, 255, 255, 255};
+    glm::u8vec4 tint = {};
 
   private:
     SDL_GPUGraphicsPipeline *pipeline = {};
