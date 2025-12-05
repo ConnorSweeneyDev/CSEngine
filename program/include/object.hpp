@@ -13,7 +13,7 @@
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "resource.hpp"
-#include "transform.hpp"
+#include "state.hpp"
 
 namespace cse::core
 {
@@ -45,7 +45,7 @@ namespace cse::core
     std::function<void(const bool *keys)> handle_input = {};
     std::function<void()> handle_simulate = {};
 
-    helper::object_transform transform = {};
+    helper::object_state state = {};
     helper::object_graphics graphics = {};
   };
 }

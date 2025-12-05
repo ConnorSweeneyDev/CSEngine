@@ -9,7 +9,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
-#include "transform.hpp"
+#include "state.hpp"
 
 namespace cse::core
 {
@@ -36,7 +36,7 @@ namespace cse::core
     std::function<void(const bool *keys)> handle_input = {};
     std::function<void()> handle_simulate = {};
 
-    helper::camera_transform transform = {};
+    helper::camera_state state = {};
     helper::camera_graphics graphics = {};
   };
 }

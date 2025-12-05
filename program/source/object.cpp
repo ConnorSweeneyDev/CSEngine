@@ -17,8 +17,8 @@ namespace cse::core
   object::object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_,
                  const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
                  const resource::compiled_texture &texture_, const std::string &frame_group_, const glm::u8vec4 &tint_)
-    : transform({translation_.x, translation_.y, translation_.z}, {rotation_.x, rotation_.y, rotation_.z},
-                {scale_.x, scale_.y, scale_.z}),
+    : state({translation_.x, translation_.y, translation_.z}, {rotation_.x, rotation_.y, rotation_.z},
+            {scale_.x, scale_.y, scale_.z}),
       graphics(vertex_shader_, fragment_shader_, texture_, frame_group_, tint_)
   {
   }
@@ -52,15 +52,15 @@ namespace cse::core
 
   void object::simulate(double simulation_alpha)
   {
-    transform.translation.update();
-    transform.rotation.update();
-    transform.scale.update();
+    state.translation.update();
+    state.rotation.update();
+    state.scale.update();
 
     if (handle_simulate) handle_simulate();
 
-    transform.translation.interpolate(simulation_alpha);
-    transform.rotation.interpolate(simulation_alpha);
-    transform.scale.interpolate(simulation_alpha);
+    state.translation.interpolate(simulation_alpha);
+    state.rotation.interpolate(simulation_alpha);
+    state.scale.interpolate(simulation_alpha);
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
@@ -69,9 +69,9 @@ namespace cse::core
     graphics.upload_dynamic_buffers(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
     graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix,
-                               graphics.calculate_model_matrix(transform.translation.interpolated,
-                                                               transform.rotation.interpolated,
-                                                               transform.scale.interpolated, global_scale_factor));
+                               graphics.calculate_model_matrix(state.translation.interpolated,
+                                                               state.rotation.interpolated, state.scale.interpolated,
+                                                               global_scale_factor));
     graphics.draw_primitives(render_pass);
   }
 }

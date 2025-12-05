@@ -28,24 +28,4 @@ namespace cse::helper
     glm::vec3 previous = {};
     glm::vec3 interpolated = {};
   };
-
-  struct camera_transform
-  {
-    camera_transform() = default;
-    camera_transform(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_);
-
-    transform_value translation = {};
-    transform_value forward = {};
-    transform_value up = {};
-  };
-
-  struct object_transform
-  {
-    object_transform() = default;
-    object_transform(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_);
-
-    transform_value translation = {};
-    transform_value rotation = {};
-    transform_value scale = {};
-  };
 }
