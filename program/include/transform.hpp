@@ -10,6 +10,8 @@ namespace cse::helper
   {
     friend class core::camera;
     friend class core::object;
+    friend struct camera_state;
+    friend struct object_state;
 
   public:
     transform_value() = default;

@@ -31,9 +31,7 @@ namespace cse::core
 
   void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
-    graphics.create_pipeline(instance, gpu);
-    graphics.create_buffers(gpu);
-    graphics.transfer_buffers(gpu);
+    graphics.create_pipeline_and_buffers(instance, gpu);
     graphics.upload_static_buffers(gpu);
     graphics.upload_dynamic_buffers(gpu);
   }
@@ -69,9 +67,9 @@ namespace cse::core
     graphics.upload_dynamic_buffers(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
     graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix,
-                               graphics.calculate_model_matrix(state.translation.interpolated,
-                                                               state.rotation.interpolated, state.scale.interpolated,
-                                                               global_scale_factor));
+                               state.calculate_model_matrix(graphics.texture.data.frame_data.width,
+                                                            graphics.texture.data.frame_data.width,
+                                                            global_scale_factor));
     graphics.draw_primitives(render_pass);
   }
 }

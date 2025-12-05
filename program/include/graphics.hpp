@@ -7,7 +7,6 @@
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
-#include "glm/ext/vector_float3.hpp"
 #include "glm/ext/vector_uint4_sized.hpp"
 
 #include "declaration.hpp"
@@ -72,8 +71,6 @@ namespace cse::helper
 
   private:
     glm::mat4 calculate_projection_matrix(const float target_aspect_ratio);
-    glm::mat4 calculate_view_matrix(const glm::vec3 &translation, const glm::vec3 &forward, const glm::vec3 &up,
-                                    const float global_scale_factor);
 
   public:
     float fov = {};
@@ -103,7 +100,7 @@ namespace cse::helper
     {
       const resource::compiled_texture data = {};
       std::string frame_group = {};
-      unsigned int frame_id = {};
+      unsigned int frame_index = {};
     };
 
   public:
@@ -113,14 +110,10 @@ namespace cse::helper
                     const glm::u8vec4 &tint_);
 
   private:
-    void create_pipeline(SDL_Window *instance, SDL_GPUDevice *gpu);
-    void create_buffers(SDL_GPUDevice *gpu);
-    void transfer_buffers(SDL_GPUDevice *gpu);
+    void create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu);
     void upload_static_buffers(SDL_GPUDevice *gpu);
     void upload_dynamic_buffers(SDL_GPUDevice *gpu);
     void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass);
-    glm::mat4 calculate_model_matrix(const glm::vec3 &translation, const glm::vec3 &rotation, const glm::vec3 &scale,
-                                     const float global_scale_factor);
     void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &projection_matrix,
                            const glm::mat4 &view_matrix, const glm::mat4 &model_matrix);
     void draw_primitives(SDL_GPURenderPass *render_pass);

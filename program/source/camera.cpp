@@ -45,7 +45,6 @@ namespace cse::core
   std::pair<glm::mat4, glm::mat4> camera::render(const float target_aspect_ratio, const float global_scale_factor)
   {
     return {graphics.calculate_projection_matrix(target_aspect_ratio),
-            graphics.calculate_view_matrix(state.translation.interpolated, state.forward.interpolated,
-                                           state.up.interpolated, global_scale_factor)};
+            state.calculate_view_matrix(global_scale_factor)};
   }
 }
