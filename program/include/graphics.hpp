@@ -7,10 +7,10 @@
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/vector_uint2.hpp"
 #include "glm/ext/vector_uint4_sized.hpp"
 
 #include "declaration.hpp"
-#include "property.hpp"
 #include "resource.hpp"
 
 namespace cse::helper
@@ -22,8 +22,6 @@ namespace cse::helper
 
   public:
     window_graphics() = default;
-    window_graphics(const std::string &title_, const unsigned int width_, const unsigned int height_,
-                    const bool fullscreen_, const bool vsync_);
     ~window_graphics();
     window_graphics(const window_graphics &) = delete;
     window_graphics &operator=(const window_graphics &) = delete;
@@ -31,28 +29,29 @@ namespace cse::helper
     window_graphics &operator=(window_graphics &&) = delete;
 
   private:
-    void create_app_and_window();
-    void generate_depth_texture();
+    void create_app_and_window(const std::string &title, const unsigned int width, const unsigned int height, int &left,
+                               int &top, SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
-    void start_render_pass(const float target_aspect_ratio);
+    void start_render_pass(const float target_aspect_ratio, const unsigned int width, const unsigned int height);
     void end_render_pass();
-    void handle_move();
-    void handle_resize();
+    void generate_depth_texture(const unsigned int width, const unsigned int height);
+    glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
+                                        const unsigned int height);
+    void handle_move(int &left, int &top, SDL_DisplayID &display_index, const bool fullscreen);
+    void handle_manual_move(const int left, const int top, const bool fullscreen);
+    void handle_manual_display_move(const unsigned int width, const unsigned int height, int &left, int &top,
+                                    const SDL_DisplayID display_index, const bool fullscreen);
+    void handle_resize(unsigned int &width, unsigned int &height, SDL_DisplayID &display_index, const bool fullscreen);
+    void handle_manual_resize(const unsigned int width, const unsigned int height, const bool fullscreen);
+    void handle_fullscreen(const bool fullscreen, int &left, int &top, const SDL_DisplayID display_index);
+    void handle_vsync(const bool vsync);
     void destroy_window_and_app();
 
-  public:
-    property<bool> fullscreen = {};
-    property<bool> vsync = {};
-
   private:
-    const std::string title = {};
-    unsigned int width = {};
-    unsigned int height = {};
     unsigned int windowed_width = {};
     unsigned int windowed_height = {};
-    int left = {};
-    int top = {};
-    SDL_DisplayID display_index = {};
+    int windowed_left = {};
+    int windowed_top = {};
     SDL_Window *instance = {};
     SDL_GPUDevice *gpu = {};
     SDL_GPUCommandBuffer *command_buffer = {};
@@ -108,6 +107,11 @@ namespace cse::helper
     object_graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
                     const resource::compiled_texture &texture_, const std::string &frame_group_,
                     const glm::u8vec4 &tint_);
+    ~object_graphics();
+    object_graphics(const object_graphics &) = delete;
+    object_graphics &operator=(const object_graphics &) = delete;
+    object_graphics(object_graphics &&) = delete;
+    object_graphics &operator=(object_graphics &&) = delete;
 
   private:
     void create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu);

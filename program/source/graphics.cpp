@@ -12,6 +12,7 @@
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/vector_uint2.hpp"
 #include "glm/ext/vector_uint4_sized.hpp"
 #include "glm/trigonometric.hpp"
 
@@ -20,140 +21,76 @@
 
 namespace cse::helper
 {
-  window_graphics::window_graphics(const std::string &title_, const unsigned int width_, const unsigned int height_,
-                                   const bool fullscreen_, const bool vsync_)
-    : fullscreen(fullscreen_), vsync(vsync_), title(title_), width(width_), height(height_), windowed_width(width_),
-      windowed_height(height_)
-  {
-    fullscreen.on_change = [this]()
-    {
-      if (fullscreen)
-      {
-        SDL_Rect display_bounds = {};
-        if (!SDL_GetDisplayBounds(display_index, &display_bounds))
-          throw utility::sdl_exception("Could not get bounds for display ({}) for window '{}'", display_index, title);
-        if (!SDL_SetWindowBordered(instance, false))
-          throw utility::sdl_exception("Could not set borderless for window '{}'", title);
-        if (!SDL_SetWindowSize(instance, display_bounds.w, display_bounds.h))
-          throw utility::sdl_exception("Could not set size to ({}, {}) on display ({}) for window '{}'",
-                                       display_bounds.w, display_bounds.h, display_index, title);
-        if (!SDL_SetWindowPosition(instance, SDL_WINDOWPOS_CENTERED_DISPLAY(display_index),
-                                   SDL_WINDOWPOS_CENTERED_DISPLAY(display_index)))
-          throw utility::sdl_exception("Could not set position centered on display ({}) for window '{}'",
-                                       display_index);
-        return;
-      }
-
-      if (!SDL_SetWindowBordered(instance, true))
-        throw utility::sdl_exception("Could not set bordered for window '{}'", title);
-      if (!SDL_SetWindowSize(instance, static_cast<int>(windowed_width), static_cast<int>(windowed_height)))
-        throw utility::sdl_exception("Could not set size to ({}, {}) for window '{}'", windowed_width, windowed_height,
-                                     title);
-      if (!SDL_SetWindowPosition(instance, left, top))
-        throw utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", left, top, title);
-    };
-
-    vsync.on_change = [this]()
-    {
-      if (vsync)
-      {
-        if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
-          throw utility::sdl_exception("Could not enable VSYNC for window '{}'", title);
-        return;
-      }
-
-      if (SDL_WindowSupportsGPUPresentMode(gpu, instance, SDL_GPU_PRESENTMODE_IMMEDIATE))
-        if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
-                                           SDL_GPU_PRESENTMODE_IMMEDIATE))
-          throw utility::sdl_exception("Could not disable VSYNC for window '{}'", title);
-    };
-  }
-
   window_graphics::~window_graphics()
   {
-    fullscreen.on_change = nullptr;
-    vsync.on_change = nullptr;
+    render_pass = nullptr;
+    depth_texture = nullptr;
+    swapchain_texture = nullptr;
+    command_buffer = nullptr;
+    gpu = nullptr;
+    instance = nullptr;
   }
 
-  void window_graphics::create_app_and_window()
+  void window_graphics::create_app_and_window(const std::string &title, const unsigned int width,
+                                              const unsigned int height, int &left, int &top,
+                                              SDL_DisplayID &display_index, const bool fullscreen, const bool vsync)
   {
     SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
-      throw cse::utility::sdl_exception("Could not set app metadata type for window '{}'", title);
+      throw cse::utility::sdl_exception("Could not set app metadata type");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "Connor.Sweeney.Engine"))
-      throw cse::utility::sdl_exception("Could not set app metadata identifier for window '{}'", title);
+      throw cse::utility::sdl_exception("Could not set app metadata identifier");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, "CSEngine"))
-      throw cse::utility::sdl_exception("Could not set app metadata name for window '{}'", title);
+      throw cse::utility::sdl_exception("Could not set app metadata name");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "0.0.0"))
-      throw cse::utility::sdl_exception("Could not set app metadata version for window '{}'", title);
+      throw cse::utility::sdl_exception("Could not set app metadata version");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
-      throw cse::utility::sdl_exception("Could not set app metadata creator for window '{}'", title);
-    if (!SDL_Init(SDL_INIT_VIDEO))
-      throw cse::utility::sdl_exception("SDL could not be initialized for window '{}'", title);
+      throw cse::utility::sdl_exception("Could not set app metadata creator");
+    if (!SDL_Init(SDL_INIT_VIDEO)) throw cse::utility::sdl_exception("SDL could not be initialized");
 
     instance = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height),
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
-    if (!instance) throw cse::utility::sdl_exception("Could not create window '{}'", title);
-
+    if (!instance) throw cse::utility::sdl_exception("Could not create window");
+    windowed_width = width;
+    windowed_height = height;
     display_index = SDL_GetPrimaryDisplay();
-    if (display_index == 0) throw cse::utility::sdl_exception("Could not get primary display for window '{}'", title);
-    left = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
-    top = SDL_WINDOWPOS_CENTERED_DISPLAY(display_index);
+    if (display_index == 0) throw cse::utility::sdl_exception("Could not get primary display");
+    auto position = calculate_display_center(display_index, width, height);
+    left = static_cast<int>(position.x);
+    top = static_cast<int>(position.y);
+    windowed_left = left;
+    windowed_top = top;
     if (!SDL_SetWindowPosition(instance, left, top))
-      throw cse::utility::sdl_exception("Could not set position to ({}, {}) for window '{}'", left, top, title);
+      throw cse::utility::sdl_exception("Could not set window position to {}, {}", left, top);
     gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, "vulkan");
-    if (!gpu) throw cse::utility::sdl_exception("Could not create GPU device for window '{}'", title);
+    if (!gpu) throw cse::utility::sdl_exception("Could not create GPU device");
     if (!SDL_ClaimWindowForGPUDevice(gpu, instance))
-      throw cse::utility::sdl_exception("Could not claim window for GPU device for window '{}'", title);
+      throw cse::utility::sdl_exception("Could not claim window for GPU device");
     if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
-      throw cse::utility::sdl_exception("Could not enable VSYNC for window '{}'", title);
-
-    if (fullscreen) fullscreen.on_change();
-    if (!vsync) vsync.on_change();
-    if (!depth_texture) generate_depth_texture();
-
+      throw cse::utility::sdl_exception("Could not enable VSYNC");
+    if (fullscreen) handle_fullscreen(fullscreen, left, top, display_index);
+    if (!vsync) handle_vsync(vsync);
+    if (!depth_texture) generate_depth_texture(width, height);
     SDL_ShowWindow(instance);
-  }
-
-  void window_graphics::generate_depth_texture()
-  {
-    if (depth_texture)
-    {
-      SDL_ReleaseGPUTexture(gpu, depth_texture);
-      depth_texture = nullptr;
-    }
-    SDL_GPUTextureCreateInfo depth_texture_info = {.type = SDL_GPU_TEXTURETYPE_2D,
-                                                   .format = SDL_GPU_TEXTUREFORMAT_D24_UNORM,
-                                                   .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
-                                                   .width = width,
-                                                   .height = height,
-                                                   .layer_count_or_depth = 1,
-                                                   .num_levels = 1,
-                                                   .sample_count = SDL_GPU_SAMPLECOUNT_1,
-                                                   .props = 0};
-    depth_texture = SDL_CreateGPUTexture(gpu, &depth_texture_info);
-    if (!depth_texture) throw cse::utility::sdl_exception("Could not create depth texture for window '{}'", title);
   }
 
   bool window_graphics::acquire_swapchain_texture()
   {
     command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
-    if (!command_buffer)
-      throw cse::utility::sdl_exception("Could not acquire GPU command buffer for window '{}'", title);
-
+    if (!command_buffer) throw cse::utility::sdl_exception("Could not acquire GPU command buffer");
     if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, nullptr, nullptr))
-      throw cse::utility::sdl_exception("Could not acquire GPU swapchain texture for window '{}'", title);
+      throw cse::utility::sdl_exception("Could not acquire GPU swapchain texture");
     if (!swapchain_texture)
     {
       if (!SDL_SubmitGPUCommandBuffer(command_buffer))
-        throw cse::utility::sdl_exception("Could not submit GPU command buffer for window '{}'", title);
+        throw cse::utility::sdl_exception("Could not submit GPU command buffer");
       return false;
     }
-
     return true;
   }
 
-  void window_graphics::start_render_pass(const float target_aspect_ratio)
+  void window_graphics::start_render_pass(const float target_aspect_ratio, const unsigned int width,
+                                          const unsigned int height)
   {
     SDL_GPUColorTargetInfo color_target_info = {};
     color_target_info.texture = swapchain_texture;
@@ -166,8 +103,7 @@ namespace cse::helper
     depth_stencil_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     depth_stencil_target_info.store_op = SDL_GPU_STOREOP_STORE;
     render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, &depth_stencil_target_info);
-    if (!render_pass) throw cse::utility::sdl_exception("Could not begin GPU render pass for window '{}'", title);
-
+    if (!render_pass) throw cse::utility::sdl_exception("Could not begin GPU render pass");
     float viewport_x = {}, viewport_y = {}, viewport_width = {}, viewport_height = {};
     if ((static_cast<float>(width) / static_cast<float>(height)) > target_aspect_ratio)
     {
@@ -196,19 +132,77 @@ namespace cse::helper
   {
     SDL_EndGPURenderPass(render_pass);
     if (!SDL_SubmitGPUCommandBuffer(command_buffer))
-      throw cse::utility::sdl_exception("Could not submit GPU command buffer for window '{}'", title);
+      throw cse::utility::sdl_exception("Could not submit GPU command buffer");
   }
 
-  void window_graphics::handle_move()
+  void window_graphics::generate_depth_texture(const unsigned int width, const unsigned int height)
+  {
+    if (depth_texture)
+    {
+      SDL_ReleaseGPUTexture(gpu, depth_texture);
+      depth_texture = nullptr;
+    }
+    SDL_GPUTextureCreateInfo depth_texture_info = {.type = SDL_GPU_TEXTURETYPE_2D,
+                                                   .format = SDL_GPU_TEXTUREFORMAT_D24_UNORM,
+                                                   .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
+                                                   .width = width,
+                                                   .height = height,
+                                                   .layer_count_or_depth = 1,
+                                                   .num_levels = 1,
+                                                   .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                                   .props = 0};
+    depth_texture = SDL_CreateGPUTexture(gpu, &depth_texture_info);
+    if (!depth_texture) throw cse::utility::sdl_exception("Could not create depth texture");
+  }
+
+  glm::uvec2 window_graphics::calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
+                                                       const unsigned int height)
+  {
+    SDL_Rect display_bounds = {};
+    if (!SDL_GetDisplayBounds(display_index, &display_bounds))
+      throw utility::sdl_exception("Could not get bounds for display {}", display_index);
+    return {display_bounds.x + (display_bounds.w - static_cast<int>(width)) / 2,
+            display_bounds.y + (display_bounds.h - static_cast<int>(height)) / 2};
+  }
+
+  void window_graphics::handle_move(int &left, int &top, SDL_DisplayID &display_index, const bool fullscreen)
   {
     if (fullscreen) return;
-    if (!SDL_GetWindowPosition(instance, &left, &top))
-      throw utility::sdl_exception("Could not get position for window '{}'", title);
+    if (!SDL_GetWindowPosition(instance, &left, &top)) throw utility::sdl_exception("Could not get window position");
+    windowed_left = left;
+    windowed_top = top;
     display_index = SDL_GetDisplayForWindow(instance);
-    if (display_index == 0) throw utility::sdl_exception("Could not get display index for window '{}'", title);
+    if (display_index == 0) throw utility::sdl_exception("Could not get window display index");
   }
 
-  void window_graphics::handle_resize()
+  void window_graphics::handle_manual_move(const int left, const int top, const bool fullscreen)
+  {
+    if (!fullscreen)
+    {
+      windowed_left = left;
+      windowed_top = top;
+    }
+    if (!SDL_SetWindowPosition(instance, left, top))
+      throw utility::sdl_exception("Could not set window position to {}, {}", left, top);
+  }
+
+  void window_graphics::handle_manual_display_move(const unsigned int width, const unsigned int height, int &left,
+                                                   int &top, const SDL_DisplayID display_index, const bool fullscreen)
+  {
+    auto position = calculate_display_center(display_index, width, height);
+    left = static_cast<int>(position.x);
+    top = static_cast<int>(position.y);
+    if (!fullscreen)
+    {
+      windowed_left = left;
+      windowed_top = top;
+    }
+    if (!SDL_SetWindowPosition(instance, left, top))
+      throw utility::sdl_exception("Could not set window position centered on display {}", display_index);
+  }
+
+  void window_graphics::handle_resize(unsigned int &width, unsigned int &height, SDL_DisplayID &display_index,
+                                      const bool fullscreen)
   {
     SDL_GetWindowSize(instance, reinterpret_cast<int *>(&width), reinterpret_cast<int *>(&height));
     if (!fullscreen)
@@ -216,7 +210,60 @@ namespace cse::helper
       windowed_width = width;
       windowed_height = height;
     }
-    generate_depth_texture();
+    display_index = SDL_GetDisplayForWindow(instance);
+    generate_depth_texture(width, height);
+  }
+
+  void window_graphics::handle_manual_resize(const unsigned int width, const unsigned int height, const bool fullscreen)
+  {
+    if (!fullscreen)
+    {
+      windowed_width = width;
+      windowed_height = height;
+    }
+    if (!SDL_SetWindowSize(instance, static_cast<int>(width), static_cast<int>(height)))
+      throw utility::sdl_exception("Could not set window size to {}, {}", width, height);
+    generate_depth_texture(width, height);
+  }
+
+  void window_graphics::handle_fullscreen(const bool fullscreen, int &left, int &top, const SDL_DisplayID display_index)
+  {
+    if (fullscreen)
+    {
+      SDL_Rect display_bounds = {};
+      if (!SDL_GetDisplayBounds(display_index, &display_bounds))
+        throw utility::sdl_exception("Could not get bounds for display {}", display_index);
+      if (!SDL_SetWindowBordered(instance, false)) throw utility::sdl_exception("Could not set window borderless");
+      if (!SDL_SetWindowSize(instance, display_bounds.w, display_bounds.h))
+        throw utility::sdl_exception("Could not set window size to {}, {} on display {}", display_bounds.w,
+                                     display_bounds.h, display_index);
+      auto position = calculate_display_center(display_index, static_cast<unsigned int>(display_bounds.w),
+                                               static_cast<unsigned int>(display_bounds.h));
+      left = static_cast<int>(position.x);
+      top = static_cast<int>(position.y);
+      if (!SDL_SetWindowPosition(instance, left, top))
+        throw utility::sdl_exception("Could not set window position centered on display {}", display_index);
+      return;
+    }
+    if (!SDL_SetWindowBordered(instance, true)) throw utility::sdl_exception("Could not set window bordered");
+    if (!SDL_SetWindowSize(instance, static_cast<int>(windowed_width), static_cast<int>(windowed_height)))
+      throw utility::sdl_exception("Could not set window size to {}, {}", windowed_width, windowed_height);
+    if (!SDL_SetWindowPosition(instance, windowed_left, windowed_top))
+      throw utility::sdl_exception("Could not set window position to {}, {}", left, top);
+  }
+
+  void window_graphics::handle_vsync(const bool vsync)
+  {
+    if (vsync)
+    {
+      if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
+        throw utility::sdl_exception("Could not enable VSYNC");
+      return;
+    }
+    if (SDL_WindowSupportsGPUPresentMode(gpu, instance, SDL_GPU_PRESENTMODE_IMMEDIATE))
+      if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
+                                         SDL_GPU_PRESENTMODE_IMMEDIATE))
+        throw utility::sdl_exception("Could not disable VSYNC");
   }
 
   void window_graphics::destroy_window_and_app()
@@ -225,12 +272,6 @@ namespace cse::helper
     SDL_ReleaseWindowFromGPUDevice(gpu, instance);
     SDL_DestroyGPUDevice(gpu);
     SDL_DestroyWindow(instance);
-    render_pass = nullptr;
-    depth_texture = nullptr;
-    swapchain_texture = nullptr;
-    command_buffer = nullptr;
-    gpu = nullptr;
-    instance = nullptr;
     SDL_Quit();
   }
 
@@ -247,6 +288,17 @@ namespace cse::helper
                                    const glm::u8vec4 &tint_)
     : shader(vertex_shader_, fragment_shader_), texture(texture_, frame_group_), tint(tint_)
   {
+  }
+
+  object_graphics::~object_graphics()
+  {
+    texture_transfer_buffer = nullptr;
+    vertex_transfer_buffer = nullptr;
+    sampler_buffer = nullptr;
+    texture_buffer = nullptr;
+    index_buffer = nullptr;
+    vertex_buffer = nullptr;
+    pipeline = nullptr;
   }
 
   void object_graphics::create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu)
@@ -462,13 +514,5 @@ namespace cse::helper
     SDL_ReleaseGPUBuffer(gpu, index_buffer);
     SDL_ReleaseGPUBuffer(gpu, vertex_buffer);
     SDL_ReleaseGPUGraphicsPipeline(gpu, pipeline);
-
-    texture_transfer_buffer = nullptr;
-    vertex_transfer_buffer = nullptr;
-    sampler_buffer = nullptr;
-    texture_buffer = nullptr;
-    index_buffer = nullptr;
-    vertex_buffer = nullptr;
-    pipeline = nullptr;
   }
 }

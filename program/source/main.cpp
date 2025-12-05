@@ -27,20 +27,20 @@ public:
 class custom_window : public cse::core::window
 {
 public:
-  custom_window(const std::string &title, const unsigned int width, const unsigned int height)
-    : window(title, width, height, false, true)
+  custom_window(const std::string &title_, const unsigned int width_, const unsigned int height_)
+    : window(title_, width_, height_, false, true)
   {
     handle_event = [this](const SDL_Event &event)
     {
       if (event.type != SDL_EVENT_KEY_DOWN) return;
       switch (const auto &key = event.key; key.scancode)
       {
-        case SDL_SCANCODE_ESCAPE: state.running = false; break;
+        case SDL_SCANCODE_ESCAPE: running = false; break;
         case SDL_SCANCODE_F11:
-          if (!key.repeat) graphics.fullscreen = !graphics.fullscreen;
+          if (!key.repeat) fullscreen = !fullscreen;
           break;
         case SDL_SCANCODE_F12:
-          if (!key.repeat) graphics.vsync = !graphics.vsync;
+          if (!key.repeat) vsync = !vsync;
           break;
         default: break;
       }
@@ -51,8 +51,8 @@ public:
 class custom_camera : public cse::core::camera
 {
 public:
-  custom_camera(const glm::vec3 &translation, const glm::vec3 &forward, const glm::vec3 &up)
-    : cse::core::camera(translation, forward, up, 45.0f)
+  custom_camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
+    : cse::core::camera(translation_, forward_, up_, 45.0f)
   {
     handle_input = [this](const bool *keys)
     {
@@ -86,8 +86,8 @@ public:
 class custom_object : public cse::core::object
 {
 public:
-  custom_object(const glm::ivec3 &translation, const glm::ivec3 &rotation, const glm::ivec3 &scale)
-    : cse::core::object(translation, rotation, scale, cse::resource::main_vertex, cse::resource::main_fragment,
+  custom_object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_)
+    : cse::core::object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
                         cse::resource::main_texture, "main", {255, 255, 255, 255})
   {
     handle_event = [this](const SDL_Event &event)

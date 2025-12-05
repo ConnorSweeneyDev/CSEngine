@@ -19,7 +19,6 @@ namespace cse::core
     game &operator=(game &&) = delete;
 
     void run();
-
     template <typename window_type, typename... window_arguments> void set_window(window_arguments &&...arguments);
     std::weak_ptr<scene> get_scene(const std::string &name) const;
     template <typename scene_type, typename... scene_arguments>

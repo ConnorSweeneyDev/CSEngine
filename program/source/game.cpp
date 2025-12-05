@@ -25,7 +25,7 @@ namespace cse::core
   void game::run()
   {
     initialize();
-    while (window->state.running)
+    while (window->running)
     {
       update_simulation_time();
       while (simulation_behind())
@@ -81,11 +81,11 @@ namespace cse::core
 
   void game::event()
   {
-    while (SDL_PollEvent(&window->state.event))
+    while (SDL_PollEvent(&window->current_event))
     {
       window->event();
       if (auto scene = current_scene.lock())
-        scene->event(window->state.event);
+        scene->event(window->current_event);
       else
         throw cse::utility::exception("Current scene is not initialized");
     }
@@ -95,7 +95,7 @@ namespace cse::core
   {
     window->input();
     if (auto scene = current_scene.lock())
-      scene->input(window->state.keys);
+      scene->input(window->current_keys);
     else
       throw cse::utility::exception("Current scene is not initialized");
   }

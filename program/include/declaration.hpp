@@ -11,7 +11,6 @@ namespace cse::core
 
 namespace cse::helper
 {
-  struct window_state;
   struct window_graphics;
   struct camera_state;
   struct camera_graphics;

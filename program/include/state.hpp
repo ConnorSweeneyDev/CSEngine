@@ -2,7 +2,6 @@
 
 #include "declaration.hpp"
 
-#include "SDL3/SDL_events.h"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
 
@@ -10,19 +9,6 @@
 
 namespace cse::helper
 {
-  struct window_state
-  {
-    friend class core::game;
-    friend class core::window;
-
-  public:
-    bool running = {};
-
-  private:
-    SDL_Event event = {};
-    const bool *keys = {};
-  };
-
   struct camera_state
   {
     friend class core::camera;

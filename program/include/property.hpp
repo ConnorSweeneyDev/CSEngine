@@ -18,22 +18,25 @@ namespace cse::helper
     property(property &&) noexcept = default;
     property &operator=(property &&other_);
 
-    operator type() const noexcept(std::is_nothrow_copy_constructible_v<type>);
+    operator type &() noexcept;
+    operator const type &() const noexcept;
+    type *operator->() noexcept;
     const type *operator->() const noexcept;
+
     bool operator==(const property &other_) const noexcept(noexcept(std::declval<type>() == std::declval<type>()));
     auto operator<=>(const property &other_) const noexcept(noexcept(std::declval<type>() <=> std::declval<type>()));
 
     property &operator=(const type &value_);
-    property &operator+=(const type &value_);
-    property &operator-=(const type &value_);
-    property &operator*=(const type &value_);
-    property &operator/=(const type &value_);
-    property &operator%=(const type &value_);
-    property &operator&=(const type &value_);
-    property &operator|=(const type &value_);
-    property &operator^=(const type &value_);
-    property &operator<<=(const type &value_);
-    property &operator>>=(const type &value_);
+    template <typename other> property &operator+=(const other &value_);
+    template <typename other> property &operator-=(const other &value_);
+    template <typename other> property &operator*=(const other &value_);
+    template <typename other> property &operator/=(const other &value_);
+    template <typename other> property &operator%=(const other &value_);
+    template <typename other> property &operator&=(const other &value_);
+    template <typename other> property &operator|=(const other &value_);
+    template <typename other> property &operator^=(const other &value_);
+    template <typename other> property &operator<<=(const other &value_);
+    template <typename other> property &operator>>=(const other &value_);
     property &operator++();
     property operator++(int);
     property &operator--();

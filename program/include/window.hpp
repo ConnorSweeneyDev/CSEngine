@@ -4,10 +4,11 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
+#include "SDL3/SDL_video.h"
 
 #include "declaration.hpp"
 #include "graphics.hpp"
-#include "state.hpp"
+#include "property.hpp"
 
 namespace cse::core
 {
@@ -16,8 +17,8 @@ namespace cse::core
     friend class game;
 
   public:
-    window(const std::string &title_, const unsigned int starting_width_, const unsigned int starting_height_,
-           const bool fullscreen_, const bool vsync_);
+    window(const std::string &title_, const unsigned int width_, const unsigned int height_, const bool fullscreen_,
+           const bool vsync_);
     virtual ~window();
     window(const window &) = delete;
     window &operator=(const window &) = delete;
@@ -36,7 +37,20 @@ namespace cse::core
     std::function<void(const SDL_Event &key)> handle_event = {};
     std::function<void(const bool *keys)> handle_input = {};
 
-    helper::window_state state = {};
+    bool running = {};
+    const std::string title = {};
+    helper::property<unsigned int> width = {};
+    helper::property<unsigned int> height = {};
+    helper::property<int> left = {};
+    helper::property<int> top = {};
+    helper::property<SDL_DisplayID> display_index = {};
+    helper::property<bool> fullscreen = {};
+    helper::property<bool> vsync = {};
+
+  private:
     helper::window_graphics graphics = {};
+
+    SDL_Event current_event = {};
+    const bool *current_keys = {};
   };
 }

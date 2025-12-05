@@ -27,6 +27,7 @@ namespace cse::core
   {
     handle_simulate = nullptr;
     handle_input = nullptr;
+    handle_event = nullptr;
   }
 
   void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
@@ -53,9 +54,7 @@ namespace cse::core
     state.translation.update();
     state.rotation.update();
     state.scale.update();
-
     if (handle_simulate) handle_simulate();
-
     state.translation.interpolate(simulation_alpha);
     state.rotation.interpolate(simulation_alpha);
     state.scale.interpolate(simulation_alpha);

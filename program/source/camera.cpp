@@ -17,6 +17,7 @@ namespace cse::core
   {
     handle_simulate = nullptr;
     handle_input = nullptr;
+    handle_event = nullptr;
   }
 
   void camera::event(const SDL_Event &event)
@@ -34,9 +35,7 @@ namespace cse::core
     state.translation.update();
     state.forward.update();
     state.up.update();
-
     if (handle_simulate) handle_simulate();
-
     state.translation.interpolate(simulation_alpha);
     state.forward.interpolate(simulation_alpha);
     state.up.interpolate(simulation_alpha);

@@ -20,6 +20,7 @@ namespace cse::core
     camera.reset();
     handle_simulate = nullptr;
     handle_input = nullptr;
+    handle_event = nullptr;
   }
 
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)

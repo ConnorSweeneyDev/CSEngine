@@ -25,10 +25,11 @@ namespace cse::helper
     return *this;
   }
 
-  template <typename type> property<type>::operator type() const noexcept(std::is_nothrow_copy_constructible_v<type>)
-  {
-    return value;
-  }
+  template <typename type> property<type>::operator type &() noexcept { return value; }
+
+  template <typename type> property<type>::operator const type &() const noexcept { return value; }
+
+  template <typename type> type *property<type>::operator->() noexcept { return &value; }
 
   template <typename type> const type *property<type>::operator->() const noexcept { return &value; }
 
@@ -51,70 +52,70 @@ namespace cse::helper
     return *this;
   }
 
-  template <typename type> property<type> &property<type>::operator+=(const type &value_)
+  template <typename type> template <typename other> property<type> &property<type>::operator+=(const other &value_)
   {
     value += value_;
     if (on_change) on_change();
     return *this;
   }
 
-  template <typename type> property<type> &property<type>::operator-=(const type &value_)
+  template <typename type> template <typename other> property<type> &property<type>::operator-=(const other &value_)
   {
     value -= value_;
     if (on_change) on_change();
     return *this;
   }
 
-  template <typename type> property<type> &property<type>::operator*=(const type &value_)
+  template <typename type> template <typename other> property<type> &property<type>::operator*=(const other &value_)
   {
     value *= value_;
     if (on_change) on_change();
     return *this;
   }
 
-  template <typename type> property<type> &property<type>::operator/=(const type &value_)
+  template <typename type> template <typename other> property<type> &property<type>::operator/=(const other &value_)
   {
     value /= value_;
     if (on_change) on_change();
     return *this;
   }
 
-  template <typename type> property<type> &property<type>::operator%=(const type &value_)
+  template <typename type> template <typename other> property<type> &property<type>::operator%=(const other &value_)
   {
     value %= value_;
     if (on_change) on_change();
     return *this;
   }
 
-  template <typename type> property<type> &property<type>::operator&=(const type &value_)
+  template <typename type> template <typename other> property<type> &property<type>::operator&=(const other &value_)
   {
     value &= value_;
     if (on_change) on_change();
     return *this;
   }
 
-  template <typename type> property<type> &property<type>::operator|=(const type &value_)
+  template <typename type> template <typename other> property<type> &property<type>::operator|=(const other &value_)
   {
     value |= value_;
     if (on_change) on_change();
     return *this;
   }
 
-  template <typename type> property<type> &property<type>::operator^=(const type &value_)
+  template <typename type> template <typename other> property<type> &property<type>::operator^=(const other &value_)
   {
     value ^= value_;
     if (on_change) on_change();
     return *this;
   }
 
-  template <typename type> property<type> &property<type>::operator<<=(const type &value_)
+  template <typename type> template <typename other> property<type> &property<type>::operator<<=(const other &value_)
   {
     value <<= value_;
     if (on_change) on_change();
     return *this;
   }
 
-  template <typename type> property<type> &property<type>::operator>>=(const type &value_)
+  template <typename type> template <typename other> property<type> &property<type>::operator>>=(const other &value_)
   {
     value >>= value_;
     if (on_change) on_change();
