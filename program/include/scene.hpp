@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <memory>
-#include <string>
 #include <unordered_map>
 
 #include "SDL3/SDL_events.h"
@@ -11,6 +10,7 @@
 
 #include "camera.hpp"
 #include "declaration.hpp"
+#include "id.hpp"
 #include "object.hpp"
 
 namespace cse::core
@@ -29,7 +29,7 @@ namespace cse::core
 
     template <typename camera_type, typename... camera_arguments> void set_camera(camera_arguments &&...arguments);
     template <typename object_type, typename... object_arguments>
-    void add_object(const std::string &name, object_arguments &&...arguments);
+    void add_object(helper::id name, object_arguments &&...arguments);
 
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
@@ -47,7 +47,7 @@ namespace cse::core
 
   private:
     std::unique_ptr<class camera> camera = {};
-    std::unordered_map<std::string, std::shared_ptr<object>> objects = {};
+    std::unordered_map<helper::id, std::shared_ptr<object>> objects = {};
   };
 }
 

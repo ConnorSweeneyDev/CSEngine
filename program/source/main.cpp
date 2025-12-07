@@ -147,8 +147,6 @@ int try_main(int argc, char *argv[])
                                      glm::vec3(0.0f, 1.0f, 0.0f));
     scene->add_object<custom_object>("object", glm::ivec3(0, 0, 0), glm::ivec3(0, 0, 0), glm::ivec3(1, 1, 1));
   }
-  else
-    throw cse::utility::exception("Failed to add scene with name '{}'", "scene");
   game->set_current_scene("scene");
 
   game->run();

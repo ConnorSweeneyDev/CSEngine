@@ -7,6 +7,7 @@
 #include "SDL3/SDL_timer.h"
 
 #include "exception.hpp"
+#include "id.hpp"
 #include "print.hpp"
 #include "scene.hpp"
 #include "window.hpp"
@@ -44,19 +45,19 @@ namespace cse::core
     cleanup();
   }
 
-  std::weak_ptr<scene> game::get_scene(const std::string &name) const
+  std::weak_ptr<scene> game::get_scene(helper::id name) const
   {
-    if (!scenes.contains(name)) throw utility::exception("Scene with name '{}' does not exist", name);
+    if (!scenes.contains(name)) throw utility::exception("Requested scene does not exist");
     if (auto scene = scenes.at(name); scene) return scene;
-    throw utility::exception("Scene with name '{}' is not initialized", name);
+    throw utility::exception("Requested scene is not initialized");
   }
 
-  void game::set_current_scene(const std::string &name)
+  void game::set_current_scene(helper::id name)
   {
     if (auto scene = get_scene(name).lock())
       current_scene = scene;
     else
-      throw utility::exception("Scene with name '{}' is not initialized", name);
+      throw utility::exception("Tried to set current scene to null");
   }
 
   void game::initialize()

@@ -5,6 +5,7 @@
 #include <string>
 
 #include "exception.hpp"
+#include "id.hpp"
 
 namespace cse::core
 {
@@ -14,9 +15,9 @@ namespace cse::core
   }
 
   template <typename object_type, typename... object_arguments>
-  void scene::add_object(const std::string &name, object_arguments &&...arguments)
+  void scene::add_object(helper::id name, object_arguments &&...arguments)
   {
-    if (objects.contains(name)) throw utility::exception("Object with name '{}' already exists", name);
+    if (objects.contains(name)) throw utility::exception("Tried to add duplicate object to scene");
     objects.emplace(name, std::make_shared<object_type>(std::forward<object_arguments>(arguments)...));
   }
 }
