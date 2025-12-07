@@ -21,7 +21,7 @@
 class custom_scene : public cse::core::scene
 {
 public:
-  custom_scene() {}
+  custom_scene() : scene() {}
 };
 
 class custom_window : public cse::core::window
@@ -52,7 +52,7 @@ class custom_camera : public cse::core::camera
 {
 public:
   custom_camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
-    : cse::core::camera(translation_, forward_, up_, 45.0f)
+    : camera(translation_, forward_, up_, 45.0f)
   {
     handle_input = [this](const bool *keys)
     {
@@ -87,8 +87,8 @@ class custom_object : public cse::core::object
 {
 public:
   custom_object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_)
-    : cse::core::object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
-                        cse::resource::main_texture, "main", {255, 255, 255, 255})
+    : object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
+             cse::resource::main_texture, "main", {255, 255, 255, 255})
   {
     handle_event = [this](const SDL_Event &event)
     {
@@ -149,8 +149,8 @@ int try_main(int argc, char *argv[])
   }
   else
     throw cse::utility::exception("Failed to add scene with name '{}'", "scene");
-
   game->set_current_scene("scene");
+
   game->run();
   game.reset();
 
