@@ -70,9 +70,8 @@ int csb::build()
   using frame_groups = std::vector<frame_group>;
   using frame_dimensions = std::pair<unsigned int, unsigned int>;
   using frame_data = std::pair<frame_dimensions, frame_groups>;
-  auto frame_json = csb::read_file<nlohmann::json>("program/texture/frames.json");
   std::unordered_map<std::filesystem::path, frame_data> frame_map = {};
-  for (const auto &object : frame_json)
+  for (const auto &object : csb::read_file<nlohmann::json>("program/texture/frames.json"))
   {
     const auto &file = object["file"].get<std::filesystem::path>();
     const auto &dimensions = object["frame_dimensions"].get<frame_dimensions>();
