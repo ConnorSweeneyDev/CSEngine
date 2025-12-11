@@ -15,27 +15,21 @@ namespace cse::core
 
   camera::~camera()
   {
-    handle_simulate = nullptr;
-    handle_input = nullptr;
-    handle_event = nullptr;
+    simulate_hooks.clear();
+    input_hooks.clear();
+    event_hooks.clear();
   }
 
-  void camera::event(const SDL_Event &event)
-  {
-    if (handle_event) handle_event(event);
-  }
+  void camera::event(const SDL_Event &event) { event_hooks.call("main", event); }
 
-  void camera::input(const bool *keys)
-  {
-    if (handle_input) handle_input(keys);
-  }
+  void camera::input(const bool *keys) { input_hooks.call("main", keys); }
 
   void camera::simulate(const double simulation_alpha)
   {
     state.translation.update();
     state.forward.update();
     state.up.update();
-    if (handle_simulate) handle_simulate();
+    simulate_hooks.call("main");
     state.translation.interpolate(simulation_alpha);
     state.forward.interpolate(simulation_alpha);
     state.up.interpolate(simulation_alpha);

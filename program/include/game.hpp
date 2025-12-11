@@ -11,7 +11,7 @@ namespace cse::core
   class game
   {
   public:
-    game();
+    game() = default;
     ~game();
     game(const game &) = delete;
     game &operator=(const game &) = delete;

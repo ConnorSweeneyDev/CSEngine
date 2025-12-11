@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <string>
 
 #include "SDL3/SDL_events.h"
@@ -12,6 +11,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
+#include "hooks.hpp"
 #include "resource.hpp"
 #include "state.hpp"
 
@@ -41,9 +41,9 @@ namespace cse::core
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float global_scale_factor);
 
   protected:
-    std::function<void(const SDL_Event &key)> handle_event = {};
-    std::function<void(const bool *keys)> handle_input = {};
-    std::function<void()> handle_simulate = {};
+    helper::hooks<void(const SDL_Event &event)> event_hooks = {};
+    helper::hooks<void(const bool *keys)> input_hooks = {};
+    helper::hooks<void()> simulate_hooks = {};
 
     helper::object_state state = {};
     helper::object_graphics graphics = {};

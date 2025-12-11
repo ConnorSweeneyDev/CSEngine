@@ -14,8 +14,6 @@
 
 namespace cse::core
 {
-  game::game() {}
-
   game::~game()
   {
     current_scene.reset();

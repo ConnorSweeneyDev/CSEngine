@@ -25,9 +25,9 @@ namespace cse::core
 
   object::~object()
   {
-    handle_simulate = nullptr;
-    handle_input = nullptr;
-    handle_event = nullptr;
+    simulate_hooks.clear();
+    input_hooks.clear();
+    event_hooks.clear();
   }
 
   void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
@@ -39,22 +39,16 @@ namespace cse::core
 
   void object::cleanup(SDL_GPUDevice *gpu) { graphics.cleanup_object(gpu); }
 
-  void object::event(const SDL_Event &event)
-  {
-    if (handle_event) handle_event(event);
-  }
+  void object::event(const SDL_Event &event) { event_hooks.call("main", event); }
 
-  void object::input(const bool *keys)
-  {
-    if (handle_input) handle_input(keys);
-  }
+  void object::input(const bool *keys) { input_hooks.call("main", keys); }
 
   void object::simulate(double simulation_alpha)
   {
     state.translation.update();
     state.rotation.update();
     state.scale.update();
-    if (handle_simulate) handle_simulate();
+    simulate_hooks.call("main");
     state.translation.interpolate(simulation_alpha);
     state.rotation.interpolate(simulation_alpha);
     state.scale.interpolate(simulation_alpha);

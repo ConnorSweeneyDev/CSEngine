@@ -12,15 +12,13 @@
 
 namespace cse::core
 {
-  scene::scene() {}
-
   scene::~scene()
   {
     objects.clear();
     camera.reset();
-    handle_simulate = nullptr;
-    handle_input = nullptr;
-    handle_event = nullptr;
+    simulate_hooks.clear();
+    input_hooks.clear();
+    event_hooks.clear();
   }
 
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
@@ -35,23 +33,26 @@ namespace cse::core
 
   void scene::event(const SDL_Event &event)
   {
-    if (handle_event) handle_event(event);
+    event_hooks.call("pre", event);
     camera->event(event);
     for (const auto &object : objects) object.second->event(event);
+    event_hooks.call("post", event);
   }
 
   void scene::input(const bool *keys)
   {
-    if (handle_input) handle_input(keys);
+    input_hooks.call("pre", keys);
     camera->input(keys);
     for (const auto &object : objects) object.second->input(keys);
+    input_hooks.call("post", keys);
   }
 
   void scene::simulate(const double simulation_alpha)
   {
-    if (handle_simulate) handle_simulate(simulation_alpha);
+    simulate_hooks.call("pre", simulation_alpha);
     camera->simulate(simulation_alpha);
     for (const auto &object : objects) object.second->simulate(simulation_alpha);
+    simulate_hooks.call("post", simulation_alpha);
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,

@@ -30,21 +30,22 @@ public:
   custom_window(const std::string &title_, const unsigned int width_, const unsigned int height_)
     : window(title_, width_, height_, false, true)
   {
-    handle_event = [this](const SDL_Event &event)
-    {
-      if (event.type != SDL_EVENT_KEY_DOWN) return;
-      switch (const auto &key = event.key; key.scancode)
-      {
-        case SDL_SCANCODE_ESCAPE: running = false; break;
-        case SDL_SCANCODE_F11:
-          if (!key.repeat) fullscreen = !fullscreen;
-          break;
-        case SDL_SCANCODE_F12:
-          if (!key.repeat) vsync = !vsync;
-          break;
-        default: break;
-      }
-    };
+    event_hooks.add("main",
+                    [this](const SDL_Event &event)
+                    {
+                      if (event.type != SDL_EVENT_KEY_DOWN) return;
+                      switch (const auto &key = event.key; key.scancode)
+                      {
+                        case SDL_SCANCODE_ESCAPE: running = false; break;
+                        case SDL_SCANCODE_F11:
+                          if (!key.repeat) fullscreen = !fullscreen;
+                          break;
+                        case SDL_SCANCODE_F12:
+                          if (!key.repeat) vsync = !vsync;
+                          break;
+                        default: break;
+                      }
+                    });
   }
 };
 
@@ -54,32 +55,35 @@ public:
   custom_camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
     : camera(translation_, forward_, up_, 45.0f)
   {
-    handle_input = [this](const bool *keys)
-    {
-      if (keys[SDL_SCANCODE_I]) state.translation.acceleration.y += 0.01f;
-      if (keys[SDL_SCANCODE_K]) state.translation.acceleration.y -= 0.01f;
-      if (keys[SDL_SCANCODE_L]) state.translation.acceleration.x += 0.01f;
-      if (keys[SDL_SCANCODE_J]) state.translation.acceleration.x -= 0.01f;
-      if (keys[SDL_SCANCODE_U]) state.translation.acceleration.z -= 0.01f;
-      if (keys[SDL_SCANCODE_O]) state.translation.acceleration.z += 0.01f;
-    };
+    input_hooks.add("main",
+                    [this](const bool *keys)
+                    {
+                      if (keys[SDL_SCANCODE_I]) state.translation.acceleration.y += 0.01f;
+                      if (keys[SDL_SCANCODE_K]) state.translation.acceleration.y -= 0.01f;
+                      if (keys[SDL_SCANCODE_L]) state.translation.acceleration.x += 0.01f;
+                      if (keys[SDL_SCANCODE_J]) state.translation.acceleration.x -= 0.01f;
+                      if (keys[SDL_SCANCODE_U]) state.translation.acceleration.z -= 0.01f;
+                      if (keys[SDL_SCANCODE_O]) state.translation.acceleration.z += 0.01f;
+                    });
 
-    handle_simulate = [this]()
-    {
-      state.translation.velocity += state.translation.acceleration;
-      state.translation.acceleration = glm::vec3(-0.002f);
-      for (int index = 0; index < 3; ++index)
-      {
-        if (state.translation.velocity[index] < 0.0f)
-          state.translation.velocity[index] -= state.translation.acceleration[index];
-        if (state.translation.velocity[index] > 0.0f)
-          state.translation.velocity[index] += state.translation.acceleration[index];
-        if (state.translation.velocity[index] < 0.002f && state.translation.velocity[index] > -0.002f)
-          state.translation.velocity[index] = 0.0f;
-      }
-      state.translation.acceleration = glm::vec3(0.0f);
-      state.translation.value += state.translation.velocity;
-    };
+    simulate_hooks.add("main",
+                       [this]()
+                       {
+                         state.translation.velocity += state.translation.acceleration;
+                         state.translation.acceleration = glm::vec3(-0.002f);
+                         for (int index = 0; index < 3; ++index)
+                         {
+                           if (state.translation.velocity[index] < 0.0f)
+                             state.translation.velocity[index] -= state.translation.acceleration[index];
+                           if (state.translation.velocity[index] > 0.0f)
+                             state.translation.velocity[index] += state.translation.acceleration[index];
+                           if (state.translation.velocity[index] < 0.002f &&
+                               state.translation.velocity[index] > -0.002f)
+                             state.translation.velocity[index] = 0.0f;
+                         }
+                         state.translation.acceleration = glm::vec3(0.0f);
+                         state.translation.value += state.translation.velocity;
+                       });
   }
 };
 
@@ -90,47 +94,51 @@ public:
     : object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
              cse::resource::main_texture, "main", {255, 255, 255, 255})
   {
-    handle_event = [this](const SDL_Event &event)
-    {
-      if (event.type != SDL_EVENT_KEY_DOWN && event.type != SDL_EVENT_KEY_UP) return;
-      switch (const auto &key = event.key; key.scancode)
-      {
-        case SDL_SCANCODE_9:
-          if (!key.repeat && key.type == SDL_EVENT_KEY_DOWN)
-            graphics.texture.frame_group = "other";
-          else if (key.type == SDL_EVENT_KEY_UP)
-            graphics.texture.frame_group = "main";
-          break;
-        default: break;
-      }
-    };
+    event_hooks.add("main",
+                    [this](const SDL_Event &event)
+                    {
+                      if (event.type != SDL_EVENT_KEY_DOWN && event.type != SDL_EVENT_KEY_UP) return;
+                      switch (const auto &key = event.key; key.scancode)
+                      {
+                        case SDL_SCANCODE_9:
+                          if (!key.repeat && key.type == SDL_EVENT_KEY_DOWN)
+                            graphics.texture.frame_group = "other";
+                          else if (key.type == SDL_EVENT_KEY_UP)
+                            graphics.texture.frame_group = "main";
+                          break;
+                        default: break;
+                      }
+                    });
 
-    handle_input = [this](const bool *keys)
-    {
-      if (keys[SDL_SCANCODE_E]) state.translation.acceleration.y += 0.01f;
-      if (keys[SDL_SCANCODE_D]) state.translation.acceleration.y -= 0.01f;
-      if (keys[SDL_SCANCODE_F]) state.translation.acceleration.x += 0.01f;
-      if (keys[SDL_SCANCODE_S]) state.translation.acceleration.x -= 0.01f;
-      if (keys[SDL_SCANCODE_W]) state.translation.acceleration.z += 0.01f;
-      if (keys[SDL_SCANCODE_R]) state.translation.acceleration.z -= 0.01f;
-    };
+    input_hooks.add("main",
+                    [this](const bool *keys)
+                    {
+                      if (keys[SDL_SCANCODE_E]) state.translation.acceleration.y += 0.01f;
+                      if (keys[SDL_SCANCODE_D]) state.translation.acceleration.y -= 0.01f;
+                      if (keys[SDL_SCANCODE_F]) state.translation.acceleration.x += 0.01f;
+                      if (keys[SDL_SCANCODE_S]) state.translation.acceleration.x -= 0.01f;
+                      if (keys[SDL_SCANCODE_W]) state.translation.acceleration.z += 0.01f;
+                      if (keys[SDL_SCANCODE_R]) state.translation.acceleration.z -= 0.01f;
+                    });
 
-    handle_simulate = [this]()
-    {
-      state.translation.velocity += state.translation.acceleration;
-      state.translation.acceleration = glm::vec3(-0.002f);
-      for (int index = 0; index < 3; ++index)
-      {
-        if (state.translation.velocity[index] < 0.0f)
-          state.translation.velocity[index] -= state.translation.acceleration[index];
-        if (state.translation.velocity[index] > 0.0f)
-          state.translation.velocity[index] += state.translation.acceleration[index];
-        if (state.translation.velocity[index] < 0.002f && state.translation.velocity[index] > -0.002f)
-          state.translation.velocity[index] = 0.0f;
-      }
-      state.translation.acceleration = glm::vec3(0.0f);
-      state.translation.value += state.translation.velocity;
-    };
+    simulate_hooks.add("main",
+                       [this]()
+                       {
+                         state.translation.velocity += state.translation.acceleration;
+                         state.translation.acceleration = glm::vec3(-0.002f);
+                         for (int index = 0; index < 3; ++index)
+                         {
+                           if (state.translation.velocity[index] < 0.0f)
+                             state.translation.velocity[index] -= state.translation.acceleration[index];
+                           if (state.translation.velocity[index] > 0.0f)
+                             state.translation.velocity[index] += state.translation.acceleration[index];
+                           if (state.translation.velocity[index] < 0.002f &&
+                               state.translation.velocity[index] > -0.002f)
+                             state.translation.velocity[index] = 0.0f;
+                         }
+                         state.translation.acceleration = glm::vec3(0.0f);
+                         state.translation.value += state.translation.velocity;
+                       });
   }
 };
 

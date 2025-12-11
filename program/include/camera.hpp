@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <utility>
 
 #include "SDL3/SDL_events.h"
@@ -9,6 +8,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
+#include "hooks.hpp"
 #include "state.hpp"
 
 namespace cse::core
@@ -32,9 +32,9 @@ namespace cse::core
     std::pair<glm::mat4, glm::mat4> render(const float target_aspect_ratio, const float global_scale_factor);
 
   protected:
-    std::function<void(const SDL_Event &key)> handle_event = {};
-    std::function<void(const bool *keys)> handle_input = {};
-    std::function<void()> handle_simulate = {};
+    helper::hooks<void(const SDL_Event &event)> event_hooks = {};
+    helper::hooks<void(const bool *keys)> input_hooks = {};
+    helper::hooks<void()> simulate_hooks = {};
 
     helper::camera_state state = {};
     helper::camera_graphics graphics = {};

@@ -33,8 +33,8 @@ namespace cse::core
     left.on_change = nullptr;
     height.on_change = nullptr;
     width.on_change = nullptr;
-    handle_input = nullptr;
-    handle_event = nullptr;
+    input_hooks.clear();
+    event_hooks.clear();
   }
 
   void window::initialize()
@@ -57,16 +57,14 @@ namespace cse::core
       case SDL_EVENT_QUIT: running = false; break;
       case SDL_EVENT_WINDOW_MOVED: graphics.handle_move(left, top, display_index, fullscreen); break;
       case SDL_EVENT_WINDOW_RESIZED: graphics.handle_resize(width, height, display_index, fullscreen); break;
-      default:
-        if (handle_event) handle_event(current_event);
-        break;
+      default: event_hooks.call("main", current_event); break;
     }
   }
 
   void window::input()
   {
     current_keys = SDL_GetKeyboardState(nullptr);
-    if (handle_input) handle_input(current_keys);
+    input_hooks.call("main", current_keys);
   }
 
   bool window::start_render(const float target_aspect_ratio)

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <string>
 
 #include "SDL3/SDL_events.h"
@@ -8,6 +7,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
+#include "hooks.hpp"
 #include "property.hpp"
 
 namespace cse::core
@@ -34,8 +34,8 @@ namespace cse::core
     void end_render();
 
   protected:
-    std::function<void(const SDL_Event &key)> handle_event = {};
-    std::function<void(const bool *keys)> handle_input = {};
+    helper::hooks<void(const SDL_Event &event)> event_hooks = {};
+    helper::hooks<void(const bool *keys)> input_hooks = {};
 
     bool running = {};
     const std::string title = {};

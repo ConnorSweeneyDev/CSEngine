@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <memory>
 #include <unordered_map>
 
@@ -10,6 +9,7 @@
 
 #include "camera.hpp"
 #include "declaration.hpp"
+#include "hooks.hpp"
 #include "id.hpp"
 #include "object.hpp"
 
@@ -20,7 +20,7 @@ namespace cse::core
     friend class game;
 
   public:
-    scene();
+    scene() = default;
     virtual ~scene();
     scene(const scene &) = delete;
     scene &operator=(const scene &) = delete;
@@ -41,9 +41,9 @@ namespace cse::core
                 const float target_aspect_ratio, const float global_scale_factor);
 
   protected:
-    std::function<void(const SDL_Event &key)> handle_event = {};
-    std::function<void(const bool *keys)> handle_input = {};
-    std::function<void(const double simulation_alpha)> handle_simulate = {};
+    helper::hooks<void(const SDL_Event &key)> event_hooks = {};
+    helper::hooks<void(const bool *keys)> input_hooks = {};
+    helper::hooks<void(const double simulation_alpha)> simulate_hooks = {};
 
   private:
     std::unique_ptr<class camera> camera = {};
