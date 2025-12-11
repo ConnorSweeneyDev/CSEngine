@@ -45,6 +45,18 @@ namespace cse::helper
     return value <=> other_.value;
   }
 
+  template <typename type> bool property<type>::operator==(const type &value_) const
+    noexcept(noexcept(std::declval<type>() == std::declval<type>()))
+  {
+    return value == value_;
+  }
+
+  template <typename type> auto property<type>::operator<=>(const type &value_) const
+    noexcept(noexcept(std::declval<type>() <=> std::declval<type>()))
+  {
+    return value <=> value_;
+  }
+
   template <typename type> property<type> &property<type>::operator=(const type &value_)
   {
     value = value_;

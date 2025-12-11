@@ -18,12 +18,6 @@
 #include "scene.hpp"
 #include "window.hpp"
 
-class custom_scene : public cse::core::scene
-{
-public:
-  custom_scene() : scene() {}
-};
-
 class custom_window : public cse::core::window
 {
 public:
@@ -43,6 +37,12 @@ public:
                 }
               });
   }
+};
+
+class custom_scene : public cse::core::scene
+{
+public:
+  custom_scene() : scene() {}
 };
 
 class custom_camera : public cse::core::camera
@@ -95,7 +95,7 @@ public:
                 if (event.type != SDL_EVENT_KEY_DOWN && event.type != SDL_EVENT_KEY_UP) return;
                 switch (const auto &key = event.key; key.scancode)
                 {
-                  case SDL_SCANCODE_9:
+                  case SDL_SCANCODE_0:
                     if (!key.repeat && key.type == SDL_EVENT_KEY_DOWN)
                       graphics.texture.frame_group = "other";
                     else if (key.type == SDL_EVENT_KEY_UP)

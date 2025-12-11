@@ -25,6 +25,8 @@ namespace cse::helper
 
     bool operator==(const property &other_) const noexcept(noexcept(std::declval<type>() == std::declval<type>()));
     auto operator<=>(const property &other_) const noexcept(noexcept(std::declval<type>() <=> std::declval<type>()));
+    bool operator==(const type &value_) const noexcept(noexcept(std::declval<type>() == std::declval<type>()));
+    auto operator<=>(const type &value_) const noexcept(noexcept(std::declval<type>() <=> std::declval<type>()));
 
     property &operator=(const type &value_);
     template <typename other> property &operator+=(const other &value_);

@@ -101,6 +101,7 @@ namespace cse::core
 
   void game::simulate()
   {
+    window->simulate();
     if (auto scene = current_scene.lock())
       scene->simulate(simulation_alpha);
     else

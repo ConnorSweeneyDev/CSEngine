@@ -66,6 +66,8 @@ namespace cse::core
     hooks.call<void(const bool *)>("input_main", current_keys);
   }
 
+  void window::simulate() { hooks.call<void()>("simulate_main"); }
+
   bool window::start_render(const float target_aspect_ratio)
   {
     if (!graphics.acquire_swapchain_texture()) return false;

@@ -30,6 +30,7 @@ namespace cse::core
     void cleanup();
     void event();
     void input();
+    void simulate();
     bool start_render(const float target_aspect_ratio);
     void end_render();
 
