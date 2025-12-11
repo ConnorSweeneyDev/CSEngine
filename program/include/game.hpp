@@ -20,10 +20,10 @@ namespace cse::core
 
     void run();
     template <typename window_type, typename... window_arguments> void set_window(window_arguments &&...arguments);
-    std::weak_ptr<scene> get_scene(helper::id name) const;
+    std::weak_ptr<scene> get_scene(const helper::id name) const;
     template <typename scene_type, typename... scene_arguments>
-    std::weak_ptr<scene> add_scene(helper::id name, scene_arguments &&...arguments);
-    void set_current_scene(helper::id name);
+    std::weak_ptr<scene> add_scene(const helper::id name, scene_arguments &&...arguments);
+    void set_current_scene(const helper::id name);
 
   private:
     void initialize();

@@ -45,14 +45,14 @@ namespace cse::core
     cleanup();
   }
 
-  std::weak_ptr<scene> game::get_scene(helper::id name) const
+  std::weak_ptr<scene> game::get_scene(const helper::id name) const
   {
     if (!scenes.contains(name)) throw utility::exception("Requested scene does not exist");
     if (auto scene = scenes.at(name); scene) return scene;
     throw utility::exception("Requested scene is not initialized");
   }
 
-  void game::set_current_scene(helper::id name)
+  void game::set_current_scene(const helper::id name)
   {
     if (auto scene = get_scene(name).lock())
       current_scene = scene;

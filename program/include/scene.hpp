@@ -29,7 +29,7 @@ namespace cse::core
 
     template <typename camera_type, typename... camera_arguments> void set_camera(camera_arguments &&...arguments);
     template <typename object_type, typename... object_arguments>
-    void add_object(helper::id name, object_arguments &&...arguments);
+    void add_object(const helper::id name, object_arguments &&...arguments);
 
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
