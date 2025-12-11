@@ -3,8 +3,8 @@
 namespace cse::core
 {
   class game;
-  class scene;
   class window;
+  class scene;
   class camera;
   class object;
 }
