@@ -16,9 +16,7 @@ namespace cse::core
   {
     objects.clear();
     camera.reset();
-    simulate_hooks.clear();
-    input_hooks.clear();
-    event_hooks.clear();
+    hooks.clear_all();
   }
 
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
@@ -33,26 +31,26 @@ namespace cse::core
 
   void scene::event(const SDL_Event &event)
   {
-    event_hooks.call("pre", event);
+    hooks.call<void(const SDL_Event &)>("event_pre", event);
     camera->event(event);
     for (const auto &object : objects) object.second->event(event);
-    event_hooks.call("post", event);
+    hooks.call<void(const SDL_Event &)>("event_post", event);
   }
 
   void scene::input(const bool *keys)
   {
-    input_hooks.call("pre", keys);
+    hooks.call<void(const bool *)>("input_pre", keys);
     camera->input(keys);
     for (const auto &object : objects) object.second->input(keys);
-    input_hooks.call("post", keys);
+    hooks.call<void(const bool *)>("input_post", keys);
   }
 
   void scene::simulate(const double simulation_alpha)
   {
-    simulate_hooks.call("pre", simulation_alpha);
+    hooks.call<void(const double)>("simulate_pre", simulation_alpha);
     camera->simulate(simulation_alpha);
     for (const auto &object : objects) object.second->simulate(simulation_alpha);
-    simulate_hooks.call("post", simulation_alpha);
+    hooks.call<void(const double)>("simulate_post", simulation_alpha);
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,

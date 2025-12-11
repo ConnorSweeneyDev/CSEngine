@@ -34,8 +34,7 @@ namespace cse::core
     void end_render();
 
   protected:
-    helper::hooks<void(const SDL_Event &event)> event_hooks = {};
-    helper::hooks<void(const bool *keys)> input_hooks = {};
+    helper::hooks hooks = {};
 
     bool running = {};
     const std::string title = {};

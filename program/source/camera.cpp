@@ -13,23 +13,18 @@ namespace cse::core
   {
   }
 
-  camera::~camera()
-  {
-    simulate_hooks.clear();
-    input_hooks.clear();
-    event_hooks.clear();
-  }
+  camera::~camera() { hooks.clear_all(); }
 
-  void camera::event(const SDL_Event &event) { event_hooks.call("main", event); }
+  void camera::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event_main", event); }
 
-  void camera::input(const bool *keys) { input_hooks.call("main", keys); }
+  void camera::input(const bool *keys) { hooks.call<void(const bool *)>("input_main", keys); }
 
   void camera::simulate(const double simulation_alpha)
   {
     state.translation.update();
     state.forward.update();
     state.up.update();
-    simulate_hooks.call("main");
+    hooks.call<void()>("simulate_main");
     state.translation.interpolate(simulation_alpha);
     state.forward.interpolate(simulation_alpha);
     state.up.interpolate(simulation_alpha);

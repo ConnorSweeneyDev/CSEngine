@@ -2,47 +2,124 @@
 
 #include "hooks.hpp"
 
+#include <any>
 #include <functional>
+#include <type_traits>
+#include <typeindex>
+#include <unordered_map>
 
 #include "exception.hpp"
 #include "id.hpp"
 
 namespace cse::helper
 {
-  template <typename return_type, typename... arguments> bool hooks<return_type(arguments...)>::has(const id name) const
+  template <typename type> struct function_traits;
+
+  template <typename return_type, typename... arguments> struct function_traits<return_type(arguments...)>
   {
-    return functions.contains(name);
-  }
+    using extracted_return_type = return_type;
+  };
+
+  template <typename type> struct callable_traits : callable_traits<decltype(&type::operator())>
+  {
+  };
+
+  template <typename class_type, typename return_type, typename... arguments>
+  struct callable_traits<return_type (class_type::*)(arguments...) const>
+  {
+    using signature = return_type(arguments...);
+  };
+
+  template <typename class_type, typename return_type, typename... arguments>
+  struct callable_traits<return_type (class_type::*)(arguments...)>
+  {
+    using signature = return_type(arguments...);
+  };
+
+  template <typename return_type, typename... arguments> struct callable_traits<return_type (*)(arguments...)>
+  {
+    using signature = return_type(arguments...);
+  };
 
   template <typename return_type, typename... arguments>
-  void hooks<return_type(arguments...)>::add(const id name, const std::function<return_type(arguments...)> &function)
+  struct callable_traits<std::function<return_type(arguments...)>>
   {
-    if (has(name)) throw utility::exception("Attempted to add duplicate hook");
-    functions.emplace(name, function);
+    using signature = return_type(arguments...);
+  };
+
+  template <typename signature> bool hooks::has(const id name) const
+  {
+    auto type_id = std::type_index(typeid(signature));
+    if (!functions.contains(type_id)) return false;
+    const auto &map = get_map<signature>();
+    return map.contains(name);
   }
 
-  template <typename return_type, typename... arguments> void hooks<return_type(arguments...)>::remove(const id name)
+  template <typename signature> void hooks::add(const id name, const std::function<signature> &function)
   {
-    if (!has(name)) throw utility::exception("Attempted to remove non-existent hook");
-    functions.erase(name);
+    auto &map = get_map<signature>();
+    if (map.contains(name)) throw utility::exception("Attempted to add duplicate hook");
+    map.emplace(name, function);
   }
 
-  template <typename return_type, typename... arguments> void hooks<return_type(arguments...)>::clear() noexcept
+  template <typename callable> void hooks::add(const id name, callable &&function)
   {
-    functions.clear();
+    using deduced_signature = typename callable_traits<std::decay_t<callable>>::signature;
+    add<deduced_signature>(name, std::function<deduced_signature>(std::forward<callable>(function)));
   }
 
-  template <typename return_type, typename... arguments>
-  return_type hooks<return_type(arguments...)>::call(const id name, arguments... args) const
+  template <typename signature> void hooks::remove(const id name)
   {
-    if (!has(name)) return return_type();
-    return functions.at(name)(args...);
+    auto &map = get_map<signature>();
+    if (!map.contains(name)) throw utility::exception("Attempted to remove non-existent hook");
+    map.erase(name);
   }
 
-  template <typename return_type, typename... arguments>
-  return_type hooks<return_type(arguments...)>::strict_call(const id name, arguments... args) const
+  template <typename signature> void hooks::clear() noexcept
   {
-    if (!has(name)) throw utility::exception("Attempted to call required hook");
-    return functions.at(name)(args...);
+    auto type_id = std::type_index(typeid(signature));
+    if (functions.contains(type_id)) { get_map<signature>().clear(); }
+  }
+
+  inline void hooks::clear_all() noexcept { functions.clear(); }
+
+  template <typename signature, typename... arguments> auto hooks::call(const id name, arguments &&...args) const
+  {
+    using extracted_return_type = typename function_traits<signature>::extracted_return_type;
+
+    if constexpr (std::is_void_v<extracted_return_type>)
+    {
+      if (has<signature>(name))
+      {
+        const auto &map = get_map<signature>();
+        map.at(name)(std::forward<arguments>(args)...);
+      }
+    }
+    else
+    {
+      if (!has<signature>(name)) return extracted_return_type{};
+      const auto &map = get_map<signature>();
+      return map.at(name)(std::forward<arguments>(args)...);
+    }
+  }
+
+  template <typename signature, typename... arguments> auto hooks::strict_call(const id name, arguments &&...args) const
+  {
+    if (!has<signature>(name)) throw utility::exception("Attempted to call non-existent hook");
+    const auto &map = get_map<signature>();
+    return map.at(name)(std::forward<arguments>(args)...);
+  }
+
+  template <typename signature> std::unordered_map<id, std::function<signature>> &hooks::get_map()
+  {
+    auto type_id = std::type_index(typeid(signature));
+    if (!functions.contains(type_id)) { functions[type_id] = std::unordered_map<id, std::function<signature>>{}; }
+    return std::any_cast<std::unordered_map<id, std::function<signature>> &>(functions[type_id]);
+  }
+
+  template <typename signature> const std::unordered_map<id, std::function<signature>> &hooks::get_map() const
+  {
+    auto type_id = std::type_index(typeid(signature));
+    return std::any_cast<const std::unordered_map<id, std::function<signature>> &>(functions.at(type_id));
   }
 }

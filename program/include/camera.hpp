@@ -32,10 +32,7 @@ namespace cse::core
     std::pair<glm::mat4, glm::mat4> render(const float target_aspect_ratio, const float global_scale_factor);
 
   protected:
-    helper::hooks<void(const SDL_Event &event)> event_hooks = {};
-    helper::hooks<void(const bool *keys)> input_hooks = {};
-    helper::hooks<void()> simulate_hooks = {};
-
+    helper::hooks hooks = {};
     helper::camera_state state = {};
     helper::camera_graphics graphics = {};
   };

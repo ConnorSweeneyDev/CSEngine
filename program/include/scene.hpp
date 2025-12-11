@@ -41,9 +41,7 @@ namespace cse::core
                 const float target_aspect_ratio, const float global_scale_factor);
 
   protected:
-    helper::hooks<void(const SDL_Event &key)> event_hooks = {};
-    helper::hooks<void(const bool *keys)> input_hooks = {};
-    helper::hooks<void(const double simulation_alpha)> simulate_hooks = {};
+    helper::hooks hooks = {};
 
   private:
     std::unique_ptr<class camera> camera = {};

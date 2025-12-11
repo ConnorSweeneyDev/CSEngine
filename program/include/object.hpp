@@ -41,10 +41,7 @@ namespace cse::core
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float global_scale_factor);
 
   protected:
-    helper::hooks<void(const SDL_Event &event)> event_hooks = {};
-    helper::hooks<void(const bool *keys)> input_hooks = {};
-    helper::hooks<void()> simulate_hooks = {};
-
+    helper::hooks hooks = {};
     helper::object_state state = {};
     helper::object_graphics graphics = {};
   };
