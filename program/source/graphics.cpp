@@ -282,11 +282,10 @@ namespace cse::helper
     return glm::perspective(glm::radians(fov), target_aspect_ratio, near_clip, far_clip);
   }
 
-  object_graphics::object_graphics(const resource::compiled_shader &vertex_shader_,
+  object_graphics::object_graphics(const glm::u8vec4 &tint_, const resource::compiled_shader &vertex_shader_,
                                    const resource::compiled_shader &fragment_shader_,
-                                   const resource::compiled_texture &texture_, const std::string &frame_group_,
-                                   const glm::u8vec4 &tint_)
-    : shader(vertex_shader_, fragment_shader_), texture(texture_, frame_group_), tint(tint_)
+                                   const resource::compiled_texture &texture_, const std::string &frame_group_)
+    : tint(tint_), shader(vertex_shader_, fragment_shader_), texture(texture_, frame_group_)
   {
   }
 

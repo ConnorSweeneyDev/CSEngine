@@ -86,8 +86,8 @@ class custom_object : public cse::core::object
 {
 public:
   custom_object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_)
-    : object(translation_, rotation_, scale_, cse::resource::main_vertex, cse::resource::main_fragment,
-             cse::resource::main_texture, "main", {255, 255, 255, 255})
+    : object(translation_, rotation_, scale_, {255, 255, 255, 255}, cse::resource::main_vertex,
+             cse::resource::main_fragment, cse::resource::main_texture, "main")
   {
     hooks.add("event_main",
               [this](const SDL_Event &event)

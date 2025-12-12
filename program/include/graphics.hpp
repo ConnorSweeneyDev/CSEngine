@@ -104,9 +104,9 @@ namespace cse::helper
 
   public:
     object_graphics() = default;
-    object_graphics(const resource::compiled_shader &vertex_shader_, const resource::compiled_shader &fragment_shader_,
-                    const resource::compiled_texture &texture_, const std::string &frame_group_,
-                    const glm::u8vec4 &tint_);
+    object_graphics(const glm::u8vec4 &tint_, const resource::compiled_shader &vertex_shader_,
+                    const resource::compiled_shader &fragment_shader_, const resource::compiled_texture &texture_,
+                    const std::string &frame_group_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;
@@ -124,9 +124,9 @@ namespace cse::helper
     void cleanup_object(SDL_GPUDevice *gpu);
 
   public:
+    glm::u8vec4 tint = {};
     shader shader = {};
     texture texture = {};
-    glm::u8vec4 tint = {};
 
   private:
     SDL_GPUGraphicsPipeline *pipeline = {};
