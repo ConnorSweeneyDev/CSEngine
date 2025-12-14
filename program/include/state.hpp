@@ -21,9 +21,9 @@ namespace cse::helper
     glm::mat4 calculate_view_matrix(const float global_scale_factor) const;
 
   public:
-    transform_value translation = {};
-    transform_value forward = {};
-    transform_value up = {};
+    transform_value translation{};
+    transform_value forward{};
+    transform_value up{};
   };
 
   struct object_state
@@ -39,8 +39,8 @@ namespace cse::helper
                                      const float global_scale_factor) const;
 
   public:
-    transform_value translation = {};
-    transform_value rotation = {};
-    transform_value scale = {};
+    transform_value translation{};
+    transform_value rotation{};
+    transform_value scale{};
   };
 }

@@ -21,7 +21,7 @@ namespace cse::utility
     : exception(message_, std::forward<const message_arguments>(arguments_)...)
   {
     message.pop_back();
-    std::string sdl_error(SDL_GetError());
+    std::string sdl_error{SDL_GetError()};
     if (sdl_error.empty())
       message = std::format("{}: Unknown SDL error.", message);
     else

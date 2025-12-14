@@ -40,20 +40,20 @@ namespace cse::core
     void update_fps();
 
   private:
-    std::unique_ptr<class window> window = {};
-    std::unordered_map<helper::id, std::shared_ptr<scene>> scenes = {};
-    std::weak_ptr<scene> current_scene = {};
+    std::unique_ptr<class window> window{};
+    std::unordered_map<helper::id, std::shared_ptr<scene>> scenes{};
+    std::weak_ptr<scene> current_scene{};
 
-    static constexpr float global_scale_factor = 1.0f / 25.0f;
-    static constexpr float target_aspect_ratio = 16.0f / 9.0f;
-    static constexpr double target_simulation_time = 1.0 / 60.0;
-    static constexpr double target_render_time = 1.0 / 144.0;
-    double last_simulation_time = {};
-    double simulation_accumulator = {};
-    double simulation_alpha = {};
-    double last_render_time = {};
-    double last_fps_time = {};
-    int current_period_frame_count = {};
+    static constexpr float global_scale_factor{1.0f / 25.0f};
+    static constexpr float target_aspect_ratio{16.0f / 9.0f};
+    static constexpr double target_simulation_time{1.0 / 60.0};
+    static constexpr double target_render_time{1.0 / 144.0};
+    double last_simulation_time{};
+    double simulation_accumulator{};
+    double simulation_alpha{};
+    double last_render_time{};
+    double last_fps_time{};
+    int current_period_frame_count{};
   };
 }
 

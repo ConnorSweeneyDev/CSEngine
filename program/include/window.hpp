@@ -35,22 +35,22 @@ namespace cse::core
     void end_render();
 
   protected:
-    helper::hooks hooks = {};
+    helper::hooks hooks{};
 
-    bool running = {};
-    const std::string title = {};
-    helper::property<unsigned int> width = {};
-    helper::property<unsigned int> height = {};
-    helper::property<int> left = {};
-    helper::property<int> top = {};
-    helper::property<SDL_DisplayID> display_index = {};
-    helper::property<bool> fullscreen = {};
-    helper::property<bool> vsync = {};
+    bool running{};
+    const std::string title{};
+    helper::property<unsigned int> width{};
+    helper::property<unsigned int> height{};
+    helper::property<int> left{};
+    helper::property<int> top{};
+    helper::property<SDL_DisplayID> display_index{};
+    helper::property<bool> fullscreen{};
+    helper::property<bool> vsync{};
 
   private:
-    helper::window_graphics graphics = {};
+    helper::window_graphics graphics{};
 
-    SDL_Event current_event = {};
-    const bool *current_keys = {};
+    SDL_Event current_event{};
+    const bool *current_keys{};
   };
 }

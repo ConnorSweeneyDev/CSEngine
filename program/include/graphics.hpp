@@ -48,16 +48,16 @@ namespace cse::helper
     void destroy_window_and_app();
 
   private:
-    unsigned int windowed_width = {};
-    unsigned int windowed_height = {};
-    int windowed_left = {};
-    int windowed_top = {};
-    SDL_Window *instance = {};
-    SDL_GPUDevice *gpu = {};
-    SDL_GPUCommandBuffer *command_buffer = {};
-    SDL_GPUTexture *swapchain_texture = {};
-    SDL_GPUTexture *depth_texture = {};
-    SDL_GPURenderPass *render_pass = {};
+    unsigned int windowed_width{};
+    unsigned int windowed_height{};
+    int windowed_left{};
+    int windowed_top{};
+    SDL_Window *instance{};
+    SDL_GPUDevice *gpu{};
+    SDL_GPUCommandBuffer *command_buffer{};
+    SDL_GPUTexture *swapchain_texture{};
+    SDL_GPUTexture *depth_texture{};
+    SDL_GPURenderPass *render_pass{};
   };
 
   struct camera_graphics
@@ -72,11 +72,11 @@ namespace cse::helper
     glm::mat4 calculate_projection_matrix(const float target_aspect_ratio);
 
   public:
-    float fov = {};
+    float fov{};
 
   private:
-    float near_clip = {};
-    float far_clip = {};
+    float near_clip{};
+    float far_clip{};
   };
 
   struct object_graphics
@@ -86,20 +86,20 @@ namespace cse::helper
   private:
     struct vertex
     {
-      float x = {}, y = {}, z = {};
-      Uint8 r = {}, g = {}, b = {}, a = {};
-      float u = {}, v = {};
+      float x{}, y{}, z{};
+      Uint8 r{}, g{}, b{}, a{};
+      float u{}, v{};
     };
     struct shader
     {
-      const resource::compiled_shader vertex = {};
-      const resource::compiled_shader fragment = {};
+      const resource::compiled_shader vertex{};
+      const resource::compiled_shader fragment{};
     };
     struct texture
     {
-      const resource::compiled_texture data = {};
-      std::string frame_group = {};
-      unsigned int frame_index = {};
+      const resource::compiled_texture data{};
+      std::string frame_group{};
+      unsigned int frame_index{};
     };
 
   public:
@@ -124,19 +124,19 @@ namespace cse::helper
     void cleanup_object(SDL_GPUDevice *gpu);
 
   public:
-    glm::u8vec4 tint = {};
-    shader shader = {};
-    texture texture = {};
+    glm::u8vec4 tint{};
+    shader shader{};
+    texture texture{};
 
   private:
-    SDL_GPUGraphicsPipeline *pipeline = {};
-    SDL_GPUBuffer *vertex_buffer = {};
-    SDL_GPUBuffer *index_buffer = {};
-    SDL_GPUTexture *texture_buffer = {};
-    SDL_GPUSampler *sampler_buffer = {};
-    SDL_GPUTransferBuffer *vertex_transfer_buffer = {};
-    SDL_GPUTransferBuffer *texture_transfer_buffer = {};
-    std::array<vertex, 4> quad_vertices = {};
-    std::array<Uint16, 6> quad_indices = {};
+    SDL_GPUGraphicsPipeline *pipeline{};
+    SDL_GPUBuffer *vertex_buffer{};
+    SDL_GPUBuffer *index_buffer{};
+    SDL_GPUTexture *texture_buffer{};
+    SDL_GPUSampler *sampler_buffer{};
+    SDL_GPUTransferBuffer *vertex_transfer_buffer{};
+    SDL_GPUTransferBuffer *texture_transfer_buffer{};
+    std::array<vertex, 4> quad_vertices{};
+    std::array<Uint16, 6> quad_indices{};
   };
 }

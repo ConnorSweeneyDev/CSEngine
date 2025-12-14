@@ -49,15 +49,15 @@ namespace cse::helper
 
   template <typename signature> bool hooks::has(const id name) const
   {
-    auto type_id = std::type_index(typeid(signature));
+    auto type_id{std::type_index(typeid(signature))};
     if (!functions.contains(type_id)) return false;
-    const auto &map = get_map<signature>();
+    const auto &map{get_map<signature>()};
     return map.contains(name);
   }
 
   template <typename signature> void hooks::add(const id name, const std::function<signature> &function)
   {
-    auto &map = get_map<signature>();
+    auto &map{get_map<signature>()};
     if (map.contains(name)) throw utility::exception("Attempted to add duplicate hook");
     map.emplace(name, function);
   }
@@ -70,14 +70,14 @@ namespace cse::helper
 
   template <typename signature> void hooks::remove(const id name)
   {
-    auto &map = get_map<signature>();
+    auto &map{get_map<signature>()};
     if (!map.contains(name)) throw utility::exception("Attempted to remove non-existent hook");
     map.erase(name);
   }
 
   template <typename signature> void hooks::clear() noexcept
   {
-    auto type_id = std::type_index(typeid(signature));
+    auto type_id{std::type_index(typeid(signature))};
     if (functions.contains(type_id)) { get_map<signature>().clear(); }
   }
 
@@ -91,14 +91,14 @@ namespace cse::helper
     {
       if (has<signature>(name))
       {
-        const auto &map = get_map<signature>();
+        const auto &map{get_map<signature>()};
         map.at(name)(std::forward<arguments>(args)...);
       }
     }
     else
     {
       if (!has<signature>(name)) return extracted_return_type{};
-      const auto &map = get_map<signature>();
+      const auto &map{get_map<signature>()};
       return map.at(name)(std::forward<arguments>(args)...);
     }
   }
@@ -106,20 +106,20 @@ namespace cse::helper
   template <typename signature, typename... arguments> auto hooks::strict_call(const id name, arguments &&...args) const
   {
     if (!has<signature>(name)) throw utility::exception("Attempted to call non-existent hook");
-    const auto &map = get_map<signature>();
+    const auto &map{get_map<signature>()};
     return map.at(name)(std::forward<arguments>(args)...);
   }
 
   template <typename signature> std::unordered_map<id, std::function<signature>> &hooks::get_map()
   {
-    auto type_id = std::type_index(typeid(signature));
+    auto type_id{std::type_index(typeid(signature))};
     if (!functions.contains(type_id)) { functions[type_id] = std::unordered_map<id, std::function<signature>>{}; }
     return std::any_cast<std::unordered_map<id, std::function<signature>> &>(functions[type_id]);
   }
 
   template <typename signature> const std::unordered_map<id, std::function<signature>> &hooks::get_map() const
   {
-    auto type_id = std::type_index(typeid(signature));
+    auto type_id{std::type_index(typeid(signature))};
     return std::any_cast<const std::unordered_map<id, std::function<signature>> &>(functions.at(type_id));
   }
 }

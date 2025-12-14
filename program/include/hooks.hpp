@@ -26,7 +26,7 @@ namespace cse::helper
     template <typename signature> const std::unordered_map<id, std::function<signature>> &get_map() const;
 
   private:
-    std::unordered_map<std::type_index, std::any> functions = {};
+    std::unordered_map<std::type_index, std::any> functions{};
   };
 }
 

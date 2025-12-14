@@ -28,7 +28,7 @@ namespace cse::helper
   glm::mat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
                                                  const float global_scale_factor) const
   {
-    glm::mat4 model_matrix = glm::mat4(1.0f);
+    glm::mat4 model_matrix{glm::mat4(1.0f)};
     model_matrix = glm::translate(
       model_matrix,
       {std::floor((translation.interpolated.x * global_scale_factor) / global_scale_factor) * global_scale_factor,

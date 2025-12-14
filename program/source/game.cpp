@@ -46,13 +46,13 @@ namespace cse::core
   std::weak_ptr<scene> game::get_scene(const helper::id name) const
   {
     if (!scenes.contains(name)) throw utility::exception("Requested scene does not exist");
-    if (auto scene = scenes.at(name); scene) return scene;
+    if (auto scene{scenes.at(name)}; scene) return scene;
     throw utility::exception("Requested scene is not initialized");
   }
 
   void game::set_current_scene(const helper::id name)
   {
-    if (auto scene = get_scene(name).lock())
+    if (auto scene{get_scene(name).lock()})
       current_scene = scene;
     else
       throw utility::exception("Tried to set current scene to null");
@@ -63,7 +63,7 @@ namespace cse::core
     window->initialize();
     if (scenes.empty()) throw cse::utility::exception("No scenes have been added to the game");
     if (current_scene.expired()) throw cse::utility::exception("No current scene has been set for the game");
-    if (auto scene = current_scene.lock())
+    if (auto scene{current_scene.lock()})
       scene->initialize(window->graphics.instance, window->graphics.gpu);
     else
       throw cse::utility::exception("Current scene is not initialized");
@@ -71,7 +71,7 @@ namespace cse::core
 
   void game::cleanup()
   {
-    if (auto scene = current_scene.lock())
+    if (auto scene{current_scene.lock()})
       scene->cleanup(window->graphics.gpu);
     else
       throw cse::utility::exception("Current scene is not initialized");
@@ -83,7 +83,7 @@ namespace cse::core
     while (SDL_PollEvent(&window->current_event))
     {
       window->event();
-      if (auto scene = current_scene.lock())
+      if (auto scene{current_scene.lock()})
         scene->event(window->current_event);
       else
         throw cse::utility::exception("Current scene is not initialized");
@@ -93,7 +93,7 @@ namespace cse::core
   void game::input()
   {
     window->input();
-    if (auto scene = current_scene.lock())
+    if (auto scene{current_scene.lock()})
       scene->input(window->current_keys);
     else
       throw cse::utility::exception("Current scene is not initialized");
@@ -102,7 +102,7 @@ namespace cse::core
   void game::simulate()
   {
     window->simulate();
-    if (auto scene = current_scene.lock())
+    if (auto scene{current_scene.lock()})
       scene->simulate(simulation_alpha);
     else
       throw cse::utility::exception("Current scene is not initialized");
@@ -111,7 +111,7 @@ namespace cse::core
   void game::render()
   {
     if (!window->start_render(target_aspect_ratio)) return;
-    if (auto scene = current_scene.lock())
+    if (auto scene{current_scene.lock()})
       scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass,
                     target_aspect_ratio, global_scale_factor);
     else
@@ -121,8 +121,8 @@ namespace cse::core
 
   void game::update_simulation_time()
   {
-    double current_simulation_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
-    double delta_simulation_time = current_simulation_time - last_simulation_time;
+    double current_simulation_time{static_cast<double>(SDL_GetTicksNS()) / 1e9};
+    double delta_simulation_time{current_simulation_time - last_simulation_time};
     last_simulation_time = current_simulation_time;
     if (delta_simulation_time > 0.1) delta_simulation_time = 0.1;
     simulation_accumulator += delta_simulation_time;
@@ -142,7 +142,7 @@ namespace cse::core
 
   bool game::should_render()
   {
-    double current_render_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    double current_render_time{static_cast<double>(SDL_GetTicksNS()) / 1e9};
     if (current_render_time - last_render_time >= target_render_time)
     {
       last_render_time = current_render_time;
@@ -154,7 +154,7 @@ namespace cse::core
   void game::update_fps()
   {
     current_period_frame_count++;
-    double current_fps_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    double current_fps_time{static_cast<double>(SDL_GetTicksNS()) / 1e9};
     if (current_fps_time - last_fps_time >= 1.0)
     {
       utility::print<CLOG>("{} FPS\n", current_period_frame_count);

@@ -41,11 +41,11 @@ namespace cse::core
                 const float target_aspect_ratio, const float global_scale_factor);
 
   protected:
-    helper::hooks hooks = {};
+    helper::hooks hooks{};
 
   private:
-    std::unique_ptr<class camera> camera = {};
-    std::unordered_map<helper::id, std::shared_ptr<object>> objects = {};
+    std::unique_ptr<class camera> camera{};
+    std::unordered_map<helper::id, std::shared_ptr<object>> objects{};
   };
 }
 

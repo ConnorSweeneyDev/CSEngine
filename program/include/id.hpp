@@ -22,7 +22,7 @@ namespace cse::helper
     static std::uint64_t hash_runtime(const std::string &string);
 
   private:
-    std::uint64_t hash;
+    std::uint64_t hash{};
   };
 }
 

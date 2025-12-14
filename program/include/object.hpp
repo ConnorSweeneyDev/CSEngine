@@ -42,8 +42,8 @@ namespace cse::core
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float global_scale_factor);
 
   protected:
-    helper::hooks hooks = {};
-    helper::object_state state = {};
-    helper::object_graphics graphics = {};
+    helper::hooks hooks{};
+    helper::object_state state{};
+    helper::object_graphics graphics{};
   };
 }

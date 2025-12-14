@@ -45,10 +45,10 @@ namespace cse::helper
     property operator--(int);
 
   public:
-    std::function<void()> on_change = {};
+    std::function<void()> on_change{};
 
   private:
-    type value = {};
+    type value{};
   };
 
   template <typename type> std::istream &operator>>(std::istream &stream_, property<type> &destination_);

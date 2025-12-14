@@ -22,12 +22,12 @@ namespace cse::helper
     void interpolate(const double alpha);
 
   public:
-    glm::vec3 value = {};
-    glm::vec3 velocity = {};
-    glm::vec3 acceleration = {};
+    glm::vec3 value{};
+    glm::vec3 velocity{};
+    glm::vec3 acceleration{};
 
   private:
-    glm::vec3 previous = {};
-    glm::vec3 interpolated = {};
+    glm::vec3 previous{};
+    glm::vec3 interpolated{};
   };
 }

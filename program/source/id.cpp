@@ -11,7 +11,7 @@ namespace cse::helper
 
   std::uint64_t id::hash_runtime(const std::string &string)
   {
-    std::uint64_t hash = 14695981039346656037ULL;
+    std::uint64_t hash{14695981039346656037ULL};
     for (char character : string)
     {
       hash ^= static_cast<std::uint64_t>(character);

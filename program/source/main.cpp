@@ -28,7 +28,7 @@ public:
               [this](const SDL_Event &event)
               {
                 if (event.type != SDL_EVENT_KEY_DOWN || event.key.repeat) return;
-                switch (const auto &key = event.key; key.scancode)
+                switch (const auto &key{event.key}; key.scancode)
                 {
                   case SDL_SCANCODE_ESCAPE: running = false; break;
                   case SDL_SCANCODE_F11: fullscreen = !fullscreen; break;
@@ -67,7 +67,7 @@ public:
               {
                 state.translation.velocity += state.translation.acceleration;
                 state.translation.acceleration = glm::vec3(-0.002f);
-                for (int index = 0; index < 3; ++index)
+                for (int index{}; index < 3; ++index)
                 {
                   if (state.translation.velocity[index] < 0.0f)
                     state.translation.velocity[index] -= state.translation.acceleration[index];
@@ -93,7 +93,7 @@ public:
               [this](const SDL_Event &event)
               {
                 if (event.type != SDL_EVENT_KEY_DOWN && event.type != SDL_EVENT_KEY_UP) return;
-                switch (const auto &key = event.key; key.scancode)
+                switch (const auto &key{event.key}; key.scancode)
                 {
                   case SDL_SCANCODE_0:
                     if (!key.repeat && key.type == SDL_EVENT_KEY_DOWN)
@@ -121,7 +121,7 @@ public:
               {
                 state.translation.velocity += state.translation.acceleration;
                 state.translation.acceleration = glm::vec3(-0.002f);
-                for (int index = 0; index < 3; ++index)
+                for (int index{}; index < 3; ++index)
                 {
                   if (state.translation.velocity[index] < 0.0f)
                     state.translation.velocity[index] -= state.translation.acceleration[index];
@@ -140,10 +140,10 @@ int try_main(int argc, char *argv[])
 {
   if (argc > 1 || !argv[0]) throw cse::utility::exception("Expected 1 argument, got {}", argc);
 
-  auto game = std::make_unique<cse::core::game>();
+  auto game{std::make_unique<cse::core::game>()};
   game->set_window<custom_window>("CSE Example", 1280, 720);
 
-  if (auto scene = game->add_scene<custom_scene>("scene").lock())
+  if (auto scene{game->add_scene<custom_scene>("scene").lock()})
   {
     scene->set_camera<custom_camera>(glm::vec3(0.0f, 0.0f, 80.0f), glm::vec3(0.0f, 0.0f, -1.0f),
                                      glm::vec3(0.0f, 1.0f, 0.0f));
