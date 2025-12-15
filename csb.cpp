@@ -303,14 +303,16 @@ int csb::build()
                                        "glm",
                                      }},
                                     {"overrides",
-                                     {{
-                                        {"name", "sdl3"},
-                                        {"version", "3.2.18"},
-                                      },
-                                      {
-                                        {"name", "glm"},
-                                        {"version", "1.0.1#3"},
-                                      }}}});
+                                     {
+                                       {
+                                         {"name", "sdl3"},
+                                         {"version", "3.2.18"},
+                                       },
+                                       {
+                                         {"name", "glm"},
+                                         {"version", "1.0.1#3"},
+                                       },
+                                     }}});
 
   csb::generate_compile_commands();
   csb::compile();
