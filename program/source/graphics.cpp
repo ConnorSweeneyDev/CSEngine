@@ -18,6 +18,7 @@
 
 #include "exception.hpp"
 #include "resource.hpp"
+#include "system.hpp"
 
 namespace cse::helper
 {
@@ -35,7 +36,7 @@ namespace cse::helper
                                               const unsigned int height, int &left, int &top,
                                               SDL_DisplayID &display_index, const bool fullscreen, const bool vsync)
   {
-    SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+    SDL_SetLogPriorities(cse::system::debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
       throw cse::utility::sdl_exception("Could not set app metadata type");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "Connor.Sweeney.Engine"))
@@ -62,7 +63,7 @@ namespace cse::helper
     windowed_top = top;
     if (!SDL_SetWindowPosition(instance, left, top))
       throw cse::utility::sdl_exception("Could not set window position to {}, {}", left, top);
-    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, "vulkan");
+    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, cse::system::debug, "vulkan");
     if (!gpu) throw cse::utility::sdl_exception("Could not create GPU device");
     if (!SDL_ClaimWindowForGPUDevice(gpu, instance))
       throw cse::utility::sdl_exception("Could not claim window for GPU device");

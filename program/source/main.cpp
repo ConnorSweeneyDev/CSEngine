@@ -16,6 +16,7 @@
 #include "print.hpp"
 #include "resource.hpp"
 #include "scene.hpp"
+#include "system.hpp"
 #include "window.hpp"
 
 class custom_window : public cse::core::window
@@ -154,7 +155,7 @@ int try_main(int argc, char *argv[])
   game->run();
   game.reset();
 
-  cse::utility::print<COUT>("Exiting application...\n");
+  if constexpr (cse::system::debug) cse::utility::print<COUT>("Exiting application...\n");
   return EXIT_SUCCESS;
 }
 

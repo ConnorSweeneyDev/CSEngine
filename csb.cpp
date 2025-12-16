@@ -16,7 +16,7 @@ void csb::configure()
   csb::target_artifact = EXECUTABLE;
   csb::target_linkage = STATIC;
   csb::target_subsystem = CONSOLE;
-  csb::target_configuration = RELEASE;
+  csb::target_configuration = DEBUG;
   csb::cxx_standard = CXX20;
   csb::warning_level = W4;
   csb::include_files = csb::files_from({"program/include"}, {}, {"program/include/resource.hpp"});

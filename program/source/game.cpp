@@ -10,6 +10,7 @@
 #include "id.hpp"
 #include "print.hpp"
 #include "scene.hpp"
+#include "system.hpp"
 #include "window.hpp"
 
 namespace cse::core
@@ -157,7 +158,7 @@ namespace cse::core
     double current_fps_time{static_cast<double>(SDL_GetTicksNS()) / 1e9};
     if (current_fps_time - last_fps_time >= 1.0)
     {
-      utility::print<CLOG>("{} FPS\n", current_period_frame_count);
+      if constexpr (cse::system::debug) utility::print<CLOG>("{} FPS\n", current_period_frame_count);
       last_fps_time = current_fps_time;
       current_period_frame_count = 0;
     }
