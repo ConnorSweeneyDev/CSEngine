@@ -43,13 +43,13 @@ int csb::build()
                       {"program/include/resource.hpp", "program/source/resource.cpp"});
 
   csb::archive_install(
-    {{csb::host_platform == WINDOWS
-        ? "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505.1/dxc_2025_07_14.zip"
-        : "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505.1/"
-          "linux_dxc_2025_07_14.x86_64.tar.gz",
-      "build/dxc",
-      {csb::host_platform == WINDOWS ? "bin/" + csb::host_architecture : "bin",
-       csb::host_platform == WINDOWS ? "lib/" + csb::host_architecture : "lib"}}});
+    {csb::host_platform == WINDOWS
+       ? "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505.1/dxc_2025_07_14.zip"
+       : "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505.1/"
+         "linux_dxc_2025_07_14.x86_64.tar.gz",
+     "build/dxc",
+     {csb::host_platform == WINDOWS ? "bin/" + csb::host_architecture : "bin",
+      csb::host_platform == WINDOWS ? "lib/" + csb::host_architecture : "lib"}});
   if (csb::host_platform == LINUX)
   {
     csb::multi_task_run("chmod +x ()", csb::files_from({"build/dxc"}, {""}), {"build/dxc/executable.(filename)"});
