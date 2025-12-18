@@ -19,8 +19,8 @@ void csb::configure()
   csb::target_configuration = DEBUG;
   csb::cxx_standard = CXX20;
   csb::warning_level = W4;
-  csb::include_files = csb::files_from({"program/include"}, {}, {"program/include/resource.hpp"});
-  csb::source_files = csb::files_from({"program/source"}, {}, {"program/source/resource.cpp"});
+  csb::include_files = csb::choose_files({"program/include"}, {}, {"program/include/resource.hpp"});
+  csb::source_files = csb::choose_files({"program/source"}, {}, {"program/source/resource.cpp"});
   if (csb::host_platform == WINDOWS)
     csb::libraries = {"kernel32", "user32",   "shell32",  "gdi32",       "imm32", "comdlg32",
                       "ole32",    "oleaut32", "advapi32", "dinput8",     "winmm", "winspool",
@@ -32,14 +32,14 @@ void csb::configure()
 int csb::clean()
 {
   csb::clean_build_directory();
-  csb::remove_files({"program/include/resource.hpp", "program/source/resource.cpp"});
+  csb::remove({"program/include/resource.hpp", "program/source/resource.cpp"});
   return csb::build();
 }
 
 int csb::build()
 {
   if (!csb::is_subproject)
-    csb::clang_format("21.1.1", csb::files_from({"program/shader"}),
+    csb::clang_format("21.1.8", csb::choose_files({"program/shader"}),
                       {"program/include/resource.hpp", "program/source/resource.cpp"});
 
   csb::archive_install(
@@ -52,7 +52,9 @@ int csb::build()
       csb::host_platform == WINDOWS ? "lib/" + csb::host_architecture : "lib"}});
   if (csb::host_platform == LINUX)
   {
-    csb::multi_task_run("chmod +x ()", csb::files_from({"build/dxc"}, {""}), {"build/dxc/executable.(filename)"});
+    csb::multi_task_run("chmod +x ()",
+                        csb::choose_files({"build/dxc"}, [](const auto &file) { return file.extension() == ""; }),
+                        {"build/dxc/executable.(filename)"});
     csb::prepend_environment_variable("LD_LIBRARY_PATH", "build/dxc");
   }
   csb::multi_task_run(
@@ -62,7 +64,7 @@ int csb::build()
                          csb::host_platform == WINDOWS ? "build\\dxc\\dxc.exe" : "./build/dxc/dxc",
                          file.extension() == ".vert" ? "vs" : "ps");
     },
-    csb::files_from({"program/shader"}), {"build/shader/(filename).spv"});
+    csb::choose_files({"program/shader"}), {"build/shader/(filename).spv"});
 
   using group_name = std::string;
   using group_range = std::pair<unsigned int, unsigned int>;
@@ -154,7 +156,7 @@ int csb::build()
      "#include <utility>\n\n"
      "namespace cse::resource\n"
      "{\n"},
-    {nullptr,
+    {{},
      [](const std::filesystem::path &file, const std::string &name, const resource &) -> std::string
      {
        if (file.extension() == ".spv")
@@ -290,7 +292,7 @@ int csb::build()
        return result + "}";
      }},
     [](const std::filesystem::path &file) -> bool { return file.extension() == ".spv" || file.extension() == ".png"; },
-    csb::files_from({"build/shader", "program/texture"}),
+    csb::choose_files({"build/shader", "program/texture"}),
     {"program/include/resource.hpp", "program/source/resource.cpp"});
 
   csb::vcpkg_install("2025.08.27", {{"builtin-baseline", "120deac3062162151622ca4860575a33844ba10b"},
