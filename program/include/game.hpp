@@ -1,7 +1,10 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <unordered_map>
+
+#include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
 #include "id.hpp"
@@ -19,7 +22,8 @@ namespace cse::core
     game &operator=(game &&) = delete;
 
     void run();
-    template <typename window_type, typename... window_arguments> void set_window(window_arguments &&...arguments);
+    template <typename window_type, typename... window_arguments>
+    void set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments);
     std::weak_ptr<scene> get_scene(const helper::id name) const;
     template <typename scene_type, typename... scene_arguments>
     std::weak_ptr<scene> add_scene(const helper::id name, scene_arguments &&...arguments);

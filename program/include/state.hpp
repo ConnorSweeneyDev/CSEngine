@@ -2,8 +2,11 @@
 
 #include "declaration.hpp"
 
+#include <tuple>
+
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
+#include "glm/ext/vector_int3.hpp"
 
 #include "transform.hpp"
 
@@ -15,7 +18,7 @@ namespace cse::helper
 
   public:
     camera_state() = default;
-    camera_state(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_);
+    camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_);
 
   private:
     glm::mat4 calculate_view_matrix(const float global_scale_factor) const;
@@ -32,7 +35,7 @@ namespace cse::helper
 
   public:
     object_state() = default;
-    object_state(const glm::vec3 &translation_, const glm::vec3 &rotation_, const glm::vec3 &scale_);
+    object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_);
 
   private:
     glm::mat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,

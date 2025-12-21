@@ -2,6 +2,7 @@
 
 #include <array>
 #include <string>
+#include <utility>
 
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_stdinc.h"
@@ -104,9 +105,9 @@ namespace cse::helper
 
   public:
     object_graphics() = default;
-    object_graphics(const glm::u8vec4 &tint_, const resource::compiled_shader &vertex_shader_,
-                    const resource::compiled_shader &fragment_shader_, const resource::compiled_texture &texture_,
-                    const std::string &frame_group_);
+    object_graphics(const glm::u8vec4 &tint_,
+                    const std::pair<resource::compiled_shader, resource::compiled_shader> &shader_,
+                    const std::pair<resource::compiled_texture, std::string> &texture_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;

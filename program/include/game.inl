@@ -5,15 +5,18 @@
 #include <memory>
 #include <string>
 
+#include "glm/ext/vector_uint2.hpp"
+
 #include "exception.hpp"
 #include "id.hpp"
 #include "scene.hpp"
 
 namespace cse::core
 {
-  template <typename window_type, typename... window_arguments> void game::set_window(window_arguments &&...arguments)
+  template <typename window_type, typename... window_arguments>
+  void game::set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments)
   {
-    window = std::make_unique<window_type>(std::forward<window_arguments>(arguments)...);
+    window = std::make_unique<window_type>(title, dimensions, std::forward<window_arguments>(arguments)...);
   }
 
   template <typename scene_type, typename... scene_arguments>

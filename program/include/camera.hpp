@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tuple>
 #include <utility>
 
 #include "SDL3/SDL_events.h"
@@ -18,7 +19,7 @@ namespace cse::core
     friend class scene;
 
   public:
-    camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, const float fov_);
+    camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const float fov_);
     virtual ~camera();
     camera(const camera &) = delete;
     camera &operator=(const camera &) = delete;

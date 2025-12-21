@@ -4,14 +4,14 @@
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_keyboard.h"
+#include "glm/ext/vector_uint2.hpp"
 
 #include "exception.hpp"
 
 namespace cse::core
 {
-  window::window(const std::string &title_, const unsigned int width_, const unsigned int height_,
-                 const bool fullscreen_, const bool vsync_)
-    : title(title_), width(width_), height(height_), fullscreen(fullscreen_), vsync(vsync_)
+  window::window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
+    : title(title_), width(dimensions_.x), height(dimensions_.y), fullscreen(fullscreen_), vsync(vsync_)
   {
     if (title_.empty()) throw cse::utility::exception("Window title cannot be empty");
     width.on_change = [this]() { graphics.handle_manual_resize(width, height, fullscreen); };

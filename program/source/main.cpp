@@ -2,12 +2,14 @@
 #include <exception>
 #include <memory>
 #include <string>
+#include <tuple>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_main.h"
 #include "SDL3/SDL_scancode.h"
 #include "glm/ext/vector_float3.hpp"
 #include "glm/ext/vector_int3.hpp"
+#include "glm/ext/vector_uint2.hpp"
 
 #include "camera.hpp"
 #include "exception.hpp"
@@ -22,8 +24,7 @@
 class custom_window : public cse::core::window
 {
 public:
-  custom_window(const std::string &title_, const unsigned int width_, const unsigned int height_)
-    : window(title_, width_, height_, false, true)
+  custom_window(const std::string &title_, const glm::uvec2 &dimensions_) : window(title_, dimensions_, false, true)
   {
     hooks.add("event_main",
               [this](const SDL_Event &event)
@@ -49,8 +50,7 @@ public:
 class custom_camera : public cse::core::camera
 {
 public:
-  custom_camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
-    : camera(translation_, forward_, up_, 45.0f)
+  custom_camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_) : camera(transform_, 45.0f)
   {
     hooks.add("input_main",
               [this](const bool *keys)
@@ -67,7 +67,7 @@ public:
               [this]()
               {
                 state.translation.velocity += state.translation.acceleration;
-                state.translation.acceleration = glm::vec3(-0.002f);
+                state.translation.acceleration = glm::vec3{-0.002f};
                 for (int index{}; index < 3; ++index)
                 {
                   if (state.translation.velocity[index] < 0.0f)
@@ -77,7 +77,7 @@ public:
                   if (state.translation.velocity[index] < 0.002f && state.translation.velocity[index] > -0.002f)
                     state.translation.velocity[index] = 0.0f;
                 }
-                state.translation.acceleration = glm::vec3(0.0f);
+                state.translation.acceleration = glm::vec3{0.0f};
                 state.translation.value += state.translation.velocity;
               });
   }
@@ -86,9 +86,9 @@ public:
 class custom_object : public cse::core::object
 {
 public:
-  custom_object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_)
-    : object(translation_, rotation_, scale_, {255, 255, 255, 255}, cse::resource::main_vertex,
-             cse::resource::main_fragment, cse::resource::main_texture, "main")
+  custom_object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_)
+    : object(transform_, {255, 255, 255, 255}, {cse::resource::main_vertex, cse::resource::main_fragment},
+             {cse::resource::main_texture, "main"})
   {
     hooks.add("event_main",
               [this](const SDL_Event &event)
@@ -121,7 +121,7 @@ public:
               [this]()
               {
                 state.translation.velocity += state.translation.acceleration;
-                state.translation.acceleration = glm::vec3(-0.002f);
+                state.translation.acceleration = glm::vec3{-0.002f};
                 for (int index{}; index < 3; ++index)
                 {
                   if (state.translation.velocity[index] < 0.0f)
@@ -131,7 +131,7 @@ public:
                   if (state.translation.velocity[index] < 0.002f && state.translation.velocity[index] > -0.002f)
                     state.translation.velocity[index] = 0.0f;
                 }
-                state.translation.acceleration = glm::vec3(0.0f);
+                state.translation.acceleration = glm::vec3{0.0f};
                 state.translation.value += state.translation.velocity;
               });
   }
@@ -142,13 +142,12 @@ int try_main(int argc, char *argv[])
   if (argc > 1 || !argv[0]) throw cse::utility::exception("Expected 1 argument, got {}", argc);
 
   auto game{std::make_unique<cse::core::game>()};
-  game->set_window<custom_window>("CSE Example", 1280, 720);
+  game->set_window<custom_window>("CSE Example", {1280, 720});
 
   if (auto scene{game->add_scene<custom_scene>("scene").lock()})
   {
-    scene->set_camera<custom_camera>(glm::vec3(0.0f, 0.0f, 80.0f), glm::vec3(0.0f, 0.0f, -1.0f),
-                                     glm::vec3(0.0f, 1.0f, 0.0f));
-    scene->add_object<custom_object>("object", glm::ivec3(0, 0, 0), glm::ivec3(0, 0, 0), glm::ivec3(1, 1, 1));
+    scene->set_camera<custom_camera>({{0.0f, 0.0f, 80.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}});
+    scene->add_object<custom_object>("object", {{0, 0, 0}, {0, 0, 0}, {1, 1, 1}});
   }
   game->set_current_scene("scene");
 

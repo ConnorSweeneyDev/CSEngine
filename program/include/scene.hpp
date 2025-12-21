@@ -1,11 +1,14 @@
 #pragma once
 
 #include <memory>
+#include <tuple>
 #include <unordered_map>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
+#include "glm/ext/vector_float3.hpp"
+#include "glm/ext/vector_int3.hpp"
 
 #include "camera.hpp"
 #include "declaration.hpp"
@@ -27,9 +30,11 @@ namespace cse::core
     scene(scene &&) = delete;
     scene &operator=(scene &&) = delete;
 
-    template <typename camera_type, typename... camera_arguments> void set_camera(camera_arguments &&...arguments);
+    template <typename camera_type, typename... camera_arguments>
+    void set_camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform, camera_arguments &&...arguments);
     template <typename object_type, typename... object_arguments>
-    void add_object(const helper::id name, object_arguments &&...arguments);
+    void add_object(const helper::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
+                    object_arguments &&...arguments);
 
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);

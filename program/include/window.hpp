@@ -4,6 +4,7 @@
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_video.h"
+#include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
 #include "graphics.hpp"
@@ -17,8 +18,7 @@ namespace cse::core
     friend class game;
 
   public:
-    window(const std::string &title_, const unsigned int width_, const unsigned int height_, const bool fullscreen_,
-           const bool vsync_);
+    window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_);
     virtual ~window();
     window(const window &) = delete;
     window &operator=(const window &) = delete;

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <tuple>
+#include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
@@ -22,10 +24,9 @@ namespace cse::core
     friend class scene;
 
   public:
-    object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_,
-           const glm::u8vec4 &tint_, const resource::compiled_shader &vertex_shader_,
-           const resource::compiled_shader &fragment_shader_, const resource::compiled_texture &texture_,
-           const std::string &frame_group_);
+    object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
+           const std::pair<resource::compiled_shader, resource::compiled_shader> &shader_,
+           const std::pair<resource::compiled_texture, std::string> &texture_);
     virtual ~object();
     object(const object &) = delete;
     object &operator=(const object &) = delete;

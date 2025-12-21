@@ -1,12 +1,13 @@
 #include "object.hpp"
 
 #include <string>
+#include <tuple>
+#include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
-#include "glm/ext/vector_float3.hpp"
 #include "glm/ext/vector_int3.hpp"
 #include "glm/ext/vector_uint4_sized.hpp"
 
@@ -14,13 +15,10 @@
 
 namespace cse::core
 {
-  object::object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_,
-                 const glm::u8vec4 &tint_, const resource::compiled_shader &vertex_shader_,
-                 const resource::compiled_shader &fragment_shader_, const resource::compiled_texture &texture_,
-                 const std::string &frame_group_)
-    : state({translation_.x, translation_.y, translation_.z}, {rotation_.x, rotation_.y, rotation_.z},
-            {scale_.x, scale_.y, scale_.z}),
-      graphics(tint_, vertex_shader_, fragment_shader_, texture_, frame_group_)
+  object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
+                 const std::pair<resource::compiled_shader, resource::compiled_shader> &shader_,
+                 const std::pair<resource::compiled_texture, std::string> &texture_)
+    : state(transform_), graphics(tint_, shader_, texture_)
   {
   }
 
