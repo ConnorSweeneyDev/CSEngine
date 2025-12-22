@@ -12,7 +12,6 @@
 
 #include "exception.hpp"
 #include "id.hpp"
-#include "scene.hpp"
 
 namespace cse::core
 {
@@ -27,25 +26,17 @@ namespace cse::core
                        scene_arguments &&...arguments)
   {
     if (scenes.contains(name)) throw utility::exception("Tried to add duplicate scene to game");
-    scenes.emplace(name, std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...));
-    auto scene_weak{get_scene(name)};
-    if (auto scene_shared{scene_weak.lock()})
-      config(scene_shared);
-    else
-      throw utility::exception("Tried to configure uninitialized scene");
+    auto scene_shared = std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...);
+    scenes.emplace(name, scene_shared);
+    config(scene_shared);
   }
 
   template <typename scene_type, typename... scene_arguments> void game::add_scenes(
-    std::initializer_list<std::tuple<helper::id, std::function<void(std::shared_ptr<scene>)>, scene_arguments...>>
+    std::initializer_list<std::tuple<helper::id, std::function<void(std::shared_ptr<scene_type>)>, scene_arguments...>>
       new_scenes)
   {
     for (const auto &scene : new_scenes)
-      std::apply(
-        [this](const auto name, const auto &config, auto &&...arguments)
-        {
-          auto scene_weak{add_scene<scene_type>(name, config, std::forward<decltype(arguments)>(arguments)...)};
-          if (auto scene_shared{scene_weak.lock()}) config(scene_shared);
-        },
-        scene);
+      std::apply([this](const auto name, const auto &config, auto &&...arguments)
+                 { add_scene<scene_type>(name, config, std::forward<decltype(arguments)>(arguments)...); }, scene);
   }
 }

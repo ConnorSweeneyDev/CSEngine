@@ -31,9 +31,10 @@ namespace cse::core
     template <typename scene_type, typename... scene_arguments>
     void add_scene(const helper::id name, std::function<void(std::shared_ptr<scene_type>)> config,
                    scene_arguments &&...arguments);
-    template <typename scene_type, typename... scene_arguments> void add_scenes(
-      std::initializer_list<std::tuple<helper::id, std::function<void(std::shared_ptr<scene>)>, scene_arguments...>>
-        new_scenes);
+    template <typename scene_type, typename... scene_arguments>
+    void add_scenes(std::initializer_list<
+                    std::tuple<helper::id, std::function<void(std::shared_ptr<scene_type>)>, scene_arguments...>>
+                      new_scenes);
     void set_current_scene(const helper::id name);
 
   private:
