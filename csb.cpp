@@ -26,9 +26,7 @@ int csb::clean()
 
 int csb::build()
 {
-  if (!csb::is_subproject)
-    csb::clang_format("21.1.8", csb::choose_files({"program/shader"}),
-                      {"program/include/resource.hpp", "program/source/resource.cpp"});
+  if (!csb::is_subproject) csb::clang_format("21.1.8");
 
   csb::vcpkg_install("2025.08.27", {{"builtin-baseline", "120deac3062162151622ca4860575a33844ba10b"},
                                     {"dependencies",
