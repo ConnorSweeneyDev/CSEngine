@@ -33303,7 +33303,7 @@ inline void swap(nlohmann::NLOHMANN_BASIC_JSON_TPL& j1, nlohmann::NLOHMANN_BASIC
 // NOLINTEND
 // clang-format on
 
-// CSB 1.9.7
+// CSB 1.9.10
 #include <algorithm>
 #include <cctype>
 #include <concepts>
@@ -33506,20 +33506,23 @@ namespace csb
    * | `is_subproject`: A boolean indicating whether the current project is a subproject of another csb project.
    *
    * Useful functions for all functions include:
-   * | `files_from`: Gets a list of files from a specified directory with optional filtering and recursion.
+   * | `choose_files`: Gets a list of files from a specified directory with optional filtering and recursion.
    * | `unpack`: Converts a list of paths to a space-separated string.
    * | `combine`: Combines multiple lists into one, removing duplicates and preserving order.
-   * | `remove_trailing_and_leading_newlines`: Removes trailing and leading newlines from a specified string.
+   * | `trim`: Removes trailing and leading newlines from a specified string.
    * | `print`: Prints a formatted message to a specified output stream (cout, cerr, clog).
    * | `get_environment_variable`: Returns the value of a specified environment variable.
    * | `set_environment_variable`: Sets the value of a specified environment variable.
    * | `append_environment_variable`: Appends a value to a specified environment variable.
    * | `prepend_environment_variable`: Prepends a value to a specified environment variable.
    * | `byte_to_hex`: Converts a byte to its hexadecimal string representation.
+   * | `touch`: Updates the last modified time of specified files or creates them if they do not exist.
+   * | `copy`: Copies specified files to a specified directory.
+   * | `move`: Moves specified files to a specified directory.
+   * | `remove`: Removes all specified files.
    * | `read_file`: Reads the contents of a specified file as a specified format.
    * | `write_file`: Writes data to a specified file in a specified format.
    * | `modify_file`: Modifies the content of a specified file using a specified modifier function.
-   * | `touch`: Updates the last modified time of specified files or creates them if they do not exist.
    *
    * See also: `clean` | `build` | `run`
    */
@@ -33530,7 +33533,7 @@ namespace csb
    *
    * Common uses for this function are to call the following functions:
    * | `clean_build_directory`: Removes everything in the build directory except optional ignore files.
-   * | `remove_files`: Removes all specified files.
+   * | `remove`: Removes all specified files.
    *
    * See also: `configure`, `build`, `run`.
    */
@@ -33649,26 +33652,6 @@ namespace csb
     choice.flush();
   }
 
-  // Updates the last modified time of specified files or creates them if they do not exist.
-  inline void touch(const std::filesystem::path &path)
-  {
-    if (path.has_parent_path() && !std::filesystem::exists(path.parent_path()))
-      std::filesystem::create_directories(path.parent_path());
-    if (std::filesystem::exists(path))
-      std::filesystem::last_write_time(path, std::filesystem::file_time_type::clock::now());
-    else
-    {
-      std::ofstream file(path, std::ios::app);
-      if (!file.is_open()) throw std::runtime_error("Failed to touch file: " + path.string());
-      file.close();
-    }
-  }
-  // Updates the last modified time of specified files or creates them if they do not exist.
-  inline void touch(const std::vector<std::filesystem::path> &paths)
-  {
-    for (const auto &path : paths) { touch(path); }
-  }
-
   // Converts a byte to its hexadecimal string representation.
   inline std::string byte_to_hex(std::byte character)
   {
@@ -33678,7 +33661,7 @@ namespace csb
   };
 
   // Removes trailing and leading newlines from a specified string.
-  inline std::string remove_trailing_and_leading_newlines(const std::string &input)
+  inline std::string trim(const std::string &input)
   {
     auto start{input.find_first_not_of('\n')};
     auto end{input.find_last_not_of('\n')};
@@ -33721,6 +33704,80 @@ namespace csb
     (..., process(rest));
     return result;
   }
+
+  // Updates the last modified time of specified files or creates them if they do not exist.
+  inline void touch(const std::filesystem::path &path)
+  {
+    if (path.has_parent_path() && !std::filesystem::exists(path.parent_path()))
+      std::filesystem::create_directories(path.parent_path());
+    if (std::filesystem::exists(path))
+      std::filesystem::last_write_time(path, std::filesystem::file_time_type::clock::now());
+    else
+    {
+      std::ofstream file(path, std::ios::app);
+      if (!file.is_open()) throw std::runtime_error("Failed to touch file: " + path.string());
+      file.close();
+    }
+  }
+  // Updates the last modified time of specified files or creates them if they do not exist.
+  inline void touch(const std::vector<std::filesystem::path> &paths)
+  {
+    for (const auto &path : paths) { touch(path); }
+  }
+
+  // Copies the specified files to the destination.
+  inline void copy(const std::vector<std::filesystem::path> &sources, const std::filesystem::path &destination)
+  {
+    if (!std::filesystem::exists(destination)) std::filesystem::create_directories(destination);
+    for (const auto &source : sources)
+    {
+      if (!std::filesystem::exists(source)) throw std::runtime_error("Source file does not exist: " + source.string());
+      std::filesystem::copy(source, destination / source.filename(),
+                            std::filesystem::copy_options::overwrite_existing |
+                              std::filesystem::copy_options::recursive);
+    }
+  }
+  // Copies the specified files to the destination.
+  inline void copy(const std::filesystem::path &source, const std::filesystem::path &destination)
+  {
+    copy(std::vector<std::filesystem::path>{source}, destination);
+  }
+
+  // Moves the specified files to the destination.
+  inline void move(const std::vector<std::filesystem::path> &sources, const std::filesystem::path &destination)
+  {
+    if (!std::filesystem::exists(destination)) std::filesystem::create_directories(destination);
+    for (const auto &source : sources)
+    {
+      if (!std::filesystem::exists(source)) throw std::runtime_error("Source file does not exist: " + source.string());
+      std::filesystem::copy(source, destination / source.filename(),
+                            std::filesystem::copy_options::overwrite_existing |
+                              std::filesystem::copy_options::recursive);
+      std::filesystem::remove_all(source);
+    }
+  }
+  // Moves the specified files to the destination.
+  inline void move(const std::filesystem::path &source, const std::filesystem::path &destination)
+  {
+    move(std::vector<std::filesystem::path>{source}, destination);
+  }
+
+  // Removes the specified files.
+  inline void remove(const std::vector<std::filesystem::path> &files)
+  {
+    if (files.empty()) throw std::runtime_error("No files to remove.");
+
+    print<COUT>("\n{}\nRemoving files...\n", utility::small_section_divider);
+    for (const auto &file : files)
+    {
+      print<COUT>("{}... ", file.string());
+      if (std::filesystem::exists(file)) std::filesystem::remove_all(file);
+      print<COUT>("done.\n");
+    }
+    print<COUT>("done.\n{}\n", utility::small_section_divider);
+  }
+  // Removes the specified files.
+  inline void remove(const std::filesystem::path &file) { remove(std::vector<std::filesystem::path>{file}); }
 
   /**
    * Gets a list of files from a specified directory with optional filtering and recursion.
@@ -33767,6 +33824,7 @@ namespace csb
         }
       if (!found) files.push_back(override);
     }
+    for (auto &file : files) file.make_preferred();
     return files;
   }
 
@@ -34044,7 +34102,7 @@ namespace csb::utility
    *     return std::format("dxc -spirv -T {}_6_0 -E main (absolute.quoted) -Fo []",
    *                        file.extension() == ".vert" ? "vs" : "ps");
    *   },
-   *   csb::files_from({"program/shader"}), {"build/shader/(filename).spv"});
+   *   csb::choose_files({"program/shader"}), {"build/shader/(filename).spv"});
    *
    * As you can see, std::format replaces "{}" with the shader type based on the file extension. Then, the first
    * placeholder "()" selects the current file from the target_files list (could have specified ALL to select every file
@@ -34877,12 +34935,12 @@ namespace csb
 
     auto on_success{[](const std::string &real_command, const std::string &output)
                     {
-                      auto trimmed_output{remove_trailing_and_leading_newlines(output)};
+                      auto trimmed_output{trim(output)};
                       print<COUT>("{}\n{}", real_command, (trimmed_output.empty() ? "" : trimmed_output + "\n"));
                     }};
     auto on_failure{[&](const std::string &real_command, const int return_code, const std::string &output)
                     {
-                      auto trimmed_output{remove_trailing_and_leading_newlines(output)};
+                      auto trimmed_output{trim(output)};
                       print<COUT>("{} -> {}\n{}", real_command, std::to_string(return_code),
                                   (trimmed_output.empty() ? "" : trimmed_output + "\n\n"));
                       throw std::runtime_error("Task failed.");
@@ -34908,15 +34966,14 @@ namespace csb
    */
   inline void task_run(
     const std::variant<std::string, std::function<std::string(const std::vector<std::filesystem::path> &)>> &task,
-    const std::vector<std::filesystem::path> &check_files)
+    std::vector<std::filesystem::path> check_files)
   {
     bool any_missing{};
-    for (const auto &check_file : check_files)
-      if (!std::filesystem::exists(check_file))
-      {
-        any_missing = true;
-        break;
-      }
+    for (auto &check_file : check_files)
+    {
+      check_file.make_preferred();
+      if (!any_missing && !std::filesystem::exists(check_file)) any_missing = true;
+    }
     if (!any_missing) return;
     print<COUT>("\n{}\n", utility::small_section_divider);
 
@@ -34927,13 +34984,13 @@ namespace csb
                   }};
     auto on_success{[&check_files](const std::string &real_command, const std::string &output)
                     {
-                      auto trimmed_output{remove_trailing_and_leading_newlines(output)};
+                      auto trimmed_output{trim(output)};
                       print<COUT>("{}\n{}", real_command, (trimmed_output.empty() ? "" : trimmed_output + "\n"));
                       for (const auto &check_file : check_files) touch(check_file);
                     }};
     auto on_failure{[](const std::string &real_command, const int return_code, std::string output)
                     {
-                      auto trimmed_output{remove_trailing_and_leading_newlines(output)};
+                      auto trimmed_output{trim(output)};
                       print<COUT>("{} -> {}\n{}", real_command, std::to_string(return_code),
                                   (trimmed_output.empty() ? "" : trimmed_output + "\n\n"));
                       throw std::runtime_error("Task failed.");
@@ -34971,10 +35028,12 @@ namespace csb
   inline void task_run(
     const std::variant<std::string, std::function<std::string(const std::vector<std::filesystem::path> &,
                                                               const std::vector<std::filesystem::path> &)>> &task,
-    const std::vector<std::filesystem::path> &target_files, const std::vector<std::filesystem::path> &check_files,
+    std::vector<std::filesystem::path> target_files, std::vector<std::filesystem::path> check_files,
     const std::function<bool(const std::filesystem::path &, const std::vector<std::filesystem::path> &)>
       &dependency_handler = {})
   {
+    for (auto &target_file : target_files) target_file.make_preferred();
+    for (auto &check_file : check_files) check_file.make_preferred();
     auto modified_files{utility::find_modified_files(target_files, check_files, dependency_handler)};
     if (modified_files.empty()) return;
     print<COUT>("\n{}\n", utility::small_section_divider);
@@ -34997,13 +35056,13 @@ namespace csb
                   }};
     auto on_success{[&dependency_files](const std::string &real_command, const std::string &output)
                     {
-                      auto trimmed_output{remove_trailing_and_leading_newlines(output)};
+                      auto trimmed_output{trim(output)};
                       print<COUT>("{}\n{}", real_command, (trimmed_output.empty() ? "" : trimmed_output + "\n"));
                       for (const auto &dependency : dependency_files) touch(dependency);
                     }};
     auto on_failure{[](const std::string &real_command, const int return_code, const std::string &output)
                     {
-                      auto trimmed_output{remove_trailing_and_leading_newlines(output)};
+                      auto trimmed_output{trim(output)};
                       print<COUT>("{} -> {}\n{}", real_command, std::to_string(return_code),
                                   (trimmed_output.empty() ? "" : trimmed_output + "\n\n"));
                       throw std::runtime_error("Task failed.");
@@ -35037,11 +35096,14 @@ namespace csb
   inline void multi_task_run(
     const std::variant<std::string, std::function<std::string(const std::filesystem::path &,
                                                               const std::vector<std::filesystem::path> &)>> &task,
-    const std::vector<std::filesystem::path> &check_files)
+    std::vector<std::filesystem::path> check_files)
   {
     std::vector<std::filesystem::path> target_files{};
-    for (const auto &file : check_files)
+    for (auto &file : check_files)
+    {
+      file.make_preferred();
       if (!std::filesystem::exists(file)) target_files.push_back(file);
+    }
     if (target_files.empty()) return;
     print<COUT>("\n{}", utility::small_section_divider);
 
@@ -35054,14 +35116,14 @@ namespace csb
     auto on_success{[](const std::filesystem::path &item, const std::vector<std::filesystem::path> &,
                        const std::string &item_command, const std::string &output)
                     {
-                      auto trimmed_output{remove_trailing_and_leading_newlines(output)};
+                      auto trimmed_output{trim(output)};
                       print<COUT>("\n{}\n{}", item_command, (trimmed_output.empty() ? "" : trimmed_output + "\n"));
                       touch(item);
                     }};
     auto on_failure{[](const std::filesystem::path &, const std::vector<std::filesystem::path> &,
                        const std::string &item_command, const int return_code, const std::string &output)
                     {
-                      auto trimmed_output{remove_trailing_and_leading_newlines(output)};
+                      auto trimmed_output{trim(output)};
                       print<COUT>("\n{} -> {}\n{}", item_command, std::to_string(return_code),
                                   (trimmed_output.empty() ? "" : trimmed_output + "\n"));
                       throw std::runtime_error("Task failed.");
@@ -35099,10 +35161,12 @@ namespace csb
     const std::variant<
       std::string, std::function<std::string(const std::filesystem::path &, const std::vector<std::filesystem::path> &,
                                              const std::vector<std::filesystem::path> &)>> &task,
-    const std::vector<std::filesystem::path> &target_files, const std::vector<std::filesystem::path> &check_files,
+    std::vector<std::filesystem::path> target_files, std::vector<std::filesystem::path> check_files,
     const std::function<bool(const std::filesystem::path &, const std::vector<std::filesystem::path> &)>
       &dependency_handler = {})
   {
+    for (auto &target_file : target_files) target_file.make_preferred();
+    for (auto &check_file : check_files) check_file.make_preferred();
     auto modified_files{utility::find_modified_files(target_files, check_files, dependency_handler)};
     if (modified_files.empty()) return;
     print<COUT>("\n{}", utility::small_section_divider);
@@ -35121,14 +35185,14 @@ namespace csb
     auto on_success{[](const std::filesystem::path &, const std::vector<std::filesystem::path> &dependencies,
                        const std::string &item_command, const std::string &output)
                     {
-                      auto trimmed_output{remove_trailing_and_leading_newlines(output)};
+                      auto trimmed_output{trim(output)};
                       print<COUT>("\n{}\n{}", item_command, (trimmed_output.empty() ? "" : trimmed_output + "\n"));
                       for (const auto &dependency : dependencies) touch(dependency);
                     }};
     auto on_failure{[](const std::filesystem::path &, const std::vector<std::filesystem::path> &,
                        const std::string &item_command, const int return_code, const std::string &output)
                     {
-                      auto trimmed_output{remove_trailing_and_leading_newlines(output)};
+                      auto trimmed_output{trim(output)};
                       print<COUT>("\n{} -> {}\n{}", item_command, std::to_string(return_code),
                                   (trimmed_output.empty() ? "" : trimmed_output + "\n"));
                       throw std::runtime_error("Task failed.");
@@ -35180,15 +35244,14 @@ namespace csb
    */
   inline void live_task_run(
     const std::variant<std::string, std::function<std::string(const std::vector<std::filesystem::path> &)>> &task,
-    const std::vector<std::filesystem::path> &check_files)
+    std::vector<std::filesystem::path> check_files)
   {
     bool any_missing{};
-    for (const auto &check_file : check_files)
-      if (!std::filesystem::exists(check_file))
-      {
-        any_missing = true;
-        break;
-      }
+    for (auto &check_file : check_files)
+    {
+      check_file.make_preferred();
+      if (!any_missing && !std::filesystem::exists(check_file)) any_missing = true;
+    }
     if (!any_missing) return;
     print<COUT>("\n{}\n", utility::small_section_divider);
 
@@ -35238,10 +35301,12 @@ namespace csb
   inline void live_task_run(
     const std::variant<std::string, std::function<std::string(const std::vector<std::filesystem::path> &,
                                                               const std::vector<std::filesystem::path> &)>> &task,
-    const std::vector<std::filesystem::path> &target_files, const std::vector<std::filesystem::path> &check_files,
+    std::vector<std::filesystem::path> target_files, std::vector<std::filesystem::path> check_files,
     const std::function<bool(const std::filesystem::path &, const std::vector<std::filesystem::path> &)>
       &dependency_handler = {})
   {
+    for (auto &target_file : target_files) target_file.make_preferred();
+    for (auto &check_file : check_files) check_file.make_preferred();
     auto modified_files{utility::find_modified_files(target_files, check_files, dependency_handler)};
     if (modified_files.empty()) return;
     print<COUT>("\n{}\n", utility::small_section_divider);
@@ -35544,13 +35609,34 @@ namespace csb
       auto subproject_path{subproject_directory / repo_name};
       auto build_path{subproject_path / "build" / (target_configuration == RELEASE ? "release" : "debug")};
       if (subproject_type == STANDALONE)
-        set_env("PATH", get_env("PATH", "Could not get PATH environment variable.") +
-                          (host_platform == WINDOWS ? ";" : ":") + std::filesystem::absolute(build_path).string());
+        append_environment_variable("PATH", std::filesystem::absolute(build_path).string());
       else
       {
         auto include_path{subproject_path / "build" / "include"};
         if (std::filesystem::exists(include_path) && std::filesystem::is_directory(include_path))
           external_include_directories.push_back(include_path);
+        auto vcpkg_path{subproject_path / "build" / "vcpkg_installed"};
+        if (std::filesystem::exists(vcpkg_path) && std::filesystem::is_directory(vcpkg_path))
+        {
+          std::string vcpkg_triplet{};
+          if (host_platform == WINDOWS)
+            vcpkg_triplet =
+              std::format("{}-windows{}{}", host_architecture, (target_linkage == STATIC ? "-static" : ""),
+                          (target_configuration == RELEASE ? "-release" : ""));
+          else if (host_platform == LINUX)
+            vcpkg_triplet = std::format("{}-linux", host_architecture);
+          auto vcpkg_include_directory{vcpkg_path / vcpkg_triplet / "include"};
+          auto vcpkg_library_directory{
+            vcpkg_path / vcpkg_triplet /
+            (target_configuration == RELEASE ? "lib" : std::filesystem::path{"debug"} / "lib")};
+          if (std::filesystem::exists(vcpkg_include_directory) &&
+              std::filesystem::is_directory(vcpkg_include_directory))
+            external_include_directories.push_back(vcpkg_include_directory);
+          if (subproject_type == COMPILED_LIBRARY)
+            if (std::filesystem::exists(vcpkg_library_directory) &&
+                std::filesystem::is_directory(vcpkg_library_directory))
+              library_directories.push_back(vcpkg_library_directory);
+        }
         if (subproject_type == COMPILED_LIBRARY) library_directories.push_back(build_path);
       }
 
@@ -35887,6 +35973,8 @@ namespace csb
   inline void clang_format(const std::string &clang_version = {}, std::vector<std::filesystem::path> overrides = {},
                            std::vector<std::filesystem::path> excludes = {})
   {
+    for (auto &file : source_files) file.make_preferred();
+    for (auto &file : include_files) file.make_preferred();
     if (source_files.empty() && include_files.empty()) throw std::runtime_error("No files to format.");
 
     auto format_directory{std::filesystem::path{"build"} / "format"};
@@ -35926,24 +36014,15 @@ namespace csb
     print<COUT>("done.\n{}\n", utility::small_section_divider);
   }
 
-  // Removes the specified files.
-  inline void remove(const std::vector<std::filesystem::path> &files)
-  {
-    if (files.empty()) throw std::runtime_error("No files to remove.");
-
-    print<COUT>("\n{}\nRemoving files...\n", utility::small_section_divider);
-    for (const auto &file : files)
-    {
-      print<COUT>("{}... ", file.string());
-      if (std::filesystem::exists(file)) std::filesystem::remove_all(file);
-      print<COUT>("done.\n");
-    }
-    print<COUT>("done.\n{}\n", utility::small_section_divider);
-  }
-
   // Compiles the project source files into corresponding object files and selected headers into precompiled headers.
   inline void compile()
   {
+    for (auto &file : source_files) file.make_preferred();
+    for (auto &file : include_files) file.make_preferred();
+    for (auto &file : precompiled_headers) file.make_preferred();
+    for (auto &dir : external_include_directories) dir.make_preferred();
+    for (auto &dir : library_directories) dir.make_preferred();
+
     if (target_name.empty()) throw std::runtime_error("Executable name not set.");
     if (source_files.empty()) throw std::runtime_error("No source files to compile.");
     if (utility::forced_configuration.has_value()) target_configuration = utility::forced_configuration.value();
@@ -36250,7 +36329,8 @@ namespace csb
   // Links compiled object files into the final target artifact.
   inline void link()
   {
-    if (!std::filesystem::exists(utility::build_directory)) throw std::runtime_error("Link called before compile.");
+    if (utility::build_directory.string().empty() || !std::filesystem::exists(utility::build_directory))
+      throw std::runtime_error("Link called before compile.");
 
     if (host_platform == WINDOWS)
     {
