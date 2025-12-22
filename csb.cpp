@@ -51,7 +51,7 @@ int csb::build()
 
   if (!std::filesystem::exists("build/include")) std::filesystem::create_directories("build/include");
   csb::multi_task_run(std::format("{} () []", csb::host_platform == WINDOWS ? "copy /Y" : "cp"),
-                      csb::choose_files({"program/include"}), {"build/include/(filename)"});
+                      csb::choose_files({"program/include"}), {"build/include/cse/(filename)"});
 
   csb::generate_compile_commands();
   csb::compile();
