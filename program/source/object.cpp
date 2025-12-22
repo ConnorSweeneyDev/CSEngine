@@ -55,7 +55,7 @@ namespace cse::core
     graphics.bind_pipeline_and_buffers(render_pass);
     graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix,
                                state.calculate_model_matrix(graphics.texture.data.frame_data.width,
-                                                            graphics.texture.data.frame_data.width,
+                                                            graphics.texture.data.frame_data.height,
                                                             global_scale_factor));
     graphics.draw_primitives(render_pass);
   }
