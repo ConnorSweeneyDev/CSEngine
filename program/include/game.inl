@@ -43,7 +43,7 @@ namespace cse::core
       std::apply(
         [this](const auto name, const auto &config, auto &&...arguments)
         {
-          auto scene_weak{add_scene<scene_type>(name, std::forward<decltype(arguments)>(arguments)...)};
+          auto scene_weak{add_scene<scene_type>(name, config, std::forward<decltype(arguments)>(arguments)...)};
           if (auto scene_shared{scene_weak.lock()}) config(scene_shared);
         },
         scene);
