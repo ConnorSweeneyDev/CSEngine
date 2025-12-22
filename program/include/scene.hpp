@@ -1,5 +1,6 @@
 #pragma once
 
+#include <initializer_list>
 #include <memory>
 #include <tuple>
 #include <unordered_map>
@@ -35,6 +36,9 @@ namespace cse::core
     template <typename object_type, typename... object_arguments>
     void add_object(const helper::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
                     object_arguments &&...arguments);
+    template <typename object_type, typename... object_arguments> void add_objects(
+      std::initializer_list<std::tuple<helper::id, std::tuple<glm::ivec3, glm::ivec3, glm::ivec3>, object_arguments...>>
+        new_objects);
 
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);

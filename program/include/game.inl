@@ -2,8 +2,11 @@
 
 #include "game.hpp"
 
+#include <functional>
+#include <initializer_list>
 #include <memory>
 #include <string>
+#include <tuple>
 
 #include "glm/ext/vector_uint2.hpp"
 
@@ -20,10 +23,29 @@ namespace cse::core
   }
 
   template <typename scene_type, typename... scene_arguments>
-  std::weak_ptr<scene> game::add_scene(const helper::id name, scene_arguments &&...arguments)
+  void game::add_scene(const helper::id name, std::function<void(std::shared_ptr<scene_type>)> config,
+                       scene_arguments &&...arguments)
   {
     if (scenes.contains(name)) throw utility::exception("Tried to add duplicate scene to game");
     scenes.emplace(name, std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...));
-    return get_scene(name);
+    auto scene_weak{get_scene(name)};
+    if (auto scene_shared{scene_weak.lock()})
+      config(scene_shared);
+    else
+      throw utility::exception("Tried to configure uninitialized scene");
+  }
+
+  template <typename scene_type, typename... scene_arguments> void game::add_scenes(
+    std::initializer_list<std::tuple<helper::id, std::function<void(std::shared_ptr<scene>)>, scene_arguments...>>
+      new_scenes)
+  {
+    for (const auto &scene : new_scenes)
+      std::apply(
+        [this](const auto name, const auto &config, auto &&...arguments)
+        {
+          auto scene_weak{add_scene<scene_type>(name, std::forward<decltype(arguments)>(arguments)...)};
+          if (auto scene_shared{scene_weak.lock()}) config(scene_shared);
+        },
+        scene);
   }
 }

@@ -1,7 +1,10 @@
 #pragma once
 
+#include <functional>
+#include <initializer_list>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 
 #include "glm/ext/vector_uint2.hpp"
@@ -26,7 +29,11 @@ namespace cse::core
     void set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments);
     std::weak_ptr<scene> get_scene(const helper::id name) const;
     template <typename scene_type, typename... scene_arguments>
-    std::weak_ptr<scene> add_scene(const helper::id name, scene_arguments &&...arguments);
+    void add_scene(const helper::id name, std::function<void(std::shared_ptr<scene_type>)> config,
+                   scene_arguments &&...arguments);
+    template <typename scene_type, typename... scene_arguments> void add_scenes(
+      std::initializer_list<std::tuple<helper::id, std::function<void(std::shared_ptr<scene>)>, scene_arguments...>>
+        new_scenes);
     void set_current_scene(const helper::id name);
 
   private:
