@@ -2,7 +2,6 @@
 
 #include "scene.hpp"
 
-#include <initializer_list>
 #include <string>
 #include <tuple>
 
@@ -26,15 +25,5 @@ namespace cse::core
   {
     if (objects.contains(name)) throw utility::exception("Tried to add duplicate object to scene");
     objects.emplace(name, std::make_shared<object_type>(transform, std::forward<object_arguments>(arguments)...));
-  }
-
-  template <typename object_type, typename... object_arguments> void scene::add_objects(
-    std::initializer_list<std::tuple<helper::id, std::tuple<glm::ivec3, glm::ivec3, glm::ivec3>, object_arguments...>>
-      new_objects)
-  {
-    for (const auto &object : new_objects)
-      std::apply([this](const helper::id &name, const auto &transform, auto &&...arguments)
-                 { add_object<object_type>(name, transform, std::forward<decltype(arguments)>(arguments)...); },
-                 object);
   }
 }

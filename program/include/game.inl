@@ -3,10 +3,8 @@
 #include "game.hpp"
 
 #include <functional>
-#include <initializer_list>
 #include <memory>
 #include <string>
-#include <tuple>
 
 #include "glm/ext/vector_uint2.hpp"
 
@@ -29,14 +27,5 @@ namespace cse::core
     auto scene_shared = std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...);
     scenes.emplace(name, scene_shared);
     config(scene_shared);
-  }
-
-  template <typename scene_type, typename... scene_arguments> void game::add_scenes(
-    std::initializer_list<std::tuple<helper::id, std::function<void(std::shared_ptr<scene_type>)>, scene_arguments...>>
-      new_scenes)
-  {
-    for (const auto &scene : new_scenes)
-      std::apply([this](const auto name, const auto &config, auto &&...arguments)
-                 { add_scene<scene_type>(name, config, std::forward<decltype(arguments)>(arguments)...); }, scene);
   }
 }
