@@ -31,20 +31,15 @@ namespace cse::helper
                                                  const float global_scale_factor) const
   {
     glm::mat4 model_matrix{glm::mat4(1.0f)};
-    model_matrix = glm::translate(
-      model_matrix,
-      {std::floor((translation.interpolated.x * global_scale_factor) / global_scale_factor) * global_scale_factor,
-       std::floor((translation.interpolated.y * global_scale_factor) / global_scale_factor) * global_scale_factor,
-       std::floor((translation.interpolated.z * global_scale_factor) / global_scale_factor) * global_scale_factor});
+    model_matrix = glm::translate(model_matrix, {std::floor(translation.interpolated.x) * global_scale_factor,
+                                                 std::floor(translation.interpolated.y) * global_scale_factor,
+                                                 std::floor(translation.interpolated.z) * global_scale_factor});
     model_matrix =
-      glm::rotate(model_matrix, glm::radians(std::floor((rotation.interpolated.x * 90.0f) / 90.0f) * 90.0f),
-                  glm::vec3(1.0f, 0.0f, 0.0f));
+      glm::rotate(model_matrix, glm::radians(std::floor(rotation.interpolated.x) * 90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     model_matrix =
-      glm::rotate(model_matrix, glm::radians(std::floor((rotation.interpolated.y * 90.0f) / 90.0f) * 90.0f),
-                  glm::vec3(0.0f, 1.0f, 0.0f));
+      glm::rotate(model_matrix, glm::radians(std::floor(rotation.interpolated.y) * 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     model_matrix =
-      glm::rotate(model_matrix, glm::radians(std::floor((rotation.interpolated.z * 90.0f) / 90.0f) * 90.0f),
-                  glm::vec3(0.0f, 0.0f, 1.0f));
+      glm::rotate(model_matrix, glm::radians(std::floor(rotation.interpolated.z) * 90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     model_matrix =
       glm::scale(model_matrix, {std::floor(scale.interpolated.x) * (static_cast<float>(frame_width) / 50.0f),
                                 std::floor(scale.interpolated.y) * (static_cast<float>(frame_height) / 50.0f),
