@@ -282,10 +282,10 @@ namespace cse::helper
     return glm::perspective(glm::radians(fov), target_aspect_ratio, near_clip, far_clip);
   }
 
-  object_graphics::object_graphics(const glm::u8vec4 &tint_,
+  object_graphics::object_graphics(const glm::u8vec4 &color_,
                                    const std::pair<resource::compiled_shader, resource::compiled_shader> &shader_,
                                    const std::pair<resource::compiled_texture, std::string> &texture_)
-    : tint(tint_), shader(shader_.first, shader_.second), texture(texture_.first, texture_.second)
+    : color(color_), shader(shader_.first, shader_.second), texture(texture_.first, texture_.second)
   {
   }
 
@@ -464,10 +464,10 @@ namespace cse::helper
     const auto &frame_coords{
       texture.data.frame_data.find_group(texture.frame_group).frames[texture.frame_index].coords};
     quad_vertices = std::array<vertex, 4>{
-      {{1.0f, 1.0f, 0.0f, tint.r, tint.g, tint.b, tint.a, frame_coords.right, frame_coords.top},
-       {1.0f, -1.0f, 0.0f, tint.r, tint.g, tint.b, tint.a, frame_coords.right, frame_coords.bottom},
-       {-1.0f, 1.0f, 0.0f, tint.r, tint.g, tint.b, tint.a, frame_coords.left, frame_coords.top},
-       {-1.0f, -1.0f, 0.0f, tint.r, tint.g, tint.b, tint.a, frame_coords.left, frame_coords.bottom}}};
+      {{1.0f, 1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.right, frame_coords.top},
+       {1.0f, -1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.right, frame_coords.bottom},
+       {-1.0f, 1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.left, frame_coords.top},
+       {-1.0f, -1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.left, frame_coords.bottom}}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(gpu)};

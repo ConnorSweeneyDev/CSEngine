@@ -105,7 +105,7 @@ namespace cse::helper
 
   public:
     object_graphics() = default;
-    object_graphics(const glm::u8vec4 &tint_,
+    object_graphics(const glm::u8vec4 &color_,
                     const std::pair<resource::compiled_shader, resource::compiled_shader> &shader_,
                     const std::pair<resource::compiled_texture, std::string> &texture_);
     ~object_graphics();
@@ -125,7 +125,7 @@ namespace cse::helper
     void cleanup_object(SDL_GPUDevice *gpu);
 
   public:
-    glm::u8vec4 tint{};
+    glm::u8vec4 color{};
     shader shader{};
     texture texture{};
 
