@@ -141,15 +141,27 @@ namespace cse::helper
       SDL_ReleaseGPUTexture(gpu, depth_texture);
       depth_texture = nullptr;
     }
-    SDL_GPUTextureCreateInfo depth_texture_info{.type = SDL_GPU_TEXTURETYPE_2D,
-                                                .format = SDL_GPU_TEXTUREFORMAT_D24_UNORM,
-                                                .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
-                                                .width = width,
-                                                .height = height,
-                                                .layer_count_or_depth = 1,
-                                                .num_levels = 1,
-                                                .sample_count = SDL_GPU_SAMPLECOUNT_1,
-                                                .props = 0};
+    const auto type{SDL_GPU_TEXTURETYPE_2D};
+    const auto usage{SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET};
+    const std::array<SDL_GPUTextureFormat, 3> potential_formats{
+      SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
+    SDL_GPUTextureCreateInfo depth_texture_info{
+      .type = type,
+      .format = [this, &potential_formats]() -> SDL_GPUTextureFormat
+      {
+        for (const auto &potential_format : potential_formats)
+          if (SDL_GPUTextureSupportsFormat(gpu, potential_format, type, usage)) return potential_format;
+        return {};
+      }(),
+      .usage = usage,
+      .width = width,
+      .height = height,
+      .layer_count_or_depth = 1,
+      .num_levels = 1,
+      .sample_count = SDL_GPU_SAMPLECOUNT_1,
+      .props = 0};
+    if (depth_texture_info.format == SDL_GPU_TEXTUREFORMAT_INVALID)
+      throw sdl_exception("No supported depth texture format found");
     depth_texture = SDL_CreateGPUTexture(gpu, &depth_texture_info);
     if (!depth_texture) throw sdl_exception("Could not create depth texture");
   }
@@ -348,11 +360,22 @@ namespace cse::helper
     depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS;
     depth_stencil_state.enable_depth_test = true;
     depth_stencil_state.enable_depth_write = true;
+    const auto type{SDL_GPU_TEXTURETYPE_2D};
+    const std::array<SDL_GPUTextureFormat, 3> potential_formats{
+      SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
     SDL_GPUGraphicsPipelineTargetInfo target_info{};
     target_info.color_target_descriptions = &color_target_description;
     target_info.num_color_targets = 1;
-    target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
+    target_info.depth_stencil_format = [gpu, &potential_formats]() -> SDL_GPUTextureFormat
+    {
+      for (const auto &potential_format : potential_formats)
+        if (SDL_GPUTextureSupportsFormat(gpu, potential_format, type, SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET))
+          return potential_format;
+      return {};
+    }();
     target_info.has_depth_stencil_target = true;
+    if (target_info.depth_stencil_format == SDL_GPU_TEXTUREFORMAT_INVALID)
+      throw sdl_exception("No supported depth stencil format found for object");
     SDL_GPUGraphicsPipelineCreateInfo pipeline_info{};
     pipeline_info.vertex_shader = vertex_shader;
     pipeline_info.fragment_shader = fragment_shader;
@@ -383,9 +406,13 @@ namespace cse::helper
     sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_buffer = SDL_CreateGPUSampler(gpu, &sampler_info);
     if (!sampler_buffer) throw sdl_exception("Could not create sampler for object");
-    SDL_GPUTextureCreateInfo texture_info{.type = SDL_GPU_TEXTURETYPE_2D,
-                                          .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-                                          .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+    const auto format{SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM};
+    const auto usage{SDL_GPU_TEXTUREUSAGE_SAMPLER};
+    if (!SDL_GPUTextureSupportsFormat(gpu, format, type, usage))
+      throw sdl_exception("No supported texture format found for object");
+    SDL_GPUTextureCreateInfo texture_info{.type = type,
+                                          .format = format,
+                                          .usage = usage,
                                           .width = texture.data.image_data.width,
                                           .height = texture.data.image_data.height,
                                           .layer_count_or_depth = 1,
