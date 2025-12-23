@@ -2,13 +2,11 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_timer.h"
 
 #include "exception.hpp"
-#include "id.hpp"
 #include "print.hpp"
 #include "scene.hpp"
 #include "system.hpp"
@@ -21,59 +19,6 @@ namespace cse::core
     current_scene.reset();
     scenes.clear();
     window.reset();
-  }
-
-  std::shared_ptr<window> game::get_window() const noexcept { return window; }
-
-  std::shared_ptr<window> game::get_window_strict() const
-  {
-    if (window) return window;
-    throw utility::exception("Window is not initialized");
-  }
-
-  std::shared_ptr<scene> game::get_scene(const helper::id name) const noexcept
-  {
-    if (!scenes.contains(name)) return nullptr;
-    return scenes.at(name);
-  }
-
-  std::shared_ptr<scene> game::get_scene_strict(const helper::id name) const
-  {
-    if (!scenes.contains(name)) throw utility::exception("Requested scene does not exist");
-    if (auto scene{scenes.at(name)}) return scene;
-    throw utility::exception("Requested scene is not initialized");
-  }
-
-  std::pair<helper::id, std::shared_ptr<scene>> game::get_current_scene() const noexcept
-  {
-    if (current_scene.expired()) return {"", nullptr};
-    if (auto scene{current_scene.lock()})
-    {
-      for (const auto &pair : scenes)
-        if (pair.second == scene) return {pair.first, scene};
-      return {"", nullptr};
-    }
-    return {"", nullptr};
-  }
-
-  std::pair<helper::id, std::shared_ptr<scene>> game::get_current_scene_strict() const
-  {
-    if (current_scene.expired()) throw utility::exception("Current scene is not set");
-    if (auto scene{current_scene.lock()})
-    {
-      for (const auto &pair : scenes)
-        if (pair.second == scene) return {pair.first, scene};
-      throw utility::exception("Current scene is registered in scenes map");
-    }
-    throw utility::exception("Current scene is not initialized");
-  }
-
-  void game::set_current_scene(const helper::id name)
-  {
-    if (auto scene{get_scene_strict(name)})
-      current_scene = scene;
-    else
-      throw utility::exception("Tried to set current scene to null");
   }
 
   void game::run()

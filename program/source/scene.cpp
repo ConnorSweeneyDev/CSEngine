@@ -8,7 +8,6 @@
 #include "SDL3/SDL_video.h"
 
 #include "camera.hpp"
-#include "exception.hpp"
 #include "id.hpp"
 #include "object.hpp"
 
@@ -19,27 +18,6 @@ namespace cse::core
     objects.clear();
     camera.reset();
     hooks.clear_all();
-  }
-
-  std::shared_ptr<class camera> scene::get_camera() const noexcept { return camera; }
-
-  std::shared_ptr<class camera> scene::get_camera_strict() const
-  {
-    if (camera) return camera;
-    throw utility::exception("Scene camera is not initialized");
-  }
-
-  std::shared_ptr<object> scene::get_object(const helper::id name) const noexcept
-  {
-    if (!objects.contains(name)) return nullptr;
-    return objects.at(name);
-  }
-
-  std::shared_ptr<object> scene::get_object_strict(const helper::id name) const
-  {
-    if (!objects.contains(name)) throw cse::utility::exception("Requested object does not exist in scene");
-    if (auto object{objects.at(name)}) return object;
-    throw utility::exception("Requested object is not initialized");
   }
 
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
