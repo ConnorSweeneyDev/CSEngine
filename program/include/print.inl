@@ -6,6 +6,8 @@
 #include <iostream>
 #include <mutex>
 
+#include "exception.hpp"
+
 namespace cse::utility
 {
   template <print_stream stream, typename... message_arguments>
