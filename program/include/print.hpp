@@ -10,7 +10,7 @@ enum print_stream
   CLOG
 };
 
-namespace cse::utility
+namespace cse
 {
   template <print_stream stream, typename... message_arguments>
   void print(std::format_string<message_arguments...> message, message_arguments &&...arguments);

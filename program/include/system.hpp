@@ -6,7 +6,7 @@ enum platforms
   LINUX
 };
 
-namespace cse::system
+namespace cse
 {
 #if defined(_WIN32)
   constexpr platforms platform{WINDOWS};

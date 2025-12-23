@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cse::core
+namespace cse
 {
   class game;
   class window;

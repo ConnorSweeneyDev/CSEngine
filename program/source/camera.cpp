@@ -7,7 +7,7 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
 
-namespace cse::core
+namespace cse
 {
   camera::camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const float fov_)
     : state(transform_), graphics(fov_)

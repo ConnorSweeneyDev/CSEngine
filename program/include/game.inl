@@ -11,7 +11,7 @@
 
 #include "id.hpp"
 
-namespace cse::core
+namespace cse
 {
   template <typename window_type, typename... window_arguments>
   void game::set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments)

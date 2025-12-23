@@ -11,7 +11,7 @@
 #include "hooks.hpp"
 #include "property.hpp"
 
-namespace cse::core
+namespace cse
 {
   class window
   {

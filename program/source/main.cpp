@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
   }
   catch (const std::exception &error)
   {
-    cse::utility::print<CERR>("{}\n", error.what());
+    cse::print<CERR>("{}\n", error.what());
     return EXIT_FAILURE;
   }
 }

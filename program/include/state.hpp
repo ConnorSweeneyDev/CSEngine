@@ -14,7 +14,7 @@ namespace cse::helper
 {
   struct camera_state
   {
-    friend class core::camera;
+    friend class cse::camera;
 
   public:
     camera_state() = default;
@@ -31,7 +31,7 @@ namespace cse::helper
 
   struct object_state
   {
-    friend class core::object;
+    friend class cse::object;
 
   public:
     object_state() = default;

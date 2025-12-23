@@ -58,7 +58,7 @@ namespace cse::helper
   template <typename signature> void hooks::add(const id name, const std::function<signature> &function)
   {
     auto &map{get_map<signature>()};
-    if (map.contains(name)) throw utility::exception("Attempted to add duplicate hook");
+    if (map.contains(name)) throw exception("Attempted to add duplicate hook");
     map.emplace(name, function);
   }
 
@@ -71,7 +71,7 @@ namespace cse::helper
   template <typename signature> void hooks::remove(const id name)
   {
     auto &map{get_map<signature>()};
-    if (!map.contains(name)) throw utility::exception("Attempted to remove non-existent hook");
+    if (!map.contains(name)) throw exception("Attempted to remove non-existent hook");
     map.erase(name);
   }
 
@@ -105,7 +105,7 @@ namespace cse::helper
 
   template <typename signature, typename... arguments> auto hooks::strict_call(const id name, arguments &&...args) const
   {
-    if (!has<signature>(name)) throw utility::exception("Attempted to call non-existent hook");
+    if (!has<signature>(name)) throw exception("Attempted to call non-existent hook");
     const auto &map{get_map<signature>()};
     return map.at(name)(std::forward<arguments>(args)...);
   }

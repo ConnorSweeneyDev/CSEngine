@@ -8,12 +8,12 @@
 
 #include "exception.hpp"
 
-namespace cse::core
+namespace cse
 {
   window::window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
     : title(title_), width(dimensions_.x), height(dimensions_.y), fullscreen(fullscreen_), vsync(vsync_)
   {
-    if (title_.empty()) throw cse::utility::exception("Window title cannot be empty");
+    if (title_.empty()) throw exception("Window title cannot be empty");
     width.on_change = [this]() { graphics.handle_manual_resize(width, height, fullscreen); };
     height.on_change = [this]() { graphics.handle_manual_resize(width, height, fullscreen); };
     left.on_change = [this]() { graphics.handle_manual_move(left, top, fullscreen); };

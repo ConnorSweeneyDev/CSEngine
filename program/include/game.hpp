@@ -10,7 +10,7 @@
 #include "declaration.hpp"
 #include "id.hpp"
 
-namespace cse::core
+namespace cse
 {
   class game
   {

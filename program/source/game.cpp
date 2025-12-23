@@ -12,7 +12,7 @@
 #include "system.hpp"
 #include "window.hpp"
 
-namespace cse::core
+namespace cse
 {
   game::~game()
   {
@@ -46,12 +46,12 @@ namespace cse::core
   void game::initialize()
   {
     window->initialize();
-    if (scenes.empty()) throw cse::utility::exception("No scenes have been added to the game");
-    if (current_scene.expired()) throw cse::utility::exception("No current scene has been set for the game");
+    if (scenes.empty()) throw exception("No scenes have been added to the game");
+    if (current_scene.expired()) throw exception("No current scene has been set for the game");
     if (auto scene{current_scene.lock()})
       scene->initialize(window->graphics.instance, window->graphics.gpu);
     else
-      throw cse::utility::exception("Current scene is not initialized");
+      throw exception("Current scene is not initialized");
   }
 
   void game::event()
@@ -62,7 +62,7 @@ namespace cse::core
       if (auto scene{current_scene.lock()})
         scene->event(window->current_event);
       else
-        throw cse::utility::exception("Current scene is not initialized");
+        throw exception("Current scene is not initialized");
     }
   }
 
@@ -72,7 +72,7 @@ namespace cse::core
     if (auto scene{current_scene.lock()})
       scene->input(window->current_keys);
     else
-      throw cse::utility::exception("Current scene is not initialized");
+      throw exception("Current scene is not initialized");
   }
 
   void game::simulate()
@@ -81,7 +81,7 @@ namespace cse::core
     if (auto scene{current_scene.lock()})
       scene->simulate(simulation_alpha);
     else
-      throw cse::utility::exception("Current scene is not initialized");
+      throw exception("Current scene is not initialized");
   }
 
   void game::render()
@@ -91,7 +91,7 @@ namespace cse::core
       scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass,
                     target_aspect_ratio, global_scale_factor);
     else
-      throw cse::utility::exception("Current scene is not initialized");
+      throw exception("Current scene is not initialized");
     window->end_render();
   }
 
@@ -100,7 +100,7 @@ namespace cse::core
     if (auto scene{current_scene.lock()})
       scene->cleanup(window->graphics.gpu);
     else
-      throw cse::utility::exception("Current scene is not initialized");
+      throw exception("Current scene is not initialized");
     window->cleanup();
   }
 
@@ -142,7 +142,7 @@ namespace cse::core
     double current_fps_time{static_cast<double>(SDL_GetTicksNS()) / 1e9};
     if (current_fps_time - last_fps_time >= 1.0)
     {
-      if constexpr (cse::system::debug) utility::print<CLOG>("{} FPS\n", current_period_frame_count);
+      if constexpr (debug) print<CLOG>("{} FPS\n", current_period_frame_count);
       last_fps_time = current_fps_time;
       current_period_frame_count = 0;
     }

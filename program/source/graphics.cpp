@@ -37,39 +37,38 @@ namespace cse::helper
                                               const unsigned int height, int &left, int &top,
                                               SDL_DisplayID &display_index, const bool fullscreen, const bool vsync)
   {
-    SDL_SetLogPriorities(cse::system::debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
+    SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
-      throw cse::utility::sdl_exception("Could not set app metadata type");
+      throw sdl_exception("Could not set app metadata type");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "Connor.Sweeney.Engine"))
-      throw cse::utility::sdl_exception("Could not set app metadata identifier");
+      throw sdl_exception("Could not set app metadata identifier");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, "CSEngine"))
-      throw cse::utility::sdl_exception("Could not set app metadata name");
+      throw sdl_exception("Could not set app metadata name");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "0.0.0"))
-      throw cse::utility::sdl_exception("Could not set app metadata version");
+      throw sdl_exception("Could not set app metadata version");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
-      throw cse::utility::sdl_exception("Could not set app metadata creator");
-    if (!SDL_Init(SDL_INIT_VIDEO)) throw cse::utility::sdl_exception("SDL could not be initialized");
+      throw sdl_exception("Could not set app metadata creator");
+    if (!SDL_Init(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be initialized");
 
     instance = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height),
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
-    if (!instance) throw cse::utility::sdl_exception("Could not create window");
+    if (!instance) throw sdl_exception("Could not create window");
     windowed_width = width;
     windowed_height = height;
     display_index = SDL_GetPrimaryDisplay();
-    if (display_index == 0) throw cse::utility::sdl_exception("Could not get primary display");
+    if (display_index == 0) throw sdl_exception("Could not get primary display");
     auto position{calculate_display_center(display_index, width, height)};
     left = static_cast<int>(position.x);
     top = static_cast<int>(position.y);
     windowed_left = left;
     windowed_top = top;
     if (!SDL_SetWindowPosition(instance, left, top))
-      throw cse::utility::sdl_exception("Could not set window position to {}, {}", left, top);
-    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, cse::system::debug, "vulkan");
-    if (!gpu) throw cse::utility::sdl_exception("Could not create GPU device");
-    if (!SDL_ClaimWindowForGPUDevice(gpu, instance))
-      throw cse::utility::sdl_exception("Could not claim window for GPU device");
+      throw sdl_exception("Could not set window position to {}, {}", left, top);
+    gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, debug, "vulkan");
+    if (!gpu) throw sdl_exception("Could not create GPU device");
+    if (!SDL_ClaimWindowForGPUDevice(gpu, instance)) throw sdl_exception("Could not claim window for GPU device");
     if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
-      throw cse::utility::sdl_exception("Could not enable VSYNC");
+      throw sdl_exception("Could not enable VSYNC");
     if (fullscreen) handle_fullscreen(fullscreen, left, top, display_index);
     if (!vsync) handle_vsync(vsync);
     if (!depth_texture) generate_depth_texture(width, height);
@@ -79,13 +78,12 @@ namespace cse::helper
   bool window_graphics::acquire_swapchain_texture()
   {
     command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
-    if (!command_buffer) throw cse::utility::sdl_exception("Could not acquire GPU command buffer");
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer");
     if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, nullptr, nullptr))
-      throw cse::utility::sdl_exception("Could not acquire GPU swapchain texture");
+      throw sdl_exception("Could not acquire GPU swapchain texture");
     if (!swapchain_texture)
     {
-      if (!SDL_SubmitGPUCommandBuffer(command_buffer))
-        throw cse::utility::sdl_exception("Could not submit GPU command buffer");
+      if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
       return false;
     }
     return true;
@@ -105,7 +103,7 @@ namespace cse::helper
     depth_stencil_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     depth_stencil_target_info.store_op = SDL_GPU_STOREOP_STORE;
     render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, &depth_stencil_target_info);
-    if (!render_pass) throw cse::utility::sdl_exception("Could not begin GPU render pass");
+    if (!render_pass) throw sdl_exception("Could not begin GPU render pass");
     float viewport_x{}, viewport_y{}, viewport_width{}, viewport_height{};
     if ((static_cast<float>(width) / static_cast<float>(height)) > target_aspect_ratio)
     {
@@ -133,8 +131,7 @@ namespace cse::helper
   void window_graphics::end_render_pass()
   {
     SDL_EndGPURenderPass(render_pass);
-    if (!SDL_SubmitGPUCommandBuffer(command_buffer))
-      throw cse::utility::sdl_exception("Could not submit GPU command buffer");
+    if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
   }
 
   void window_graphics::generate_depth_texture(const unsigned int width, const unsigned int height)
@@ -154,7 +151,7 @@ namespace cse::helper
                                                 .sample_count = SDL_GPU_SAMPLECOUNT_1,
                                                 .props = 0};
     depth_texture = SDL_CreateGPUTexture(gpu, &depth_texture_info);
-    if (!depth_texture) throw cse::utility::sdl_exception("Could not create depth texture");
+    if (!depth_texture) throw sdl_exception("Could not create depth texture");
   }
 
   glm::uvec2 window_graphics::calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
@@ -162,7 +159,7 @@ namespace cse::helper
   {
     SDL_Rect display_bounds{};
     if (!SDL_GetDisplayBounds(display_index, &display_bounds))
-      throw utility::sdl_exception("Could not get bounds for display {}", display_index);
+      throw sdl_exception("Could not get bounds for display {}", display_index);
     return {display_bounds.x + (display_bounds.w - static_cast<int>(width)) / 2,
             display_bounds.y + (display_bounds.h - static_cast<int>(height)) / 2};
   }
@@ -170,11 +167,11 @@ namespace cse::helper
   void window_graphics::handle_move(int &left, int &top, SDL_DisplayID &display_index, const bool fullscreen)
   {
     if (fullscreen) return;
-    if (!SDL_GetWindowPosition(instance, &left, &top)) throw utility::sdl_exception("Could not get window position");
+    if (!SDL_GetWindowPosition(instance, &left, &top)) throw sdl_exception("Could not get window position");
     windowed_left = left;
     windowed_top = top;
     display_index = SDL_GetDisplayForWindow(instance);
-    if (display_index == 0) throw utility::sdl_exception("Could not get window display index");
+    if (display_index == 0) throw sdl_exception("Could not get window display index");
   }
 
   void window_graphics::handle_manual_move(const int left, const int top, const bool fullscreen)
@@ -185,7 +182,7 @@ namespace cse::helper
       windowed_top = top;
     }
     if (!SDL_SetWindowPosition(instance, left, top))
-      throw utility::sdl_exception("Could not set window position to {}, {}", left, top);
+      throw sdl_exception("Could not set window position to {}, {}", left, top);
   }
 
   void window_graphics::handle_manual_display_move(const unsigned int width, const unsigned int height, int &left,
@@ -200,7 +197,7 @@ namespace cse::helper
       windowed_top = top;
     }
     if (!SDL_SetWindowPosition(instance, left, top))
-      throw utility::sdl_exception("Could not set window position centered on display {}", display_index);
+      throw sdl_exception("Could not set window position centered on display {}", display_index);
   }
 
   void window_graphics::handle_resize(unsigned int &width, unsigned int &height, SDL_DisplayID &display_index,
@@ -224,7 +221,7 @@ namespace cse::helper
       windowed_height = height;
     }
     if (!SDL_SetWindowSize(instance, static_cast<int>(width), static_cast<int>(height)))
-      throw utility::sdl_exception("Could not set window size to {}, {}", width, height);
+      throw sdl_exception("Could not set window size to {}, {}", width, height);
     generate_depth_texture(width, height);
   }
 
@@ -234,22 +231,22 @@ namespace cse::helper
     {
       SDL_Rect display_bounds{};
       if (!SDL_GetDisplayBounds(display_index, &display_bounds))
-        throw utility::sdl_exception("Could not get bounds for display {}", display_index);
-      if (!SDL_SetWindowBordered(instance, false)) throw utility::sdl_exception("Could not set window borderless");
+        throw sdl_exception("Could not get bounds for display {}", display_index);
+      if (!SDL_SetWindowBordered(instance, false)) throw sdl_exception("Could not set window borderless");
       if (!SDL_SetWindowSize(instance, display_bounds.w, display_bounds.h))
-        throw utility::sdl_exception("Could not set window size to {}, {} on display {}", display_bounds.w,
-                                     display_bounds.h, display_index);
+        throw sdl_exception("Could not set window size to {}, {} on display {}", display_bounds.w, display_bounds.h,
+                            display_index);
       auto position{calculate_display_center(display_index, static_cast<unsigned int>(display_bounds.w),
                                              static_cast<unsigned int>(display_bounds.h))};
       if (!SDL_SetWindowPosition(instance, static_cast<int>(position.x), static_cast<int>(position.y)))
-        throw utility::sdl_exception("Could not set window position centered on display {}", display_index);
+        throw sdl_exception("Could not set window position centered on display {}", display_index);
       return;
     }
-    if (!SDL_SetWindowBordered(instance, true)) throw utility::sdl_exception("Could not set window bordered");
+    if (!SDL_SetWindowBordered(instance, true)) throw sdl_exception("Could not set window bordered");
     if (!SDL_SetWindowSize(instance, static_cast<int>(windowed_width), static_cast<int>(windowed_height)))
-      throw utility::sdl_exception("Could not set window size to {}, {}", windowed_width, windowed_height);
+      throw sdl_exception("Could not set window size to {}, {}", windowed_width, windowed_height);
     if (!SDL_SetWindowPosition(instance, windowed_left, windowed_top))
-      throw utility::sdl_exception("Could not set window position to {}, {}", left, top);
+      throw sdl_exception("Could not set window position to {}, {}", left, top);
   }
 
   void window_graphics::handle_vsync(const bool vsync)
@@ -257,13 +254,13 @@ namespace cse::helper
     if (vsync)
     {
       if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
-        throw utility::sdl_exception("Could not enable VSYNC");
+        throw sdl_exception("Could not enable VSYNC");
       return;
     }
     if (SDL_WindowSupportsGPUPresentMode(gpu, instance, SDL_GPU_PRESENTMODE_IMMEDIATE))
       if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
                                          SDL_GPU_PRESENTMODE_IMMEDIATE))
-        throw utility::sdl_exception("Could not disable VSYNC");
+        throw sdl_exception("Could not disable VSYNC");
   }
 
   void window_graphics::destroy_window_and_app()
@@ -283,8 +280,8 @@ namespace cse::helper
   }
 
   object_graphics::object_graphics(const glm::u8vec4 &color_,
-                                   const std::pair<resource::compiled_shader, resource::compiled_shader> &shader_,
-                                   const std::pair<resource::compiled_texture, std::string> &texture_)
+                                   const std::pair<compiled_shader, compiled_shader> &shader_,
+                                   const std::pair<compiled_texture, std::string> &texture_)
     : color(color_), shader(shader_.first, shader_.second), texture(texture_.first, texture_.second)
   {
   }
@@ -304,7 +301,7 @@ namespace cse::helper
   {
     const auto backend_formats{SDL_GetGPUShaderFormats(gpu)};
     if (!(backend_formats & SDL_GPU_SHADERFORMAT_SPIRV))
-      throw cse::utility::sdl_exception("No supported vulkan shader formats for object");
+      throw sdl_exception("No supported vulkan shader formats for object");
     SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader.vertex.length,
                                                .code = shader.vertex.source.data(),
                                                .entrypoint = "main",
@@ -316,7 +313,7 @@ namespace cse::helper
                                                .num_uniform_buffers = 1,
                                                .props = 0};
     auto *vertex_shader{SDL_CreateGPUShader(gpu, &vertex_shader_info)};
-    if (!vertex_shader) throw cse::utility::sdl_exception("Could not create vertex shader for object");
+    if (!vertex_shader) throw sdl_exception("Could not create vertex shader for object");
     SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader.fragment.length,
                                                  .code = shader.fragment.source.data(),
                                                  .entrypoint = "main",
@@ -328,7 +325,7 @@ namespace cse::helper
                                                  .num_uniform_buffers = 0,
                                                  .props = 0};
     auto *fragment_shader{SDL_CreateGPUShader(gpu, &fragment_shader_info)};
-    if (!fragment_shader) throw cse::utility::sdl_exception("Could not create fragment shader for object");
+    if (!fragment_shader) throw sdl_exception("Could not create fragment shader for object");
     SDL_GPUVertexBufferDescription vertex_buffer_description{
       .slot = 0, .pitch = sizeof(vertex), .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX, .instance_step_rate = 0};
     std::array<SDL_GPUVertexAttribute, 3> vertex_attributes{
@@ -365,18 +362,18 @@ namespace cse::helper
     pipeline_info.depth_stencil_state = depth_stencil_state;
     pipeline_info.target_info = target_info;
     pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &pipeline_info);
-    if (!pipeline) throw cse::utility::sdl_exception("Could not create graphics pipeline for object");
+    if (!pipeline) throw sdl_exception("Could not create graphics pipeline for object");
     SDL_ReleaseGPUShader(gpu, fragment_shader);
     SDL_ReleaseGPUShader(gpu, vertex_shader);
 
     SDL_GPUBufferCreateInfo vertex_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_VERTEX, .size = sizeof(quad_vertices), .props = 0};
     vertex_buffer = SDL_CreateGPUBuffer(gpu, &vertex_buffer_info);
-    if (!vertex_buffer) throw cse::utility::sdl_exception("Could not create vertex buffer for object");
+    if (!vertex_buffer) throw sdl_exception("Could not create vertex buffer for object");
     SDL_GPUBufferCreateInfo index_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_INDEX, .size = sizeof(quad_indices), .props = 0};
     index_buffer = SDL_CreateGPUBuffer(gpu, &index_buffer_info);
-    if (!index_buffer) throw cse::utility::sdl_exception("Could not create index buffer for object");
+    if (!index_buffer) throw sdl_exception("Could not create index buffer for object");
     SDL_GPUSamplerCreateInfo sampler_info{};
     sampler_info.min_filter = SDL_GPU_FILTER_NEAREST;
     sampler_info.mag_filter = SDL_GPU_FILTER_NEAREST;
@@ -385,7 +382,7 @@ namespace cse::helper
     sampler_info.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_buffer = SDL_CreateGPUSampler(gpu, &sampler_info);
-    if (!sampler_buffer) throw cse::utility::sdl_exception("Could not create sampler for object");
+    if (!sampler_buffer) throw sdl_exception("Could not create sampler for object");
     SDL_GPUTextureCreateInfo texture_info{.type = SDL_GPU_TEXTURETYPE_2D,
                                           .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
                                           .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
@@ -396,22 +393,21 @@ namespace cse::helper
                                           .sample_count = SDL_GPU_SAMPLECOUNT_1,
                                           .props = 0};
     texture_buffer = SDL_CreateGPUTexture(gpu, &texture_info);
-    if (!texture_buffer) throw cse::utility::sdl_exception("Could not create texture for object");
+    if (!texture_buffer) throw sdl_exception("Could not create texture for object");
 
     SDL_GPUTransferBufferCreateInfo vertex_transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = sizeof(quad_vertices) + sizeof(quad_indices), .props = 0};
     vertex_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &vertex_transfer_buffer_info);
-    if (!vertex_transfer_buffer)
-      throw cse::utility::sdl_exception("Could not create transfer buffer for buffer object");
+    if (!vertex_transfer_buffer) throw sdl_exception("Could not create transfer buffer for buffer object");
     auto vertex_data{reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
-    if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
+    if (!vertex_data) throw sdl_exception("Could not map vertex data for object");
     quad_vertices = std::array<vertex, 4>{{{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 1.0f},
                                            {1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 0.0f},
                                            {-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 1.0f},
                                            {-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 0.0f}}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
     auto index_data{reinterpret_cast<Uint16 *>(&vertex_data[quad_vertices.size()])};
-    if (!index_data) throw cse::utility::sdl_exception("Could not map index data for object");
+    if (!index_data) throw sdl_exception("Could not map index data for object");
     quad_indices = std::array<Uint16, 6>({3, 1, 0, 3, 0, 2});
     std::copy(quad_indices.begin(), quad_indices.end(), index_data);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
@@ -420,10 +416,9 @@ namespace cse::helper
       .size = texture.data.image_data.width * texture.data.image_data.height * texture.data.image_data.channels,
       .props = 0};
     texture_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &texture_transfer_buffer_info);
-    if (!texture_transfer_buffer)
-      throw cse::utility::sdl_exception("Could not create transfer buffer for texture for object");
+    if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for object");
     auto *texture_data{reinterpret_cast<Uint8 *>(SDL_MapGPUTransferBuffer(gpu, texture_transfer_buffer, false))};
-    if (!texture_data) throw cse::utility::sdl_exception("Could not map texture data for object");
+    if (!texture_data) throw sdl_exception("Could not map texture data for object");
     SDL_memcpy(texture_data, texture.data.image.data(),
                texture.data.image_data.width * texture.data.image_data.height * texture.data.image_data.channels);
     SDL_UnmapGPUTransferBuffer(gpu, texture_transfer_buffer);
@@ -432,9 +427,9 @@ namespace cse::helper
   void object_graphics::upload_static_buffers(SDL_GPUDevice *gpu)
   {
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(gpu)};
-    if (!command_buffer) throw cse::utility::sdl_exception("Could not acquire GPU command buffer for object");
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for object");
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
-    if (!copy_pass) throw cse::utility::sdl_exception("Could not begin GPU copy pass for object");
+    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for object");
     SDL_GPUTransferBufferLocation index_transfer_buffer_location{.transfer_buffer = vertex_transfer_buffer,
                                                                  .offset = sizeof(quad_vertices)};
     SDL_GPUBufferRegion index_buffer_region{.buffer = index_buffer, .offset = 0, .size = sizeof(quad_indices)};
@@ -460,7 +455,7 @@ namespace cse::helper
   void object_graphics::upload_dynamic_buffers(SDL_GPUDevice *gpu)
   {
     auto vertex_data{reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
-    if (!vertex_data) throw cse::utility::sdl_exception("Could not map vertex data for object");
+    if (!vertex_data) throw sdl_exception("Could not map vertex data for object");
     const auto &frame_coords{
       texture.data.frame_data.find_group(texture.frame_group).frames[texture.frame_index].coords};
     quad_vertices = std::array<vertex, 4>{
@@ -471,9 +466,9 @@ namespace cse::helper
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(gpu)};
-    if (!command_buffer) throw cse::utility::sdl_exception("Could not acquire GPU command buffer for object");
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for object");
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
-    if (!copy_pass) throw cse::utility::sdl_exception("Could not begin GPU copy pass for object");
+    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for object");
     SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = vertex_transfer_buffer, .offset = 0};
     SDL_GPUBufferRegion buffer_region{.buffer = vertex_buffer, .offset = 0, .size = sizeof(quad_vertices)};
     SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, false);

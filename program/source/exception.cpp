@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace cse::utility
+namespace cse
 {
   const char *exception::what() const noexcept
   {

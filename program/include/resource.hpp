@@ -8,7 +8,7 @@
 
 #include "exception.hpp"
 
-namespace cse::resource
+namespace cse
 {
   struct compiled_shader
   {
@@ -47,7 +47,7 @@ namespace cse::resource
         auto it{std::lower_bound(groups.begin(), groups.end(), name,
                                  [](const auto &pair, std::string_view key) { return pair.first < key; })};
         if (it == groups.end() || it->first != name)
-          throw utility::exception("Could not find '{}' frame group for texture", name);
+          throw exception("Could not find '{}' frame group for texture", name);
         return it->second;
       };
       const unsigned int width{};

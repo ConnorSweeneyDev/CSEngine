@@ -7,7 +7,7 @@
 
 #include "SDL3/SDL_error.h"
 
-namespace cse::utility
+namespace cse
 {
   template <typename... message_arguments>
   exception::exception(const std::string &message_, message_arguments &&...arguments_)

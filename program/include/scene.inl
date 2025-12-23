@@ -10,7 +10,7 @@
 
 #include "id.hpp"
 
-namespace cse::core
+namespace cse
 {
   template <typename camera_type, typename... camera_arguments>
   void scene::set_camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform, camera_arguments &&...arguments)

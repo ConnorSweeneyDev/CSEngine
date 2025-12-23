@@ -11,7 +11,7 @@
 #include "id.hpp"
 #include "object.hpp"
 
-namespace cse::core
+namespace cse
 {
   scene::~scene()
   {

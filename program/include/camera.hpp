@@ -12,7 +12,7 @@
 #include "hooks.hpp"
 #include "state.hpp"
 
-namespace cse::core
+namespace cse
 {
   class camera
   {

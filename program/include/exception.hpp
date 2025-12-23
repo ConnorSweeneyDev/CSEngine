@@ -3,7 +3,7 @@
 #include <exception>
 #include <string>
 
-namespace cse::utility
+namespace cse
 {
   class exception : public std::exception
   {

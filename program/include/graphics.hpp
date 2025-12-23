@@ -18,8 +18,8 @@ namespace cse::helper
 {
   struct window_graphics
   {
-    friend class core::game;
-    friend class core::window;
+    friend class cse::game;
+    friend class cse::window;
 
   public:
     window_graphics() = default;
@@ -63,7 +63,7 @@ namespace cse::helper
 
   struct camera_graphics
   {
-    friend class core::camera;
+    friend class cse::camera;
 
   public:
     camera_graphics() = default;
@@ -82,7 +82,7 @@ namespace cse::helper
 
   struct object_graphics
   {
-    friend class core::object;
+    friend class cse::object;
 
   private:
     struct vertex
@@ -93,21 +93,20 @@ namespace cse::helper
     };
     struct shader
     {
-      const resource::compiled_shader vertex{};
-      const resource::compiled_shader fragment{};
+      const compiled_shader vertex{};
+      const compiled_shader fragment{};
     };
     struct texture
     {
-      const resource::compiled_texture data{};
+      const compiled_texture data{};
       std::string frame_group{};
       unsigned int frame_index{};
     };
 
   public:
     object_graphics() = default;
-    object_graphics(const glm::u8vec4 &color_,
-                    const std::pair<resource::compiled_shader, resource::compiled_shader> &shader_,
-                    const std::pair<resource::compiled_texture, std::string> &texture_);
+    object_graphics(const glm::u8vec4 &color_, const std::pair<compiled_shader, compiled_shader> &shader_,
+                    const std::pair<compiled_texture, std::string> &texture_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;
