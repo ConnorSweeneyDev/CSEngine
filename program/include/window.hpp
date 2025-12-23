@@ -34,8 +34,7 @@ namespace cse::core
     void end_render();
     void cleanup();
 
-  protected:
-    helper::hooks hooks{};
+  public:
     bool running{};
     const std::string title{};
     helper::property<unsigned int> width{};
@@ -45,6 +44,9 @@ namespace cse::core
     helper::property<SDL_DisplayID> display_index{};
     helper::property<bool> fullscreen{};
     helper::property<bool> vsync{};
+
+  protected:
+    helper::hooks hooks{};
 
   private:
     helper::window_graphics graphics{};

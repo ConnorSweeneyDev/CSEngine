@@ -32,9 +32,11 @@ namespace cse::core
     void simulate(const double simulation_alpha);
     std::pair<glm::mat4, glm::mat4> render(const float target_aspect_ratio, const float global_scale_factor);
 
-  protected:
-    helper::hooks hooks{};
+  public:
     helper::camera_state state{};
     helper::camera_graphics graphics{};
+
+  protected:
+    helper::hooks hooks{};
   };
 }

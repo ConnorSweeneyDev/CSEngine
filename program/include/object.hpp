@@ -42,9 +42,11 @@ namespace cse::core
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float global_scale_factor);
     void cleanup(SDL_GPUDevice *gpu);
 
-  protected:
-    helper::hooks hooks{};
+  public:
     helper::object_state state{};
     helper::object_graphics graphics{};
+
+  protected:
+    helper::hooks hooks{};
   };
 }
