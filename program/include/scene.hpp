@@ -30,26 +30,35 @@ namespace cse::core
     scene(scene &&) = delete;
     scene &operator=(scene &&) = delete;
 
+    std::shared_ptr<class camera> get_camera() const noexcept;
+    template <typename camera_type> std::shared_ptr<camera_type> get_camera() const noexcept;
+    std::shared_ptr<class camera> get_camera_strict() const;
+    template <typename camera_type> std::shared_ptr<camera_type> get_camera_strict() const;
     template <typename camera_type, typename... camera_arguments>
     void set_camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform, camera_arguments &&...arguments);
+
+    std::shared_ptr<object> get_object(const helper::id name) const noexcept;
+    template <typename object_type> std::shared_ptr<object_type> get_object(const helper::id name) const noexcept;
+    std::shared_ptr<object> get_object_strict(const helper::id name) const;
+    template <typename object_type> std::shared_ptr<object_type> get_object_strict(const helper::id name) const;
     template <typename object_type, typename... object_arguments>
     void add_object(const helper::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
                     object_arguments &&...arguments);
 
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
-    void cleanup(SDL_GPUDevice *gpu);
     void event(const SDL_Event &event);
     void input(const bool *keys);
     void simulate(const double simulation_alpha);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const float target_aspect_ratio, const float global_scale_factor);
+    void cleanup(SDL_GPUDevice *gpu);
 
   protected:
     helper::hooks hooks{};
 
   private:
-    std::unique_ptr<class camera> camera{};
+    std::shared_ptr<class camera> camera{};
     std::unordered_map<helper::id, std::shared_ptr<object>> objects{};
   };
 }

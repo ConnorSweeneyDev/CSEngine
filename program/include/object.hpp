@@ -35,12 +35,12 @@ namespace cse::core
 
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
-    void cleanup(SDL_GPUDevice *gpu);
     void event(const SDL_Event &event);
     void input(const bool *keys);
     void simulate(double simulation_alpha);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float global_scale_factor);
+    void cleanup(SDL_GPUDevice *gpu);
 
   protected:
     helper::hooks hooks{};

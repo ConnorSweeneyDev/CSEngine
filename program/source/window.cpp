@@ -42,13 +42,6 @@ namespace cse::core
     running = true;
   }
 
-  void window::cleanup()
-  {
-    current_keys = nullptr;
-    current_event = {};
-    graphics.destroy_window_and_app();
-  }
-
   void window::event()
   {
     switch (current_event.type)
@@ -76,4 +69,11 @@ namespace cse::core
   }
 
   void window::end_render() { graphics.end_render_pass(); }
+
+  void window::cleanup()
+  {
+    current_keys = nullptr;
+    current_event = {};
+    graphics.destroy_window_and_app();
+  }
 }

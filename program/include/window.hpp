@@ -27,16 +27,15 @@ namespace cse::core
 
   private:
     void initialize();
-    void cleanup();
     void event();
     void input();
     void simulate();
     bool start_render(const float target_aspect_ratio);
     void end_render();
+    void cleanup();
 
   protected:
     helper::hooks hooks{};
-
     bool running{};
     const std::string title{};
     helper::property<unsigned int> width{};
@@ -49,7 +48,6 @@ namespace cse::core
 
   private:
     helper::window_graphics graphics{};
-
     SDL_Event current_event{};
     const bool *current_keys{};
   };

@@ -31,8 +31,6 @@ namespace cse::core
     graphics.upload_dynamic_buffers(gpu);
   }
 
-  void object::cleanup(SDL_GPUDevice *gpu) { graphics.cleanup_object(gpu); }
-
   void object::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event_main", event); }
 
   void object::input(const bool *keys) { hooks.call<void(const bool *)>("input_main", keys); }
@@ -59,4 +57,6 @@ namespace cse::core
                                                             global_scale_factor));
     graphics.draw_primitives(render_pass);
   }
+
+  void object::cleanup(SDL_GPUDevice *gpu) { graphics.cleanup_object(gpu); }
 }
