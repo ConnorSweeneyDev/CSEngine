@@ -16,8 +16,4 @@ namespace cse::help
   struct camera_graphics;
   struct object_state;
   struct object_graphics;
-
-  class id;
-  class hooks;
-  template <typename type> class property;
 }
