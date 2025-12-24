@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -43,6 +44,7 @@ namespace cse
     void cleanup(SDL_GPUDevice *gpu);
 
   public:
+    std::weak_ptr<class scene> scene{};
     help::object_state state{};
     help::object_graphics graphics{};
     help::hooks hooks{};

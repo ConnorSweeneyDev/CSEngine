@@ -18,6 +18,7 @@ namespace cse
     hooks.clear();
     objects.clear();
     camera.reset();
+    game.reset();
   }
 
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)

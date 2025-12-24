@@ -26,6 +26,7 @@ namespace cse
 
   window::~window()
   {
+    current_keys = nullptr;
     hooks.clear();
     vsync.on_change = nullptr;
     fullscreen.on_change = nullptr;
@@ -34,6 +35,7 @@ namespace cse
     left.on_change = nullptr;
     height.on_change = nullptr;
     width.on_change = nullptr;
+    game.reset();
   }
 
   void window::initialize()

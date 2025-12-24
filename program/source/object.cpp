@@ -22,7 +22,11 @@ namespace cse
   {
   }
 
-  object::~object() { hooks.clear(); }
+  object::~object()
+  {
+    hooks.clear();
+    scene.reset();
+  }
 
   void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {

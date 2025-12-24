@@ -11,6 +11,7 @@
 
 #include "id.hpp"
 #include "traits.hpp"
+#include "window.hpp"
 
 namespace cse
 {
@@ -18,6 +19,7 @@ namespace cse
   void game::set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments)
   {
     window = std::make_shared<window_type>(title, dimensions, std::forward<window_arguments>(arguments)...);
+    window->game = weak_from_this();
   }
 
   template <typename scene_type, typename... scene_arguments>
@@ -25,6 +27,7 @@ namespace cse
                        scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
+    scene->game = weak_from_this();
     scenes.emplace(name, scene);
     config(scene);
   }

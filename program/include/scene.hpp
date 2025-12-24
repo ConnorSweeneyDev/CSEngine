@@ -18,7 +18,7 @@
 
 namespace cse
 {
-  class scene
+  class scene : public std::enable_shared_from_this<scene>
   {
     friend class game;
 
@@ -46,6 +46,7 @@ namespace cse
     void cleanup(SDL_GPUDevice *gpu);
 
   public:
+    std::weak_ptr<class game> game{};
     std::shared_ptr<class camera> camera{};
     std::unordered_map<help::id, std::shared_ptr<object>> objects{};
     help::hooks hooks{};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include "SDL3/SDL_events.h"
@@ -35,6 +36,7 @@ namespace cse
     void cleanup();
 
   public:
+    std::weak_ptr<class game> game{};
     bool running{};
     const std::string title{};
     help::property<unsigned int> width{};

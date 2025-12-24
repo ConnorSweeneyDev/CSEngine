@@ -14,7 +14,11 @@ namespace cse
   {
   }
 
-  camera::~camera() { hooks.clear(); }
+  camera::~camera()
+  {
+    hooks.clear();
+    scene.reset();
+  }
 
   void camera::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event_main", event); }
 
