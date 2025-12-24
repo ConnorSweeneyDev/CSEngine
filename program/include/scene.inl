@@ -29,3 +29,8 @@ namespace cse
     objects.emplace(name, object);
   }
 }
+
+template <typename scene_type> std::shared_ptr<scene_type> as(const std::shared_ptr<cse::scene> &scene)
+{
+  return std::static_pointer_cast<scene_type>(scene);
+}
