@@ -20,7 +20,7 @@ namespace cse
   }
 
   template <typename scene_type, typename... scene_arguments>
-  void game::set_scene(const helper::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+  void game::set_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                        scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
@@ -29,7 +29,7 @@ namespace cse
   }
 
   template <typename scene_type, typename... scene_arguments>
-  void game::set_current_scene(const helper::id name,
+  void game::set_current_scene(const help::id name,
                                const std::function<void(const std::shared_ptr<scene_type>)> &config,
                                scene_arguments &&...arguments)
   {

@@ -19,7 +19,7 @@ namespace cse
   }
 
   template <typename object_type, typename... object_arguments>
-  void scene::set_object(const helper::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
+  void scene::set_object(const help::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
                          object_arguments &&...arguments)
   {
     objects.emplace(name, std::make_shared<object_type>(transform, std::forward<object_arguments>(arguments)...));

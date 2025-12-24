@@ -4,7 +4,7 @@
 
 #include "declaration.hpp"
 
-namespace cse::helper
+namespace cse::help
 {
   class transform_value
   {

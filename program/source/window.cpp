@@ -26,6 +26,7 @@ namespace cse
 
   window::~window()
   {
+    hooks.clear();
     vsync.on_change = nullptr;
     fullscreen.on_change = nullptr;
     display_index.on_change = nullptr;
@@ -33,7 +34,6 @@ namespace cse
     left.on_change = nullptr;
     height.on_change = nullptr;
     width.on_change = nullptr;
-    hooks.clear_all();
   }
 
   void window::initialize()

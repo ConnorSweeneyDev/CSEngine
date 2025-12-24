@@ -14,7 +14,7 @@
 #include "declaration.hpp"
 #include "resource.hpp"
 
-namespace cse::helper
+namespace cse::help
 {
   struct window_graphics
   {

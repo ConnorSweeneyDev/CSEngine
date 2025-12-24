@@ -33,7 +33,7 @@ namespace cse
     template <typename camera_type, typename... camera_arguments>
     void set_camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform, camera_arguments &&...arguments);
     template <typename object_type, typename... object_arguments>
-    void set_object(const helper::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
+    void set_object(const help::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
                     object_arguments &&...arguments);
 
   private:
@@ -47,8 +47,8 @@ namespace cse
 
   public:
     std::shared_ptr<class camera> camera{};
-    std::unordered_map<helper::id, std::shared_ptr<object>> objects{};
-    helper::hooks hooks{};
+    std::unordered_map<help::id, std::shared_ptr<object>> objects{};
+    help::hooks hooks{};
   };
 }
 

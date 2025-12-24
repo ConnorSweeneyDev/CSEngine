@@ -33,8 +33,8 @@ namespace cse
     std::pair<glm::mat4, glm::mat4> render(const float target_aspect_ratio, const float global_scale_factor);
 
   public:
-    helper::camera_state state{};
-    helper::camera_graphics graphics{};
-    helper::hooks hooks{};
+    help::camera_state state{};
+    help::camera_graphics graphics{};
+    help::hooks hooks{};
   };
 }

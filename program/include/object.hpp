@@ -43,8 +43,8 @@ namespace cse
     void cleanup(SDL_GPUDevice *gpu);
 
   public:
-    helper::object_state state{};
-    helper::object_graphics graphics{};
-    helper::hooks hooks{};
+    help::object_state state{};
+    help::object_graphics graphics{};
+    help::hooks hooks{};
   };
 }

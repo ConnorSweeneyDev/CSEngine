@@ -9,7 +9,7 @@
 #include "glm/ext/vector_int3.hpp"
 #include "glm/trigonometric.hpp"
 
-namespace cse::helper
+namespace cse::help
 {
   camera_state::camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_)
     : translation(std::get<0>(transform_)), forward(std::get<1>(transform_)), up(std::get<2>(transform_))

@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace cse::helper
+namespace cse::help
 {
   id::id(const std::string &string_) : hash(hash_runtime(string_)) {}
 

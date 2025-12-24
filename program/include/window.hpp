@@ -37,17 +37,17 @@ namespace cse
   public:
     bool running{};
     const std::string title{};
-    helper::property<unsigned int> width{};
-    helper::property<unsigned int> height{};
-    helper::property<int> left{};
-    helper::property<int> top{};
-    helper::property<SDL_DisplayID> display_index{};
-    helper::property<bool> fullscreen{};
-    helper::property<bool> vsync{};
-    helper::hooks hooks{};
+    help::property<unsigned int> width{};
+    help::property<unsigned int> height{};
+    help::property<int> left{};
+    help::property<int> top{};
+    help::property<SDL_DisplayID> display_index{};
+    help::property<bool> fullscreen{};
+    help::property<bool> vsync{};
+    help::hooks hooks{};
 
   private:
-    helper::window_graphics graphics{};
+    help::window_graphics graphics{};
     SDL_Event current_event{};
     const bool *current_keys{};
   };

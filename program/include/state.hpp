@@ -10,7 +10,7 @@
 
 #include "transform.hpp"
 
-namespace cse::helper
+namespace cse::help
 {
   struct camera_state
   {

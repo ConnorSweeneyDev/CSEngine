@@ -25,10 +25,10 @@ namespace cse
     template <typename window_type, typename... window_arguments>
     void set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments);
     template <typename scene_type, typename... scene_arguments>
-    void set_scene(const helper::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+    void set_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                    scene_arguments &&...arguments);
     template <typename scene_type, typename... scene_arguments>
-    void set_current_scene(const helper::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+    void set_current_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                            scene_arguments &&...arguments);
 
     void run();
@@ -49,7 +49,7 @@ namespace cse
 
   public:
     std::shared_ptr<class window> window{};
-    std::unordered_map<helper::id, std::shared_ptr<scene>> scenes{};
+    std::unordered_map<help::id, std::shared_ptr<scene>> scenes{};
     std::weak_ptr<scene> current_scene{};
 
   private:

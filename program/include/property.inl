@@ -7,7 +7,7 @@
 #include <functional>
 #include <istream>
 
-namespace cse::helper
+namespace cse::help
 {
   template <typename type> property<type>::property(const type &value_) : value(value_) {}
 
@@ -173,14 +173,14 @@ namespace cse::helper
   }
 }
 
-template <typename type> auto
-std::formatter<cse::helper::property<type>>::format(const cse::helper::property<type> &property, auto &context) const
+template <typename type>
+auto std::formatter<cse::help::property<type>>::format(const cse::help::property<type> &property, auto &context) const
 {
   return std::formatter<type>::format(static_cast<type>(property), context);
 }
 
 template <typename type>
-std::size_t std::hash<cse::helper::property<type>>::operator()(const cse::helper::property<type> &property) const
+std::size_t std::hash<cse::help::property<type>>::operator()(const cse::help::property<type> &property) const
   noexcept(noexcept(std::hash<type>{}(std::declval<type>())))
 {
   return std::hash<type>{}(static_cast<type>(property));

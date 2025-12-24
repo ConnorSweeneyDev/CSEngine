@@ -2,7 +2,7 @@
 
 #include "glm/ext/vector_float3.hpp"
 
-namespace cse::helper
+namespace cse::help
 {
   transform_value::transform_value(const glm::vec3 &value_) : value(value_), previous(value_), interpolated(value_) {}
 

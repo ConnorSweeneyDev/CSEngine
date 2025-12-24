@@ -5,7 +5,7 @@
 #include <functional>
 #include <string>
 
-namespace cse::helper
+namespace cse::help
 {
   class id
   {
@@ -26,9 +26,9 @@ namespace cse::helper
   };
 }
 
-template <> struct std::hash<cse::helper::id>
+template <> struct std::hash<cse::help::id>
 {
-  std::size_t operator()(const cse::helper::id &id) const;
+  std::size_t operator()(const cse::help::id &id) const;
 };
 
 #include "id.inl"

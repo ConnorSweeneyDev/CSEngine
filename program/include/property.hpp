@@ -5,7 +5,7 @@
 #include <functional>
 #include <istream>
 
-namespace cse::helper
+namespace cse::help
 {
   template <typename type> class property
   {
@@ -54,14 +54,14 @@ namespace cse::helper
   template <typename type> std::istream &operator>>(std::istream &stream_, property<type> &destination_);
 }
 
-template <typename type> struct std::formatter<cse::helper::property<type>> : std::formatter<type>
+template <typename type> struct std::formatter<cse::help::property<type>> : std::formatter<type>
 {
-  auto format(const cse::helper::property<type> &property, auto &context) const;
+  auto format(const cse::help::property<type> &property, auto &context) const;
 };
 
-template <typename type> struct std::hash<cse::helper::property<type>>
+template <typename type> struct std::hash<cse::help::property<type>>
 {
-  std::size_t operator()(const cse::helper::property<type> &property) const
+  std::size_t operator()(const cse::help::property<type> &property) const
     noexcept(noexcept(std::hash<type>{}(std::declval<type>())));
 };
 

@@ -1,6 +1,6 @@
 #include "hooks.hpp"
 
-namespace cse::helper
+namespace cse::help
 {
-  void hooks::clear_all() noexcept { functions.clear(); }
+  void hooks::clear() noexcept { functions.clear(); }
 }

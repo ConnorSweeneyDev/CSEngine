@@ -21,7 +21,7 @@
 #include "resource.hpp"
 #include "system.hpp"
 
-namespace cse::helper
+namespace cse::help
 {
   window_graphics::~window_graphics()
   {

@@ -11,7 +11,7 @@
 #include "exception.hpp"
 #include "id.hpp"
 
-namespace cse::helper
+namespace cse::help
 {
   template <typename type> struct function_traits;
 
@@ -97,21 +97,22 @@ namespace cse::helper
   template <typename signature, typename... arguments> auto hooks::call(const id name, arguments &&...args) const
   {
     using extracted_return_type = typename function_traits<signature>::extracted_return_type;
-
+    auto type_id{std::type_index(typeid(signature))};
+    if (!functions.contains(type_id))
+    {
+      if constexpr (std::is_void_v<extracted_return_type>) return;
+      return extracted_return_type{};
+    }
+    const auto &map{get_map<signature>()};
+    if (!map.contains(name))
+    {
+      if constexpr (std::is_void_v<extracted_return_type>) return;
+      return extracted_return_type{};
+    }
     if constexpr (std::is_void_v<extracted_return_type>)
-    {
-      if (has<signature>(name))
-      {
-        const auto &map{get_map<signature>()};
-        map.at(name)(std::forward<arguments>(args)...);
-      }
-    }
+      map.at(name)(std::forward<arguments>(args)...);
     else
-    {
-      if (!has<signature>(name)) return extracted_return_type{};
-      const auto &map{get_map<signature>()};
       return map.at(name)(std::forward<arguments>(args)...);
-    }
   }
 
   template <typename signature, typename... arguments> auto hooks::strict_call(const id name, arguments &&...args) const
