@@ -91,10 +91,8 @@ namespace cse::helper
   template <typename signature> void hooks::clear() noexcept
   {
     auto type_id{std::type_index(typeid(signature))};
-    if (functions.contains(type_id)) { get_map<signature>().clear(); }
+    if (functions.contains(type_id)) get_map<signature>().clear();
   }
-
-  inline void hooks::clear_all() noexcept { functions.clear(); }
 
   template <typename signature, typename... arguments> auto hooks::call(const id name, arguments &&...args) const
   {
@@ -126,7 +124,7 @@ namespace cse::helper
   template <typename signature> std::unordered_map<id, std::function<signature>> &hooks::get_map()
   {
     auto type_id{std::type_index(typeid(signature))};
-    if (!functions.contains(type_id)) { functions[type_id] = std::unordered_map<id, std::function<signature>>{}; }
+    if (!functions.contains(type_id)) functions[type_id] = std::unordered_map<id, std::function<signature>>{};
     return std::any_cast<std::unordered_map<id, std::function<signature>> &>(functions[type_id]);
   }
 
