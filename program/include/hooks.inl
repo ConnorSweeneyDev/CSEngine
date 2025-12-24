@@ -68,6 +68,19 @@ namespace cse::helper
     add<deduced_signature>(name, std::function<deduced_signature>(std::forward<callable>(function)));
   }
 
+  template <typename signature> void hooks::replace(const id name, const std::function<signature> &function)
+  {
+    auto &map{get_map<signature>()};
+    if (!map.contains(name)) throw exception("Attempted to replace non-existent hook");
+    map[name] = function;
+  }
+
+  template <typename callable> void hooks::replace(const id name, callable &&function)
+  {
+    using deduced_signature = typename callable_traits<std::decay_t<callable>>::signature;
+    replace<deduced_signature>(name, std::function<deduced_signature>(std::forward<callable>(function)));
+  }
+
   template <typename signature> void hooks::remove(const id name)
   {
     auto &map{get_map<signature>()};

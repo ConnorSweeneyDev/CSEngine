@@ -15,6 +15,8 @@ namespace cse::helper
     template <typename signature> bool has(const id name) const;
     template <typename signature> void add(const id name, const std::function<signature> &function);
     template <typename callable> void add(const id name, callable &&function);
+    template <typename signature> void replace(const id name, const std::function<signature> &function);
+    template <typename callable> void replace(const id name, callable &&function);
     template <typename signature> void remove(const id name);
     template <typename signature> void clear() noexcept;
     void clear_all() noexcept;

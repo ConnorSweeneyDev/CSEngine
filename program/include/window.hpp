@@ -44,8 +44,6 @@ namespace cse
     helper::property<SDL_DisplayID> display_index{};
     helper::property<bool> fullscreen{};
     helper::property<bool> vsync{};
-
-  protected:
     helper::hooks hooks{};
 
   private:

@@ -45,8 +45,6 @@ namespace cse
   public:
     helper::object_state state{};
     helper::object_graphics graphics{};
-
-  protected:
     helper::hooks hooks{};
   };
 }

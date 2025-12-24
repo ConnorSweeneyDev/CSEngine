@@ -35,8 +35,6 @@ namespace cse
   public:
     helper::camera_state state{};
     helper::camera_graphics graphics{};
-
-  protected:
     helper::hooks hooks{};
   };
 }

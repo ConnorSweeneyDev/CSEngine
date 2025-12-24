@@ -11,8 +11,7 @@ namespace cse
 {
   template <typename... message_arguments>
   exception::exception(const std::string &message_, message_arguments &&...arguments_)
-    : message(std::format(
-        "{}.", std::vformat(message_, std::make_format_args(std::forward<const message_arguments>(arguments_)...))))
+    : message(std::vformat(message_, std::make_format_args(std::forward<const message_arguments>(arguments_)...)))
   {
   }
 
@@ -20,11 +19,10 @@ namespace cse
   sdl_exception::sdl_exception(const std::string &message_, message_arguments &&...arguments_)
     : exception(message_, std::forward<const message_arguments>(arguments_)...)
   {
-    message.pop_back();
-    std::string sdl_error{SDL_GetError()};
+    const std::string sdl_error{SDL_GetError()};
     if (sdl_error.empty())
-      message = std::format("{}: Unknown SDL error.", message);
+      message = std::format("{}: Unknown SDL error", message);
     else
-      message = std::format("{}: {}.", message, sdl_error);
+      message = std::format("{}: {}", message, sdl_error);
   }
 }

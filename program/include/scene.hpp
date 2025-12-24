@@ -48,8 +48,6 @@ namespace cse
   public:
     std::shared_ptr<class camera> camera{};
     std::unordered_map<helper::id, std::shared_ptr<object>> objects{};
-
-  protected:
     helper::hooks hooks{};
   };
 }
