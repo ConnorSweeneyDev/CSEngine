@@ -54,7 +54,3 @@ namespace cse
     const bool *current_keys{};
   };
 }
-
-template <typename window_type> std::shared_ptr<window_type> as(const std::shared_ptr<cse::window> &window);
-
-#include "window.inl"

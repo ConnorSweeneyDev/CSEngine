@@ -50,7 +50,3 @@ namespace cse
     help::hooks hooks{};
   };
 }
-
-template <typename object_type> std::shared_ptr<object_type> as(const std::shared_ptr<cse::object> &object);
-
-#include "object.inl"

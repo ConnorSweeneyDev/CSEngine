@@ -53,6 +53,4 @@ namespace cse
   };
 }
 
-template <typename scene_type> std::shared_ptr<scene_type> as(const std::shared_ptr<cse::scene> &scene);
-
 #include "scene.inl"

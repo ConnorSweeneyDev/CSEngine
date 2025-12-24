@@ -40,7 +40,3 @@ namespace cse
     help::hooks hooks{};
   };
 }
-
-template <typename camera_type> std::shared_ptr<camera_type> as(const std::shared_ptr<cse::camera> &camera);
-
-#include "camera.inl"
