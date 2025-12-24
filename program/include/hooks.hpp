@@ -32,4 +32,4 @@ namespace cse::help
   };
 }
 
-#include "hooks.inl"
+#include "hooks.inl" // IWYU pragma: keep

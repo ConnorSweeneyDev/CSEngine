@@ -31,4 +31,4 @@ template <> struct std::hash<cse::help::id>
   std::size_t operator()(const cse::help::id &id) const;
 };
 
-#include "id.inl"
+#include "id.inl" // IWYU pragma: keep

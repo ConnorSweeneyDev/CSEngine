@@ -65,4 +65,4 @@ template <typename type> struct std::hash<cse::help::property<type>>
     noexcept(noexcept(std::hash<type>{}(std::declval<type>())));
 };
 
-#include "property.inl"
+#include "property.inl" // IWYU pragma: keep

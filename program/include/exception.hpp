@@ -24,4 +24,4 @@ namespace cse
   };
 }
 
-#include "exception.inl"
+#include "exception.inl" // IWYU pragma: keep

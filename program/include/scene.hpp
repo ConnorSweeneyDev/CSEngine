@@ -53,4 +53,4 @@ namespace cse
   };
 }
 
-#include "scene.inl"
+#include "scene.inl" // IWYU pragma: keep
