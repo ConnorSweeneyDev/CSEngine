@@ -10,6 +10,7 @@
 #include "glm/ext/vector_uint2.hpp"
 
 #include "id.hpp"
+#include "traits.hpp"
 
 namespace cse
 {
@@ -28,6 +29,15 @@ namespace cse
     config(scene);
   }
 
+  template <typename callable, typename... scene_arguments>
+  void game::set_scene(const help::id name, callable &&config, scene_arguments &&...arguments)
+  {
+    using scene_type = typename help::scene_type_from_callable<callable>::extracted_type;
+    set_scene<scene_type, scene_arguments...>(
+      name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
+      std::forward<scene_arguments>(arguments)...);
+  }
+
   template <typename scene_type, typename... scene_arguments>
   void game::set_current_scene(const help::id name,
                                const std::function<void(const std::shared_ptr<scene_type>)> &config,
@@ -35,5 +45,14 @@ namespace cse
   {
     set_scene<scene_type, scene_arguments...>(name, config, std::forward<scene_arguments>(arguments)...);
     current_scene = scenes.at(name);
+  }
+
+  template <typename callable, typename... scene_arguments>
+  void game::set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments)
+  {
+    using scene_type = typename help::scene_type_from_callable<callable>::extracted_type;
+    set_current_scene<scene_type, scene_arguments...>(
+      name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
+      std::forward<scene_arguments>(arguments)...);
   }
 }

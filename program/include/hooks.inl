@@ -10,43 +10,10 @@
 
 #include "exception.hpp"
 #include "id.hpp"
+#include "traits.hpp"
 
 namespace cse::help
 {
-  template <typename type> struct function_traits;
-
-  template <typename return_type, typename... arguments> struct function_traits<return_type(arguments...)>
-  {
-    using extracted_return_type = return_type;
-  };
-
-  template <typename type> struct callable_traits : callable_traits<decltype(&type::operator())>
-  {
-  };
-
-  template <typename class_type, typename return_type, typename... arguments>
-  struct callable_traits<return_type (class_type::*)(arguments...) const>
-  {
-    using signature = return_type(arguments...);
-  };
-
-  template <typename class_type, typename return_type, typename... arguments>
-  struct callable_traits<return_type (class_type::*)(arguments...)>
-  {
-    using signature = return_type(arguments...);
-  };
-
-  template <typename return_type, typename... arguments> struct callable_traits<return_type (*)(arguments...)>
-  {
-    using signature = return_type(arguments...);
-  };
-
-  template <typename return_type, typename... arguments>
-  struct callable_traits<std::function<return_type(arguments...)>>
-  {
-    using signature = return_type(arguments...);
-  };
-
   template <typename signature> bool hooks::has(const id name) const
   {
     auto type_id{std::type_index(typeid(signature))};

@@ -27,9 +27,13 @@ namespace cse
     template <typename scene_type, typename... scene_arguments>
     void set_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                    scene_arguments &&...arguments);
+    template <typename callable, typename... scene_arguments>
+    void set_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
     template <typename scene_type, typename... scene_arguments>
     void set_current_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                            scene_arguments &&...arguments);
+    template <typename callable, typename... scene_arguments>
+    void set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
 
     void run();
 
