@@ -2,6 +2,7 @@
 
 #include "scene.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <tuple>
 
@@ -10,6 +11,7 @@
 
 #include "camera.hpp"
 #include "id.hpp"
+#include "utility.hpp"
 
 namespace cse
 {
@@ -27,5 +29,10 @@ namespace cse
     auto object{std::make_shared<object_type>(transform, std::forward<object_arguments>(arguments)...)};
     object->scene = shared_from_this();
     objects.emplace(name, object);
+  }
+
+  template <typename scene_type> std::size_t scene_as<scene_type>::get_type_id() const noexcept
+  {
+    return type_id_generator::get<scene_type>();
   }
 }

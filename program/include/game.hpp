@@ -12,7 +12,7 @@
 
 namespace cse
 {
-  class game : public std::enable_shared_from_this<game>
+  class game final : public std::enable_shared_from_this<game>
   {
   public:
     ~game();

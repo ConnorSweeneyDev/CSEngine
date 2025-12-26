@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <string>
 
@@ -25,6 +26,8 @@ namespace cse
     window &operator=(const window &) = delete;
     window(window &&) = delete;
     window &operator=(window &&) = delete;
+
+    virtual std::size_t get_type_id() const noexcept = 0;
 
   private:
     void initialize();
@@ -53,4 +56,17 @@ namespace cse
     SDL_Event current_event{};
     const bool *current_keys{};
   };
+
+  template <typename window_type> class window_as : public window
+  {
+  public:
+    window_as(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
+      : window(title_, dimensions_, fullscreen_, vsync_)
+    {
+    }
+
+    std::size_t get_type_id() const noexcept override;
+  };
 }
+
+#include "window.inl" // IWYU pragma: keep

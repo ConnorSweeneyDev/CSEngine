@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <tuple>
 #include <unordered_map>
@@ -30,6 +31,8 @@ namespace cse
     scene(scene &&) = delete;
     scene &operator=(scene &&) = delete;
 
+    virtual std::size_t get_type_id() const noexcept = 0;
+
     template <typename camera_type, typename... camera_arguments>
     void set_camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform, camera_arguments &&...arguments);
     template <typename object_type, typename... object_arguments>
@@ -50,6 +53,14 @@ namespace cse
     std::shared_ptr<class camera> camera{};
     std::unordered_map<help::id, std::shared_ptr<object>> objects{};
     help::hooks hooks{};
+  };
+
+  template <typename scene_type> class scene_as : public scene
+  {
+  public:
+    scene_as() = default;
+
+    std::size_t get_type_id() const noexcept override;
   };
 }
 
