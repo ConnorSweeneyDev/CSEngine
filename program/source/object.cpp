@@ -55,9 +55,9 @@ namespace cse
   {
     graphics.upload_dynamic_buffers(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
-    graphics.push_uniform_data(
-      command_buffer, projection_matrix, view_matrix,
-      state.calculate_model_matrix(graphics.texture.image.width, graphics.texture.image.height, global_scale_factor));
+    graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix,
+                               state.calculate_model_matrix(graphics.texture.image.frame_width,
+                                                            graphics.texture.image.frame_height, global_scale_factor));
     graphics.draw_primitives(render_pass);
   }
 

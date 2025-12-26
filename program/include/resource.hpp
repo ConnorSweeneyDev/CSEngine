@@ -16,6 +16,8 @@ namespace cse
     const std::span<const unsigned char> data{};
     const unsigned int width{};
     const unsigned int height{};
+    const unsigned int frame_width{};
+    const unsigned int frame_height{};
     const unsigned int channels{};
   };
   struct compiled_frame_group
