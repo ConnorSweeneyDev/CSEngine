@@ -1,6 +1,5 @@
 #include "object.hpp"
 
-#include <string>
 #include <tuple>
 #include <utility>
 
@@ -17,7 +16,7 @@ namespace cse
 {
   object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
                  const std::pair<compiled_shader, compiled_shader> &shader_,
-                 const std::pair<compiled_texture, std::string> &texture_)
+                 const std::pair<compiled_image, compiled_frame_group> &texture_)
     : state(transform_), graphics(tint_, shader_, texture_)
   {
   }
@@ -56,10 +55,9 @@ namespace cse
   {
     graphics.upload_dynamic_buffers(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
-    graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix,
-                               state.calculate_model_matrix(graphics.texture.data.frame_data.width,
-                                                            graphics.texture.data.frame_data.height,
-                                                            global_scale_factor));
+    graphics.push_uniform_data(
+      command_buffer, projection_matrix, view_matrix,
+      state.calculate_model_matrix(graphics.texture.image.width, graphics.texture.image.height, global_scale_factor));
     graphics.draw_primitives(render_pass);
   }
 
