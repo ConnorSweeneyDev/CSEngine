@@ -20,6 +20,12 @@ namespace cse
     const unsigned int frame_height{};
     const unsigned int channels{};
   };
+  template <typename Tag> struct compiled_image_typed : compiled_image
+  {
+    using compiled_image::compiled_image;
+    constexpr compiled_image_typed(const compiled_image &image) noexcept : compiled_image(image) {}
+  };
+
   struct compiled_frame_group
   {
     struct frame
@@ -36,5 +42,10 @@ namespace cse
     unsigned int start{};
     unsigned int end{};
     std::span<const frame> frames{};
+  };
+  template <typename Tag> struct compiled_frame_group_typed : compiled_frame_group
+  {
+    using compiled_frame_group::compiled_frame_group;
+    constexpr compiled_frame_group_typed(const compiled_frame_group &group) noexcept : compiled_frame_group(group) {}
   };
 }
