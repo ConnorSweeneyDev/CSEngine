@@ -44,7 +44,7 @@ namespace cse
     void cleanup(SDL_GPUDevice *gpu);
 
   public:
-    std::weak_ptr<class scene> scene{};
+    std::weak_ptr<class scene> parent{};
     help::object_state state{};
     help::object_graphics graphics{};
     help::hooks hooks{};

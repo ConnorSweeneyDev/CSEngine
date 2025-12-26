@@ -35,7 +35,7 @@ namespace cse
     left.on_change = nullptr;
     height.on_change = nullptr;
     width.on_change = nullptr;
-    game.reset();
+    parent.reset();
   }
 
   void window::initialize()

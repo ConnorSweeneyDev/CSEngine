@@ -17,7 +17,7 @@ namespace cse
   void scene::set_camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform, camera_arguments &&...arguments)
   {
     camera = std::make_shared<camera_type>(transform, std::forward<camera_arguments>(arguments)...);
-    camera->scene = shared_from_this();
+    camera->parent = shared_from_this();
   }
 
   template <typename object_type, typename... object_arguments>
@@ -25,7 +25,7 @@ namespace cse
                          object_arguments &&...arguments)
   {
     auto object{std::make_shared<object_type>(transform, std::forward<object_arguments>(arguments)...)};
-    object->scene = shared_from_this();
+    object->parent = shared_from_this();
     objects.emplace(name, object);
   }
 }

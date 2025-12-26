@@ -36,7 +36,7 @@ namespace cse
     void cleanup();
 
   public:
-    std::weak_ptr<class game> game{};
+    std::weak_ptr<class game> parent{};
     bool running{};
     const std::string title{};
     help::property<unsigned int> width{};

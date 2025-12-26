@@ -17,7 +17,7 @@ namespace cse
   camera::~camera()
   {
     hooks.clear();
-    scene.reset();
+    parent.reset();
   }
 
   void camera::initialize() { hooks.call<void()>("initialize_main"); }

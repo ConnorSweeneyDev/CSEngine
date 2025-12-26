@@ -25,7 +25,7 @@ namespace cse
   object::~object()
   {
     hooks.clear();
-    scene.reset();
+    parent.reset();
   }
 
   void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
