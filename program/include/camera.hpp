@@ -28,6 +28,7 @@ namespace cse
     camera &operator=(camera &&) = delete;
 
   private:
+    void initialize();
     void event(const SDL_Event &event);
     void input(const bool *keys);
     void simulate(const double simulation_alpha);

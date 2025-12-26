@@ -23,7 +23,10 @@ namespace cse
 
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
+    hooks.call<void()>("initialize_pre");
+    camera->initialize();
     for (const auto &object : objects) object.second->initialize(instance, gpu);
+    hooks.call<void()>("initialize_post");
   }
 
   void scene::event(const SDL_Event &event)

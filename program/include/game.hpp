@@ -21,9 +21,6 @@ namespace cse
     game(game &&) = delete;
     game &operator=(game &&) = delete;
 
-    static std::shared_ptr<game> create();
-    void run();
-
     template <typename window_type, typename... window_arguments>
     void set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments);
     template <typename scene_type, typename... scene_arguments>
@@ -36,6 +33,9 @@ namespace cse
                            scene_arguments &&...arguments);
     template <typename callable, typename... scene_arguments>
     void set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
+
+    static std::shared_ptr<game> create();
+    void run();
 
   private:
     game() = default;

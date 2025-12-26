@@ -20,6 +20,8 @@ namespace cse
     scene.reset();
   }
 
+  void camera::initialize() { hooks.call<void()>("initialize_main"); }
+
   void camera::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event_main", event); }
 
   void camera::input(const bool *keys) { hooks.call<void(const bool *)>("input_main", keys); }

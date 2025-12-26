@@ -42,6 +42,7 @@ namespace cse
   {
     graphics.create_app_and_window(title, width, height, left, top, display_index, fullscreen, vsync);
     running = true;
+    hooks.call<void()>("initialize_main");
   }
 
   void window::event()

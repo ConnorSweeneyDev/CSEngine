@@ -33,6 +33,7 @@ namespace cse
     graphics.create_pipeline_and_buffers(instance, gpu);
     graphics.upload_static_buffers(gpu);
     graphics.upload_dynamic_buffers(gpu);
+    hooks.call<void()>("initialize_main");
   }
 
   void object::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event_main", event); }
