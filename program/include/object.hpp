@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -35,8 +34,6 @@ namespace cse
     object(object &&) = delete;
     object &operator=(object &&) = delete;
 
-    virtual std::size_t get_type_id() const noexcept = 0;
-
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void event(const SDL_Event &event);
@@ -52,19 +49,4 @@ namespace cse
     help::object_graphics graphics{};
     help::hooks hooks{};
   };
-
-  template <typename object_type> class object_as : public object
-  {
-  public:
-    object_as(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
-              const std::pair<compiled_shader, compiled_shader> &shader_,
-              const std::pair<compiled_texture, std::string> &texture_)
-      : object(transform_, tint_, shader_, texture_)
-    {
-    }
-
-    std::size_t get_type_id() const noexcept override;
-  };
 }
-
-#include "object.inl" // IWYU pragma: keep

@@ -1,29 +1,15 @@
 #pragma once
 
-#include <cstddef>
 #include <memory>
+#include <typeinfo>
 
 #include "exception.hpp"
 
-namespace cse
-{
-  class type_id_generator
-  {
-  public:
-    template <typename type> static std::size_t get() noexcept
-    {
-      static const std::size_t id{next_id++};
-      return id;
-    }
-
-  private:
-    inline static std::size_t next_id{};
-  };
-}
-
 template <typename derived, typename base> bool is(const std::shared_ptr<base> &object) noexcept
 {
-  return object && (object->get_type_id() == cse::type_id_generator::get<derived>());
+  const std::type_info &typeid_derived{typeid(derived)};
+  const std::type_info &typeid_base{typeid(*object)};
+  return object && (typeid_base == typeid_derived);
 }
 
 template <typename derived, typename base> std::shared_ptr<derived> as(const std::shared_ptr<base> &object) noexcept

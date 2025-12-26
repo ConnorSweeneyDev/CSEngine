@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <memory>
 #include <tuple>
 #include <utility>
@@ -28,8 +27,6 @@ namespace cse
     camera(camera &&) = delete;
     camera &operator=(camera &&) = delete;
 
-    virtual std::size_t get_type_id() const noexcept = 0;
-
   private:
     void initialize();
     void event(const SDL_Event &event);
@@ -43,17 +40,4 @@ namespace cse
     help::camera_graphics graphics{};
     help::hooks hooks{};
   };
-
-  template <typename camera_type> class camera_as : public camera
-  {
-  public:
-    camera_as(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const float fov_)
-      : camera(transform_, fov_)
-    {
-    }
-
-    std::size_t get_type_id() const noexcept override;
-  };
 }
-
-#include "camera.inl" // IWYU pragma: keep
