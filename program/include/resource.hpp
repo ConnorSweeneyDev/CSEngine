@@ -24,15 +24,15 @@ namespace cse
     {
       struct rect
       {
-        const float top{};
-        const float left{};
-        const float bottom{};
-        const float right{};
+        float top{};
+        float left{};
+        float bottom{};
+        float right{};
       };
-      const rect coords{};
+      rect coords{};
     };
-    const unsigned int start{};
-    const unsigned int end{};
-    const std::span<const frame> frames{};
+    unsigned int start{};
+    unsigned int end{};
+    std::span<const frame> frames{};
   };
 }
