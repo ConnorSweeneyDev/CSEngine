@@ -21,6 +21,14 @@ namespace cse
     window.reset();
   }
 
+  std::shared_ptr<game> game::create()
+  {
+    if (!instance.expired()) throw exception("An instance of game already exists");
+    auto new_instance{std::shared_ptr<game>{new game{}}};
+    instance = new_instance;
+    return new_instance;
+  }
+
   void game::run()
   {
     initialize();

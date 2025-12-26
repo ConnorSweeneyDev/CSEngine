@@ -15,12 +15,14 @@ namespace cse
   class game : public std::enable_shared_from_this<game>
   {
   public:
-    game() = default;
     ~game();
     game(const game &) = delete;
     game &operator=(const game &) = delete;
     game(game &&) = delete;
     game &operator=(game &&) = delete;
+
+    static std::shared_ptr<game> create();
+    void run();
 
     template <typename window_type, typename... window_arguments>
     void set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments);
@@ -35,9 +37,9 @@ namespace cse
     template <typename callable, typename... scene_arguments>
     void set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
 
-    void run();
-
   private:
+    game() = default;
+
     void initialize();
     void event();
     void input();
@@ -57,6 +59,7 @@ namespace cse
     std::weak_ptr<scene> current_scene{};
 
   private:
+    inline static std::weak_ptr<game> instance{};
     static constexpr float global_scale_factor{1.0f / 25.0f};
     static constexpr float target_aspect_ratio{16.0f / 9.0f};
     static constexpr double target_simulation_time{1.0 / 60.0};
