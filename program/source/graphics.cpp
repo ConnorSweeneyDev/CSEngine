@@ -293,7 +293,7 @@ namespace cse::help
 
   object_graphics::object_graphics(const glm::u8vec4 &color_,
                                    const std::pair<compiled_shader, compiled_shader> &shader_,
-                                   const std::pair<compiled_texture, std::string> &texture_)
+                                   const std::pair<compiled_image, compiled_frame_group> &texture_)
     : color(color_), shader(shader_.first, shader_.second), texture(texture_.first, texture_.second)
   {
   }
@@ -413,8 +413,8 @@ namespace cse::help
     SDL_GPUTextureCreateInfo texture_info{.type = type,
                                           .format = format,
                                           .usage = usage,
-                                          .width = texture.data.image_data.width,
-                                          .height = texture.data.image_data.height,
+                                          .width = texture.image.width,
+                                          .height = texture.image.height,
                                           .layer_count_or_depth = 1,
                                           .num_levels = 1,
                                           .sample_count = SDL_GPU_SAMPLECOUNT_1,
@@ -438,16 +438,16 @@ namespace cse::help
     quad_indices = std::array<Uint16, 6>({3, 1, 0, 3, 0, 2});
     std::copy(quad_indices.begin(), quad_indices.end(), index_data);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
-    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{
-      .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-      .size = texture.data.image_data.width * texture.data.image_data.height * texture.data.image_data.channels,
-      .props = 0};
+    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+                                                                 .size = texture.image.width * texture.image.height *
+                                                                         texture.image.channels,
+                                                                 .props = 0};
     texture_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &texture_transfer_buffer_info);
     if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for object");
     auto *texture_data{reinterpret_cast<Uint8 *>(SDL_MapGPUTransferBuffer(gpu, texture_transfer_buffer, false))};
     if (!texture_data) throw sdl_exception("Could not map texture data for object");
-    SDL_memcpy(texture_data, texture.data.image.data(),
-               texture.data.image_data.width * texture.data.image_data.height * texture.data.image_data.channels);
+    SDL_memcpy(texture_data, texture.image.data.data(),
+               texture.image.width * texture.image.height * texture.image.channels);
     SDL_UnmapGPUTransferBuffer(gpu, texture_transfer_buffer);
   }
 
@@ -469,8 +469,8 @@ namespace cse::help
                                         .x = 0,
                                         .y = 0,
                                         .z = 0,
-                                        .w = texture.data.image_data.width,
-                                        .h = texture.data.image_data.height,
+                                        .w = texture.image.width,
+                                        .h = texture.image.height,
                                         .d = 1};
     SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
     SDL_EndGPUCopyPass(copy_pass);
@@ -483,8 +483,7 @@ namespace cse::help
   {
     auto vertex_data{reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     if (!vertex_data) throw sdl_exception("Could not map vertex data for object");
-    const auto &frame_coords{
-      texture.data.frame_data.find_group(texture.frame_group).frames[texture.frame_index].coords};
+    const auto &frame_coords{texture.group.frames[texture.frame].coords};
     quad_vertices = std::array<vertex, 4>{
       {{1.0f, 1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.right, frame_coords.top},
        {1.0f, -1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.right, frame_coords.bottom},

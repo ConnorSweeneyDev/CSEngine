@@ -98,15 +98,15 @@ namespace cse::help
     };
     struct texture
     {
-      const compiled_texture data{};
-      std::string frame_group{};
-      unsigned int frame_index{};
+      const compiled_image image{};
+      compiled_frame_group group{};
+      unsigned int frame{};
     };
 
   public:
     object_graphics() = default;
     object_graphics(const glm::u8vec4 &color_, const std::pair<compiled_shader, compiled_shader> &shader_,
-                    const std::pair<compiled_texture, std::string> &texture_);
+                    const std::pair<compiled_image, compiled_frame_group> &texture_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;
