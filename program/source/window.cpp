@@ -42,7 +42,7 @@ namespace cse
   {
     graphics.create_app_and_window(title, width, height, left, top, display_index, fullscreen, vsync);
     running = true;
-    hooks.call<void()>("initialize_main");
+    hooks.call<void()>("initialize");
   }
 
   void window::event()
@@ -52,31 +52,37 @@ namespace cse
       case SDL_EVENT_QUIT: running = false; break;
       case SDL_EVENT_WINDOW_MOVED: graphics.handle_move(left, top, display_index, fullscreen); break;
       case SDL_EVENT_WINDOW_RESIZED: graphics.handle_resize(width, height, display_index, fullscreen); break;
-      default: hooks.call<void(const SDL_Event &)>("event_main", current_event); break;
+      default: hooks.call<void(const SDL_Event &)>("event", current_event); break;
     }
   }
 
   void window::input()
   {
     current_keys = SDL_GetKeyboardState(nullptr);
-    hooks.call<void(const bool *)>("input_main", current_keys);
+    hooks.call<void(const bool *)>("input", current_keys);
   }
 
-  void window::simulate() { hooks.call<void()>("simulate_main"); }
+  void window::simulate() { hooks.call<void()>("simulate"); }
 
   bool window::start_render(const float target_aspect_ratio)
   {
     if (!graphics.acquire_swapchain_texture()) return false;
     graphics.start_render_pass(target_aspect_ratio, width, height);
+    hooks.call<void(const unsigned int, const unsigned int)>("pre_render", width, height);
     return true;
   }
 
-  void window::end_render() { graphics.end_render_pass(); }
+  void window::end_render()
+  {
+    graphics.end_render_pass();
+    hooks.call<void()>("post_render");
+  }
 
   void window::cleanup()
   {
     current_keys = nullptr;
     current_event = {};
     graphics.destroy_window_and_app();
+    hooks.call<void()>("cleanup");
   }
 }

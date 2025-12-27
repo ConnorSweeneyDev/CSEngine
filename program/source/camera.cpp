@@ -23,29 +23,35 @@ namespace cse
   void camera::initialize()
   {
     initialized = true;
-    hooks.call<void()>("initialize_main");
+    hooks.call<void()>("initialize");
   }
 
-  void camera::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event_main", event); }
+  void camera::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event", event); }
 
-  void camera::input(const bool *keys) { hooks.call<void(const bool *)>("input_main", keys); }
+  void camera::input(const bool *keys) { hooks.call<void(const bool *)>("input", keys); }
 
   void camera::simulate(const double simulation_alpha)
   {
     state.translation.update();
     state.forward.update();
     state.up.update();
-    hooks.call<void()>("simulate_main");
+    hooks.call<void()>("simulate");
     state.translation.interpolate(simulation_alpha);
     state.forward.interpolate(simulation_alpha);
     state.up.interpolate(simulation_alpha);
   }
 
-  void camera::cleanup() { initialized = false; }
-
   std::pair<glm::mat4, glm::mat4> camera::render(const float target_aspect_ratio, const float global_scale_factor)
   {
-    return {graphics.calculate_projection_matrix(target_aspect_ratio),
-            state.calculate_view_matrix(global_scale_factor)};
+    auto matrices = std::pair{graphics.calculate_projection_matrix(target_aspect_ratio),
+                              state.calculate_view_matrix(global_scale_factor)};
+    hooks.call<void(const glm::mat4 &, const glm::mat4 &)>("render", matrices.first, matrices.second);
+    return matrices;
+  }
+
+  void camera::cleanup()
+  {
+    initialized = false;
+    hooks.call<void()>("cleanup");
   }
 }

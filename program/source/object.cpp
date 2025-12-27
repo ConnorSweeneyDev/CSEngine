@@ -33,19 +33,19 @@ namespace cse
     graphics.upload_static_buffers(gpu);
     graphics.upload_dynamic_buffers(gpu);
     initialized = true;
-    hooks.call<void()>("initialize_main");
+    hooks.call<void()>("initialize");
   }
 
-  void object::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event_main", event); }
+  void object::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event", event); }
 
-  void object::input(const bool *keys) { hooks.call<void(const bool *)>("input_main", keys); }
+  void object::input(const bool *keys) { hooks.call<void(const bool *)>("input", keys); }
 
   void object::simulate(double simulation_alpha)
   {
     state.translation.update();
     state.rotation.update();
     state.scale.update();
-    hooks.call<void()>("simulate_main");
+    hooks.call<void()>("simulate");
     state.translation.interpolate(simulation_alpha);
     state.rotation.interpolate(simulation_alpha);
     state.scale.interpolate(simulation_alpha);
@@ -56,15 +56,17 @@ namespace cse
   {
     graphics.upload_dynamic_buffers(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
-    graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix,
-                               state.calculate_model_matrix(graphics.texture.image.frame_width,
-                                                            graphics.texture.image.frame_height, global_scale_factor));
+    auto model_matrix{state.calculate_model_matrix(graphics.texture.image.frame_width,
+                                                   graphics.texture.image.frame_height, global_scale_factor)};
+    graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix, model_matrix);
     graphics.draw_primitives(render_pass);
+    hooks.call<void(const glm::mat4 &)>("render", model_matrix);
   }
 
   void object::cleanup(SDL_GPUDevice *gpu)
   {
     graphics.cleanup_object(gpu);
     initialized = false;
+    hooks.call<void()>("cleanup");
   }
 }
