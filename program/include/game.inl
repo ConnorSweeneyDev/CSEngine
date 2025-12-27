@@ -28,15 +28,16 @@ namespace cse
                        scene_arguments &&...arguments)
   {
     bool is_current_scene = false;
-    if (auto current{current_scene.lock()}; current && scenes.contains(name))
-    {
-      const auto &old_scene{scenes.at(name)};
-      if (current == old_scene)
+    if (auto iterator{scenes.find(name)}; iterator != scenes.end())
+      if (auto current{current_scene.lock()})
       {
-        is_current_scene = true;
-        if (window->running && old_scene->initialized) old_scene->cleanup(window->graphics.gpu);
+        const auto &old_scene{iterator->second};
+        if (current == old_scene)
+        {
+          is_current_scene = true;
+          if (window->running && old_scene->initialized) old_scene->cleanup(window->graphics.gpu);
+        }
       }
-    }
 
     scenes.erase(name);
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};

@@ -26,26 +26,26 @@ namespace cse
   void scene::set_object(const help::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
                          object_arguments &&...arguments)
   {
-    if (initialized && objects.contains(name))
+    std::shared_ptr<game> game{};
+    if (initialized)
     {
-      if (auto game{parent.lock()})
-      {
-        const auto &old_object{objects.at(name)};
-        old_object->initialized ? old_object->cleanup(game->window->graphics.gpu) : void();
-      }
-      objects.erase(name);
+      if (game = parent.lock(); game)
+        if (auto iterator{objects.find(name)}; iterator != objects.end())
+        {
+          const auto &old_object{iterator->second};
+          if (old_object->initialized) old_object->cleanup(game->window->graphics.gpu);
+        }
     }
 
+    objects.erase(name);
     auto object{std::make_shared<object_type>(transform, std::forward<object_arguments>(arguments)...)};
     object->parent = shared_from_this();
     objects.emplace(name, object);
 
-    if (initialized)
-      if (auto game{parent.lock()})
-      {
-        const auto &new_object{objects.at(name)};
-        !new_object->initialized ? new_object->initialize(game->window->graphics.instance, game->window->graphics.gpu)
-                                 : void();
-      }
+    if (initialized && game)
+    {
+      const auto &new_object{objects.at(name)};
+      if (!new_object->initialized) new_object->initialize(game->window->graphics.instance, game->window->graphics.gpu);
+    }
   }
 }

@@ -21,11 +21,25 @@ namespace cse
     parent.reset();
   }
 
+  bool scene::remove_object(const help::id name)
+  {
+    if (auto iterator{objects.find(name)}; iterator != objects.end())
+    {
+      const auto &object{iterator->second};
+      if (initialized && object->initialized)
+        if (auto game{parent.lock()}) object->cleanup(game->window->graphics.gpu);
+      objects.erase(iterator);
+      return true;
+    }
+    return false;
+  }
+
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
     hooks.call<void()>("pre_initialize");
-    !camera->initialized ? camera->initialize() : void();
-    for (const auto &[name, object] : objects) !object->initialized ? object->initialize(instance, gpu) : void();
+    if (!camera->initialized) camera->initialize();
+    for (const auto &[name, object] : objects)
+      if (!object->initialized) object->initialize(instance, gpu);
     initialized = true;
     hooks.call<void()>("post_initialize");
   }
@@ -67,8 +81,9 @@ namespace cse
   void scene::cleanup(SDL_GPUDevice *gpu)
   {
     hooks.call<void()>("pre_cleanup");
-    camera->initialized ? camera->cleanup() : void();
-    for (const auto &[name, object] : objects) object->initialized ? object->cleanup(gpu) : void();
+    if (camera->initialized) camera->cleanup();
+    for (const auto &[name, object] : objects)
+      if (object->initialized) object->cleanup(gpu);
     initialized = false;
     hooks.call<void()>("post_cleanup");
   }

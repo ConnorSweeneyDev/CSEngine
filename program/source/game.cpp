@@ -24,19 +24,37 @@ namespace cse
 
   void game::set_current_scene(const help::id name)
   {
-    if (!scenes.contains(name)) throw exception("Tried to set current scene to null");
-    const auto &scene{scenes.at(name)};
-    if (window->running)
+    if (auto iterator{scenes.find(name)}; iterator != scenes.end())
     {
-      if (auto current{current_scene.lock()}) current->initialized ? current->cleanup(window->graphics.gpu) : void();
-      !scene->initialized ? scene->initialize(window->graphics.instance, window->graphics.gpu) : void();
+      const auto &scene{iterator->second};
+      if (window->running)
+      {
+        if (auto current{current_scene.lock()})
+          if (current->initialized) current->cleanup(window->graphics.gpu);
+        if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
+      }
+      current_scene = scene;
     }
-    current_scene = scene;
+    else
+      throw exception("Tried to set current scene to null");
+  }
+
+  bool game::remove_scene(const help::id name)
+  {
+    if (auto iterator{scenes.find(name)}; iterator != scenes.end())
+    {
+      const auto &scene{iterator->second};
+      if (auto current{current_scene.lock()}; current == scene) throw exception("Tried to remove current scene");
+      if (window->running && scene->initialized) scene->cleanup(window->graphics.gpu);
+      scenes.erase(iterator);
+      return true;
+    }
+    return false;
   }
 
   std::shared_ptr<game> game::create()
   {
-    if (!instance.expired()) throw exception("An instance of game already exists");
+    if (!instance.expired()) throw exception("Tried to create a second game instance");
     auto new_instance{std::shared_ptr<game>{new game{}}};
     instance = new_instance;
     return new_instance;
@@ -70,7 +88,9 @@ namespace cse
     if (scenes.empty()) throw exception("No scenes have been added to the game");
     if (current_scene.expired()) throw exception("No current scene has been set for the game");
     if (auto scene{current_scene.lock()})
-      !scene->initialized ? scene->initialize(window->graphics.instance, window->graphics.gpu) : void();
+    {
+      if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
+    }
     else
       throw exception("Current scene is not initialized");
   }
@@ -119,7 +139,9 @@ namespace cse
   void game::cleanup()
   {
     if (auto scene{current_scene.lock()})
-      scene->initialized ? scene->cleanup(window->graphics.gpu) : void();
+    {
+      if (scene->initialized) scene->cleanup(window->graphics.gpu);
+    }
     else
       throw exception("Current scene is not initialized");
     window->cleanup();
