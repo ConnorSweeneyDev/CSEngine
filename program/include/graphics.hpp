@@ -94,20 +94,20 @@ namespace cse::help
     };
     struct shader
     {
-      const compiled_shader vertex{};
-      const compiled_shader fragment{};
+      const cse::shader vertex{};
+      const cse::shader fragment{};
     };
     struct texture
     {
-      const compiled_image image{};
-      compiled_frame_group group{};
+      const image image{};
+      frame_group group{};
       unsigned int frame{};
     };
 
   public:
     object_graphics() = default;
-    object_graphics(const glm::u8vec4 &color_, const std::pair<compiled_shader, compiled_shader> &shader_,
-                    const std::pair<compiled_image, compiled_frame_group> &texture_);
+    object_graphics(const glm::u8vec4 &color_, const std::pair<cse::shader, cse::shader> &shader_,
+                    const std::pair<cse::image, cse::frame_group> &texture_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;

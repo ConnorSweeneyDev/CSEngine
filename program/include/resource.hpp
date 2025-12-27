@@ -5,13 +5,13 @@
 
 namespace cse
 {
-  struct compiled_shader
+  struct shader
   {
     const std::span<const unsigned char> source{};
     const std::size_t length{};
   };
 
-  struct compiled_image
+  struct image
   {
     const std::span<const unsigned char> data{};
     const unsigned int width{};
@@ -20,7 +20,7 @@ namespace cse
     const unsigned int frame_height{};
     const unsigned int channels{};
   };
-  struct compiled_frame_group
+  struct frame_group
   {
     struct frame
     {
@@ -33,8 +33,8 @@ namespace cse
       };
       rect coords{};
     };
+    std::span<const frame> frames{};
     unsigned int start{};
     unsigned int end{};
-    std::span<const frame> frames{};
   };
 }

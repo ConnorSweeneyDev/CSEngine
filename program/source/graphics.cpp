@@ -291,9 +291,8 @@ namespace cse::help
     return glm::perspective(glm::radians(fov), target_aspect_ratio, near_clip, far_clip);
   }
 
-  object_graphics::object_graphics(const glm::u8vec4 &color_,
-                                   const std::pair<compiled_shader, compiled_shader> &shader_,
-                                   const std::pair<compiled_image, compiled_frame_group> &texture_)
+  object_graphics::object_graphics(const glm::u8vec4 &color_, const std::pair<cse::shader, cse::shader> &shader_,
+                                   const std::pair<cse::image, cse::frame_group> &texture_)
     : color(color_), shader(shader_.first, shader_.second), texture(texture_.first, texture_.second)
   {
   }
