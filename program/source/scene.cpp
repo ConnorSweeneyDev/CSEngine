@@ -15,6 +15,7 @@ namespace cse
 {
   scene::~scene()
   {
+    pending_removals.clear();
     hooks.clear();
     objects.clear();
     camera.reset();
@@ -44,31 +45,37 @@ namespace cse
   void scene::event(const SDL_Event &event)
   {
     hooks.call<void(const SDL_Event &)>("pre_event", event);
+    process_pending_removals();
     camera->event(event);
+    process_pending_removals();
     for (const auto &object : objects) object.second->event(event);
-    process_removals();
+    process_pending_removals();
     hooks.call<void(const SDL_Event &)>("post_event", event);
-    process_removals();
+    process_pending_removals();
   }
 
   void scene::input(const bool *keys)
   {
     hooks.call<void(const bool *)>("pre_input", keys);
+    process_pending_removals();
     camera->input(keys);
+    process_pending_removals();
     for (const auto &object : objects) object.second->input(keys);
-    process_removals();
+    process_pending_removals();
     hooks.call<void(const bool *)>("post_input", keys);
-    process_removals();
+    process_pending_removals();
   }
 
   void scene::simulate(const double simulation_alpha)
   {
     hooks.call<void(const double)>("pre_simulate", simulation_alpha);
+    process_pending_removals();
     camera->simulate(simulation_alpha);
+    process_pending_removals();
     for (const auto &object : objects) object.second->simulate(simulation_alpha);
-    process_removals();
+    process_pending_removals();
     hooks.call<void(const double)>("post_simulate", simulation_alpha);
-    process_removals();
+    process_pending_removals();
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
@@ -91,7 +98,7 @@ namespace cse
     hooks.call<void()>("post_cleanup");
   }
 
-  void scene::process_removals()
+  void scene::process_pending_removals()
   {
     for (const auto &name : pending_removals)
       if (auto iterator{objects.find(name)}; iterator != objects.end())
