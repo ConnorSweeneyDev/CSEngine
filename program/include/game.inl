@@ -27,30 +27,28 @@ namespace cse
   void game::set_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                        scene_arguments &&...arguments)
   {
-    bool new_current_scene{};
-    if (window->running && scenes.contains(name))
+    bool is_current_scene = false;
+    if (auto current{current_scene.lock()}; current && scenes.contains(name))
     {
-      if (auto current{current_scene.lock()})
+      const auto &old_scene{scenes.at(name)};
+      if (current == old_scene)
       {
-        const auto &old_scene{scenes.at(name)};
-        if (current == old_scene)
-        {
-          old_scene->initialized ? old_scene->cleanup(window->graphics.gpu) : void();
-          new_current_scene = true;
-        }
+        is_current_scene = true;
+        if (window->running && old_scene->initialized) old_scene->cleanup(window->graphics.gpu);
       }
-      scenes.erase(name);
     }
 
+    scenes.erase(name);
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     scene->parent = weak_from_this();
     config(scene);
     scenes.emplace(name, scene);
 
-    if (window->running)
-      if (auto current{current_scene.lock()})
-        current == scene ? scene->initialize(window->graphics.instance, window->graphics.gpu) : void();
-    if (new_current_scene) current_scene = scene;
+    if (is_current_scene)
+    {
+      if (window->running && !scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
+      current_scene = scene;
+    }
   }
 
   template <typename callable, typename... scene_arguments>
@@ -68,7 +66,13 @@ namespace cse
                                scene_arguments &&...arguments)
   {
     set_scene<scene_type, scene_arguments...>(name, config, std::forward<scene_arguments>(arguments)...);
-    current_scene = scenes.at(name);
+    const auto &scene{scenes.at(name)};
+    if (auto current{current_scene.lock()}; current != scene && window->running)
+    {
+      if (current->initialized) current->cleanup(window->graphics.gpu);
+      if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
+    }
+    current_scene = scene;
   }
 
   template <typename callable, typename... scene_arguments>

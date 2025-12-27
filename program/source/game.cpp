@@ -24,9 +24,8 @@ namespace cse
 
   void game::set_current_scene(const help::id name)
   {
-    auto scene_iterator{scenes.find(name)};
-    if (scene_iterator == scenes.end()) throw exception("Tried to set current scene to null");
-    auto scene = scene_iterator->second;
+    if (!scenes.contains(name)) throw exception("Tried to set current scene to null");
+    const auto &scene{scenes.at(name)};
     if (window->running)
     {
       if (auto current{current_scene.lock()}) current->initialized ? current->cleanup(window->graphics.gpu) : void();
