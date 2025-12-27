@@ -32,6 +32,7 @@ namespace cse
     graphics.create_pipeline_and_buffers(instance, gpu);
     graphics.upload_static_buffers(gpu);
     graphics.upload_dynamic_buffers(gpu);
+    initialized = true;
     hooks.call<void()>("initialize_main");
   }
 
@@ -61,5 +62,9 @@ namespace cse
     graphics.draw_primitives(render_pass);
   }
 
-  void object::cleanup(SDL_GPUDevice *gpu) { graphics.cleanup_object(gpu); }
+  void object::cleanup(SDL_GPUDevice *gpu)
+  {
+    graphics.cleanup_object(gpu);
+    initialized = false;
+  }
 }

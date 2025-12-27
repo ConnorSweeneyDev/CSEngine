@@ -20,7 +20,11 @@ namespace cse
     parent.reset();
   }
 
-  void camera::initialize() { hooks.call<void()>("initialize_main"); }
+  void camera::initialize()
+  {
+    initialized = true;
+    hooks.call<void()>("initialize_main");
+  }
 
   void camera::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event_main", event); }
 
@@ -36,6 +40,8 @@ namespace cse
     state.forward.interpolate(simulation_alpha);
     state.up.interpolate(simulation_alpha);
   }
+
+  void camera::cleanup() { initialized = false; }
 
   std::pair<glm::mat4, glm::mat4> camera::render(const float target_aspect_ratio, const float global_scale_factor)
   {

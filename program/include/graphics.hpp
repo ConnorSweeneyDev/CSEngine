@@ -20,6 +20,7 @@ namespace cse::help
   {
     friend class cse::game;
     friend class cse::window;
+    friend class cse::scene;
 
   public:
     window_graphics() = default;

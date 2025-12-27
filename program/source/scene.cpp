@@ -24,8 +24,9 @@ namespace cse
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
     hooks.call<void()>("initialize_pre");
-    camera->initialize();
-    for (const auto &object : objects) object.second->initialize(instance, gpu);
+    !camera->initialized ? camera->initialize() : void();
+    for (const auto &[name, object] : objects) !object->initialized ? object->initialize(instance, gpu) : void();
+    initialized = true;
     hooks.call<void()>("initialize_post");
   }
 
@@ -63,6 +64,8 @@ namespace cse
 
   void scene::cleanup(SDL_GPUDevice *gpu)
   {
-    for (const auto &object : objects) object.second->cleanup(gpu);
+    camera->initialized ? camera->cleanup() : void();
+    for (const auto &[name, object] : objects) object->initialized ? object->cleanup(gpu) : void();
+    initialized = false;
   }
 }

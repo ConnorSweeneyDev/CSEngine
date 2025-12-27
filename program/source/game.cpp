@@ -57,7 +57,7 @@ namespace cse
     if (scenes.empty()) throw exception("No scenes have been added to the game");
     if (current_scene.expired()) throw exception("No current scene has been set for the game");
     if (auto scene{current_scene.lock()})
-      scene->initialize(window->graphics.instance, window->graphics.gpu);
+      !scene->initialized ? scene->initialize(window->graphics.instance, window->graphics.gpu) : void();
     else
       throw exception("Current scene is not initialized");
   }
@@ -106,7 +106,7 @@ namespace cse
   void game::cleanup()
   {
     if (auto scene{current_scene.lock()})
-      scene->cleanup(window->graphics.gpu);
+      scene->initialized ? scene->cleanup(window->graphics.gpu) : void();
     else
       throw exception("Current scene is not initialized");
     window->cleanup();

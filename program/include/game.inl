@@ -28,8 +28,12 @@ namespace cse
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     scene->parent = weak_from_this();
-    scenes.emplace(name, scene);
     config(scene);
+    scenes.emplace(name, scene);
+
+    if (window->running)
+      if (auto current{current_scene.lock()})
+        current == scene ? scene->initialize(window->graphics.instance, window->graphics.gpu) : void();
   }
 
   template <typename callable, typename... scene_arguments>

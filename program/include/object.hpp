@@ -47,5 +47,8 @@ namespace cse
     help::object_state state{};
     help::object_graphics graphics{};
     help::hooks hooks{};
+
+  private:
+    bool initialized{};
   };
 }

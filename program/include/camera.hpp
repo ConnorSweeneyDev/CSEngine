@@ -32,6 +32,7 @@ namespace cse
     void event(const SDL_Event &event);
     void input(const bool *keys);
     void simulate(const double simulation_alpha);
+    void cleanup();
     std::pair<glm::mat4, glm::mat4> render(const float target_aspect_ratio, const float global_scale_factor);
 
   public:
@@ -39,5 +40,8 @@ namespace cse
     help::camera_state state{};
     help::camera_graphics graphics{};
     help::hooks hooks{};
+
+  private:
+    bool initialized{};
   };
 }

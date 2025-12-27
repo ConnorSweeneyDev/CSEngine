@@ -50,6 +50,9 @@ namespace cse
     std::shared_ptr<class camera> camera{};
     std::unordered_map<help::id, std::shared_ptr<object>> objects{};
     help::hooks hooks{};
+
+  private:
+    bool initialized{};
   };
 }
 
