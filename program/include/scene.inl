@@ -11,6 +11,7 @@
 #include "camera.hpp"
 #include "game.hpp"
 #include "id.hpp"
+#include "window.hpp"
 
 namespace cse
 {

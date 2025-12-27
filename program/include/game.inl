@@ -10,6 +10,7 @@
 #include "glm/ext/vector_uint2.hpp"
 
 #include "id.hpp"
+#include "scene.hpp"
 #include "traits.hpp"
 #include "window.hpp"
 
@@ -26,6 +27,21 @@ namespace cse
   void game::set_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                        scene_arguments &&...arguments)
   {
+    bool new_current_scene{};
+    if (window->running && scenes.contains(name))
+    {
+      if (auto current{current_scene.lock()})
+      {
+        const auto &old_scene{scenes.at(name)};
+        if (current == old_scene)
+        {
+          old_scene->initialized ? old_scene->cleanup(window->graphics.gpu) : void();
+          new_current_scene = true;
+        }
+      }
+      scenes.erase(name);
+    }
+
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     scene->parent = weak_from_this();
     config(scene);
@@ -34,6 +50,7 @@ namespace cse
     if (window->running)
       if (auto current{current_scene.lock()})
         current == scene ? scene->initialize(window->graphics.instance, window->graphics.gpu) : void();
+    if (new_current_scene) current_scene = scene;
   }
 
   template <typename callable, typename... scene_arguments>

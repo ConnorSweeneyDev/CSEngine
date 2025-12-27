@@ -33,6 +33,7 @@ namespace cse
                            scene_arguments &&...arguments);
     template <typename callable, typename... scene_arguments>
     void set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
+    void set_current_scene(const help::id name);
 
     static std::shared_ptr<game> create();
     void run();

@@ -7,6 +7,7 @@
 #include "SDL3/SDL_timer.h"
 
 #include "exception.hpp"
+#include "id.hpp"
 #include "print.hpp"
 #include "scene.hpp"
 #include "system.hpp"
@@ -19,6 +20,19 @@ namespace cse
     current_scene.reset();
     scenes.clear();
     window.reset();
+  }
+
+  void game::set_current_scene(const help::id name)
+  {
+    auto scene_iterator{scenes.find(name)};
+    if (scene_iterator == scenes.end()) throw exception("Tried to set current scene to null");
+    auto scene = scene_iterator->second;
+    if (window->running)
+    {
+      if (auto current{current_scene.lock()}) current->initialized ? current->cleanup(window->graphics.gpu) : void();
+      !scene->initialized ? scene->initialize(window->graphics.instance, window->graphics.gpu) : void();
+    }
+    current_scene = scene;
   }
 
   std::shared_ptr<game> game::create()
