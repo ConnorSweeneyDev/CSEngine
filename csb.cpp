@@ -28,7 +28,7 @@ int csb::build()
 {
   if (!csb::is_subproject) csb::clang_format("21.1.8");
 
-  csb::vcpkg_install("2025.12.12", {{"builtin-baseline", "120deac3062162151622ca4860575a33844ba10b"},
+  csb::vcpkg_install("2025.12.12", {{"builtin-baseline", "84bab45d415d22042bd0b9081aea57f362da3f35"},
                                     {"dependencies",
                                      {
                                        {
