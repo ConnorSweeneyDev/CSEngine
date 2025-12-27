@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <set>
 #include <tuple>
 #include <unordered_map>
 
@@ -46,6 +47,8 @@ namespace cse
                 const float target_aspect_ratio, const float global_scale_factor);
     void cleanup(SDL_GPUDevice *gpu);
 
+    void process_removals();
+
   public:
     std::weak_ptr<class game> parent{};
     std::shared_ptr<class camera> camera{};
@@ -54,6 +57,7 @@ namespace cse
 
   private:
     bool initialized{};
+    std::set<help::id> pending_removals{};
   };
 }
 

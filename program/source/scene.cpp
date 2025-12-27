@@ -23,12 +23,9 @@ namespace cse
 
   bool scene::remove_object(const help::id name)
   {
-    if (auto iterator{objects.find(name)}; iterator != objects.end())
+    if (objects.contains(name))
     {
-      const auto &object{iterator->second};
-      if (initialized && object->initialized)
-        if (auto game{parent.lock()}) object->cleanup(game->window->graphics.gpu);
-      objects.erase(iterator);
+      pending_removals.insert(name);
       return true;
     }
     return false;
@@ -49,7 +46,9 @@ namespace cse
     hooks.call<void(const SDL_Event &)>("pre_event", event);
     camera->event(event);
     for (const auto &object : objects) object.second->event(event);
+    process_removals();
     hooks.call<void(const SDL_Event &)>("post_event", event);
+    process_removals();
   }
 
   void scene::input(const bool *keys)
@@ -57,7 +56,9 @@ namespace cse
     hooks.call<void(const bool *)>("pre_input", keys);
     camera->input(keys);
     for (const auto &object : objects) object.second->input(keys);
+    process_removals();
     hooks.call<void(const bool *)>("post_input", keys);
+    process_removals();
   }
 
   void scene::simulate(const double simulation_alpha)
@@ -65,7 +66,9 @@ namespace cse
     hooks.call<void(const double)>("pre_simulate", simulation_alpha);
     camera->simulate(simulation_alpha);
     for (const auto &object : objects) object.second->simulate(simulation_alpha);
+    process_removals();
     hooks.call<void(const double)>("post_simulate", simulation_alpha);
+    process_removals();
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
@@ -86,5 +89,18 @@ namespace cse
       if (object->initialized) object->cleanup(gpu);
     initialized = false;
     hooks.call<void()>("post_cleanup");
+  }
+
+  void scene::process_removals()
+  {
+    for (const auto &name : pending_removals)
+      if (auto iterator{objects.find(name)}; iterator != objects.end())
+      {
+        const auto &object{iterator->second};
+        if (initialized && object->initialized)
+          if (auto game{parent.lock()}) object->cleanup(game->window->graphics.gpu);
+        objects.erase(iterator);
+      }
+    pending_removals.clear();
   }
 }
