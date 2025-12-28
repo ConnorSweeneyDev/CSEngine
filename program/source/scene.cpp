@@ -66,25 +66,26 @@ namespace cse
     process_pending_removals();
   }
 
-  void scene::simulate(const double simulation_alpha)
+  void scene::simulate()
   {
-    hooks.call<void(const double)>("pre_simulate", simulation_alpha);
+    hooks.call<void()>("pre_simulate");
     process_pending_removals();
-    camera->simulate(simulation_alpha);
+    camera->simulate();
     process_pending_removals();
-    for (const auto &object : objects) object.second->simulate(simulation_alpha);
+    for (const auto &object : objects) object.second->simulate();
     process_pending_removals();
-    hooks.call<void(const double)>("post_simulate", simulation_alpha);
+    hooks.call<void()>("post_simulate");
     process_pending_removals();
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     const float target_aspect_ratio, const float global_scale_factor)
+                     const double simulation_alpha, const float target_aspect_ratio, const float global_scale_factor)
   {
     hooks.call<void()>("pre_render");
-    auto matrices = camera->render(target_aspect_ratio, global_scale_factor);
+    auto matrices = camera->render(simulation_alpha, target_aspect_ratio, global_scale_factor);
     for (const auto &object : objects)
-      object.second->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, global_scale_factor);
+      object.second->render(gpu, command_buffer, render_pass, simulation_alpha, matrices.first, matrices.second,
+                            global_scale_factor);
     hooks.call<void()>("post_render");
   }
 

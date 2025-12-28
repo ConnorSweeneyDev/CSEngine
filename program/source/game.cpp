@@ -119,7 +119,7 @@ namespace cse
   {
     window->simulate();
     if (auto scene{current_scene.lock()})
-      scene->simulate(simulation_alpha);
+      scene->simulate();
     else
       throw exception("Current scene is not initialized");
   }
@@ -129,7 +129,7 @@ namespace cse
     if (!window->start_render(target_aspect_ratio)) return;
     if (auto scene{current_scene.lock()})
       scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass,
-                    target_aspect_ratio, global_scale_factor);
+                    simulation_alpha, target_aspect_ratio, global_scale_factor);
     else
       throw exception("Current scene is not initialized");
     window->end_render();

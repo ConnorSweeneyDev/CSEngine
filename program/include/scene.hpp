@@ -42,9 +42,9 @@ namespace cse
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void event(const SDL_Event &event);
     void input(const bool *keys);
-    void simulate(const double simulation_alpha);
+    void simulate();
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const float target_aspect_ratio, const float global_scale_factor);
+                const double simulation_alpha, const float target_aspect_ratio, const float global_scale_factor);
     void cleanup(SDL_GPUDevice *gpu);
 
     void process_pending_removals();
