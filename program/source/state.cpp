@@ -7,10 +7,16 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_float3.hpp"
 #include "glm/ext/vector_int3.hpp"
+#include "glm/ext/vector_uint2.hpp"
 #include "glm/trigonometric.hpp"
 
 namespace cse::help
 {
+  window_state::window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
+    : width(dimensions_.x), height(dimensions_.y), fullscreen(fullscreen_), vsync(vsync_)
+  {
+  }
+
   camera_state::camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_)
     : translation(std::get<0>(transform_)), forward(std::get<1>(transform_)), up(std::get<2>(transform_))
   {

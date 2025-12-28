@@ -4,14 +4,36 @@
 
 #include <tuple>
 
+#include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
 #include "glm/ext/vector_int3.hpp"
+#include "glm/ext/vector_uint2.hpp"
 
+#include "property.hpp"
 #include "transform.hpp"
 
 namespace cse::help
 {
+  struct window_state
+  {
+    friend class cse::window;
+
+  public:
+    window_state() = default;
+    window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_);
+
+  public:
+    bool running{};
+    property<unsigned int> width{};
+    property<unsigned int> height{};
+    property<int> left{};
+    property<int> top{};
+    property<SDL_DisplayID> display_index{};
+    property<bool> fullscreen{};
+    property<bool> vsync{};
+  };
+
   struct camera_state
   {
     friend class cse::camera;

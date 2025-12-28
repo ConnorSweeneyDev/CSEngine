@@ -35,7 +35,7 @@ namespace cse
         if (current == old_scene)
         {
           is_current_scene = true;
-          if (window->running && old_scene->initialized) old_scene->cleanup(window->graphics.gpu);
+          if (window->state.running && old_scene->initialized) old_scene->cleanup(window->graphics.gpu);
         }
       }
 
@@ -47,7 +47,8 @@ namespace cse
 
     if (is_current_scene)
     {
-      if (window->running && !scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
+      if (window->state.running && !scene->initialized)
+        scene->initialize(window->graphics.instance, window->graphics.gpu);
       current_scene = scene;
     }
   }
@@ -68,7 +69,7 @@ namespace cse
   {
     set_scene<scene_type, scene_arguments...>(name, config, std::forward<scene_arguments>(arguments)...);
     const auto &scene{scenes.at(name)};
-    if (auto current{current_scene.lock()}; current != scene && window->running)
+    if (auto current{current_scene.lock()}; current != scene && window->state.running)
     {
       if (current->initialized) current->cleanup(window->graphics.gpu);
       if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);

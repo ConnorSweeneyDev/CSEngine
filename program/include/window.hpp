@@ -4,13 +4,12 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
-#include "SDL3/SDL_video.h"
 #include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "hooks.hpp"
-#include "property.hpp"
+#include "state.hpp"
 
 namespace cse
 {
@@ -38,14 +37,7 @@ namespace cse
 
   public:
     std::weak_ptr<class game> parent{};
-    bool running{};
-    help::property<unsigned int> width{};
-    help::property<unsigned int> height{};
-    help::property<int> left{};
-    help::property<int> top{};
-    help::property<SDL_DisplayID> display_index{};
-    help::property<bool> fullscreen{};
-    help::property<bool> vsync{};
+    help::window_state state{};
     help::window_graphics graphics{};
     help::hooks hooks{};
 

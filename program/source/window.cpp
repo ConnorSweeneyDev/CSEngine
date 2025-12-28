@@ -11,37 +11,41 @@
 namespace cse
 {
   window::window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
-    : width(dimensions_.x), height(dimensions_.y), fullscreen(fullscreen_), vsync(vsync_), graphics(title_)
+    : state(dimensions_, fullscreen_, vsync_), graphics(title_)
   {
     if (graphics.title.empty()) throw exception("Window title cannot be empty");
-    width.on_change = [this]() { graphics.handle_manual_resize(width, height, fullscreen); };
-    height.on_change = [this]() { graphics.handle_manual_resize(width, height, fullscreen); };
-    left.on_change = [this]() { graphics.handle_manual_move(left, top, fullscreen); };
-    top.on_change = [this]() { graphics.handle_manual_move(left, top, fullscreen); };
-    display_index.on_change = [this]()
-    { graphics.handle_manual_display_move(width, height, left, top, display_index, fullscreen); };
-    fullscreen.on_change = [this]() { graphics.handle_fullscreen(fullscreen, display_index); };
-    vsync.on_change = [this]() { graphics.handle_vsync(vsync); };
+    state.width.on_change = [this]() { graphics.handle_manual_resize(state.width, state.height, state.fullscreen); };
+    state.height.on_change = [this]() { graphics.handle_manual_resize(state.width, state.height, state.fullscreen); };
+    state.left.on_change = [this]() { graphics.handle_manual_move(state.left, state.top, state.fullscreen); };
+    state.top.on_change = [this]() { graphics.handle_manual_move(state.left, state.top, state.fullscreen); };
+    state.display_index.on_change = [this]()
+    {
+      graphics.handle_manual_display_move(state.width, state.height, state.left, state.top, state.display_index,
+                                          state.fullscreen);
+    };
+    state.fullscreen.on_change = [this]() { graphics.handle_fullscreen(state.fullscreen, state.display_index); };
+    state.vsync.on_change = [this]() { graphics.handle_vsync(state.vsync); };
   }
 
   window::~window()
   {
     current_keys = nullptr;
     hooks.clear();
-    vsync.on_change = nullptr;
-    fullscreen.on_change = nullptr;
-    display_index.on_change = nullptr;
-    top.on_change = nullptr;
-    left.on_change = nullptr;
-    height.on_change = nullptr;
-    width.on_change = nullptr;
+    state.vsync.on_change = nullptr;
+    state.fullscreen.on_change = nullptr;
+    state.display_index.on_change = nullptr;
+    state.top.on_change = nullptr;
+    state.left.on_change = nullptr;
+    state.height.on_change = nullptr;
+    state.width.on_change = nullptr;
     parent.reset();
   }
 
   void window::initialize()
   {
-    graphics.create_app_and_window(width, height, left, top, display_index, fullscreen, vsync);
-    running = true;
+    graphics.create_app_and_window(state.width, state.height, state.left, state.top, state.display_index,
+                                   state.fullscreen, state.vsync);
+    state.running = true;
     hooks.call<void()>("initialize");
   }
 
@@ -49,9 +53,13 @@ namespace cse
   {
     switch (current_event.type)
     {
-      case SDL_EVENT_QUIT: running = false; break;
-      case SDL_EVENT_WINDOW_MOVED: graphics.handle_move(left, top, display_index, fullscreen); break;
-      case SDL_EVENT_WINDOW_RESIZED: graphics.handle_resize(width, height, display_index, fullscreen); break;
+      case SDL_EVENT_QUIT: state.running = false; break;
+      case SDL_EVENT_WINDOW_MOVED:
+        graphics.handle_move(state.left, state.top, state.display_index, state.fullscreen);
+        break;
+      case SDL_EVENT_WINDOW_RESIZED:
+        graphics.handle_resize(state.width, state.height, state.display_index, state.fullscreen);
+        break;
       default: hooks.call<void(const SDL_Event &)>("event", current_event); break;
     }
   }
@@ -67,8 +75,8 @@ namespace cse
   bool window::start_render(const float target_aspect_ratio)
   {
     if (!graphics.acquire_swapchain_texture()) return false;
-    graphics.start_render_pass(target_aspect_ratio, width, height);
-    hooks.call<void(const unsigned int, const unsigned int)>("pre_render", width, height);
+    graphics.start_render_pass(target_aspect_ratio, state.width, state.height);
+    hooks.call<void(const unsigned int, const unsigned int)>("pre_render", state.width, state.height);
     return true;
   }
 

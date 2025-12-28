@@ -11,6 +11,7 @@ namespace cse
 
 namespace cse::help
 {
+  struct window_state;
   struct window_graphics;
   struct camera_state;
   struct camera_graphics;

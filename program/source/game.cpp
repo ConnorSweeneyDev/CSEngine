@@ -27,7 +27,7 @@ namespace cse
     if (auto iterator{scenes.find(name)}; iterator != scenes.end())
     {
       const auto &scene{iterator->second};
-      if (window->running)
+      if (window->state.running)
       {
         if (auto current{current_scene.lock()})
           if (current->initialized) current->cleanup(window->graphics.gpu);
@@ -45,7 +45,7 @@ namespace cse
     {
       const auto &scene{iterator->second};
       if (auto current{current_scene.lock()}; current == scene) throw exception("Tried to remove current scene");
-      if (window->running && scene->initialized) scene->cleanup(window->graphics.gpu);
+      if (window->state.running && scene->initialized) scene->cleanup(window->graphics.gpu);
       scenes.erase(iterator);
       return true;
     }
@@ -63,7 +63,7 @@ namespace cse
   void game::run()
   {
     initialize();
-    while (window->running)
+    while (window->state.running)
     {
       update_simulation_time();
       while (simulation_behind())
