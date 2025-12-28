@@ -65,14 +65,13 @@ namespace cse
     initialize();
     while (window->state.running)
     {
-      update_simulation_time();
+      update_time();
       while (simulation_behind())
       {
         event();
         input();
         simulate();
       }
-      update_simulation_alpha();
       if (should_render())
       {
         render();
@@ -147,13 +146,13 @@ namespace cse
     window->cleanup();
   }
 
-  void game::update_simulation_time()
+  void game::update_time()
   {
-    double current_simulation_time{static_cast<double>(SDL_GetTicksNS()) / 1e9};
-    double delta_simulation_time{current_simulation_time - last_simulation_time};
-    last_simulation_time = current_simulation_time;
-    if (delta_simulation_time > 0.1) delta_simulation_time = 0.1;
-    simulation_accumulator += delta_simulation_time;
+    current_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    double delta_time{current_time - last_simulation_time};
+    last_simulation_time = current_time;
+    if (delta_time > 0.1) delta_time = 0.1;
+    simulation_accumulator += delta_time;
   }
 
   bool game::simulation_behind()
@@ -166,14 +165,12 @@ namespace cse
     return false;
   }
 
-  void game::update_simulation_alpha() { simulation_alpha = simulation_accumulator / target_simulation_time; }
-
   bool game::should_render()
   {
-    double current_render_time{static_cast<double>(SDL_GetTicksNS()) / 1e9};
-    if (current_render_time - last_render_time >= target_render_time)
+    if (current_time - last_render_time >= target_render_time)
     {
-      last_render_time = current_render_time;
+      last_render_time = current_time;
+      simulation_alpha = simulation_accumulator / target_simulation_time;
       return true;
     }
     return false;
@@ -181,13 +178,12 @@ namespace cse
 
   void game::update_fps()
   {
-    current_period_frame_count++;
-    double current_fps_time{static_cast<double>(SDL_GetTicksNS()) / 1e9};
-    if (current_fps_time - last_fps_time >= 1.0)
+    current_frame_count++;
+    if (current_time - last_fps_time >= 1.0)
     {
-      if constexpr (debug) print<CLOG>("{} FPS\n", current_period_frame_count);
-      last_fps_time = current_fps_time;
-      current_period_frame_count = 0;
+      if constexpr (debug) print<CLOG>("{} FPS\n", current_frame_count);
+      last_fps_time = current_time;
+      current_frame_count = 0;
     }
   }
 }
