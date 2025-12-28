@@ -23,6 +23,8 @@
 
 namespace cse::help
 {
+  window_graphics::window_graphics(const std::string &title_) : title(title_) {}
+
   window_graphics::~window_graphics()
   {
     render_pass = nullptr;
@@ -33,8 +35,7 @@ namespace cse::help
     instance = nullptr;
   }
 
-  void window_graphics::create_app_and_window(const std::string &title, const unsigned int width,
-                                              const unsigned int height, int &left, int &top,
+  void window_graphics::create_app_and_window(const unsigned int width, const unsigned int height, int &left, int &top,
                                               SDL_DisplayID &display_index, const bool fullscreen, const bool vsync)
   {
     SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);

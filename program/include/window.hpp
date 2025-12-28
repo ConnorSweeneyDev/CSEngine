@@ -39,7 +39,6 @@ namespace cse
   public:
     std::weak_ptr<class game> parent{};
     bool running{};
-    const std::string title{};
     help::property<unsigned int> width{};
     help::property<unsigned int> height{};
     help::property<int> left{};
@@ -47,10 +46,10 @@ namespace cse
     help::property<SDL_DisplayID> display_index{};
     help::property<bool> fullscreen{};
     help::property<bool> vsync{};
+    help::window_graphics graphics{};
     help::hooks hooks{};
 
   private:
-    help::window_graphics graphics{};
     SDL_Event current_event{};
     const bool *current_keys{};
   };

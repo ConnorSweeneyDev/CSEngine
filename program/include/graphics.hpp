@@ -24,6 +24,7 @@ namespace cse::help
 
   public:
     window_graphics() = default;
+    window_graphics(const std::string &title_);
     ~window_graphics();
     window_graphics(const window_graphics &) = delete;
     window_graphics &operator=(const window_graphics &) = delete;
@@ -31,8 +32,8 @@ namespace cse::help
     window_graphics &operator=(window_graphics &&) = delete;
 
   private:
-    void create_app_and_window(const std::string &title, const unsigned int width, const unsigned int height, int &left,
-                               int &top, SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
+    void create_app_and_window(const unsigned int width, const unsigned int height, int &left, int &top,
+                               SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
     void start_render_pass(const float target_aspect_ratio, const unsigned int width, const unsigned int height);
     void end_render_pass();
@@ -48,6 +49,9 @@ namespace cse::help
     void handle_fullscreen(const bool fullscreen, int &left, int &top, const SDL_DisplayID display_index);
     void handle_vsync(const bool vsync);
     void destroy_window_and_app();
+
+  public:
+    const std::string title{};
 
   private:
     unsigned int windowed_width{};

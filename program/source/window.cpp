@@ -11,7 +11,7 @@
 namespace cse
 {
   window::window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
-    : title(title_), width(dimensions_.x), height(dimensions_.y), fullscreen(fullscreen_), vsync(vsync_)
+    : width(dimensions_.x), height(dimensions_.y), fullscreen(fullscreen_), vsync(vsync_), graphics(title_)
   {
     if (title_.empty()) throw exception("Window title cannot be empty");
     width.on_change = [this]() { graphics.handle_manual_resize(width, height, fullscreen); };
@@ -40,7 +40,7 @@ namespace cse
 
   void window::initialize()
   {
-    graphics.create_app_and_window(title, width, height, left, top, display_index, fullscreen, vsync);
+    graphics.create_app_and_window(width, height, left, top, display_index, fullscreen, vsync);
     running = true;
     hooks.call<void()>("initialize");
   }
