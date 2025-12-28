@@ -13,14 +13,14 @@ namespace cse
   window::window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
     : width(dimensions_.x), height(dimensions_.y), fullscreen(fullscreen_), vsync(vsync_), graphics(title_)
   {
-    if (title_.empty()) throw exception("Window title cannot be empty");
+    if (graphics.title.empty()) throw exception("Window title cannot be empty");
     width.on_change = [this]() { graphics.handle_manual_resize(width, height, fullscreen); };
     height.on_change = [this]() { graphics.handle_manual_resize(width, height, fullscreen); };
     left.on_change = [this]() { graphics.handle_manual_move(left, top, fullscreen); };
     top.on_change = [this]() { graphics.handle_manual_move(left, top, fullscreen); };
     display_index.on_change = [this]()
     { graphics.handle_manual_display_move(width, height, left, top, display_index, fullscreen); };
-    fullscreen.on_change = [this]() { graphics.handle_fullscreen(fullscreen, left, top, display_index); };
+    fullscreen.on_change = [this]() { graphics.handle_fullscreen(fullscreen, display_index); };
     vsync.on_change = [this]() { graphics.handle_vsync(vsync); };
   }
 

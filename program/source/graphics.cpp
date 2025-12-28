@@ -70,7 +70,7 @@ namespace cse::help
     if (!SDL_ClaimWindowForGPUDevice(gpu, instance)) throw sdl_exception("Could not claim window for GPU device");
     if (!SDL_SetGPUSwapchainParameters(gpu, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
       throw sdl_exception("Could not enable VSYNC");
-    if (fullscreen) handle_fullscreen(fullscreen, left, top, display_index);
+    if (fullscreen) handle_fullscreen(fullscreen, display_index);
     if (!vsync) handle_vsync(vsync);
     if (!depth_texture) generate_depth_texture(width, height);
     SDL_ShowWindow(instance);
@@ -238,7 +238,7 @@ namespace cse::help
     generate_depth_texture(width, height);
   }
 
-  void window_graphics::handle_fullscreen(const bool fullscreen, int &left, int &top, const SDL_DisplayID display_index)
+  void window_graphics::handle_fullscreen(const bool fullscreen, const SDL_DisplayID display_index)
   {
     if (fullscreen)
     {
@@ -259,7 +259,7 @@ namespace cse::help
     if (!SDL_SetWindowSize(instance, static_cast<int>(windowed_width), static_cast<int>(windowed_height)))
       throw sdl_exception("Could not set window size to {}, {}", windowed_width, windowed_height);
     if (!SDL_SetWindowPosition(instance, windowed_left, windowed_top))
-      throw sdl_exception("Could not set window position to {}, {}", left, top);
+      throw sdl_exception("Could not set window position to {}, {}", windowed_left, windowed_top);
   }
 
   void window_graphics::handle_vsync(const bool vsync)

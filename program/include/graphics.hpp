@@ -46,7 +46,7 @@ namespace cse::help
                                     const SDL_DisplayID display_index, const bool fullscreen);
     void handle_resize(unsigned int &width, unsigned int &height, SDL_DisplayID &display_index, const bool fullscreen);
     void handle_manual_resize(const unsigned int width, const unsigned int height, const bool fullscreen);
-    void handle_fullscreen(const bool fullscreen, int &left, int &top, const SDL_DisplayID display_index);
+    void handle_fullscreen(const bool fullscreen, const SDL_DisplayID display_index);
     void handle_vsync(const bool vsync);
     void destroy_window_and_app();
 
