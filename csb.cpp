@@ -1,15 +1,12 @@
 #include "csb.hpp"
 
-#include <filesystem>
-#include <string>
-#include <vector>
+#include <format>
 
 void csb::configure()
 {
   csb::target_name = "cse";
   csb::target_artifact = STATIC_LIBRARY;
   csb::target_linkage = STATIC;
-  csb::target_subsystem = CONSOLE;
   csb::target_configuration = RELEASE;
   csb::cxx_standard = CXX20;
   csb::warning_level = W4;
@@ -49,11 +46,12 @@ int csb::build()
                                      }}});
 
   auto build_include_path = csb::path("build/include/cse");
-  csb::mkdir(build_include_path);
-  for (const auto &file : std::filesystem::directory_iterator(build_include_path))
-    if (csb::contains(csb::include_files, csb::path("program/include") / file.path().filename()))
+  if (!csb::exists(build_include_path)) csb::mkdir(build_include_path);
+  for (const auto &file : csb::directory(build_include_path))
+    if (!csb::contains(csb::include_files, csb::path("program/include") / file.path().filename()))
       csb::remove(file.path());
-  csb::copy(csb::include_files, build_include_path);
+  csb::multi_task_run(std::format("{} () []", csb::host_platform == WINDOWS ? "copy /Y" : "cp"), csb::include_files,
+                      {build_include_path / "(filename)"});
 
   csb::generate_compile_commands();
   csb::compile();
