@@ -66,13 +66,13 @@ namespace cse
     process_pending_removals();
   }
 
-  void scene::simulate()
+  void scene::simulate(const double time)
   {
     hooks.call<void()>("pre_simulate");
     process_pending_removals();
     camera->simulate();
     process_pending_removals();
-    for (const auto &object : objects) object.second->simulate();
+    for (const auto &object : objects) object.second->simulate(time);
     process_pending_removals();
     hooks.call<void()>("post_simulate");
     process_pending_removals();

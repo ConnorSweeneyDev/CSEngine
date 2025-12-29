@@ -482,7 +482,7 @@ namespace cse::help
   {
     auto vertex_data{reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     if (!vertex_data) throw sdl_exception("Could not map vertex data for object");
-    const auto &frame_coords{texture.group.frames[texture.frame].coords};
+    const auto &frame_coords{texture.group.frames[texture.animation.frame].coords};
     quad_vertices = std::array<vertex, 4>{
       {{1.0f, 1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.right, frame_coords.top},
        {1.0f, -1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.right, frame_coords.bottom},

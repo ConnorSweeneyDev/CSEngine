@@ -39,11 +39,38 @@ namespace cse
 
   void object::input(const bool *keys) { hooks.call<void(const bool *)>("input", keys); }
 
-  void object::simulate()
+  void object::simulate(const double time)
   {
     state.translation.update();
     state.rotation.update();
     state.scale.update();
+
+    auto &animation = graphics.texture.animation;
+    auto &group = graphics.texture.group;
+    animation.previous.frame = animation.frame;
+    animation.previous.elapsed = animation.elapsed;
+    if (animation.speed > 0.0 && !group.frames.empty() && animation.frame < group.frames.size())
+    {
+      static double frame_time{time};
+      animation.elapsed += (time - frame_time) * animation.speed;
+      frame_time = time;
+
+      auto duration = group.frames[animation.frame].duration;
+      if (animation.elapsed >= duration)
+      {
+        if (animation.frame < group.frames.size() - 1)
+        {
+          animation.elapsed -= duration;
+          animation.frame++;
+        }
+        else
+        {
+          animation.elapsed = duration;
+          animation.speed = 0.0;
+        }
+      }
+    }
+
     hooks.call<void()>("simulate");
   }
 

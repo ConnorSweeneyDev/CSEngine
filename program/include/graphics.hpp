@@ -103,9 +103,21 @@ namespace cse::help
     };
     struct texture
     {
+      struct animation
+      {
+        struct previous
+        {
+          unsigned int frame{};
+          double elapsed{};
+        };
+        unsigned int frame{};
+        double speed{1.0};
+        double elapsed{};
+        previous previous{};
+      };
       const image image{};
       frame_group group{};
-      unsigned int frame{};
+      animation animation{};
     };
 
   public:

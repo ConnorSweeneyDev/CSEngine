@@ -36,7 +36,7 @@ namespace cse
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void event(const SDL_Event &event);
     void input(const bool *keys);
-    void simulate();
+    void simulate(const double time);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const double alpha,
                 const float scale_factor);

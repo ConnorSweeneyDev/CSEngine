@@ -32,6 +32,7 @@ namespace cse
         float right{};
       };
       rect coords{};
+      double duration{};
     };
     std::span<const frame> frames{};
     unsigned int start{};
