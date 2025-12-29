@@ -1,7 +1,6 @@
 #include "csb.hpp"
 
 #include <filesystem>
-#include <format>
 #include <string>
 #include <vector>
 
@@ -20,7 +19,7 @@ void csb::configure()
 
 int csb::clean()
 {
-  csb::clean_build_directory();
+  csb::clean_build();
   return csb::build();
 }
 
@@ -49,9 +48,12 @@ int csb::build()
                                        },
                                      }}});
 
-  if (!std::filesystem::exists("build/include")) std::filesystem::create_directories("build/include");
-  csb::multi_task_run(std::format("{} () []", csb::host_platform == WINDOWS ? "copy /Y" : "cp"),
-                      csb::choose_files({"program/include"}), {"build/include/cse/(filename)"});
+  auto build_include_path = csb::path("build/include/cse");
+  csb::mkdir(build_include_path);
+  for (const auto &file : std::filesystem::directory_iterator(build_include_path))
+    if (csb::contains(csb::include_files, csb::path("program/include") / file.path().filename()))
+      csb::remove(file.path());
+  csb::copy(csb::include_files, build_include_path);
 
   csb::generate_compile_commands();
   csb::compile();
@@ -59,6 +61,6 @@ int csb::build()
   return csb::run();
 }
 
-int csb::run() { return CSB_SUCCESS; }
+int csb::run() { return csb::success; }
 
 CSB_MAIN()

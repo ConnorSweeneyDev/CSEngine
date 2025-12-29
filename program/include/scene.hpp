@@ -13,9 +13,10 @@
 
 #include "camera.hpp"
 #include "declaration.hpp"
-#include "hooks.hpp"
+#include "hook.hpp"
 #include "id.hpp"
 #include "object.hpp"
+#include "traits.hpp"
 
 namespace cse
 {
@@ -31,9 +32,9 @@ namespace cse
     scene(scene &&) = delete;
     scene &operator=(scene &&) = delete;
 
-    template <typename camera_type, typename... camera_arguments>
+    template <help::is_camera camera_type, typename... camera_arguments>
     void set_camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform, camera_arguments &&...arguments);
-    template <typename object_type, typename... object_arguments>
+    template <help::is_object object_type, typename... object_arguments>
     void set_object(const help::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
                     object_arguments &&...arguments);
     bool remove_object(const help::id name);

@@ -9,6 +9,7 @@
 
 #include "declaration.hpp"
 #include "id.hpp"
+#include "traits.hpp"
 
 namespace cse
 {
@@ -21,14 +22,14 @@ namespace cse
     game(game &&) = delete;
     game &operator=(game &&) = delete;
 
-    template <typename window_type, typename... window_arguments>
+    template <help::is_window window_type, typename... window_arguments>
     void set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments);
-    template <typename scene_type, typename... scene_arguments>
+    template <help::is_scene scene_type, typename... scene_arguments>
     void set_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                    scene_arguments &&...arguments);
     template <typename callable, typename... scene_arguments>
     void set_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
-    template <typename scene_type, typename... scene_arguments>
+    template <help::is_scene scene_type, typename... scene_arguments>
     void set_current_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                            scene_arguments &&...arguments);
     template <typename callable, typename... scene_arguments>

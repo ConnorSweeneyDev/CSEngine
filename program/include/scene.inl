@@ -11,18 +11,19 @@
 #include "camera.hpp"
 #include "game.hpp"
 #include "id.hpp"
+#include "traits.hpp"
 #include "window.hpp"
 
 namespace cse
 {
-  template <typename camera_type, typename... camera_arguments>
+  template <help::is_camera camera_type, typename... camera_arguments>
   void scene::set_camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform, camera_arguments &&...arguments)
   {
     camera = std::make_shared<camera_type>(transform, std::forward<camera_arguments>(arguments)...);
     camera->parent = shared_from_this();
   }
 
-  template <typename object_type, typename... object_arguments>
+  template <help::is_object object_type, typename... object_arguments>
   void scene::set_object(const help::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
                          object_arguments &&...arguments)
   {

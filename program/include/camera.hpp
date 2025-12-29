@@ -10,7 +10,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
-#include "hooks.hpp"
+#include "hook.hpp"
 #include "state.hpp"
 
 namespace cse

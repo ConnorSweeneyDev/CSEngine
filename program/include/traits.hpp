@@ -4,8 +4,19 @@
 #include <memory>
 #include <type_traits>
 
+#include "declaration.hpp"
+
 namespace cse::help
 {
+  template <typename type>
+  concept is_window = std::is_base_of_v<window, type>;
+  template <typename type>
+  concept is_scene = std::is_base_of_v<scene, type>;
+  template <typename type>
+  concept is_camera = std::is_base_of_v<camera, type>;
+  template <typename type>
+  concept is_object = std::is_base_of_v<object, type>;
+
   template <typename type> struct function_traits;
 
   template <typename return_type, typename... arguments> struct function_traits<return_type(arguments...)>

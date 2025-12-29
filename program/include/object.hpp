@@ -13,7 +13,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
-#include "hooks.hpp"
+#include "hook.hpp"
 #include "resource.hpp"
 #include "state.hpp"
 

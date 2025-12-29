@@ -15,7 +15,7 @@ namespace cse::help
     ~property() = default;
     property(const property &) = default;
     property &operator=(const property &other_);
-    property(property &&) noexcept = default;
+    property(property &&) = default;
     property &operator=(property &&other_);
 
     operator type &() noexcept;

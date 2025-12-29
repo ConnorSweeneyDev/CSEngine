@@ -16,14 +16,14 @@
 
 namespace cse
 {
-  template <typename window_type, typename... window_arguments>
+  template <help::is_window window_type, typename... window_arguments>
   void game::set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments)
   {
     window = std::make_shared<window_type>(title, dimensions, std::forward<window_arguments>(arguments)...);
     window->parent = weak_from_this();
   }
 
-  template <typename scene_type, typename... scene_arguments>
+  template <help::is_scene scene_type, typename... scene_arguments>
   void game::set_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                        scene_arguments &&...arguments)
   {
@@ -62,7 +62,7 @@ namespace cse
       std::forward<scene_arguments>(arguments)...);
   }
 
-  template <typename scene_type, typename... scene_arguments>
+  template <help::is_scene scene_type, typename... scene_arguments>
   void game::set_current_scene(const help::id name,
                                const std::function<void(const std::shared_ptr<scene_type>)> &config,
                                scene_arguments &&...arguments)
