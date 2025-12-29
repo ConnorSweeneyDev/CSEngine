@@ -313,7 +313,7 @@ namespace cse::help
     const auto backend_formats{SDL_GetGPUShaderFormats(gpu)};
     if (!(backend_formats & SDL_GPU_SHADERFORMAT_SPIRV))
       throw sdl_exception("No supported vulkan shader formats for object");
-    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader.vertex.length,
+    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader.vertex.source.size(),
                                                .code = shader.vertex.source.data(),
                                                .entrypoint = "main",
                                                .format = SDL_GPU_SHADERFORMAT_SPIRV,
@@ -325,7 +325,7 @@ namespace cse::help
                                                .props = 0};
     auto *vertex_shader{SDL_CreateGPUShader(gpu, &vertex_shader_info)};
     if (!vertex_shader) throw sdl_exception("Could not create vertex shader for object");
-    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader.fragment.length,
+    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader.fragment.source.size(),
                                                  .code = shader.fragment.source.data(),
                                                  .entrypoint = "main",
                                                  .format = SDL_GPU_SHADERFORMAT_SPIRV,

@@ -1,18 +1,26 @@
 #pragma once
 
-#include <cstddef>
 #include <span>
 
 namespace cse
 {
   struct shader
   {
+    bool operator==(const shader &other) const
+    {
+      return source.data() == other.source.data() && source.size() == other.source.size();
+    }
+
     const std::span<const unsigned char> source{};
-    const std::size_t length{};
   };
 
   struct image
   {
+    bool operator==(const image &other) const
+    {
+      return data.data() == other.data.data() && data.size() == other.data.size();
+    }
+
     const std::span<const unsigned char> data{};
     const unsigned int width{};
     const unsigned int height{};
@@ -22,6 +30,11 @@ namespace cse
   };
   struct frame_group
   {
+    bool operator==(const frame_group &other) const
+    {
+      return frames.data() == other.frames.data() && frames.size() == other.frames.size();
+    }
+
     struct frame
     {
       struct rect
