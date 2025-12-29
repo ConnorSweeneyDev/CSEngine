@@ -126,10 +126,10 @@ namespace cse
 
   void game::render()
   {
-    if (!window->start_render(target_aspect_ratio)) return;
+    if (!window->start_render(aspect_ratio)) return;
     if (auto scene{current_scene.lock()})
-      scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass,
-                    simulation_alpha, target_aspect_ratio, global_scale_factor);
+      scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass, alpha,
+                    aspect_ratio, scale_factor);
     else
       throw exception("Current scene is not initialized");
     window->end_render();
@@ -148,18 +148,19 @@ namespace cse
 
   void game::update_time()
   {
-    current_time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
-    double delta_time{current_time - last_simulation_time};
-    last_simulation_time = current_time;
+    time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    static double simulation_time{};
+    double delta_time{time - simulation_time};
+    simulation_time = time;
     if (delta_time > 0.1) delta_time = 0.1;
-    simulation_accumulator += delta_time;
+    accumulator += delta_time;
   }
 
   bool game::simulation_behind()
   {
-    if (simulation_accumulator >= target_simulation_time)
+    if (accumulator >= poll_rate)
     {
-      simulation_accumulator -= target_simulation_time;
+      accumulator -= poll_rate;
       return true;
     }
     return false;
@@ -167,10 +168,11 @@ namespace cse
 
   bool game::should_render()
   {
-    if (current_time - last_render_time >= target_render_time)
+    static double render_time{};
+    if (time - render_time >= frame_rate)
     {
-      last_render_time = current_time;
-      simulation_alpha = simulation_accumulator / target_simulation_time;
+      render_time = time;
+      alpha = accumulator / frame_rate;
       return true;
     }
     return false;
@@ -178,12 +180,14 @@ namespace cse
 
   void game::update_fps()
   {
-    current_frame_count++;
-    if (current_time - last_fps_time >= 1.0)
+    static double fps_time{};
+    static unsigned int frame_count{};
+    frame_count++;
+    if (time - fps_time >= 1.0)
     {
-      if constexpr (debug) print<CLOG>("{} FPS\n", current_frame_count);
-      last_fps_time = current_time;
-      current_frame_count = 0;
+      if constexpr (debug) print<CLOG>("{} FPS\n", frame_count);
+      fps_time = time;
+      frame_count = 0;
     }
   }
 }

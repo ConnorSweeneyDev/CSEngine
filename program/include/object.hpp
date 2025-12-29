@@ -38,8 +38,8 @@ namespace cse
     void input(const bool *keys);
     void simulate();
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const double simulation_alpha, const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix,
-                const float global_scale_factor);
+                const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const double alpha,
+                const float scale_factor);
     void cleanup(SDL_GPUDevice *gpu);
 
   public:

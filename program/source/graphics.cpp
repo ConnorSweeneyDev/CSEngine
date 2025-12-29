@@ -90,8 +90,7 @@ namespace cse::help
     return true;
   }
 
-  void window_graphics::start_render_pass(const float target_aspect_ratio, const unsigned int width,
-                                          const unsigned int height)
+  void window_graphics::start_render_pass(const float aspect_ratio, const unsigned int width, const unsigned int height)
   {
     SDL_GPUColorTargetInfo color_target_info{};
     color_target_info.texture = swapchain_texture;
@@ -106,17 +105,17 @@ namespace cse::help
     render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, &depth_stencil_target_info);
     if (!render_pass) throw sdl_exception("Could not begin GPU render pass");
     float viewport_x{}, viewport_y{}, viewport_width{}, viewport_height{};
-    if ((static_cast<float>(width) / static_cast<float>(height)) > target_aspect_ratio)
+    if ((static_cast<float>(width) / static_cast<float>(height)) > aspect_ratio)
     {
       viewport_height = static_cast<float>(height);
-      viewport_width = viewport_height * target_aspect_ratio;
+      viewport_width = viewport_height * aspect_ratio;
       viewport_y = 0.0f;
       viewport_x = (static_cast<float>(width) - viewport_width) / 2.0f;
     }
     else
     {
       viewport_width = static_cast<float>(width);
-      viewport_height = viewport_width / target_aspect_ratio;
+      viewport_height = viewport_width / aspect_ratio;
       viewport_x = 0.0f;
       viewport_y = (static_cast<float>(height) - viewport_height) / 2.0f;
     }
@@ -287,9 +286,9 @@ namespace cse::help
 
   camera_graphics::camera_graphics(const float fov_) : fov(fov_), near_clip(0.01f), far_clip(100.0f) {}
 
-  glm::mat4 camera_graphics::calculate_projection_matrix(const float target_aspect_ratio)
+  glm::mat4 camera_graphics::calculate_projection_matrix(const float aspect_ratio)
   {
-    return glm::perspective(glm::radians(fov), target_aspect_ratio, near_clip, far_clip);
+    return glm::perspective(glm::radians(fov), aspect_ratio, near_clip, far_clip);
   }
 
   object_graphics::object_graphics(const glm::u8vec4 &color_, const std::pair<cse::shader, cse::shader> &shader_,

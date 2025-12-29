@@ -16,7 +16,7 @@ enum print_stream
 
 namespace cse
 {
-  inline static std::mutex print_mutex{};
+  inline std::mutex print_mutex{};
 
   template <print_stream stream, typename... message_arguments>
   void print(std::format_string<message_arguments...> message, message_arguments &&...arguments)

@@ -31,7 +31,7 @@ namespace cse
     void event();
     void input();
     void simulate();
-    bool start_render(const float target_aspect_ratio);
+    bool start_render(const float aspect_ratio);
     void end_render();
     void cleanup();
 

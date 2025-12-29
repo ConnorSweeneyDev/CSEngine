@@ -32,8 +32,7 @@ namespace cse
     void event(const SDL_Event &event);
     void input(const bool *keys);
     void simulate();
-    std::pair<glm::mat4, glm::mat4> render(const double simulation_alpha, const float target_aspect_ratio,
-                                           const float global_scale_factor);
+    std::pair<glm::mat4, glm::mat4> render(const double alpha, const float aspect_ratio, const float scale_factor);
     void cleanup();
 
   public:

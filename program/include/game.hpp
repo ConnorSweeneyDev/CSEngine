@@ -61,18 +61,14 @@ namespace cse
     std::weak_ptr<scene> current_scene{};
 
   private:
-    inline static std::weak_ptr<game> instance{};
-    static constexpr float global_scale_factor{1.0f / 25.0f};
-    static constexpr float target_aspect_ratio{16.0f / 9.0f};
-    static constexpr double target_simulation_time{1.0 / 60.0};
-    static constexpr double target_render_time{1.0 / 144.0};
-    double current_time{};
-    double last_simulation_time{};
-    double simulation_accumulator{};
-    double simulation_alpha{};
-    double last_render_time{};
-    double last_fps_time{};
-    int current_frame_count{};
+    static inline std::weak_ptr<game> instance{};
+    static constexpr float scale_factor{1.0f / 25.0f};
+    static constexpr float aspect_ratio{16.0f / 9.0f};
+    static constexpr double poll_rate{1.0 / 60.0};
+    static constexpr double frame_rate{1.0 / 144.0};
+    double time{};
+    double accumulator{};
+    double alpha{};
   };
 }
 

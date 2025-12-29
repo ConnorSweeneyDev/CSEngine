@@ -35,7 +35,7 @@ namespace cse::help
     void create_app_and_window(const unsigned int width, const unsigned int height, int &left, int &top,
                                SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
-    void start_render_pass(const float target_aspect_ratio, const unsigned int width, const unsigned int height);
+    void start_render_pass(const float aspect_ratio, const unsigned int width, const unsigned int height);
     void end_render_pass();
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
@@ -75,7 +75,7 @@ namespace cse::help
     camera_graphics(const float fov_);
 
   private:
-    glm::mat4 calculate_projection_matrix(const float target_aspect_ratio);
+    glm::mat4 calculate_projection_matrix(const float aspect_ratio);
 
   public:
     float fov{};

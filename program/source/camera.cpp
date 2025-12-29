@@ -38,14 +38,13 @@ namespace cse
     hooks.call<void()>("simulate");
   }
 
-  std::pair<glm::mat4, glm::mat4> camera::render(const double simulation_alpha, const float target_aspect_ratio,
-                                                 const float global_scale_factor)
+  std::pair<glm::mat4, glm::mat4> camera::render(const double alpha, const float aspect_ratio, const float scale_factor)
   {
-    state.translation.interpolate(simulation_alpha);
-    state.forward.interpolate(simulation_alpha);
-    state.up.interpolate(simulation_alpha);
-    auto matrices = std::pair{graphics.calculate_projection_matrix(target_aspect_ratio),
-                              state.calculate_view_matrix(global_scale_factor)};
+    state.translation.interpolate(alpha);
+    state.forward.interpolate(alpha);
+    state.up.interpolate(alpha);
+    auto matrices =
+      std::pair{graphics.calculate_projection_matrix(aspect_ratio), state.calculate_view_matrix(scale_factor)};
     hooks.call<void(const glm::mat4 &, const glm::mat4 &)>("render", matrices.first, matrices.second);
     return matrices;
   }

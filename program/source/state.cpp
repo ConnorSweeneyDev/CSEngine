@@ -22,10 +22,10 @@ namespace cse::help
   {
   }
 
-  glm::mat4 camera_state::calculate_view_matrix(const float global_scale_factor) const
+  glm::mat4 camera_state::calculate_view_matrix(const float scale_factor) const
   {
-    return glm::lookAt(translation.interpolated * global_scale_factor,
-                       (translation.interpolated * global_scale_factor) + forward.interpolated, up.interpolated);
+    return glm::lookAt(translation.interpolated * scale_factor,
+                       (translation.interpolated * scale_factor) + forward.interpolated, up.interpolated);
   }
 
   object_state::object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_)
@@ -34,12 +34,12 @@ namespace cse::help
   }
 
   glm::mat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
-                                                 const float global_scale_factor) const
+                                                 const float scale_factor) const
   {
     glm::mat4 model_matrix{glm::mat4(1.0f)};
-    model_matrix = glm::translate(model_matrix, {std::floor(translation.interpolated.x) * global_scale_factor,
-                                                 std::floor(translation.interpolated.y) * global_scale_factor,
-                                                 std::floor(translation.interpolated.z) * global_scale_factor});
+    model_matrix = glm::translate(model_matrix, {std::floor(translation.interpolated.x) * scale_factor,
+                                                 std::floor(translation.interpolated.y) * scale_factor,
+                                                 std::floor(translation.interpolated.z) * scale_factor});
     model_matrix =
       glm::rotate(model_matrix, glm::radians(std::floor(rotation.interpolated.x) * 90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     model_matrix =

@@ -72,10 +72,10 @@ namespace cse
 
   void window::simulate() { hooks.call<void()>("simulate"); }
 
-  bool window::start_render(const float target_aspect_ratio)
+  bool window::start_render(const float aspect_ratio)
   {
     if (!graphics.acquire_swapchain_texture()) return false;
-    graphics.start_render_pass(target_aspect_ratio, state.width, state.height);
+    graphics.start_render_pass(aspect_ratio, state.width, state.height);
     hooks.call<void(const unsigned int, const unsigned int)>("pre_render", state.width, state.height);
     return true;
   }
