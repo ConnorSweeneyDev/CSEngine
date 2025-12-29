@@ -15,7 +15,7 @@
 namespace cse
 {
   object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
-                 const std::pair<shader, shader> &shader_, const std::pair<image, frame_group> &texture_)
+                 const std::pair<shader, shader> &shader_, const std::pair<image, group> &texture_)
     : state(transform_), graphics(tint_, shader_, texture_)
   {
   }
@@ -47,14 +47,15 @@ namespace cse
 
     auto &animation = graphics.texture.animation;
     auto &group = graphics.texture.group;
-    animation.previous.frame = animation.frame;
-    animation.previous.elapsed = animation.elapsed;
+    auto &previous = graphics.texture.previous;
+    previous.group = group;
+    previous.frame = animation.frame;
+    previous.elapsed = animation.elapsed;
     if (animation.speed > 0.0 && !group.frames.empty() && animation.frame < group.frames.size())
     {
       static double frame_time{time};
       animation.elapsed += (time - frame_time) * animation.speed;
       frame_time = time;
-
       auto duration = group.frames[animation.frame].duration;
       if (animation.elapsed >= duration)
       {

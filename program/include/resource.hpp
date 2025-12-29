@@ -28,9 +28,9 @@ namespace cse
     const unsigned int frame_height{};
     const unsigned int channels{};
   };
-  struct frame_group
+  struct group
   {
-    bool operator==(const frame_group &other) const
+    bool operator==(const group &other) const
     {
       return frames.data() == other.frames.data() && frames.size() == other.frames.size();
     }
@@ -50,5 +50,17 @@ namespace cse
     std::span<const frame> frames{};
     unsigned int start{};
     unsigned int end{};
+  };
+  struct animation
+  {
+    unsigned int frame{};
+    double elapsed{};
+    double speed{1.0};
+  };
+  struct previous
+  {
+    group group{};
+    unsigned int frame{};
+    double elapsed{};
   };
 }

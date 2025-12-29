@@ -292,7 +292,7 @@ namespace cse::help
   }
 
   object_graphics::object_graphics(const glm::u8vec4 &color_, const std::pair<cse::shader, cse::shader> &shader_,
-                                   const std::pair<cse::image, cse::frame_group> &texture_)
+                                   const std::pair<cse::image, cse::group> &texture_)
     : color(color_), shader(shader_.first, shader_.second), texture(texture_.first, texture_.second)
   {
   }

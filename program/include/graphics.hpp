@@ -103,27 +103,16 @@ namespace cse::help
     };
     struct texture
     {
-      struct animation
-      {
-        struct previous
-        {
-          unsigned int frame{};
-          double elapsed{};
-        };
-        unsigned int frame{};
-        double speed{1.0};
-        double elapsed{};
-        previous previous{};
-      };
       const image image{};
-      frame_group group{};
+      group group{};
       animation animation{};
+      previous previous{};
     };
 
   public:
     object_graphics() = default;
     object_graphics(const glm::u8vec4 &color_, const std::pair<cse::shader, cse::shader> &shader_,
-                    const std::pair<cse::image, cse::frame_group> &texture_);
+                    const std::pair<cse::image, cse::group> &texture_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;
