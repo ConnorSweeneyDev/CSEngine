@@ -172,7 +172,7 @@ namespace cse
     if (time - render_time >= frame_rate)
     {
       render_time = time;
-      alpha = accumulator / frame_rate;
+      alpha = accumulator / poll_rate;
       return true;
     }
     return false;
