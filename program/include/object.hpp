@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <tuple>
 #include <utility>
@@ -25,7 +26,8 @@ namespace cse
 
   public:
     object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
-           const std::pair<shader, shader> &shader_, const std::pair<image, group> &texture_);
+           const std::pair<shader, shader> &shader_,
+           const std::tuple<image, group, std::size_t, double, bool> &texture_);
     virtual ~object();
     object(const object &) = delete;
     object &operator=(const object &) = delete;

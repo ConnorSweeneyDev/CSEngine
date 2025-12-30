@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <string>
+#include <tuple>
 #include <utility>
 
 #include "SDL3/SDL_gpu.h"
@@ -292,8 +294,10 @@ namespace cse::help
   }
 
   object_graphics::object_graphics(const glm::u8vec4 &color_, const std::pair<cse::shader, cse::shader> &shader_,
-                                   const std::pair<cse::image, cse::group> &texture_)
-    : color(color_), shader(shader_.first, shader_.second), texture(texture_.first, texture_.second)
+                                   const std::tuple<cse::image, cse::group, std::size_t, double, bool> &texture_)
+    : color(color_), shader(shader_.first, shader_.second),
+      texture(std::get<0>(texture_), std::get<1>(texture_),
+              {std::get<2>(texture_), std::get<3>(texture_), std::get<4>(texture_)})
   {
   }
 

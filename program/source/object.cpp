@@ -1,5 +1,6 @@
 #include "object.hpp"
 
+#include <cstddef>
 #include <tuple>
 #include <utility>
 
@@ -15,7 +16,8 @@
 namespace cse
 {
   object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
-                 const std::pair<shader, shader> &shader_, const std::pair<image, group> &texture_)
+                 const std::pair<shader, shader> &shader_,
+                 const std::tuple<image, group, std::size_t, double, bool> &texture_)
     : state(transform_), graphics(tint_, shader_, texture_)
   {
   }
@@ -54,16 +56,26 @@ namespace cse
     if (animation.speed > 0.0 && !group.frames.empty() && animation.frame < group.frames.size())
     {
       animation.elapsed += poll_rate * animation.speed;
-      auto duration = group.frames[animation.frame].duration;
-      if (animation.elapsed >= duration)
+      while (animation.frame < group.frames.size())
       {
-        if (animation.frame < group.frames.size() - 1)
+        auto duration = group.frames[animation.frame].duration;
+        if (duration <= 0 || animation.elapsed >= duration)
         {
-          animation.elapsed -= duration;
+          if (duration > 0) animation.elapsed -= duration;
           animation.frame++;
+          if (animation.frame >= group.frames.size())
+          {
+            if (animation.loop)
+              animation.frame = 0;
+            else
+            {
+              animation.frame = group.frames.size() - 1;
+              break;
+            }
+          }
         }
         else
-          animation.speed = 0.0;
+          break;
       }
     }
 

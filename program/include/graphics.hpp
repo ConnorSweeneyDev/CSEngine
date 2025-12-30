@@ -1,7 +1,9 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <string>
+#include <tuple>
 #include <utility>
 
 #include "SDL3/SDL_gpu.h"
@@ -112,7 +114,7 @@ namespace cse::help
   public:
     object_graphics() = default;
     object_graphics(const glm::u8vec4 &color_, const std::pair<cse::shader, cse::shader> &shader_,
-                    const std::pair<cse::image, cse::group> &texture_);
+                    const std::tuple<cse::image, cse::group, std::size_t, double, bool> &texture_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;

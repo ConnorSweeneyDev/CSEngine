@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <span>
 
 namespace cse
@@ -48,19 +49,20 @@ namespace cse
       double duration{};
     };
     std::span<const frame> frames{};
-    unsigned int start{};
-    unsigned int end{};
+    std::size_t start{};
+    std::size_t end{};
   };
   struct animation
   {
-    unsigned int frame{};
+    std::size_t frame{};
+    double speed{};
+    bool loop{};
     double elapsed{};
-    double speed{1.0};
   };
   struct previous
   {
     group group{};
-    unsigned int frame{};
+    std::size_t frame{};
     double elapsed{};
   };
 }
