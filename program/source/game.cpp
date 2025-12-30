@@ -1,5 +1,6 @@
 #include "game.hpp"
 
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -46,11 +47,12 @@ namespace cse
     return false;
   }
 
-  std::shared_ptr<game> game::create()
+  std::shared_ptr<game> game::create(const std::function<void(const std::shared_ptr<game>)> &config)
   {
     if (!instance.expired()) throw exception("Tried to create a second game instance");
     auto new_instance{std::shared_ptr<game>{new game{}}};
     instance = new_instance;
+    config(new_instance);
     return new_instance;
   }
 
@@ -77,6 +79,7 @@ namespace cse
 
   void game::initialize()
   {
+    hook.call<void()>("pre_initialize");
     window->initialize();
     if (scenes.empty()) throw exception("No scenes have been added to the game");
     if (current_scene.expired()) throw exception("No current scene has been set for the game");
@@ -90,31 +93,37 @@ namespace cse
     }
     else
       throw exception("Current scene is not initialized");
+    hook.call<void()>("post_initialize");
   }
 
   void game::event()
   {
     while (SDL_PollEvent(&window->current_event))
     {
+      hook.call<void()>("pre_event");
       window->event();
       if (auto scene{current_scene.lock()})
         scene->event(window->current_event);
       else
         throw exception("Current scene is not initialized");
+      hook.call<void()>("post_event");
     }
   }
 
   void game::input()
   {
+    hook.call<void()>("pre_input");
     window->input();
     if (auto scene{current_scene.lock()})
       scene->input(window->current_keys);
     else
       throw exception("Current scene is not initialized");
+    hook.call<void()>("post_input");
   }
 
   void game::simulate()
   {
+    hook.call<void()>("pre_simulate");
     window->simulate();
     if (auto scene{current_scene.lock()})
     {
@@ -123,10 +132,12 @@ namespace cse
     }
     else
       throw exception("Current scene is not initialized");
+    hook.call<void()>("post_simulate");
   }
 
   void game::render()
   {
+    hook.call<void()>("pre_render");
     if (!window->start_render(aspect_ratio)) return;
     if (auto scene{current_scene.lock()})
       scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass, alpha,
@@ -134,10 +145,12 @@ namespace cse
     else
       throw exception("Current scene is not initialized");
     window->end_render();
+    hook.call<void()>("post_render");
   }
 
   void game::cleanup()
   {
+    hook.call<void()>("pre_cleanup");
     if (auto scene{current_scene.lock()})
     {
       if (scene->initialized) scene->cleanup(window->graphics.gpu);
@@ -145,6 +158,7 @@ namespace cse
     else
       throw exception("Current scene is not initialized");
     window->cleanup();
+    hook.call<void()>("post_cleanup");
   }
 
   void game::process_updates()

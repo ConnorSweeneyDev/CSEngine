@@ -10,6 +10,7 @@
 #include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
+#include "hook.hpp"
 #include "id.hpp"
 #include "traits.hpp"
 
@@ -39,7 +40,7 @@ namespace cse
     void set_current_scene(const help::id name);
     bool remove_scene(const help::id name);
 
-    static std::shared_ptr<game> create();
+    static std::shared_ptr<game> create(const std::function<void(const std::shared_ptr<game>)> &config);
     void run();
 
   private:
@@ -62,6 +63,7 @@ namespace cse
     std::shared_ptr<class window> window{};
     std::unordered_map<help::id, std::shared_ptr<scene>> scenes{};
     std::weak_ptr<scene> current_scene{};
+    help::hook hook{};
 
   private:
     std::optional<std::pair<help::id, std::shared_ptr<scene>>> pending_scene{};
