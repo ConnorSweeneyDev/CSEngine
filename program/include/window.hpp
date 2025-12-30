@@ -39,7 +39,7 @@ namespace cse
     std::weak_ptr<class game> parent{};
     help::window_state state{};
     help::window_graphics graphics{};
-    help::hooks hooks{};
+    help::hook hook{};
 
   private:
     SDL_Event current_event{};

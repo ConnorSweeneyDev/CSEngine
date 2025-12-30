@@ -24,7 +24,7 @@ namespace cse
 
   object::~object()
   {
-    hooks.clear();
+    hook.reset();
     parent.reset();
   }
 
@@ -34,12 +34,12 @@ namespace cse
     graphics.upload_static_buffers(gpu);
     graphics.upload_dynamic_buffers(gpu);
     initialized = true;
-    hooks.call<void()>("initialize");
+    hook.call<void()>("initialize");
   }
 
-  void object::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event", event); }
+  void object::event(const SDL_Event &event) { hook.call<void(const SDL_Event &)>("event", event); }
 
-  void object::input(const bool *keys) { hooks.call<void(const bool *)>("input", keys); }
+  void object::input(const bool *keys) { hook.call<void(const bool *)>("input", keys); }
 
   void object::simulate(const double poll_rate)
   {
@@ -80,7 +80,7 @@ namespace cse
       }
     }
 
-    hooks.call<void()>("simulate");
+    hook.call<void()>("simulate");
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
@@ -96,13 +96,13 @@ namespace cse
                                                    graphics.texture.image.frame_height, scale_factor)};
     graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix, model_matrix);
     graphics.draw_primitives(render_pass);
-    hooks.call<void(const glm::mat4 &)>("render", model_matrix);
+    hook.call<void(const glm::mat4 &)>("render", model_matrix);
   }
 
   void object::cleanup(SDL_GPUDevice *gpu)
   {
     graphics.cleanup_object(gpu);
     initialized = false;
-    hooks.call<void()>("cleanup");
+    hook.call<void()>("cleanup");
   }
 }

@@ -16,26 +16,26 @@ namespace cse
 
   camera::~camera()
   {
-    hooks.clear();
+    hook.reset();
     parent.reset();
   }
 
   void camera::initialize()
   {
     initialized = true;
-    hooks.call<void()>("initialize");
+    hook.call<void()>("initialize");
   }
 
-  void camera::event(const SDL_Event &event) { hooks.call<void(const SDL_Event &)>("event", event); }
+  void camera::event(const SDL_Event &event) { hook.call<void(const SDL_Event &)>("event", event); }
 
-  void camera::input(const bool *keys) { hooks.call<void(const bool *)>("input", keys); }
+  void camera::input(const bool *keys) { hook.call<void(const bool *)>("input", keys); }
 
   void camera::simulate()
   {
     state.translation.update();
     state.forward.update();
     state.up.update();
-    hooks.call<void()>("simulate");
+    hook.call<void()>("simulate");
   }
 
   std::pair<glm::mat4, glm::mat4> camera::render(const double alpha, const float aspect_ratio, const float scale_factor)
@@ -45,13 +45,13 @@ namespace cse
     state.up.interpolate(alpha);
     auto matrices =
       std::pair{graphics.calculate_projection_matrix(aspect_ratio), state.calculate_view_matrix(scale_factor)};
-    hooks.call<void(const glm::mat4 &, const glm::mat4 &)>("render", matrices.first, matrices.second);
+    hook.call<void(const glm::mat4 &, const glm::mat4 &)>("render", matrices.first, matrices.second);
     return matrices;
   }
 
   void camera::cleanup()
   {
     initialized = false;
-    hooks.call<void()>("cleanup");
+    hook.call<void()>("cleanup");
   }
 }

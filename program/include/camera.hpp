@@ -39,7 +39,7 @@ namespace cse
     std::weak_ptr<class scene> parent{};
     help::camera_state state{};
     help::camera_graphics graphics{};
-    help::hooks hooks{};
+    help::hook hook{};
 
   private:
     bool initialized{};

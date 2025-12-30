@@ -2,5 +2,5 @@
 
 namespace cse::help
 {
-  void hooks::clear() noexcept { functions.clear(); }
+  void hook::reset() noexcept { functions.clear(); }
 }

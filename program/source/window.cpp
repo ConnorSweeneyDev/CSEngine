@@ -30,7 +30,7 @@ namespace cse
   window::~window()
   {
     current_keys = nullptr;
-    hooks.clear();
+    hook.reset();
     state.vsync.on_change = nullptr;
     state.fullscreen.on_change = nullptr;
     state.display_index.on_change = nullptr;
@@ -46,7 +46,7 @@ namespace cse
     graphics.create_app_and_window(state.width, state.height, state.left, state.top, state.display_index,
                                    state.fullscreen, state.vsync);
     state.running = true;
-    hooks.call<void()>("initialize");
+    hook.call<void()>("initialize");
   }
 
   void window::event()
@@ -60,30 +60,30 @@ namespace cse
       case SDL_EVENT_WINDOW_RESIZED:
         graphics.handle_resize(state.width, state.height, state.display_index, state.fullscreen);
         break;
-      default: hooks.call<void(const SDL_Event &)>("event", current_event); break;
+      default: hook.call<void(const SDL_Event &)>("event", current_event); break;
     }
   }
 
   void window::input()
   {
     current_keys = SDL_GetKeyboardState(nullptr);
-    hooks.call<void(const bool *)>("input", current_keys);
+    hook.call<void(const bool *)>("input", current_keys);
   }
 
-  void window::simulate() { hooks.call<void()>("simulate"); }
+  void window::simulate() { hook.call<void()>("simulate"); }
 
   bool window::start_render(const float aspect_ratio)
   {
     if (!graphics.acquire_swapchain_texture()) return false;
     graphics.start_render_pass(aspect_ratio, state.width, state.height);
-    hooks.call<void(const unsigned int, const unsigned int)>("pre_render", state.width, state.height);
+    hook.call<void(const unsigned int, const unsigned int)>("pre_render", state.width, state.height);
     return true;
   }
 
   void window::end_render()
   {
     graphics.end_render_pass();
-    hooks.call<void()>("post_render");
+    hook.call<void()>("post_render");
   }
 
   void window::cleanup()
@@ -91,6 +91,6 @@ namespace cse
     current_keys = nullptr;
     current_event = {};
     graphics.destroy_window_and_app();
-    hooks.call<void()>("cleanup");
+    hook.call<void()>("cleanup");
   }
 }

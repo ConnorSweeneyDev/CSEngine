@@ -18,7 +18,7 @@ namespace cse
   {
     additions.clear();
     removals.clear();
-    hooks.clear();
+    hook.reset();
     objects.clear();
     camera.reset();
     parent.reset();
@@ -36,58 +36,58 @@ namespace cse
 
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
-    hooks.call<void()>("pre_initialize");
+    hook.call<void()>("pre_initialize");
     if (!camera->initialized) camera->initialize();
     for (const auto &[name, object] : objects)
       if (!object->initialized) object->initialize(instance, gpu);
     initialized = true;
-    hooks.call<void()>("post_initialize");
+    hook.call<void()>("post_initialize");
     process_updates();
   }
 
   void scene::event(const SDL_Event &event)
   {
-    hooks.call<void(const SDL_Event &)>("pre_event", event);
+    hook.call<void(const SDL_Event &)>("pre_event", event);
     camera->event(event);
     for (const auto &object : objects) object.second->event(event);
-    hooks.call<void(const SDL_Event &)>("post_event", event);
+    hook.call<void(const SDL_Event &)>("post_event", event);
   }
 
   void scene::input(const bool *keys)
   {
-    hooks.call<void(const bool *)>("pre_input", keys);
+    hook.call<void(const bool *)>("pre_input", keys);
     camera->input(keys);
     for (const auto &object : objects) object.second->input(keys);
-    hooks.call<void(const bool *)>("post_input", keys);
+    hook.call<void(const bool *)>("post_input", keys);
   }
 
   void scene::simulate(const double poll_rate)
   {
-    hooks.call<void()>("pre_simulate");
+    hook.call<void()>("pre_simulate");
     camera->simulate();
     for (const auto &object : objects) object.second->simulate(poll_rate);
-    hooks.call<void()>("post_simulate");
+    hook.call<void()>("post_simulate");
     process_updates();
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                      const double alpha, const float aspect_ratio, const float scale_factor)
   {
-    hooks.call<void()>("pre_render");
+    hook.call<void()>("pre_render");
     auto matrices = camera->render(alpha, aspect_ratio, scale_factor);
     for (const auto &object : objects)
       object.second->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha, scale_factor);
-    hooks.call<void()>("post_render");
+    hook.call<void()>("post_render");
   }
 
   void scene::cleanup(SDL_GPUDevice *gpu)
   {
-    hooks.call<void()>("pre_cleanup");
+    hook.call<void()>("pre_cleanup");
     if (camera->initialized) camera->cleanup();
     for (const auto &[name, object] : objects)
       if (object->initialized) object->cleanup(gpu);
     initialized = false;
-    hooks.call<void()>("post_cleanup");
+    hook.call<void()>("post_cleanup");
   }
 
   void scene::process_updates()
