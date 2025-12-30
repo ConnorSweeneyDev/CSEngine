@@ -40,8 +40,8 @@ namespace cse
     void set_current_scene(const help::id name);
     bool remove_scene(const help::id name);
 
-    template <help::is_game game_type, typename... game_arguments> static std::shared_ptr<game_type>
-    create(const std::function<void(const std::shared_ptr<game_type>)> &config, game_arguments &&...arguments);
+    template <help::is_game game_type, typename... game_arguments>
+    static std::shared_ptr<game_type> create(game_arguments &&...arguments);
     void run();
 
   protected:
