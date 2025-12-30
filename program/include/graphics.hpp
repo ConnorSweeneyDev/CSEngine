@@ -105,10 +105,10 @@ namespace cse::help
     };
     struct texture
     {
-      const image image{};
-      group group{};
-      animation animation{};
-      previous previous{};
+      const struct image image{};
+      struct group group{};
+      struct animation animation{};
+      struct previous previous{};
     };
 
   public:
@@ -133,8 +133,8 @@ namespace cse::help
 
   public:
     glm::u8vec4 color{};
-    shader shader{};
-    texture texture{};
+    struct shader shader{};
+    struct texture texture{};
 
   private:
     SDL_GPUGraphicsPipeline *pipeline{};

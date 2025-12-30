@@ -61,7 +61,7 @@ namespace cse
   };
   struct previous
   {
-    group group{};
+    struct group group{};
     std::size_t frame{};
     double elapsed{};
   };
