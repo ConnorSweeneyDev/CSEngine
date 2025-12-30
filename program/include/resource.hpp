@@ -5,9 +5,18 @@
 
 namespace cse
 {
-  struct shader
+  struct vertex
   {
-    bool operator==(const shader &other) const
+    bool operator==(const vertex &other) const
+    {
+      return source.data() == other.source.data() && source.size() == other.source.size();
+    }
+
+    const std::span<const unsigned char> source{};
+  };
+  struct fragment
+  {
+    bool operator==(const fragment &other) const
     {
       return source.data() == other.source.data() && source.size() == other.source.size();
     }
@@ -45,8 +54,8 @@ namespace cse
         float bottom{};
         float right{};
       };
-      rect coords{};
-      double duration{};
+      const rect coords{};
+      const double duration{};
     };
     std::span<const frame> frames{};
     std::size_t start{};
@@ -57,12 +66,6 @@ namespace cse
     std::size_t frame{};
     double speed{};
     bool loop{};
-    double elapsed{};
-  };
-  struct previous
-  {
-    struct group group{};
-    std::size_t frame{};
     double elapsed{};
   };
 }

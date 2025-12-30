@@ -92,7 +92,7 @@ namespace cse::help
     friend class cse::object;
 
   private:
-    struct vertex
+    struct uniform
     {
       float x{}, y{}, z{};
       Uint8 r{}, g{}, b{}, a{};
@@ -100,20 +100,24 @@ namespace cse::help
     };
     struct shader
     {
-      const cse::shader vertex{};
-      const cse::shader fragment{};
+      const struct vertex vertex{};
+      const struct fragment fragment{};
     };
     struct texture
     {
       const struct image image{};
       struct group group{};
       struct animation animation{};
-      struct previous previous{};
+    };
+    struct previous
+    {
+      struct group group{};
+      struct animation animation{};
     };
 
   public:
     object_graphics() = default;
-    object_graphics(const glm::u8vec4 &color_, const std::pair<cse::shader, cse::shader> &shader_,
+    object_graphics(const glm::u8vec4 &color_, const std::pair<cse::vertex, cse::fragment> &shader_,
                     const std::tuple<cse::image, cse::group, std::size_t, double, bool> &texture_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
@@ -135,6 +139,7 @@ namespace cse::help
     glm::u8vec4 color{};
     struct shader shader{};
     struct texture texture{};
+    struct previous previous{};
 
   private:
     SDL_GPUGraphicsPipeline *pipeline{};
@@ -144,7 +149,7 @@ namespace cse::help
     SDL_GPUSampler *sampler_buffer{};
     SDL_GPUTransferBuffer *vertex_transfer_buffer{};
     SDL_GPUTransferBuffer *texture_transfer_buffer{};
-    std::array<vertex, 4> quad_vertices{};
+    std::array<uniform, 4> quad_vertices{};
     std::array<Uint16, 6> quad_indices{};
   };
 }

@@ -16,7 +16,7 @@
 namespace cse
 {
   object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
-                 const std::pair<shader, shader> &shader_,
+                 const std::pair<vertex, fragment> &shader_,
                  const std::tuple<image, group, std::size_t, double, bool> &texture_)
     : state(transform_), graphics(tint_, shader_, texture_)
   {
@@ -47,13 +47,14 @@ namespace cse
     state.rotation.update();
     state.scale.update();
 
-    auto &animation = graphics.texture.animation;
     auto &group = graphics.texture.group;
-    auto &previous = graphics.texture.previous;
-    previous.group = group;
-    previous.frame = animation.frame;
-    previous.elapsed = animation.elapsed;
-    if (animation.speed > 0.0 && !group.frames.empty() && animation.frame < group.frames.size())
+    auto &animation = graphics.texture.animation;
+    graphics.previous = {group, animation};
+    if (group.frames.empty())
+      animation.frame = 0;
+    else if (animation.frame >= group.frames.size())
+      animation.frame = group.frames.size() - 1;
+    if (animation.speed > 0.0 && !group.frames.empty())
     {
       animation.elapsed += poll_rate * animation.speed;
       while (animation.frame < group.frames.size())

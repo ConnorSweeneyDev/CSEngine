@@ -293,7 +293,7 @@ namespace cse::help
     return glm::perspective(glm::radians(fov), aspect_ratio, near_clip, far_clip);
   }
 
-  object_graphics::object_graphics(const glm::u8vec4 &color_, const std::pair<cse::shader, cse::shader> &shader_,
+  object_graphics::object_graphics(const glm::u8vec4 &color_, const std::pair<vertex, fragment> &shader_,
                                    const std::tuple<cse::image, cse::group, std::size_t, double, bool> &texture_)
     : color(color_), shader(shader_.first, shader_.second),
       texture(std::get<0>(texture_), std::get<1>(texture_),
@@ -345,10 +345,10 @@ namespace cse::help
       .slot = 0, .pitch = sizeof(vertex), .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX, .instance_step_rate = 0};
     std::array<SDL_GPUVertexAttribute, 3> vertex_attributes{
       {{0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 0},
-       {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM, sizeof(vertex::x) + sizeof(vertex::y) + sizeof(vertex::z)},
+       {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM, sizeof(uniform::x) + sizeof(uniform::y) + sizeof(uniform::z)},
        {2, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
-        sizeof(vertex::x) + sizeof(vertex::y) + sizeof(vertex::z) + sizeof(vertex::r) + sizeof(vertex::g) +
-          sizeof(vertex::b) + sizeof(vertex::a)}}};
+        sizeof(uniform::x) + sizeof(uniform::y) + sizeof(uniform::z) + sizeof(uniform::r) + sizeof(uniform::g) +
+          sizeof(uniform::b) + sizeof(uniform::a)}}};
     SDL_GPUVertexInputState vertex_input_state{.vertex_buffer_descriptions = &vertex_buffer_description,
                                                .num_vertex_buffers = 1,
                                                .vertex_attributes = vertex_attributes.data(),
@@ -429,12 +429,12 @@ namespace cse::help
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = sizeof(quad_vertices) + sizeof(quad_indices), .props = 0};
     vertex_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &vertex_transfer_buffer_info);
     if (!vertex_transfer_buffer) throw sdl_exception("Could not create transfer buffer for buffer object");
-    auto vertex_data{reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
+    auto vertex_data{reinterpret_cast<uniform *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     if (!vertex_data) throw sdl_exception("Could not map vertex data for object");
-    quad_vertices = std::array<vertex, 4>{{{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 1.0f},
-                                           {1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 0.0f},
-                                           {-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 1.0f},
-                                           {-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 0.0f}}};
+    quad_vertices = std::array<uniform, 4>{{{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 1.0f},
+                                            {1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 0.0f},
+                                            {-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 1.0f},
+                                            {-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 0.0f}}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
     auto index_data{reinterpret_cast<Uint16 *>(&vertex_data[quad_vertices.size()])};
     if (!index_data) throw sdl_exception("Could not map index data for object");
@@ -484,10 +484,10 @@ namespace cse::help
 
   void object_graphics::upload_dynamic_buffers(SDL_GPUDevice *gpu)
   {
-    auto vertex_data{reinterpret_cast<vertex *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
+    auto vertex_data{reinterpret_cast<uniform *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     if (!vertex_data) throw sdl_exception("Could not map vertex data for object");
     const auto &frame_coords{texture.group.frames[texture.animation.frame].coords};
-    quad_vertices = std::array<vertex, 4>{
+    quad_vertices = std::array<uniform, 4>{
       {{1.0f, 1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.right, frame_coords.top},
        {1.0f, -1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.right, frame_coords.bottom},
        {-1.0f, 1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.left, frame_coords.top},

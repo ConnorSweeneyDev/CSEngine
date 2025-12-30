@@ -26,7 +26,7 @@ namespace cse
 
   public:
     object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
-           const std::pair<shader, shader> &shader_,
+           const std::pair<vertex, fragment> &shader_,
            const std::tuple<image, group, std::size_t, double, bool> &texture_);
     virtual ~object();
     object(const object &) = delete;
