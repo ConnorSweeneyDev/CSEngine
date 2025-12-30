@@ -48,7 +48,7 @@ namespace cse
                 const double alpha, const float aspect_ratio, const float scale_factor);
     void cleanup(SDL_GPUDevice *gpu);
 
-    void process_pending_removals();
+    void process_updates();
 
   public:
     std::weak_ptr<class game> parent{};
@@ -58,7 +58,8 @@ namespace cse
 
   private:
     bool initialized{};
-    std::unordered_set<help::id> pending_removals{};
+    std::unordered_set<help::id> removals{};
+    std::unordered_map<help::id, std::shared_ptr<object>> additions{};
   };
 }
 

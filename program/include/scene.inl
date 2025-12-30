@@ -9,10 +9,8 @@
 #include "glm/ext/vector_int3.hpp"
 
 #include "camera.hpp"
-#include "game.hpp"
 #include "id.hpp"
 #include "traits.hpp"
-#include "window.hpp"
 
 namespace cse
 {
@@ -27,26 +25,9 @@ namespace cse
   void scene::set_object(const help::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
                          object_arguments &&...arguments)
   {
-    std::shared_ptr<game> game{};
-    if (initialized)
-    {
-      if (game = parent.lock(); game)
-        if (auto iterator{objects.find(name)}; iterator != objects.end())
-        {
-          const auto &old_object{iterator->second};
-          if (old_object->initialized) old_object->cleanup(game->window->graphics.gpu);
-        }
-    }
-
-    objects.erase(name);
+    if (objects.contains(name)) removals.insert(name);
     auto object{std::make_shared<object_type>(transform, std::forward<object_arguments>(arguments)...)};
     object->parent = shared_from_this();
-    objects.emplace(name, object);
-
-    if (initialized && game)
-    {
-      const auto &new_object{objects.at(name)};
-      if (!new_object->initialized) new_object->initialize(game->window->graphics.instance, game->window->graphics.gpu);
-    }
+    additions.insert_or_assign(name, object);
   }
 }

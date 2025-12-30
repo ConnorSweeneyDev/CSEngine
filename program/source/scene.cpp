@@ -8,6 +8,7 @@
 #include "SDL3/SDL_video.h"
 
 #include "camera.hpp"
+#include "game.hpp"
 #include "id.hpp"
 #include "object.hpp"
 
@@ -15,7 +16,8 @@ namespace cse
 {
   scene::~scene()
   {
-    pending_removals.clear();
+    additions.clear();
+    removals.clear();
     hooks.clear();
     objects.clear();
     camera.reset();
@@ -26,7 +28,7 @@ namespace cse
   {
     if (objects.contains(name))
     {
-      pending_removals.insert(name);
+      removals.insert(name);
       return true;
     }
     return false;
@@ -40,42 +42,32 @@ namespace cse
       if (!object->initialized) object->initialize(instance, gpu);
     initialized = true;
     hooks.call<void()>("post_initialize");
+    process_updates();
   }
 
   void scene::event(const SDL_Event &event)
   {
     hooks.call<void(const SDL_Event &)>("pre_event", event);
-    process_pending_removals();
     camera->event(event);
-    process_pending_removals();
     for (const auto &object : objects) object.second->event(event);
-    process_pending_removals();
     hooks.call<void(const SDL_Event &)>("post_event", event);
-    process_pending_removals();
   }
 
   void scene::input(const bool *keys)
   {
     hooks.call<void(const bool *)>("pre_input", keys);
-    process_pending_removals();
     camera->input(keys);
-    process_pending_removals();
     for (const auto &object : objects) object.second->input(keys);
-    process_pending_removals();
     hooks.call<void(const bool *)>("post_input", keys);
-    process_pending_removals();
   }
 
   void scene::simulate(const double poll_rate)
   {
     hooks.call<void()>("pre_simulate");
-    process_pending_removals();
     camera->simulate();
-    process_pending_removals();
     for (const auto &object : objects) object.second->simulate(poll_rate);
-    process_pending_removals();
     hooks.call<void()>("post_simulate");
-    process_pending_removals();
+    process_updates();
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
@@ -98,16 +90,25 @@ namespace cse
     hooks.call<void()>("post_cleanup");
   }
 
-  void scene::process_pending_removals()
+  void scene::process_updates()
   {
-    for (const auto &name : pending_removals)
+    if (removals.empty() && additions.empty()) return;
+    auto game{parent.lock()};
+    for (const auto &name : removals)
       if (auto iterator{objects.find(name)}; iterator != objects.end())
       {
         const auto &object{iterator->second};
         if (initialized && object->initialized)
-          if (auto game{parent.lock()}) object->cleanup(game->window->graphics.gpu);
+          if (game) object->cleanup(game->window->graphics.gpu);
         objects.erase(iterator);
       }
-    pending_removals.clear();
+    removals.clear();
+    for (auto &[name, object] : additions)
+    {
+      objects.insert_or_assign(name, object);
+      if (initialized && !object->initialized)
+        if (game) object->initialize(game->window->graphics.instance, game->window->graphics.gpu);
+    }
+    additions.clear();
   }
 }

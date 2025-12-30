@@ -17,6 +17,7 @@ namespace cse
 {
   game::~game()
   {
+    pending_scene.reset();
     current_scene.reset();
     scenes.clear();
     window.reset();
@@ -24,19 +25,12 @@ namespace cse
 
   void game::set_current_scene(const help::id name)
   {
-    if (auto iterator{scenes.find(name)}; iterator != scenes.end())
-    {
-      const auto &scene{iterator->second};
-      if (window->state.running)
-      {
-        if (auto current{current_scene.lock()})
-          if (current->initialized) current->cleanup(window->graphics.gpu);
-        if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
-      }
-      current_scene = scene;
-    }
-    else
+    if (auto iterator{scenes.find(name)}; iterator == scenes.end())
       throw exception("Tried to set current scene to null");
+    else if (window->state.running)
+      pending_scene = {name, {}};
+    else
+      current_scene = iterator->second;
   }
 
   bool game::remove_scene(const help::id name)
@@ -88,7 +82,11 @@ namespace cse
     if (current_scene.expired()) throw exception("No current scene has been set for the game");
     if (auto scene{current_scene.lock()})
     {
-      if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
+      if (!scene->initialized)
+      {
+        scene->initialize(window->graphics.instance, window->graphics.gpu);
+        process_updates();
+      }
     }
     else
       throw exception("Current scene is not initialized");
@@ -119,7 +117,10 @@ namespace cse
   {
     window->simulate();
     if (auto scene{current_scene.lock()})
+    {
       scene->simulate(poll_rate);
+      process_updates();
+    }
     else
       throw exception("Current scene is not initialized");
   }
@@ -144,6 +145,33 @@ namespace cse
     else
       throw exception("Current scene is not initialized");
     window->cleanup();
+  }
+
+  void game::process_updates()
+  {
+    if (!pending_scene.has_value()) return;
+    if (auto &[name, scene]{pending_scene.value()}; !scene)
+    {
+      if (auto iterator{scenes.find(name)}; iterator == scenes.end())
+        throw exception("Tried to set current scene to null");
+      else
+      {
+        const auto &new_scene{iterator->second};
+        if (auto current{current_scene.lock()})
+          if (current->initialized) current->cleanup(window->graphics.gpu);
+        if (!new_scene->initialized) new_scene->initialize(window->graphics.instance, window->graphics.gpu);
+        current_scene = new_scene;
+      }
+    }
+    else
+    {
+      if (auto current{current_scene.lock()})
+        if (current->initialized) current->cleanup(window->graphics.gpu);
+      scenes.insert_or_assign(name, scene);
+      if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
+      current_scene = scene;
+    }
+    pending_scene.reset();
   }
 
   void game::update_time()

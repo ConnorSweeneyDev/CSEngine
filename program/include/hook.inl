@@ -4,9 +4,11 @@
 
 #include <any>
 #include <functional>
+#include <optional>
 #include <type_traits>
 #include <typeindex>
 #include <unordered_map>
+#include <variant>
 
 #include "exception.hpp"
 #include "id.hpp"
@@ -22,36 +24,21 @@ namespace cse::help
     return map.contains(name);
   }
 
-  template <typename signature> void hooks::add(const id name, const std::function<signature> &function)
+  template <typename signature> void hooks::set(const id name, const std::function<signature> &function)
   {
     auto &map{get_map<signature>()};
-    if (map.contains(name)) throw exception("Attempted to add duplicate hook");
-    map.emplace(name, function);
+    map.insert_or_assign(name, function);
   }
 
-  template <typename callable> void hooks::add(const id name, callable &&function)
+  template <typename callable> void hooks::set(const id name, callable &&function)
   {
     using deduced_signature = typename callable_traits<std::decay_t<callable>>::signature;
-    add<deduced_signature>(name, std::function<deduced_signature>(std::forward<callable>(function)));
-  }
-
-  template <typename signature> void hooks::replace(const id name, const std::function<signature> &function)
-  {
-    auto &map{get_map<signature>()};
-    if (!map.contains(name)) throw exception("Attempted to replace non-existent hook");
-    map[name] = function;
-  }
-
-  template <typename callable> void hooks::replace(const id name, callable &&function)
-  {
-    using deduced_signature = typename callable_traits<std::decay_t<callable>>::signature;
-    replace<deduced_signature>(name, std::function<deduced_signature>(std::forward<callable>(function)));
+    set<deduced_signature>(name, std::function<deduced_signature>(std::forward<callable>(function)));
   }
 
   template <typename signature> void hooks::remove(const id name)
   {
     auto &map{get_map<signature>()};
-    if (!map.contains(name)) throw exception("Attempted to remove non-existent hook");
     map.erase(name);
   }
 
@@ -82,11 +69,32 @@ namespace cse::help
       return map.at(name)(std::forward<arguments>(args)...);
   }
 
-  template <typename signature, typename... arguments> auto hooks::strict_call(const id name, arguments &&...args) const
+  template <typename signature, typename... arguments> auto hooks::throw_call(const id name, arguments &&...args) const
   {
-    if (!has<signature>(name)) throw exception("Attempted to call non-existent hook");
+    auto type_id{std::type_index(typeid(signature))};
+    if (!functions.contains(type_id)) throw exception("Attempted to call non-existent hook");
     const auto &map{get_map<signature>()};
-    return map.at(name)(std::forward<arguments>(args)...);
+    auto it{map.find(name)};
+    if (it == map.end()) throw exception("Attempted to call non-existent hook");
+    return it->second(std::forward<arguments>(args)...);
+  }
+
+  template <typename signature, typename... arguments> auto hooks::try_call(const id name, arguments &&...args) const
+  {
+    using return_type = typename function_traits<signature>::extracted_return_type;
+    using optional_type = std::conditional_t<std::is_void_v<return_type>, std::monostate, return_type>;
+    auto type_id{std::type_index(typeid(signature))};
+    if (!functions.contains(type_id)) return std::optional<optional_type>{std::nullopt};
+    const auto &map{get_map<signature>()};
+    auto it{map.find(name)};
+    if (it == map.end()) return std::optional<optional_type>{std::nullopt};
+    if constexpr (std::is_void_v<return_type>)
+    {
+      it->second(std::forward<arguments>(args)...);
+      return std::optional<optional_type>{std::monostate{}};
+    }
+    else
+      return std::optional<optional_type>{it->second(std::forward<arguments>(args)...)};
   }
 
   template <typename signature> std::unordered_map<id, std::function<signature>> &hooks::get_map()

@@ -10,7 +10,6 @@
 #include "glm/ext/vector_uint2.hpp"
 
 #include "id.hpp"
-#include "scene.hpp"
 #include "traits.hpp"
 #include "window.hpp"
 
@@ -27,30 +26,17 @@ namespace cse
   void game::set_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                        scene_arguments &&...arguments)
   {
-    bool is_current_scene = false;
-    if (auto iterator{scenes.find(name)}; iterator != scenes.end())
-      if (auto current{current_scene.lock()})
-      {
-        const auto &old_scene{iterator->second};
-        if (current == old_scene)
-        {
-          is_current_scene = true;
-          if (window->state.running && old_scene->initialized) old_scene->cleanup(window->graphics.gpu);
-        }
-      }
-
-    scenes.erase(name);
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     scene->parent = weak_from_this();
     config(scene);
-    scenes.emplace(name, scene);
-
-    if (is_current_scene)
-    {
-      if (window->state.running && !scene->initialized)
-        scene->initialize(window->graphics.instance, window->graphics.gpu);
-      current_scene = scene;
-    }
+    if (window->state.running)
+      if (auto current{current_scene.lock()})
+        if (auto iterator{scenes.find(name)}; iterator != scenes.end() && current == iterator->second)
+        {
+          pending_scene = {name, scene};
+          return;
+        }
+    scenes.insert_or_assign(name, scene);
   }
 
   template <typename callable, typename... scene_arguments>
@@ -67,14 +53,16 @@ namespace cse
                                const std::function<void(const std::shared_ptr<scene_type>)> &config,
                                scene_arguments &&...arguments)
   {
-    set_scene<scene_type, scene_arguments...>(name, config, std::forward<scene_arguments>(arguments)...);
-    const auto &scene{scenes.at(name)};
-    if (auto current{current_scene.lock()}; current != scene && window->state.running)
+    auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
+    scene->parent = weak_from_this();
+    config(scene);
+    if (window->state.running)
+      pending_scene = {name, scene};
+    else
     {
-      if (current->initialized) current->cleanup(window->graphics.gpu);
-      if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
+      scenes.insert_or_assign(name, scene);
+      current_scene = scene;
     }
-    current_scene = scene;
   }
 
   template <typename callable, typename... scene_arguments>

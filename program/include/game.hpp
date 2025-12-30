@@ -2,8 +2,10 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "glm/ext/vector_uint2.hpp"
 
@@ -50,6 +52,7 @@ namespace cse
     void render();
     void cleanup();
 
+    void process_updates();
     void update_time();
     bool simulation_behind();
     bool should_render();
@@ -61,6 +64,8 @@ namespace cse
     std::weak_ptr<scene> current_scene{};
 
   private:
+    std::optional<std::pair<help::id, std::shared_ptr<scene>>> pending_scene{};
+
     static inline std::weak_ptr<game> instance{};
     static constexpr float scale_factor{1.0f / 25.0f};
     static constexpr float aspect_ratio{16.0f / 9.0f};
