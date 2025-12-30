@@ -39,7 +39,7 @@ namespace cse
 
   void object::input(const bool *keys) { hooks.call<void(const bool *)>("input", keys); }
 
-  void object::simulate(const double time)
+  void object::simulate(const double poll_rate)
   {
     state.translation.update();
     state.rotation.update();
@@ -53,9 +53,7 @@ namespace cse
     previous.elapsed = animation.elapsed;
     if (animation.speed > 0.0 && !group.frames.empty() && animation.frame < group.frames.size())
     {
-      static double frame_time{time};
-      animation.elapsed += (time - frame_time) * animation.speed;
-      frame_time = time;
+      animation.elapsed += poll_rate * animation.speed;
       auto duration = group.frames[animation.frame].duration;
       if (animation.elapsed >= duration)
       {
@@ -65,10 +63,7 @@ namespace cse
           animation.frame++;
         }
         else
-        {
-          animation.elapsed = duration;
           animation.speed = 0.0;
-        }
       }
     }
 

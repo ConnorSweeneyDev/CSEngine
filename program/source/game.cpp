@@ -119,7 +119,7 @@ namespace cse
   {
     window->simulate();
     if (auto scene{current_scene.lock()})
-      scene->simulate(time);
+      scene->simulate(poll_rate);
     else
       throw exception("Current scene is not initialized");
   }
