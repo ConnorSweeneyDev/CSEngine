@@ -1,6 +1,5 @@
 #include "game.hpp"
 
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -19,6 +18,7 @@ namespace cse
   game::~game()
   {
     pending_scene.reset();
+    hook.reset();
     current_scene.reset();
     scenes.clear();
     window.reset();
@@ -45,15 +45,6 @@ namespace cse
       return true;
     }
     return false;
-  }
-
-  std::shared_ptr<game> game::create(const std::function<void(const std::shared_ptr<game>)> &config)
-  {
-    if (!instance.expired()) throw exception("Tried to create a second game instance");
-    auto new_instance{std::shared_ptr<game>{new game{}}};
-    instance = new_instance;
-    config(new_instance);
-    return new_instance;
   }
 
   void game::run()

@@ -9,6 +9,8 @@
 namespace cse::help
 {
   template <typename type>
+  concept is_game = std::is_base_of_v<game, type>;
+  template <typename type>
   concept is_window = std::is_base_of_v<window, type>;
   template <typename type>
   concept is_scene = std::is_base_of_v<scene, type>;

@@ -16,10 +16,10 @@
 
 namespace cse
 {
-  class game final : public std::enable_shared_from_this<game>
+  class game : public std::enable_shared_from_this<game>
   {
   public:
-    ~game();
+    virtual ~game();
     game(const game &) = delete;
     game &operator=(const game &) = delete;
     game(game &&) = delete;
@@ -40,12 +40,14 @@ namespace cse
     void set_current_scene(const help::id name);
     bool remove_scene(const help::id name);
 
-    static std::shared_ptr<game> create(const std::function<void(const std::shared_ptr<game>)> &config);
+    template <help::is_game game_type, typename... game_arguments> static std::shared_ptr<game_type>
+    create(const std::function<void(const std::shared_ptr<game_type>)> &config, game_arguments &&...arguments);
     void run();
 
-  private:
+  protected:
     game() = default;
 
+  private:
     void initialize();
     void event();
     void input();

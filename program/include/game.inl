@@ -9,6 +9,7 @@
 
 #include "glm/ext/vector_uint2.hpp"
 
+#include "exception.hpp"
 #include "id.hpp"
 #include "traits.hpp"
 #include "window.hpp"
@@ -72,5 +73,15 @@ namespace cse
     set_current_scene<scene_type, scene_arguments...>(
       name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
       std::forward<scene_arguments>(arguments)...);
+  }
+
+  template <help::is_game game_type, typename... game_arguments> std::shared_ptr<game_type>
+  game::create(const std::function<void(const std::shared_ptr<game_type>)> &config, game_arguments &&...arguments)
+  {
+    if (!instance.expired()) throw exception("Tried to create a second game instance");
+    auto new_instance{std::shared_ptr<game_type>{new game_type{std::forward<game_arguments>(arguments)...}}};
+    instance = new_instance;
+    config(new_instance);
+    return new_instance;
   }
 }
