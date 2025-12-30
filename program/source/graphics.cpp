@@ -294,7 +294,7 @@ namespace cse::help
   }
 
   object_graphics::object_graphics(const glm::u8vec4 &color_, const std::pair<vertex, fragment> &shader_,
-                                   const std::tuple<cse::image, cse::group, std::size_t, double, bool> &texture_)
+                                   const std::tuple<image, group, std::size_t, double, bool> &texture_)
     : color(color_), shader(shader_.first, shader_.second),
       texture(std::get<0>(texture_), std::get<1>(texture_),
               {std::get<2>(texture_), std::get<3>(texture_), std::get<4>(texture_)})
@@ -342,7 +342,7 @@ namespace cse::help
     auto *fragment_shader{SDL_CreateGPUShader(gpu, &fragment_shader_info)};
     if (!fragment_shader) throw sdl_exception("Could not create fragment shader for object");
     SDL_GPUVertexBufferDescription vertex_buffer_description{
-      .slot = 0, .pitch = sizeof(vertex), .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX, .instance_step_rate = 0};
+      .slot = 0, .pitch = sizeof(uniform), .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX, .instance_step_rate = 0};
     std::array<SDL_GPUVertexAttribute, 3> vertex_attributes{
       {{0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 0},
        {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM, sizeof(uniform::x) + sizeof(uniform::y) + sizeof(uniform::z)},

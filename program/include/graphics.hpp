@@ -117,8 +117,8 @@ namespace cse::help
 
   public:
     object_graphics() = default;
-    object_graphics(const glm::u8vec4 &color_, const std::pair<cse::vertex, cse::fragment> &shader_,
-                    const std::tuple<cse::image, cse::group, std::size_t, double, bool> &texture_);
+    object_graphics(const glm::u8vec4 &color_, const std::pair<vertex, fragment> &shader_,
+                    const std::tuple<image, group, std::size_t, double, bool> &texture_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;
