@@ -41,17 +41,21 @@ namespace cse
     if (!camera) throw exception("Scene must have a camera to be initialized");
     if (!camera->initialized) camera->initialize();
     for (const auto &[name, object] : objects)
-      if (!object->initialized) object->initialize(instance, gpu);
+      if (!removals.contains(name) && !object->initialized) object->initialize(instance, gpu);
     initialized = true;
     hook.call<void()>("post_initialize");
-    process_updates();
   }
 
   void scene::event(const SDL_Event &event)
   {
     hook.call<void(const SDL_Event &)>("pre_event", event);
     camera->event(event);
-    for (const auto &object : objects) object.second->event(event);
+    for (const auto &[name, object] : objects)
+      if (!removals.contains(name))
+      {
+        if (!object->initialized) throw exception("Object is not initialized");
+        object->event(event);
+      }
     hook.call<void(const SDL_Event &)>("post_event", event);
   }
 
@@ -59,7 +63,8 @@ namespace cse
   {
     hook.call<void(const bool *)>("pre_input", keys);
     camera->input(keys);
-    for (const auto &object : objects) object.second->input(keys);
+    for (const auto &[name, object] : objects)
+      if (!removals.contains(name)) object->input(keys);
     hook.call<void(const bool *)>("post_input", keys);
   }
 
@@ -67,9 +72,9 @@ namespace cse
   {
     hook.call<void()>("pre_simulate");
     camera->simulate();
-    for (const auto &object : objects) object.second->simulate(poll_rate);
+    for (const auto &[name, object] : objects)
+      if (!removals.contains(name)) object->simulate(poll_rate);
     hook.call<void()>("post_simulate");
-    process_updates();
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
@@ -77,8 +82,9 @@ namespace cse
   {
     hook.call<void()>("pre_render");
     auto matrices = camera->render(alpha, aspect_ratio, scale_factor);
-    for (const auto &object : objects)
-      object.second->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha, scale_factor);
+    for (const auto &[name, object] : objects)
+      if (!removals.contains(name))
+        object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha, scale_factor);
     hook.call<void()>("post_render");
   }
 
@@ -105,6 +111,7 @@ namespace cse
         objects.erase(iterator);
       }
     removals.clear();
+    if (additions.empty()) return;
     for (auto &[name, object] : additions)
     {
       objects.insert_or_assign(name, object);

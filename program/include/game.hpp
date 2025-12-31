@@ -66,10 +66,10 @@ namespace cse
     std::shared_ptr<class window> window{};
     std::unordered_map<help::id, std::shared_ptr<scene>> scenes{};
     std::weak_ptr<scene> current_scene{};
+    std::optional<std::pair<help::id, std::shared_ptr<scene>>> pending_scene{};
     help::hook hook{};
 
   private:
-    std::optional<std::pair<help::id, std::shared_ptr<scene>>> pending_scene{};
     static inline std::weak_ptr<game> instance{};
     static constexpr float scale_factor{1.0f / 25.0f};
     static constexpr float aspect_ratio{16.0f / 9.0f};

@@ -20,8 +20,6 @@ namespace cse::help
 
     operator type &() noexcept;
     operator const type &() const noexcept;
-    type *operator->() noexcept;
-    const type *operator->() const noexcept;
 
     bool operator==(const property &other_) const noexcept(noexcept(std::declval<type>() == std::declval<type>()));
     auto operator<=>(const property &other_) const noexcept(noexcept(std::declval<type>() <=> std::declval<type>()));
@@ -45,10 +43,8 @@ namespace cse::help
     property operator--(int);
 
   public:
-    std::function<void()> change{};
-
-  private:
     type value{};
+    std::function<void()> change{};
   };
 
   template <typename type> std::istream &operator>>(std::istream &stream_, property<type> &destination_);

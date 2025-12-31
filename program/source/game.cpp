@@ -18,8 +18,8 @@ namespace cse
   game::~game()
   {
     instance.reset();
-    pending_scene.reset();
     hook.reset();
+    pending_scene.reset();
     current_scene.reset();
     scenes.clear();
     window.reset();
@@ -54,6 +54,7 @@ namespace cse
       update_time();
       while (simulation_behind())
       {
+        process_updates();
         event();
         input();
         simulate();
@@ -77,11 +78,7 @@ namespace cse
     if (current_scene.expired()) throw exception("No current scene has been set for the game");
     if (auto scene{current_scene.lock()})
     {
-      if (!scene->initialized)
-      {
-        scene->initialize(window->graphics.instance, window->graphics.gpu);
-        process_updates();
-      }
+      if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
     }
     else
       throw exception("Current scene is not initialized");
@@ -90,14 +87,16 @@ namespace cse
 
   void game::event()
   {
+    auto scene{current_scene.lock()};
+    if (scene && scene->initialized)
+      scene->process_updates();
+    else
+      throw exception("Current scene is not initialized");
     while (SDL_PollEvent(&window->current_event))
     {
       hook.call<void()>("pre_event");
       window->event();
-      if (auto scene{current_scene.lock()})
-        scene->event(window->current_event);
-      else
-        throw exception("Current scene is not initialized");
+      scene->event(window->current_event);
       hook.call<void()>("post_event");
     }
   }
@@ -118,10 +117,7 @@ namespace cse
     hook.call<void()>("pre_simulate");
     window->simulate();
     if (auto scene{current_scene.lock()})
-    {
       scene->simulate(poll_rate);
-      process_updates();
-    }
     else
       throw exception("Current scene is not initialized");
     hook.call<void()>("post_simulate");

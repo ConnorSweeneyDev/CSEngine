@@ -29,10 +29,6 @@ namespace cse::help
 
   template <typename type> property<type>::operator const type &() const noexcept { return value; }
 
-  template <typename type> type *property<type>::operator->() noexcept { return &value; }
-
-  template <typename type> const type *property<type>::operator->() const noexcept { return &value; }
-
   template <typename type> bool property<type>::operator==(const property &other_) const
     noexcept(noexcept(std::declval<type>() == std::declval<type>()))
   {
