@@ -28,6 +28,11 @@ namespace cse
     if (objects.contains(name)) removals.insert(name);
     auto object{std::make_shared<object_type>(transform, std::forward<object_arguments>(arguments)...)};
     object->parent = shared_from_this();
+    if (!initialized)
+    {
+      objects.insert_or_assign(name, object);
+      return;
+    }
     additions.insert_or_assign(name, object);
   }
 }
