@@ -8,6 +8,7 @@
 #include "SDL3/SDL_video.h"
 
 #include "camera.hpp"
+#include "exception.hpp"
 #include "game.hpp"
 #include "id.hpp"
 #include "object.hpp"
@@ -37,6 +38,7 @@ namespace cse
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
     hook.call<void()>("pre_initialize");
+    if (!camera) throw exception("Scene must have a camera to be initialized");
     if (!camera->initialized) camera->initialize();
     for (const auto &[name, object] : objects)
       if (!object->initialized) object->initialize(instance, gpu);

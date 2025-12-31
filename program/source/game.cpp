@@ -70,6 +70,7 @@ namespace cse
   {
     update_parents();
     hook.call<void()>("pre_initialize");
+    if (!window) throw exception("No window has been set for the game");
     window->initialize();
     if (scenes.empty()) throw exception("No scenes have been added to the game");
     if (current_scene.expired()) throw exception("No current scene has been set for the game");
