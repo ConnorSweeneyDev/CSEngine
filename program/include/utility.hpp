@@ -2,54 +2,65 @@
 
 #include <memory>
 #include <typeinfo>
+#include <unordered_map>
 
 #include "exception.hpp"
+#include "id.hpp"
 
-template <typename derived, typename base> std::shared_ptr<derived> as(const std::shared_ptr<base> &object) noexcept
+template <typename derived, typename base> std::shared_ptr<derived> as(const std::shared_ptr<base> &pointer) noexcept
 {
-  return std::static_pointer_cast<derived>(object);
+  return std::static_pointer_cast<derived>(pointer);
 }
 
-template <typename... derived, typename base> bool is(const std::shared_ptr<base> &object) noexcept
+template <typename... derived, typename base> bool is(const std::shared_ptr<base> &pointer) noexcept
 {
-  if (!object) return false;
-  const std::type_info &typeid_base{typeid(*object)};
+  if (!pointer) return false;
+  const std::type_info &typeid_base{typeid(*pointer)};
   return (... || (typeid_base == typeid(derived)));
 }
 
-template <typename derived, typename base> std::shared_ptr<derived> throw_as(const std::shared_ptr<base> &object)
+template <typename derived, typename base> std::shared_ptr<derived> throw_as(const std::shared_ptr<base> &pointer)
 {
-  if (is<derived>(object)) return std::static_pointer_cast<derived>(object);
-  throw cse::exception("Invalid cast from base to derived type");
-}
-
-template <typename derived, typename base> std::shared_ptr<derived> try_as(const std::shared_ptr<base> &object) noexcept
-{
-  if (is<derived>(object)) return std::static_pointer_cast<derived>(object);
-  return nullptr;
-}
-
-template <typename... derived, typename base> bool is_a(const std::shared_ptr<base> &object) noexcept
-{
-  if (!object) return false;
-  return (... || (dynamic_cast<derived *>(object.get()) != nullptr));
-}
-
-template <typename derived, typename base> std::shared_ptr<derived> throw_as_a(const std::shared_ptr<base> &object)
-{
-  if (is_a<derived>(object)) return std::static_pointer_cast<derived>(object);
+  if (is<derived>(pointer)) return std::static_pointer_cast<derived>(pointer);
   throw cse::exception("Invalid cast from base to derived type");
 }
 
 template <typename derived, typename base>
-std::shared_ptr<derived> try_as_a(const std::shared_ptr<base> &object) noexcept
+std::shared_ptr<derived> try_as(const std::shared_ptr<base> &pointer) noexcept
 {
-  if (is_a<derived>(object)) return std::static_pointer_cast<derived>(object);
+  if (is<derived>(pointer)) return std::static_pointer_cast<derived>(pointer);
   return nullptr;
 }
 
-template <typename type> std::shared_ptr<type> throw_lock(const std::weak_ptr<type> &object)
+template <typename... derived, typename base> bool is_a(const std::shared_ptr<base> &pointer) noexcept
 {
-  if (auto locked{object.lock()}) return locked;
-  throw cse::exception("Weak pointer lock failed for object");
+  if (!pointer) return false;
+  return (... || (dynamic_cast<derived *>(pointer.get()) != nullptr));
+}
+
+template <typename derived, typename base> std::shared_ptr<derived> throw_as_a(const std::shared_ptr<base> &pointer)
+{
+  if (is_a<derived>(pointer)) return std::static_pointer_cast<derived>(pointer);
+  throw cse::exception("Invalid cast from base to derived type");
+}
+
+template <typename derived, typename base>
+std::shared_ptr<derived> try_as_a(const std::shared_ptr<base> &pointer) noexcept
+{
+  if (is_a<derived>(pointer)) return std::static_pointer_cast<derived>(pointer);
+  return nullptr;
+}
+
+template <typename type> std::shared_ptr<type> throw_lock(const std::weak_ptr<type> &pointer)
+{
+  if (auto locked{pointer.lock()}) return locked;
+  throw cse::exception("Weak pointer lock failed");
+}
+
+template <typename type> std::shared_ptr<type>
+throw_at(const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map, const cse::help::id name)
+{
+  auto iterator{map.find(name)};
+  if (iterator != map.end()) return iterator->second;
+  throw cse::exception("Map lookup failed");
 }
