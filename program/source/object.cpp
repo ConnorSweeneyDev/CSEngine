@@ -37,7 +37,11 @@ namespace cse
     hook.call<void()>("initialize");
   }
 
-  void object::event(const SDL_Event &event) { hook.call<void(const SDL_Event &)>("event", event); }
+  void object::event(const SDL_Event &event)
+  {
+    graphics.previous = {graphics.shader, graphics.texture};
+    hook.call<void(const SDL_Event &)>("event", event);
+  }
 
   void object::input(const bool *keys) { hook.call<void(const bool *)>("input", keys); }
 
@@ -46,10 +50,8 @@ namespace cse
     state.translation.update();
     state.rotation.update();
     state.scale.update();
-    auto &texture = graphics.texture;
-    auto &group = texture->group;
-    auto &animation = texture->animation;
-    graphics.previous = {graphics.shader, texture};
+    auto &group = graphics.texture->group;
+    auto &animation = graphics.texture->animation;
     if (group.frames.empty())
       animation.frame = 0;
     else if (animation.frame >= group.frames.size())
