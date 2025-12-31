@@ -326,15 +326,11 @@ namespace cse::help
 
   object_graphics::~object_graphics()
   {
-    texture_transfer_buffer = nullptr;
-    vertex_transfer_buffer = nullptr;
-    sampler_buffer = nullptr;
-    texture_buffer = nullptr;
-    index_buffer = nullptr;
-    vertex_buffer = nullptr;
-    pipeline = nullptr;
-    cached_gpu = nullptr;
-    cached_instance = nullptr;
+    texture.value.image.change = nullptr;
+    texture.change = nullptr;
+    shader.value.fragment.change = nullptr;
+    shader.value.vertex.change = nullptr;
+    shader.change = nullptr;
   }
 
   void object_graphics::create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu)
