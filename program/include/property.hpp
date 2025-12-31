@@ -45,7 +45,7 @@ namespace cse::help
     property operator--(int);
 
   public:
-    std::function<void()> on_change{};
+    std::function<void()> change{};
 
   private:
     type value{};

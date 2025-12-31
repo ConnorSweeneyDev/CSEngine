@@ -25,7 +25,7 @@
 
 namespace cse::help
 {
-  window_graphics::window_graphics(const std::string &title_) : title(title_) {}
+  window_graphics::window_graphics(const std::string &title_) : title{title_} {}
 
   window_graphics::~window_graphics()
   {
@@ -286,7 +286,7 @@ namespace cse::help
     SDL_Quit();
   }
 
-  camera_graphics::camera_graphics(const float fov_) : fov(fov_), near_clip(0.01f), far_clip(100.0f) {}
+  camera_graphics::camera_graphics(const float fov_) : fov{fov_}, near_clip{0.01f}, far_clip{100.0f} {}
 
   glm::mat4 camera_graphics::calculate_projection_matrix(const float aspect_ratio)
   {
@@ -295,9 +295,10 @@ namespace cse::help
 
   object_graphics::object_graphics(const glm::u8vec4 &color_, const std::pair<vertex, fragment> &shader_,
                                    const std::tuple<image, group, std::size_t, double, bool> &texture_)
-    : color(color_), shader(shader_.first, shader_.second),
-      texture(std::get<0>(texture_), std::get<1>(texture_),
-              {std::get<2>(texture_), std::get<3>(texture_), std::get<4>(texture_)})
+    : color{color_}, shader{shader_.first, shader_.second},
+      texture{std::get<0>(texture_),
+              std::get<1>(texture_),
+              {std::get<2>(texture_), std::get<3>(texture_), std::get<4>(texture_)}}
   {
   }
 

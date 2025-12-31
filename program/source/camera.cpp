@@ -10,7 +10,7 @@
 namespace cse
 {
   camera::camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const float fov_)
-    : state(transform_), graphics(fov_)
+    : state{transform_}, graphics{fov_}
   {
   }
 

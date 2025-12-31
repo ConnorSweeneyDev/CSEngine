@@ -11,13 +11,13 @@ namespace cse
 {
   template <typename... message_arguments>
   exception::exception(const std::string &message_, message_arguments &&...arguments_)
-    : message(std::vformat(message_, std::make_format_args(std::forward<const message_arguments>(arguments_)...)))
+    : message{std::vformat(message_, std::make_format_args(std::forward<const message_arguments>(arguments_)...))}
   {
   }
 
   template <typename... message_arguments>
   sdl_exception::sdl_exception(const std::string &message_, message_arguments &&...arguments_)
-    : exception(message_, std::forward<const message_arguments>(arguments_)...)
+    : exception{message_, std::forward<const message_arguments>(arguments_)...}
   {
     const std::string sdl_error{SDL_GetError()};
     if (sdl_error.empty())

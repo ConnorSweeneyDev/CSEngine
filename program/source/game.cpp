@@ -17,6 +17,7 @@ namespace cse
 {
   game::~game()
   {
+    instance.reset();
     pending_scene.reset();
     hook.reset();
     current_scene.reset();

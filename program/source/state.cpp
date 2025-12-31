@@ -13,12 +13,12 @@
 namespace cse::help
 {
   window_state::window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
-    : width(dimensions_.x), height(dimensions_.y), fullscreen(fullscreen_), vsync(vsync_)
+    : width{dimensions_.x}, height{dimensions_.y}, fullscreen{fullscreen_}, vsync{vsync_}
   {
   }
 
   camera_state::camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_)
-    : translation(std::get<0>(transform_)), forward(std::get<1>(transform_)), up(std::get<2>(transform_))
+    : translation{std::get<0>(transform_)}, forward{std::get<1>(transform_)}, up{std::get<2>(transform_)}
   {
   }
 
@@ -29,7 +29,7 @@ namespace cse::help
   }
 
   object_state::object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_)
-    : translation(std::get<0>(transform_)), rotation(std::get<1>(transform_)), scale(std::get<2>(transform_))
+    : translation{std::get<0>(transform_)}, rotation{std::get<1>(transform_)}, scale{std::get<2>(transform_)}
   {
   }
 

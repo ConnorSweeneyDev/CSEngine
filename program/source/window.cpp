@@ -11,33 +11,33 @@
 namespace cse
 {
   window::window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
-    : state(dimensions_, fullscreen_, vsync_), graphics(title_)
+    : state{dimensions_, fullscreen_, vsync_}, graphics{title_}
   {
     if (graphics.title.empty()) throw exception("Window title cannot be empty");
-    state.width.on_change = [this]() { graphics.handle_manual_resize(state.width, state.height, state.fullscreen); };
-    state.height.on_change = [this]() { graphics.handle_manual_resize(state.width, state.height, state.fullscreen); };
-    state.left.on_change = [this]() { graphics.handle_manual_move(state.left, state.top, state.fullscreen); };
-    state.top.on_change = [this]() { graphics.handle_manual_move(state.left, state.top, state.fullscreen); };
-    state.display_index.on_change = [this]()
+    state.width.change = [this]() { graphics.handle_manual_resize(state.width, state.height, state.fullscreen); };
+    state.height.change = [this]() { graphics.handle_manual_resize(state.width, state.height, state.fullscreen); };
+    state.left.change = [this]() { graphics.handle_manual_move(state.left, state.top, state.fullscreen); };
+    state.top.change = [this]() { graphics.handle_manual_move(state.left, state.top, state.fullscreen); };
+    state.display_index.change = [this]()
     {
       graphics.handle_manual_display_move(state.width, state.height, state.left, state.top, state.display_index,
                                           state.fullscreen);
     };
-    state.fullscreen.on_change = [this]() { graphics.handle_fullscreen(state.fullscreen, state.display_index); };
-    state.vsync.on_change = [this]() { graphics.handle_vsync(state.vsync); };
+    state.fullscreen.change = [this]() { graphics.handle_fullscreen(state.fullscreen, state.display_index); };
+    state.vsync.change = [this]() { graphics.handle_vsync(state.vsync); };
   }
 
   window::~window()
   {
     current_keys = nullptr;
     hook.reset();
-    state.vsync.on_change = nullptr;
-    state.fullscreen.on_change = nullptr;
-    state.display_index.on_change = nullptr;
-    state.top.on_change = nullptr;
-    state.left.on_change = nullptr;
-    state.height.on_change = nullptr;
-    state.width.on_change = nullptr;
+    state.vsync.change = nullptr;
+    state.fullscreen.change = nullptr;
+    state.display_index.change = nullptr;
+    state.top.change = nullptr;
+    state.left.change = nullptr;
+    state.height.change = nullptr;
+    state.width.change = nullptr;
     parent.reset();
   }
 

@@ -8,7 +8,7 @@
 
 namespace cse::help
 {
-  constexpr id::id(const char *string_) : hash(hash_compiletime(string_)) {}
+  constexpr id::id(const char *string_) : hash{hash_compiletime(string_)} {}
 
   constexpr std::uint64_t id::get_hash() const { return hash; }
 

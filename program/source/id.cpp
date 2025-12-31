@@ -5,7 +5,7 @@
 
 namespace cse::help
 {
-  id::id(const std::string &string_) : hash(hash_runtime(string_)) {}
+  id::id(const std::string &string_) : hash{hash_runtime(string_)} {}
 
   bool id::operator==(const id &other) const { return hash == other.hash; }
 
