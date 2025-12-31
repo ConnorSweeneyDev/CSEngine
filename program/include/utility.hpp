@@ -64,3 +64,11 @@ throw_at(const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map, co
   if (iterator != map.end()) return iterator->second;
   throw cse::exception("Map lookup failed");
 }
+
+template <typename type> std::shared_ptr<type>
+try_at(const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map, const cse::help::id name) noexcept
+{
+  auto iterator{map.find(name)};
+  if (iterator != map.end()) return iterator->second;
+  return nullptr;
+}
