@@ -340,8 +340,8 @@ namespace cse::help
     SDL_GPUTextureCreateInfo texture_info{.type = type,
                                           .format = format,
                                           .usage = usage,
-                                          .width = texture.value.image.width,
-                                          .height = texture.value.image.height,
+                                          .width = texture->image.width,
+                                          .height = texture->image.height,
                                           .layer_count_or_depth = 1,
                                           .num_levels = 1,
                                           .sample_count = SDL_GPU_SAMPLECOUNT_1,
@@ -364,16 +364,16 @@ namespace cse::help
     quad_indices = std::array<Uint16, 6>({3, 1, 0, 3, 0, 2});
     std::copy(quad_indices.begin(), quad_indices.end(), index_data);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
-    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{
-      .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-      .size = texture.value.image.width * texture.value.image.height * texture.value.image.channels,
-      .props = 0};
+    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+                                                                 .size = texture->image.width * texture->image.height *
+                                                                         texture->image.channels,
+                                                                 .props = 0};
     texture_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &texture_transfer_buffer_info);
     if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for object");
     auto *texture_data{reinterpret_cast<Uint8 *>(SDL_MapGPUTransferBuffer(gpu, texture_transfer_buffer, false))};
     if (!texture_data) throw sdl_exception("Could not map texture data for object");
-    SDL_memcpy(texture_data, texture.value.image.data.data(),
-               texture.value.image.width * texture.value.image.height * texture.value.image.channels);
+    SDL_memcpy(texture_data, texture->image.data.data(),
+               texture->image.width * texture->image.height * texture->image.channels);
     SDL_UnmapGPUTransferBuffer(gpu, texture_transfer_buffer);
   }
 
@@ -395,8 +395,8 @@ namespace cse::help
                                         .x = 0,
                                         .y = 0,
                                         .z = 0,
-                                        .w = texture.value.image.width,
-                                        .h = texture.value.image.height,
+                                        .w = texture->image.width,
+                                        .h = texture->image.height,
                                         .d = 1};
     SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
     SDL_EndGPUCopyPass(copy_pass);
@@ -409,10 +409,10 @@ namespace cse::help
   {
     auto vertex_data{reinterpret_cast<uniform *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     if (!vertex_data) throw sdl_exception("Could not map vertex data for object");
-    auto &frame{texture.value.animation.frame};
-    auto size{texture.value.group.frames.size()};
+    auto &frame{texture->animation.frame};
+    auto size{texture->group.frames.size()};
     if (frame >= size) frame = size - 1;
-    const auto &frame_coords{texture.value.group.frames[frame].coords};
+    const auto &frame_coords{texture->group.frames[frame].coords};
     quad_vertices = std::array<uniform, 4>{
       {{1.0f, 1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.right, frame_coords.top},
        {1.0f, -1.0f, 0.0f, color.r, color.g, color.b, color.a, frame_coords.right, frame_coords.bottom},
@@ -453,8 +453,8 @@ namespace cse::help
     const auto backend_formats{SDL_GetGPUShaderFormats(cached_gpu)};
     if (!(backend_formats & SDL_GPU_SHADERFORMAT_SPIRV))
       throw sdl_exception("No supported vulkan shader formats for object");
-    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader.value.vertex.source.size(),
-                                               .code = shader.value.vertex.source.data(),
+    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader->vertex.source.size(),
+                                               .code = shader->vertex.source.data(),
                                                .entrypoint = "main",
                                                .format = SDL_GPU_SHADERFORMAT_SPIRV,
                                                .stage = SDL_GPU_SHADERSTAGE_VERTEX,
@@ -465,8 +465,8 @@ namespace cse::help
                                                .props = 0};
     auto *vertex_shader{SDL_CreateGPUShader(cached_gpu, &vertex_shader_info)};
     if (!vertex_shader) throw sdl_exception("Could not create vertex shader for object");
-    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader.value.fragment.source.size(),
-                                                 .code = shader.value.fragment.source.data(),
+    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader->fragment.source.size(),
+                                                 .code = shader->fragment.source.data(),
                                                  .entrypoint = "main",
                                                  .format = SDL_GPU_SHADERFORMAT_SPIRV,
                                                  .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
@@ -550,24 +550,24 @@ namespace cse::help
     SDL_GPUTextureCreateInfo texture_info{.type = type,
                                           .format = format,
                                           .usage = usage,
-                                          .width = texture.value.image.width,
-                                          .height = texture.value.image.height,
+                                          .width = texture->image.width,
+                                          .height = texture->image.height,
                                           .layer_count_or_depth = 1,
                                           .num_levels = 1,
                                           .sample_count = SDL_GPU_SAMPLECOUNT_1,
                                           .props = 0};
     texture_buffer = SDL_CreateGPUTexture(cached_gpu, &texture_info);
     if (!texture_buffer) throw sdl_exception("Could not create texture for object");
-    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{
-      .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-      .size = texture.value.image.width * texture.value.image.height * texture.value.image.channels,
-      .props = 0};
+    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+                                                                 .size = texture->image.width * texture->image.height *
+                                                                         texture->image.channels,
+                                                                 .props = 0};
     texture_transfer_buffer = SDL_CreateGPUTransferBuffer(cached_gpu, &texture_transfer_buffer_info);
     if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for object");
     auto *texture_data{reinterpret_cast<Uint8 *>(SDL_MapGPUTransferBuffer(cached_gpu, texture_transfer_buffer, false))};
     if (!texture_data) throw sdl_exception("Could not map texture data for object");
-    SDL_memcpy(texture_data, texture.value.image.data.data(),
-               texture.value.image.width * texture.value.image.height * texture.value.image.channels);
+    SDL_memcpy(texture_data, texture->image.data.data(),
+               texture->image.width * texture->image.height * texture->image.channels);
     SDL_UnmapGPUTransferBuffer(cached_gpu, texture_transfer_buffer);
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(cached_gpu)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for object");
@@ -581,8 +581,8 @@ namespace cse::help
                                         .x = 0,
                                         .y = 0,
                                         .z = 0,
-                                        .w = texture.value.image.width,
-                                        .h = texture.value.image.height,
+                                        .w = texture->image.width,
+                                        .h = texture->image.height,
                                         .d = 1};
     SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
     SDL_EndGPUCopyPass(copy_pass);

@@ -46,9 +46,10 @@ namespace cse
     state.translation.update();
     state.rotation.update();
     state.scale.update();
-    auto &group = graphics.texture.value.group;
-    auto &animation = graphics.texture.value.animation;
-    graphics.previous = {graphics.shader, graphics.texture};
+    auto &texture = graphics.texture;
+    auto &group = texture->group;
+    auto &animation = texture->animation;
+    graphics.previous = {graphics.shader, texture};
     if (group.frames.empty())
       animation.frame = 0;
     else if (animation.frame >= group.frames.size())
@@ -90,8 +91,8 @@ namespace cse
     state.scale.interpolate(alpha);
     graphics.upload_dynamic_buffers(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
-    auto model_matrix{state.calculate_model_matrix(graphics.texture.value.image.frame_width,
-                                                   graphics.texture.value.image.frame_height, scale_factor)};
+    auto model_matrix{state.calculate_model_matrix(graphics.texture->image.frame_width,
+                                                   graphics.texture->image.frame_height, scale_factor)};
     graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix, model_matrix);
     graphics.draw_primitives(render_pass);
     hook.call<void(const glm::mat4 &)>("render", model_matrix);
