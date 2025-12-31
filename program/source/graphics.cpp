@@ -634,5 +634,14 @@ namespace cse::help
     SDL_ReleaseGPUBuffer(gpu, index_buffer);
     SDL_ReleaseGPUBuffer(gpu, vertex_buffer);
     SDL_ReleaseGPUGraphicsPipeline(gpu, pipeline);
+    texture_transfer_buffer = nullptr;
+    vertex_transfer_buffer = nullptr;
+    sampler_buffer = nullptr;
+    texture_buffer = nullptr;
+    index_buffer = nullptr;
+    vertex_buffer = nullptr;
+    pipeline = nullptr;
+    cached_gpu = nullptr;
+    cached_instance = nullptr;
   }
 }
