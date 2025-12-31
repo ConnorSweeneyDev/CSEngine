@@ -310,14 +310,14 @@ namespace cse::help
     };
     shader.value.vertex.change = shader_function;
     shader.value.fragment.change = shader_function;
-    shader.change = [this, &shader_function]()
+    shader.change = [this, shader_function]()
     {
       shader.value.vertex.change = shader_function;
       shader.value.fragment.change = shader_function;
       shader_function();
     };
     texture.value.image.change = texture_function;
-    texture.change = [this, &texture_function]()
+    texture.change = [this, texture_function]()
     {
       texture.value.image.change = texture_function;
       texture_function();
