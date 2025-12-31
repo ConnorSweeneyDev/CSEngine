@@ -12,7 +12,7 @@ namespace cse
       return source.data() == other.source.data() && source.size() == other.source.size();
     }
 
-    const std::span<const unsigned char> source{};
+    std::span<const unsigned char> source{};
   };
   struct fragment
   {
@@ -21,7 +21,7 @@ namespace cse
       return source.data() == other.source.data() && source.size() == other.source.size();
     }
 
-    const std::span<const unsigned char> source{};
+    std::span<const unsigned char> source{};
   };
 
   struct image
@@ -31,12 +31,12 @@ namespace cse
       return data.data() == other.data.data() && data.size() == other.data.size();
     }
 
-    const std::span<const unsigned char> data{};
-    const unsigned int width{};
-    const unsigned int height{};
-    const unsigned int frame_width{};
-    const unsigned int frame_height{};
-    const unsigned int channels{};
+    std::span<const unsigned char> data{};
+    unsigned int width{};
+    unsigned int height{};
+    unsigned int frame_width{};
+    unsigned int frame_height{};
+    unsigned int channels{};
   };
   struct group
   {

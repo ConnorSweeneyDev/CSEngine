@@ -14,6 +14,7 @@
 #include "glm/ext/vector_uint4_sized.hpp"
 
 #include "declaration.hpp"
+#include "property.hpp"
 #include "resource.hpp"
 
 namespace cse::help
@@ -100,12 +101,12 @@ namespace cse::help
     };
     struct shader
     {
-      const struct vertex vertex{};
-      const struct fragment fragment{};
+      property<struct vertex> vertex{};
+      property<struct fragment> fragment{};
     };
     struct texture
     {
-      const struct image image{};
+      property<struct image> image{};
       struct group group{};
       struct animation animation{};
     };
@@ -127,6 +128,8 @@ namespace cse::help
 
   private:
     void create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu);
+    void generate_pipeline();
+    void generate_texture();
     void upload_static_buffers(SDL_GPUDevice *gpu);
     void upload_dynamic_buffers(SDL_GPUDevice *gpu);
     void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass);
@@ -137,11 +140,13 @@ namespace cse::help
 
   public:
     glm::u8vec4 color{};
-    struct shader shader{};
-    struct texture texture{};
+    property<struct shader> shader{};
+    property<struct texture> texture{};
     struct previous previous{};
 
   private:
+    SDL_Window *cached_instance{};
+    SDL_GPUDevice *cached_gpu{};
     SDL_GPUGraphicsPipeline *pipeline{};
     SDL_GPUBuffer *vertex_buffer{};
     SDL_GPUBuffer *index_buffer{};

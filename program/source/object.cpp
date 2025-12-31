@@ -46,8 +46,8 @@ namespace cse
     state.translation.update();
     state.rotation.update();
     state.scale.update();
-    auto &group = graphics.texture.group;
-    auto &animation = graphics.texture.animation;
+    auto &group = graphics.texture.value.group;
+    auto &animation = graphics.texture.value.animation;
     graphics.previous = {group, animation};
     if (group.frames.empty())
       animation.frame = 0;
@@ -90,8 +90,8 @@ namespace cse
     state.scale.interpolate(alpha);
     graphics.upload_dynamic_buffers(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
-    auto model_matrix{state.calculate_model_matrix(graphics.texture.image.frame_width,
-                                                   graphics.texture.image.frame_height, scale_factor)};
+    auto model_matrix{state.calculate_model_matrix(graphics.texture.value.image.value.frame_width,
+                                                   graphics.texture.value.image.value.frame_height, scale_factor)};
     graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix, model_matrix);
     graphics.draw_primitives(render_pass);
     hook.call<void(const glm::mat4 &)>("render", model_matrix);
