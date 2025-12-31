@@ -70,6 +70,7 @@ namespace cse
 
   void game::initialize()
   {
+    update_parents();
     hook.call<void()>("pre_initialize");
     window->initialize();
     if (scenes.empty()) throw exception("No scenes have been added to the game");
@@ -150,6 +151,13 @@ namespace cse
       throw exception("Current scene is not initialized");
     window->cleanup();
     hook.call<void()>("post_cleanup");
+  }
+
+  void game::update_parents()
+  {
+    if (window && window->parent.expired()) window->parent = weak_from_this();
+    for (const auto &[name, scene] : scenes)
+      if (scene->parent.expired()) scene->parent = weak_from_this();
   }
 
   void game::process_updates()

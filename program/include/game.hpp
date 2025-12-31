@@ -55,6 +55,7 @@ namespace cse
     void render();
     void cleanup();
 
+    void update_parents();
     void process_updates();
     void update_time();
     bool simulation_behind();

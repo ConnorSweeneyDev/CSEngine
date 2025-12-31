@@ -19,8 +19,9 @@ namespace cse
   template <help::is_window window_type, typename... window_arguments>
   void game::set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments)
   {
+    if (window && window->state.running) throw exception("Tried to modify window while running");
     window = std::make_shared<window_type>(title, dimensions, std::forward<window_arguments>(arguments)...);
-    window->parent = weak_from_this();
+    if (auto parent{weak_from_this()}; !parent.expired()) window->parent = parent;
   }
 
   template <help::is_scene scene_type, typename... scene_arguments>
@@ -28,9 +29,9 @@ namespace cse
                        scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
-    scene->parent = weak_from_this();
+    if (auto parent{weak_from_this()}; !parent.expired()) scene->parent = parent;
     config(scene);
-    if (window->state.running)
+    if (window && window->state.running)
       if (auto current{current_scene.lock()})
         if (auto iterator{scenes.find(name)}; iterator != scenes.end() && current == iterator->second)
         {
@@ -55,9 +56,9 @@ namespace cse
                                scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
-    scene->parent = weak_from_this();
+    if (auto parent{weak_from_this()}; !parent.expired()) scene->parent = parent;
     config(scene);
-    if (window->state.running)
+    if (window && window->state.running)
       pending_scene = {name, scene};
     else
     {
