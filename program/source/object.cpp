@@ -46,7 +46,6 @@ namespace cse
     state.translation.update();
     state.rotation.update();
     state.scale.update();
-
     auto &group = graphics.texture.group;
     auto &animation = graphics.texture.animation;
     graphics.previous = {group, animation};
@@ -79,7 +78,6 @@ namespace cse
           break;
       }
     }
-
     hook.call<void()>("simulate");
   }
 
