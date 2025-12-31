@@ -301,7 +301,7 @@ namespace cse::help
                {std::get<2>(texture_), std::get<3>(texture_), std::get<4>(texture_)}}}
   {
     shader.change = [this]() { generate_pipeline(); };
-    texture.change = [this]() { generate_texture(); };
+    texture.change = [this]() { generate_and_upload_texture(); };
   }
 
   object_graphics::~object_graphics()
@@ -332,22 +332,6 @@ namespace cse::help
     sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_buffer = SDL_CreateGPUSampler(gpu, &sampler_info);
     if (!sampler_buffer) throw sdl_exception("Could not create sampler for object");
-    const auto type{SDL_GPU_TEXTURETYPE_2D};
-    const auto format{SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM};
-    const auto usage{SDL_GPU_TEXTUREUSAGE_SAMPLER};
-    if (!SDL_GPUTextureSupportsFormat(gpu, format, type, usage))
-      throw sdl_exception("No supported texture format found for object");
-    SDL_GPUTextureCreateInfo texture_info{.type = type,
-                                          .format = format,
-                                          .usage = usage,
-                                          .width = texture->image.width,
-                                          .height = texture->image.height,
-                                          .layer_count_or_depth = 1,
-                                          .num_levels = 1,
-                                          .sample_count = SDL_GPU_SAMPLECOUNT_1,
-                                          .props = 0};
-    texture_buffer = SDL_CreateGPUTexture(gpu, &texture_info);
-    if (!texture_buffer) throw sdl_exception("Could not create texture for object");
     SDL_GPUTransferBufferCreateInfo vertex_transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = sizeof(quad_vertices) + sizeof(quad_indices), .props = 0};
     vertex_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &vertex_transfer_buffer_info);
@@ -364,17 +348,7 @@ namespace cse::help
     quad_indices = std::array<Uint16, 6>({3, 1, 0, 3, 0, 2});
     std::copy(quad_indices.begin(), quad_indices.end(), index_data);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
-    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-                                                                 .size = texture->image.width * texture->image.height *
-                                                                         texture->image.channels,
-                                                                 .props = 0};
-    texture_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &texture_transfer_buffer_info);
-    if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for object");
-    auto *texture_data{reinterpret_cast<Uint8 *>(SDL_MapGPUTransferBuffer(gpu, texture_transfer_buffer, false))};
-    if (!texture_data) throw sdl_exception("Could not map texture data for object");
-    SDL_memcpy(texture_data, texture->image.data.data(),
-               texture->image.width * texture->image.height * texture->image.channels);
-    SDL_UnmapGPUTransferBuffer(gpu, texture_transfer_buffer);
+    generate_and_upload_texture();
   }
 
   void object_graphics::upload_static_buffers(SDL_GPUDevice *gpu)
@@ -387,22 +361,8 @@ namespace cse::help
                                                                  .offset = sizeof(quad_vertices)};
     SDL_GPUBufferRegion index_buffer_region{.buffer = index_buffer, .offset = 0, .size = sizeof(quad_indices)};
     SDL_UploadToGPUBuffer(copy_pass, &index_transfer_buffer_location, &index_buffer_region, false);
-    SDL_GPUTextureTransferInfo texture_transfer_info{
-      .transfer_buffer = texture_transfer_buffer, .offset = 0, .pixels_per_row = 0, .rows_per_layer = 0};
-    SDL_GPUTextureRegion texture_region{.texture = texture_buffer,
-                                        .mip_level = 0,
-                                        .layer = 0,
-                                        .x = 0,
-                                        .y = 0,
-                                        .z = 0,
-                                        .w = texture->image.width,
-                                        .h = texture->image.height,
-                                        .d = 1};
-    SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(gpu, texture_transfer_buffer);
-    texture_transfer_buffer = nullptr;
   }
 
   void object_graphics::upload_dynamic_buffers(SDL_GPUDevice *gpu)
@@ -429,17 +389,6 @@ namespace cse::help
     SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, false);
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
-  }
-
-  void object_graphics::bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass)
-  {
-    SDL_BindGPUGraphicsPipeline(render_pass, pipeline);
-    SDL_GPUBufferBinding vertex_buffer_binding{.buffer = vertex_buffer, .offset = 0};
-    SDL_BindGPUVertexBuffers(render_pass, 0, &vertex_buffer_binding, 1);
-    SDL_GPUBufferBinding index_buffer_binding{.buffer = index_buffer, .offset = 0};
-    SDL_BindGPUIndexBuffer(render_pass, &index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-    SDL_GPUTextureSamplerBinding texture_sampler_binding{.texture = texture_buffer, .sampler = sampler_buffer};
-    SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_sampler_binding, 1);
   }
 
   void object_graphics::generate_pipeline()
@@ -529,7 +478,7 @@ namespace cse::help
     SDL_ReleaseGPUShader(cached_gpu, vertex_shader);
   }
 
-  void object_graphics::generate_texture()
+  void object_graphics::generate_and_upload_texture()
   {
     if (!cached_gpu) return;
     if (texture_transfer_buffer)
@@ -589,6 +538,17 @@ namespace cse::help
     SDL_SubmitGPUCommandBuffer(command_buffer);
     SDL_ReleaseGPUTransferBuffer(cached_gpu, texture_transfer_buffer);
     texture_transfer_buffer = nullptr;
+  }
+
+  void object_graphics::bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass)
+  {
+    SDL_BindGPUGraphicsPipeline(render_pass, pipeline);
+    SDL_GPUBufferBinding vertex_buffer_binding{.buffer = vertex_buffer, .offset = 0};
+    SDL_BindGPUVertexBuffers(render_pass, 0, &vertex_buffer_binding, 1);
+    SDL_GPUBufferBinding index_buffer_binding{.buffer = index_buffer, .offset = 0};
+    SDL_BindGPUIndexBuffer(render_pass, &index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+    SDL_GPUTextureSamplerBinding texture_sampler_binding{.texture = texture_buffer, .sampler = sampler_buffer};
+    SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_sampler_binding, 1);
   }
 
   void object_graphics::push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &projection_matrix,

@@ -128,10 +128,10 @@ namespace cse::help
 
   private:
     void create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu);
-    void generate_pipeline();
-    void generate_texture();
     void upload_static_buffers(SDL_GPUDevice *gpu);
     void upload_dynamic_buffers(SDL_GPUDevice *gpu);
+    void generate_pipeline();
+    void generate_and_upload_texture();
     void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass);
     void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &projection_matrix,
                            const glm::mat4 &view_matrix, const glm::mat4 &model_matrix);
