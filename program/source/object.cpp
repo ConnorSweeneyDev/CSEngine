@@ -37,11 +37,7 @@ namespace cse
     hook.call<void()>("initialize");
   }
 
-  void object::event(const SDL_Event &event)
-  {
-    graphics.previous = {graphics.shader, graphics.texture};
-    hook.call<void(const SDL_Event &)>("event", event);
-  }
+  void object::event(const SDL_Event &event) { hook.call<void(const SDL_Event &)>("event", event); }
 
   void object::input(const bool *keys) { hook.call<void(const bool *)>("input", keys); }
 
@@ -82,6 +78,7 @@ namespace cse
       }
     }
     hook.call<void()>("simulate");
+    graphics.previous = {graphics.shader, graphics.texture};
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
