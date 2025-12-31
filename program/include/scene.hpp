@@ -37,7 +37,7 @@ namespace cse
     template <help::is_object object_type, typename... object_arguments>
     void set_object(const help::id name, const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform,
                     object_arguments &&...arguments);
-    bool remove_object(const help::id name);
+    void remove_object(const help::id name);
 
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);

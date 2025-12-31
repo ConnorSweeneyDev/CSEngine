@@ -24,14 +24,14 @@ namespace cse
     parent.reset();
   }
 
-  bool scene::remove_object(const help::id name)
+  void scene::remove_object(const help::id name)
   {
-    if (objects.contains(name))
+    if (!initialized)
     {
-      removals.insert(name);
-      return true;
+      if (auto iterator{objects.find(name)}; iterator != objects.end()) objects.erase(iterator);
+      return;
     }
-    return false;
+    if (objects.contains(name)) removals.insert(name);
   }
 
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)

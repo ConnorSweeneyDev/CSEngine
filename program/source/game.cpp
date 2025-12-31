@@ -34,7 +34,7 @@ namespace cse
       current_scene = iterator->second;
   }
 
-  bool game::remove_scene(const help::id name)
+  void game::remove_scene(const help::id name)
   {
     if (auto iterator{scenes.find(name)}; iterator != scenes.end())
     {
@@ -42,9 +42,7 @@ namespace cse
       if (auto current{current_scene.lock()}; current == scene) throw exception("Tried to remove current scene");
       if (window->state.running && scene->initialized) scene->cleanup(window->graphics.gpu);
       scenes.erase(iterator);
-      return true;
     }
-    return false;
   }
 
   void game::run()

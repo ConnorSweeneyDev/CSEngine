@@ -38,7 +38,7 @@ namespace cse
     template <typename callable, typename... scene_arguments>
     void set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
     void set_current_scene(const help::id name);
-    bool remove_scene(const help::id name);
+    void remove_scene(const help::id name);
 
     template <help::is_game game_type, typename... game_arguments>
     static std::shared_ptr<game_type> create(game_arguments &&...arguments);
