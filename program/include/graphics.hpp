@@ -101,19 +101,19 @@ namespace cse::help
     };
     struct shader
     {
-      property<struct vertex> vertex{};
-      property<struct fragment> fragment{};
+      struct vertex vertex{};
+      struct fragment fragment{};
     };
     struct texture
     {
-      property<struct image> image{};
+      struct image image{};
       struct group group{};
       struct animation animation{};
     };
     struct previous
     {
-      struct group group{};
-      struct animation animation{};
+      struct shader shader{};
+      struct texture texture{};
     };
 
   public:
