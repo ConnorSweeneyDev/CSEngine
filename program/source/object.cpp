@@ -57,26 +57,20 @@ namespace cse
     if (animation.speed > 0.0 && !no_frames)
     {
       animation.elapsed += poll_rate * animation.speed;
-      while (animation.frame < frame_count)
+      while (true)
       {
         auto duration = group.frames[animation.frame].duration;
-        if (duration <= 0 || animation.elapsed >= duration)
+        if (duration > 0 && animation.elapsed < duration) break;
+        if (animation.frame < frame_count - 1)
         {
-          if (animation.frame < frame_count - 1)
-          {
-            if (duration > 0) animation.elapsed -= duration;
-            animation.frame++;
-          }
-          else if (animation.loop)
-          {
-            if (duration > 0)
-              animation.elapsed -= duration;
-            else if (frame_count == 1)
-              break;
-            animation.frame = 0;
-          }
-          else
-            break;
+          if (duration > 0) animation.elapsed -= duration;
+          animation.frame++;
+        }
+        else if (animation.loop)
+        {
+          if (frame_count == 1 && duration <= 0) break;
+          if (duration > 0) animation.elapsed -= duration;
+          animation.frame = 0;
         }
         else
           break;
