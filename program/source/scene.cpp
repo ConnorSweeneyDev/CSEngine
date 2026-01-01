@@ -69,13 +69,13 @@ namespace cse
     hook.call<void(const bool *)>("post_input", keys);
   }
 
-  void scene::simulate(const double poll_rate)
+  void scene::simulate(const double active_poll_rate)
   {
-    hook.call<void()>("pre_simulate");
-    camera->simulate();
+    hook.call<void(const float)>("pre_simulate", static_cast<float>(active_poll_rate));
+    camera->simulate(active_poll_rate);
     for (const auto &[name, object] : objects)
-      if (!removals.contains(name)) object->simulate(poll_rate);
-    hook.call<void()>("post_simulate");
+      if (!removals.contains(name)) object->simulate(active_poll_rate);
+    hook.call<void(const float)>("post_simulate", static_cast<float>(active_poll_rate));
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,

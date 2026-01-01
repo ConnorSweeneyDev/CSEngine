@@ -30,12 +30,12 @@ namespace cse
 
   void camera::input(const bool *keys) { hook.call<void(const bool *)>("input", keys); }
 
-  void camera::simulate()
+  void camera::simulate(const double active_poll_rate)
   {
     state.translation.update();
     state.forward.update();
     state.up.update();
-    hook.call<void()>("simulate");
+    hook.call<void(const float)>("simulate", static_cast<float>(active_poll_rate));
   }
 
   std::pair<glm::mat4, glm::mat4> camera::render(const double alpha, const float aspect_ratio, const float scale_factor)

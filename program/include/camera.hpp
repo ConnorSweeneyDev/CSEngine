@@ -32,7 +32,7 @@ namespace cse
     void initialize();
     void event(const SDL_Event &event);
     void input(const bool *keys);
-    void simulate();
+    void simulate(const double active_poll_rate);
     std::pair<glm::mat4, glm::mat4> render(const double alpha, const float aspect_ratio, const float scale_factor);
     void cleanup();
 

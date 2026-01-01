@@ -3,7 +3,6 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
-#include "SDL3/SDL_keyboard.h"
 #include "glm/ext/vector_uint2.hpp"
 
 namespace cse
@@ -64,7 +63,10 @@ namespace cse
 
   void window::input() { hook.call<void(const bool *)>("input", current_keys); }
 
-  void window::simulate() { hook.call<void()>("simulate"); }
+  void window::simulate(const double active_poll_rate)
+  {
+    hook.call<void(const float)>("simulate", static_cast<float>(active_poll_rate));
+  }
 
   bool window::start_render(const float aspect_ratio)
   {

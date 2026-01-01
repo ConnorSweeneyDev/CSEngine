@@ -39,7 +39,7 @@ namespace cse
 
   void object::input(const bool *keys) { hook.call<void(const bool *)>("input", keys); }
 
-  void object::simulate(const double poll_rate)
+  void object::simulate(const double active_poll_rate)
   {
     state.translation.update();
     state.rotation.update();
@@ -54,7 +54,7 @@ namespace cse
       animation.frame = frame_count - 1;
     if (animation.speed > 0.0 && !no_frames)
     {
-      animation.elapsed += poll_rate * animation.speed;
+      animation.elapsed += active_poll_rate * animation.speed;
       while (true)
       {
         auto duration = group.frames[animation.frame].duration;
@@ -78,7 +78,7 @@ namespace cse
     }
     else if (animation.speed < 0.0 && !no_frames)
     {
-      animation.elapsed += poll_rate * animation.speed;
+      animation.elapsed += active_poll_rate * animation.speed;
       while (animation.elapsed < 0)
         if (animation.frame > 0)
         {
@@ -96,7 +96,7 @@ namespace cse
         else
           break;
     }
-    hook.call<void()>("simulate");
+    hook.call<void(const float)>("simulate", static_cast<float>(active_poll_rate));
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,

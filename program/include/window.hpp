@@ -31,7 +31,7 @@ namespace cse
     void initialize();
     void event();
     void input();
-    void simulate();
+    void simulate(const double active_poll_rate);
     bool start_render(const float aspect_ratio);
     void end_render();
     void cleanup();

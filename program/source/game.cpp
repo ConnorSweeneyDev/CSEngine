@@ -118,13 +118,13 @@ namespace cse
 
   void game::simulate()
   {
-    hook.call<void()>("pre_simulate");
-    window->simulate();
+    hook.call<void(const float)>("pre_simulate", static_cast<float>(active_poll_rate));
+    window->simulate(active_poll_rate);
     if (auto scene{current_scene.lock()})
       scene->simulate(active_poll_rate);
     else
       throw exception("Current scene is not initialized");
-    hook.call<void()>("post_simulate");
+    hook.call<void(const float)>("post_simulate", static_cast<float>(active_poll_rate));
   }
 
   void game::render()
