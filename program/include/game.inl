@@ -64,6 +64,7 @@ namespace cse
     {
       scenes.insert_or_assign(name, scene);
       state.scene = scene;
+      previous.state.scene = scene;
     }
   }
 
