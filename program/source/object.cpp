@@ -47,7 +47,7 @@ namespace cse
     auto &group{graphics.texture->group};
     auto &animation{graphics.texture->animation};
     auto frame_count{group.frames.size()};
-    bool no_frames{};
+    bool no_frames{group.frames.empty()};
     if (no_frames)
       animation.frame = 0;
     else if (animation.frame >= frame_count)

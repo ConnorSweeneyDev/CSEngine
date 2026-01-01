@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <cmath>
 #include <memory>
 #include <typeinfo>
 #include <unordered_map>
@@ -71,4 +73,9 @@ try_at(const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map, cons
   auto iterator{map.find(name)};
   if (iterator != map.end()) return iterator->second;
   return nullptr;
+}
+
+inline bool equal(const double first, const double second, const double epsilon = 1e-5)
+{
+  return std::fabs(first - second) <= epsilon * std::max(1.0, std::max(std::fabs(first), std::fabs(second)));
 }
