@@ -32,10 +32,10 @@ namespace cse
     if (auto parent{weak_from_this()}; !parent.expired()) scene->parent = parent;
     config(scene);
     if (window && window->initialized)
-      if (auto current{current_scene.lock()})
+      if (auto current{state.scene.lock()})
         if (auto iterator{scenes.find(name)}; iterator != scenes.end() && current == iterator->second)
         {
-          pending_scene = {name, scene};
+          state.next_scene = {name, scene};
           return;
         }
     scenes.insert_or_assign(name, scene);
@@ -59,11 +59,11 @@ namespace cse
     if (auto parent{weak_from_this()}; !parent.expired()) scene->parent = parent;
     config(scene);
     if (window && window->initialized)
-      pending_scene = {name, scene};
+      state.next_scene = {name, scene};
     else
     {
       scenes.insert_or_assign(name, scene);
-      current_scene = scene;
+      state.scene = scene;
     }
   }
 
@@ -77,10 +77,10 @@ namespace cse
   }
 
   template <help::is_game game_type, typename... game_arguments>
-  std::shared_ptr<game_type> game::create(game_arguments &&...arguments)
+  std::shared_ptr<game_type> game::create(const std::pair<double, double> rates, game_arguments &&...arguments)
   {
     if (!instance.expired()) throw exception("Tried to create a second game instance");
-    auto new_instance{std::shared_ptr<game_type>{new game_type{std::forward<game_arguments>(arguments)...}}};
+    auto new_instance{std::shared_ptr<game_type>{new game_type{rates, std::forward<game_arguments>(arguments)...}}};
     instance = new_instance;
     return new_instance;
   }

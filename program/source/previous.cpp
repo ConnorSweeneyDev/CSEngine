@@ -5,6 +5,16 @@
 
 namespace cse::help
 {
+  game_previous::game_previous() {}
+
+  game_previous::game_previous(const game_state &state_, const game_graphics &graphics_) { update(state_, graphics_); }
+
+  void game_previous::update(const game_state &new_state, const game_graphics &new_graphics)
+  {
+    state.poll_rate = new_state.poll_rate;
+    graphics.frame_rate = new_graphics.frame_rate;
+  }
+
   window_previous::window_previous() { clean(); }
 
   window_previous::window_previous(const window_state &state_, const window_graphics &graphics_)

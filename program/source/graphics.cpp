@@ -24,6 +24,8 @@
 
 namespace cse::help
 {
+  game_graphics::game_graphics(const double frame_rate_) : frame_rate{frame_rate_} {}
+
   window_graphics::window_graphics(const std::string &title_) : title{title_}
   {
     title.change = [this]() { handle_title_change(); };

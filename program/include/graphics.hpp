@@ -18,6 +18,23 @@
 
 namespace cse::help
 {
+  struct game_graphics
+  {
+    friend class cse::game;
+
+  public:
+    game_graphics() = default;
+    game_graphics(const double frame_rate_);
+    ~game_graphics() = default;
+    game_graphics(const game_graphics &) = delete;
+    game_graphics &operator=(const game_graphics &) = delete;
+    game_graphics(game_graphics &&) = delete;
+    game_graphics &operator=(game_graphics &&) = delete;
+
+  public:
+    double frame_rate{};
+  };
+
   struct window_graphics
   {
     friend class cse::game;

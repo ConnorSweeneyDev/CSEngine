@@ -12,6 +12,18 @@
 
 namespace cse::help
 {
+  game_state::game_state(const double poll_rate_) : poll_rate{poll_rate_} {}
+
+  game_state::~game_state()
+  {
+    if (next_scene.has_value())
+    {
+      next_scene->second.reset();
+      next_scene.reset();
+    }
+    scene.reset();
+  }
+
   window_state::window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
     : width{dimensions_.x}, height{dimensions_.y}, fullscreen{fullscreen_}, vsync{vsync_}
   {

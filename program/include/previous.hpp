@@ -6,6 +6,27 @@
 
 namespace cse::help
 {
+  struct game_previous
+  {
+    friend class cse::game;
+
+  public:
+    game_previous();
+    game_previous(const game_state &state_, const game_graphics &graphics_);
+    ~game_previous();
+    game_previous(const game_previous &) = delete;
+    game_previous &operator=(const game_previous &) = delete;
+    game_previous(game_previous &&) = delete;
+    game_previous &operator=(game_previous &&) = delete;
+
+  private:
+    void update(const game_state &new_state, const game_graphics &new_graphics);
+
+  public:
+    game_state state{};
+    game_graphics graphics{};
+  };
+
   struct window_previous
   {
     friend class cse::game;

@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -10,8 +9,11 @@
 #include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
+#include "graphics.hpp"
 #include "hook.hpp"
 #include "id.hpp"
+#include "previous.hpp"
+#include "state.hpp"
 #include "traits.hpp"
 
 namespace cse
@@ -41,11 +43,11 @@ namespace cse
     void remove_scene(const help::id name);
 
     template <help::is_game game_type, typename... game_arguments>
-    static std::shared_ptr<game_type> create(game_arguments &&...arguments);
+    static std::shared_ptr<game_type> create(const std::pair<double, double> rates, game_arguments &&...arguments);
     void run();
 
   protected:
-    game() = default;
+    game(const std::pair<double, double> &rates_);
 
   private:
     void initialize();
@@ -66,19 +68,17 @@ namespace cse
   public:
     std::shared_ptr<class window> window{};
     std::unordered_map<help::id, std::shared_ptr<scene>> scenes{};
-    std::weak_ptr<scene> current_scene{};
-    std::optional<std::pair<help::id, std::shared_ptr<scene>>> pending_scene{};
-    std::pair<help::id, std::shared_ptr<scene>> previous_scene{};
-    double poll_rate{60.0};
-    double frame_rate{144.0};
+    help::game_state state{};
+    help::game_graphics graphics{};
+    help::game_previous previous{};
     help::hook hook{};
 
   private:
     static inline std::weak_ptr<game> instance{};
     static constexpr float scale_factor{1.0f / 25.0f};
     static constexpr float aspect_ratio{16.0f / 9.0f};
-    double active_poll_rate{1.0 / poll_rate};
-    double active_frame_rate{1.0 / frame_rate};
+    double active_poll_rate{1.0 / state.poll_rate};
+    double active_frame_rate{1.0 / graphics.frame_rate};
     double time{};
     double accumulator{};
     double alpha{};

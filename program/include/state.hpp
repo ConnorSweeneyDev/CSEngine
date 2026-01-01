@@ -2,7 +2,10 @@
 
 #include "declaration.hpp"
 
+#include <memory>
+#include <optional>
 #include <tuple>
+#include <utility>
 
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
@@ -10,11 +13,31 @@
 #include "glm/ext/vector_int3.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
+#include "id.hpp"
 #include "property.hpp"
 #include "transform.hpp"
 
 namespace cse::help
 {
+  struct game_state
+  {
+    friend class cse::game;
+
+  public:
+    game_state() = default;
+    game_state(const double poll_rate_);
+    ~game_state();
+    game_state(const game_state &) = delete;
+    game_state &operator=(const game_state &) = delete;
+    game_state(game_state &&) = delete;
+    game_state &operator=(game_state &&) = delete;
+
+  public:
+    double poll_rate{};
+    std::weak_ptr<class scene> scene{};
+    std::optional<std::pair<help::id, std::shared_ptr<class scene>>> next_scene{};
+  };
+
   struct window_state
   {
     friend class cse::window;

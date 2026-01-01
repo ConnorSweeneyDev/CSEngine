@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_keyboard.h"
@@ -18,12 +19,15 @@
 
 namespace cse
 {
+  game::game(const std::pair<double, double> &rates_)
+    : state{rates_.first}, graphics{rates_.second}, previous{state, graphics}
+  {
+  }
+
   game::~game()
   {
     instance.reset();
     hook.reset();
-    pending_scene.reset();
-    current_scene.reset();
     scenes.clear();
     window.reset();
   }
@@ -33,9 +37,9 @@ namespace cse
     if (auto iterator{scenes.find(name)}; iterator == scenes.end())
       throw exception("Tried to set current scene to null");
     else if (window->initialized)
-      pending_scene = {name, {}};
+      state.next_scene = {name, {}};
     else
-      current_scene = iterator->second;
+      state.scene = iterator->second;
   }
 
   void game::remove_scene(const help::id name)
@@ -43,7 +47,7 @@ namespace cse
     if (auto iterator{scenes.find(name)}; iterator != scenes.end())
     {
       const auto &scene{iterator->second};
-      if (auto current{current_scene.lock()}; current == scene) throw exception("Tried to remove current scene");
+      if (auto current{state.scene.lock()}; current == scene) throw exception("Tried to remove current scene");
       if (scene->initialized) scene->cleanup(window->graphics.gpu);
       scenes.erase(iterator);
     }
@@ -79,7 +83,7 @@ namespace cse
     if (!window) throw exception("No window has been set for the game");
     if (!window->initialized) window->initialize();
     if (scenes.empty()) throw exception("No scenes have been added to the game");
-    if (auto scene{current_scene.lock()})
+    if (auto scene{state.scene.lock()})
     {
       if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
     }
@@ -90,7 +94,7 @@ namespace cse
 
   void game::event()
   {
-    if (auto scene{current_scene.lock()})
+    if (auto scene{state.scene.lock()})
       while (SDL_PollEvent(&window->current_event))
       {
         hook.call<void(const SDL_Event &)>("pre_event", window->current_event);
@@ -109,7 +113,7 @@ namespace cse
     window->current_keys = SDL_GetKeyboardState(nullptr);
     hook.call<void(const bool *)>("pre_input", window->current_keys);
     window->input();
-    if (auto scene{current_scene.lock()})
+    if (auto scene{state.scene.lock()})
       scene->input(window->current_keys);
     else
       throw exception("Current scene is not initialized");
@@ -120,7 +124,7 @@ namespace cse
   {
     hook.call<void(const float)>("pre_simulate", static_cast<float>(active_poll_rate));
     window->simulate(active_poll_rate);
-    if (auto scene{current_scene.lock()})
+    if (auto scene{state.scene.lock()})
       scene->simulate(active_poll_rate);
     else
       throw exception("Current scene is not initialized");
@@ -131,7 +135,7 @@ namespace cse
   {
     hook.call<void()>("pre_render");
     if (!window->start_render(aspect_ratio)) return;
-    if (auto scene{current_scene.lock()})
+    if (auto scene{state.scene.lock()})
       scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass, alpha,
                     aspect_ratio, scale_factor);
     else
@@ -143,7 +147,7 @@ namespace cse
   void game::cleanup()
   {
     hook.call<void()>("pre_cleanup");
-    if (auto scene{current_scene.lock()})
+    if (auto scene{state.scene.lock()})
     {
       if (scene->initialized) scene->cleanup(window->graphics.gpu);
     }
@@ -162,11 +166,11 @@ namespace cse
 
   void game::process_updates()
   {
-    if (pending_scene.has_value())
+    if (state.next_scene.has_value())
     {
-      auto current{current_scene.lock()};
+      auto current{state.scene.lock()};
       if (!current) throw exception("Current scene is null");
-      if (auto &[name, scene]{pending_scene.value()}; !scene)
+      if (auto &[name, scene]{state.next_scene.value()}; !scene)
       {
         if (auto iterator{scenes.find(name)}; iterator == scenes.end())
           throw exception("Tried to set current scene to null");
@@ -174,7 +178,7 @@ namespace cse
         {
           const auto &new_scene{iterator->second};
           if (current->initialized) current->cleanup(window->graphics.gpu);
-          current_scene = new_scene;
+          state.scene = new_scene;
           if (!new_scene->initialized) new_scene->initialize(window->graphics.instance, window->graphics.gpu);
         }
       }
@@ -182,12 +186,12 @@ namespace cse
       {
         if (current->initialized) current->cleanup(window->graphics.gpu);
         scenes.insert_or_assign(name, scene);
-        current_scene = scene;
+        state.scene = scene;
         if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
       }
-      pending_scene.reset();
+      state.next_scene.reset();
     }
-    if (auto current{current_scene.lock()}; current && current->initialized)
+    if (auto current{state.scene.lock()}; current && current->initialized)
       current->process_updates();
     else
       throw exception("Current scene is not initialized");
@@ -195,16 +199,13 @@ namespace cse
 
   void game::update_previous()
   {
-    window->previous.update(window->state, window->graphics);
-    auto current{current_scene.lock()};
+    previous.state.poll_rate = state.poll_rate;
+    auto current{state.scene.lock()};
     if (!current) throw exception("Current scene is null");
-    previous_scene = {[this, &current]
-                      {
-                        for (const auto &[name, scene] : scenes)
-                          if (scene == current) return name;
-                        return help::id{};
-                      }(),
-                      current};
+    previous.state.scene = current;
+    previous.state.next_scene = state.next_scene;
+    previous.graphics.frame_rate = graphics.frame_rate;
+    window->previous.update(window->state, window->graphics);
     current->update_previous();
   }
 
@@ -212,10 +213,10 @@ namespace cse
   {
     constexpr double minimum_poll_rate{10.0};
     constexpr double minimum_frame_rate{1.0};
-    poll_rate = std::max(poll_rate, minimum_poll_rate);
-    frame_rate = std::max(frame_rate, minimum_frame_rate);
-    const double real_poll_rate = 1.0 / poll_rate;
-    const double real_frame_rate = 1.0 / frame_rate;
+    state.poll_rate = std::max(state.poll_rate, minimum_poll_rate);
+    graphics.frame_rate = std::max(graphics.frame_rate, minimum_frame_rate);
+    const double real_poll_rate = 1.0 / state.poll_rate;
+    const double real_frame_rate = 1.0 / graphics.frame_rate;
     if (!equal(real_poll_rate, active_poll_rate))
     {
       accumulator = accumulator * (real_poll_rate / active_poll_rate);
