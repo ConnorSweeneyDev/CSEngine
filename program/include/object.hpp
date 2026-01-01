@@ -43,8 +43,6 @@ namespace cse
                 const float scale_factor);
     void cleanup(SDL_GPUDevice *gpu);
 
-    void update_previous();
-
   public:
     std::weak_ptr<scene> parent{};
     help::object_state state{};

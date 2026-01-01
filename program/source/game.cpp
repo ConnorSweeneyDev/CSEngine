@@ -191,6 +191,7 @@ namespace cse
 
   void game::update_previous()
   {
+    window->previous.update(window->state, window->graphics);
     auto current{current_scene.lock()};
     if (!current) throw exception("Current scene is null");
     previous_scene = {[this, &current]
@@ -200,7 +201,6 @@ namespace cse
                         return help::id{};
                       }(),
                       current};
-    window->update_previous();
     current->update_previous();
   }
 

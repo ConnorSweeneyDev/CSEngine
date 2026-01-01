@@ -53,16 +53,17 @@ std::shared_ptr<derived> try_as_a(const std::shared_ptr<base> &pointer) noexcept
   return nullptr;
 }
 
-template <typename type> cse::help::id id(const std::shared_ptr<type> &pointer,
-                                          const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map) noexcept
+template <typename type>
+cse::help::id try_id(const std::shared_ptr<type> &pointer,
+                     const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map) noexcept
 {
   for (const auto &[name, entry] : map)
     if (entry == pointer) return name;
   return cse::help::id{};
 }
 
-template <typename type> cse::help::id id(const std::weak_ptr<type> &pointer,
-                                          const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map) noexcept
+template <typename type> cse::help::id
+try_id(const std::weak_ptr<type> &pointer, const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map) noexcept
 {
   auto locked{pointer.lock()};
   if (!locked) return cse::help::id{};
@@ -89,10 +90,12 @@ template <typename type> cse::help::id throw_id(const std::weak_ptr<type> &point
   throw cse::exception("ID lookup failed");
 }
 
-template <typename type> std::shared_ptr<type> throw_lock(const std::weak_ptr<type> &pointer)
+template <typename type> std::shared_ptr<type>
+try_at(const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map, const cse::help::id name) noexcept
 {
-  if (auto locked{pointer.lock()}) return locked;
-  throw cse::exception("Weak pointer lock failed");
+  auto iterator{map.find(name)};
+  if (iterator != map.end()) return iterator->second;
+  return nullptr;
 }
 
 template <typename type> std::shared_ptr<type>
@@ -103,12 +106,10 @@ throw_at(const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map, co
   throw cse::exception("Map lookup failed");
 }
 
-template <typename type> std::shared_ptr<type>
-try_at(const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map, const cse::help::id name) noexcept
+template <typename type> std::shared_ptr<type> throw_lock(const std::weak_ptr<type> &pointer)
 {
-  auto iterator{map.find(name)};
-  if (iterator != map.end()) return iterator->second;
-  return nullptr;
+  if (auto locked{pointer.lock()}) return locked;
+  throw cse::exception("Weak pointer lock failed");
 }
 
 inline bool equal(const double first, const double second, const double epsilon = 1e-5)

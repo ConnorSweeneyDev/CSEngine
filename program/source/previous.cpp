@@ -5,7 +5,15 @@
 
 namespace cse::help
 {
-  window_previous::window_previous()
+  window_previous::window_previous() { clean(); }
+
+  window_previous::window_previous(const window_state &state_, const window_graphics &graphics_)
+  {
+    clean();
+    update(state_, graphics_);
+  }
+
+  void window_previous::clean()
   {
     state.width.change = nullptr;
     state.height.change = nullptr;
@@ -17,59 +25,59 @@ namespace cse::help
     graphics.title.change = nullptr;
   }
 
-  window_previous::window_previous(const window_state &state_, const window_graphics &graphics_)
+  void window_previous::update(const window_state &new_state, const window_graphics &new_graphics)
   {
-    state.width.change = nullptr;
-    state.height.change = nullptr;
-    state.left.change = nullptr;
-    state.top.change = nullptr;
-    state.display_index.change = nullptr;
-    state.fullscreen.change = nullptr;
-    state.vsync.change = nullptr;
-    graphics.title.change = nullptr;
-
-    state.running = state_.running;
-    state.width = state_.width;
-    state.height = state_.height;
-    state.left = state_.left;
-    state.top = state_.top;
-    state.display_index = state_.display_index;
-    state.fullscreen = state_.fullscreen;
-    state.vsync = state_.vsync;
-    graphics.title = graphics_.title;
+    state.running = new_state.running;
+    state.width = new_state.width;
+    state.height = new_state.height;
+    state.left = new_state.left;
+    state.top = new_state.top;
+    state.display_index = new_state.display_index;
+    state.fullscreen = new_state.fullscreen;
+    state.vsync = new_state.vsync;
+    graphics.title = new_graphics.title;
   }
 
   camera_previous::camera_previous() {}
 
   camera_previous::camera_previous(const camera_state &state_, const camera_graphics &graphics_)
   {
-    state.translation = state_.translation;
-    state.forward = state_.forward;
-    state.up = state_.up;
-    graphics.fov = graphics_.fov;
+    update(state_, graphics_);
   }
 
-  object_previous::object_previous()
+  void camera_previous::update(const camera_state &new_state, const camera_graphics &new_graphics)
   {
-    graphics.texture.image.change = nullptr;
-    graphics.shader.fragment.change = nullptr;
-    graphics.shader.vertex.change = nullptr;
+    state.translation = new_state.translation;
+    state.forward = new_state.forward;
+    state.up = new_state.up;
+    graphics.fov = new_graphics.fov;
   }
+
+  object_previous::object_previous() { clean(); }
 
   object_previous::object_previous(const object_state &state_, const object_graphics &graphics_)
   {
+    clean();
+    update(state_, graphics_);
+  }
+
+  void object_previous::clean()
+  {
     graphics.texture.image.change = nullptr;
     graphics.shader.fragment.change = nullptr;
     graphics.shader.vertex.change = nullptr;
+  }
 
-    state.translation = state_.translation;
-    state.rotation = state_.rotation;
-    state.scale = state_.scale;
-    graphics.color = graphics_.color;
-    graphics.shader.vertex = graphics_.shader.vertex;
-    graphics.shader.fragment = graphics_.shader.fragment;
-    graphics.texture.image = graphics_.texture.image;
-    graphics.texture.group = graphics_.texture.group;
-    graphics.texture.animation = graphics_.texture.animation;
+  void object_previous::update(const object_state &new_state, const object_graphics &new_graphics)
+  {
+    state.translation = new_state.translation;
+    state.rotation = new_state.rotation;
+    state.scale = new_state.scale;
+    graphics.color = new_graphics.color;
+    graphics.shader.vertex = new_graphics.shader.vertex;
+    graphics.shader.fragment = new_graphics.shader.fragment;
+    graphics.texture.image = new_graphics.texture.image;
+    graphics.texture.group = new_graphics.texture.group;
+    graphics.texture.animation = new_graphics.texture.animation;
   }
 }

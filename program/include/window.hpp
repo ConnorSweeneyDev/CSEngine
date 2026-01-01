@@ -36,8 +36,6 @@ namespace cse
     void end_render();
     void cleanup();
 
-    void update_previous();
-
   public:
     std::weak_ptr<game> parent{};
     help::window_state state{};

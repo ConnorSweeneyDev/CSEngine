@@ -92,17 +92,4 @@ namespace cse
     initialized = false;
     hook.call<void()>("cleanup");
   }
-
-  void window::update_previous()
-  {
-    previous.state.running = state.running;
-    previous.state.width = state.width;
-    previous.state.height = state.height;
-    previous.state.left = state.left;
-    previous.state.top = state.top;
-    previous.state.display_index = state.display_index;
-    previous.state.fullscreen = state.fullscreen;
-    previous.state.vsync = state.vsync;
-    previous.graphics.title = graphics.title;
-  }
 }
