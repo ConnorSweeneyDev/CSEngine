@@ -1,5 +1,6 @@
 #include "game.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 
@@ -11,6 +12,7 @@
 #include "print.hpp"
 #include "scene.hpp"
 #include "system.hpp"
+#include "utility.hpp"
 #include "window.hpp"
 
 namespace cse
@@ -117,7 +119,7 @@ namespace cse
     hook.call<void()>("pre_simulate");
     window->simulate();
     if (auto scene{current_scene.lock()})
-      scene->simulate(poll_rate);
+      scene->simulate(active_poll_rate);
     else
       throw exception("Current scene is not initialized");
     hook.call<void()>("post_simulate");
@@ -206,6 +208,16 @@ namespace cse
 
   void game::update_time()
   {
+    constexpr double minimum_poll_rate{1.0 / 10.0};
+    constexpr double minimum_frame_rate{1.0 / 1.0};
+    poll_rate = std::max(poll_rate, minimum_poll_rate);
+    frame_rate = std::max(frame_rate, minimum_frame_rate);
+    if (!equal(poll_rate, active_poll_rate))
+    {
+      accumulator = accumulator * (poll_rate / active_poll_rate);
+      active_poll_rate = poll_rate;
+    }
+    if (!equal(frame_rate, active_frame_rate)) { active_frame_rate = frame_rate; }
     time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
     static double simulation_time{};
     double delta_time{time - simulation_time};
@@ -216,9 +228,9 @@ namespace cse
 
   bool game::simulation_behind()
   {
-    if (accumulator >= poll_rate)
+    if (accumulator >= active_poll_rate)
     {
-      accumulator -= poll_rate;
+      accumulator -= active_poll_rate;
       return true;
     }
     return false;
@@ -227,10 +239,10 @@ namespace cse
   bool game::should_render()
   {
     static double render_time{};
-    if (time - render_time >= frame_rate)
+    if (time - render_time >= active_frame_rate)
     {
       render_time = time;
-      alpha = accumulator / poll_rate;
+      alpha = accumulator / active_poll_rate;
       return true;
     }
     return false;
