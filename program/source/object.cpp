@@ -67,7 +67,10 @@ namespace cse
           }
           else if (animation.loop)
           {
-            if (duration > 0) animation.elapsed -= duration;
+            if (duration > 0)
+              animation.elapsed -= duration;
+            else if (group.frames.size() == 1)
+              break;
             animation.frame = 0;
           }
           else
