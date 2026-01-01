@@ -208,16 +208,18 @@ namespace cse
 
   void game::update_time()
   {
-    constexpr double minimum_poll_rate{1.0 / 10.0};
-    constexpr double minimum_frame_rate{1.0 / 1.0};
-    poll_rate = std::min(poll_rate, minimum_poll_rate);
-    frame_rate = std::min(frame_rate, minimum_frame_rate);
-    if (!equal(poll_rate, active_poll_rate))
+    constexpr double minimum_poll_rate{10.0};
+    constexpr double minimum_frame_rate{1.0};
+    poll_rate = std::max(poll_rate, minimum_poll_rate);
+    frame_rate = std::max(frame_rate, minimum_frame_rate);
+    const double real_poll_rate = 1.0 / poll_rate;
+    const double real_frame_rate = 1.0 / frame_rate;
+    if (!equal(real_poll_rate, active_poll_rate))
     {
-      accumulator = accumulator * (poll_rate / active_poll_rate);
-      active_poll_rate = poll_rate;
+      accumulator = accumulator * (real_poll_rate / active_poll_rate);
+      active_poll_rate = real_poll_rate;
     }
-    if (!equal(frame_rate, active_frame_rate)) { active_frame_rate = frame_rate; }
+    if (!equal(real_frame_rate, active_frame_rate)) active_frame_rate = real_frame_rate;
     time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
     static double simulation_time{};
     double delta_time{time - simulation_time};
