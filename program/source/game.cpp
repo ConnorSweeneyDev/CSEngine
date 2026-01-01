@@ -210,8 +210,8 @@ namespace cse
   {
     constexpr double minimum_poll_rate{1.0 / 10.0};
     constexpr double minimum_frame_rate{1.0 / 1.0};
-    poll_rate = std::max(poll_rate, minimum_poll_rate);
-    frame_rate = std::max(frame_rate, minimum_frame_rate);
+    poll_rate = std::min(poll_rate, minimum_poll_rate);
+    frame_rate = std::min(frame_rate, minimum_frame_rate);
     if (!equal(poll_rate, active_poll_rate))
     {
       accumulator = accumulator * (poll_rate / active_poll_rate);
