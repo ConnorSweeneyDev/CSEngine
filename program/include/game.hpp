@@ -43,7 +43,7 @@ namespace cse
     void remove_scene(const help::id name);
 
     template <help::is_game game_type, typename... game_arguments>
-    static std::shared_ptr<game_type> create(const std::pair<double, double> rates, game_arguments &&...arguments);
+    static std::shared_ptr<game_type> create(const std::pair<double, double> &rates, game_arguments &&...arguments);
     void run();
 
   protected:

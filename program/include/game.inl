@@ -77,7 +77,7 @@ namespace cse
   }
 
   template <help::is_game game_type, typename... game_arguments>
-  std::shared_ptr<game_type> game::create(const std::pair<double, double> rates, game_arguments &&...arguments)
+  std::shared_ptr<game_type> game::create(const std::pair<double, double> &rates, game_arguments &&...arguments)
   {
     if (!instance.expired()) throw exception("Tried to create a second game instance");
     auto new_instance{std::shared_ptr<game_type>{new game_type{rates, std::forward<game_arguments>(arguments)...}}};

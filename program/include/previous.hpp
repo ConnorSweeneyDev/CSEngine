@@ -13,7 +13,7 @@ namespace cse::help
   public:
     game_previous();
     game_previous(const game_state &state_, const game_graphics &graphics_);
-    ~game_previous();
+    ~game_previous() = default;
     game_previous(const game_previous &) = delete;
     game_previous &operator=(const game_previous &) = delete;
     game_previous(game_previous &&) = delete;
