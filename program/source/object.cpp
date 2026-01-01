@@ -66,8 +66,10 @@ namespace cse
         }
         else if (animation.loop)
         {
-          if (frame_count == 1 && duration <= 0) break;
-          if (duration > 0) animation.elapsed -= duration;
+          if (duration > 0)
+            animation.elapsed -= duration;
+          else
+            break;
           animation.frame = 0;
         }
         else
@@ -86,7 +88,7 @@ namespace cse
         }
         else if (animation.loop)
         {
-          if (frame_count == 1 && group.frames[0].duration <= 0) break;
+          if (group.frames[0].duration <= 0) break;
           animation.frame = frame_count - 1;
           auto duration = group.frames[animation.frame].duration;
           if (duration > 0) animation.elapsed += duration;
