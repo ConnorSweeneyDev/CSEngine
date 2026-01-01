@@ -58,6 +58,7 @@ namespace cse
         event();
         input();
         simulate();
+        update_previous();
       }
       if (should_render())
       {
@@ -186,6 +187,21 @@ namespace cse
       current->process_updates();
     else
       throw exception("Current scene is not initialized");
+  }
+
+  void game::update_previous()
+  {
+    auto current{current_scene.lock()};
+    if (!current) throw exception("Current scene is null");
+    const help::id current_id{[this, &current]
+                              {
+                                for (const auto &[name, scene] : scenes)
+                                  if (scene == current) return name;
+                                return help::id{};
+                              }()};
+    previous_scene = {current_id, current};
+    window->update_previous();
+    current->update_previous();
   }
 
   void game::update_time()

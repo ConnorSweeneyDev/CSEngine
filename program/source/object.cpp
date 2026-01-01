@@ -16,7 +16,7 @@ namespace cse
 {
   object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
                  const std::pair<vertex, fragment> &shader_, const std::tuple<image, group, animation> &texture_)
-    : state{transform_}, graphics{tint_, shader_, texture_}
+    : state{transform_}, graphics{tint_, shader_, texture_}, previous{state, graphics}
   {
   }
 
@@ -44,8 +44,8 @@ namespace cse
     state.translation.update();
     state.rotation.update();
     state.scale.update();
-    auto &group{graphics.texture->group};
-    auto &animation{graphics.texture->animation};
+    auto &group{graphics.texture.group};
+    auto &animation{graphics.texture.animation};
     auto frame_count{group.frames.size()};
     bool no_frames{group.frames.empty()};
     if (no_frames)
@@ -97,7 +97,6 @@ namespace cse
           break;
     }
     hook.call<void()>("simulate");
-    graphics.previous = {graphics.shader, graphics.texture};
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
@@ -109,8 +108,8 @@ namespace cse
     state.scale.interpolate(alpha);
     graphics.upload_dynamic_buffers(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
-    auto model_matrix{state.calculate_model_matrix(graphics.texture->image->frame_width,
-                                                   graphics.texture->image->frame_height, scale_factor)};
+    auto model_matrix{state.calculate_model_matrix(graphics.texture.image->frame_width,
+                                                   graphics.texture.image->frame_height, scale_factor)};
     graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix, model_matrix);
     graphics.draw_primitives(render_pass);
     hook.call<void(const glm::mat4 &)>("render", model_matrix);
@@ -121,5 +120,13 @@ namespace cse
     graphics.cleanup_object(gpu);
     initialized = false;
     hook.call<void()>("cleanup");
+  }
+
+  void object::update_previous()
+  {
+    previous.state = state;
+    previous.graphics.color = graphics.color;
+    previous.graphics.shader = graphics.shader;
+    previous.graphics.texture = graphics.texture;
   }
 }

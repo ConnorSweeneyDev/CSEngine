@@ -11,6 +11,7 @@
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "hook.hpp"
+#include "previous.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -35,10 +36,13 @@ namespace cse
     std::pair<glm::mat4, glm::mat4> render(const double alpha, const float aspect_ratio, const float scale_factor);
     void cleanup();
 
+    void update_previous();
+
   public:
-    std::weak_ptr<class scene> parent{};
+    std::weak_ptr<scene> parent{};
     help::camera_state state{};
     help::camera_graphics graphics{};
+    help::camera_previous previous{};
     help::hook hook{};
 
   private:

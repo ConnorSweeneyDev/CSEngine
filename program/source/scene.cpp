@@ -121,4 +121,10 @@ namespace cse
     }
     additions.clear();
   }
+
+  void scene::update_previous()
+  {
+    camera->update_previous();
+    for (const auto &[name, object] : objects) object->update_previous();
+  }
 }

@@ -10,6 +10,7 @@ namespace cse::help
   class id
   {
   public:
+    id() = default;
     constexpr id(const char *string_);
     id(const std::string &string_);
 

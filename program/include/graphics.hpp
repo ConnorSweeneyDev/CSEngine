@@ -109,11 +109,6 @@ namespace cse::help
       struct group group{};
       struct animation animation{};
     };
-    struct previous
-    {
-      struct shader shader{};
-      struct texture texture{};
-    };
 
   public:
     object_graphics() = default;
@@ -139,9 +134,8 @@ namespace cse::help
 
   public:
     glm::u8vec4 color{};
-    property<struct shader> shader{};
-    property<struct texture> texture{};
-    struct previous previous{};
+    struct shader shader{};
+    struct texture texture{};
 
   private:
     SDL_Window *cached_instance{};

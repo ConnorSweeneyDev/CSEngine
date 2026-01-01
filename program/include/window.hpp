@@ -9,6 +9,7 @@
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "hook.hpp"
+#include "previous.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -35,10 +36,13 @@ namespace cse
     void end_render();
     void cleanup();
 
+    void update_previous();
+
   public:
-    std::weak_ptr<class game> parent{};
+    std::weak_ptr<game> parent{};
     help::window_state state{};
     help::window_graphics graphics{};
+    help::window_previous previous{};
     help::hook hook{};
 
   private:

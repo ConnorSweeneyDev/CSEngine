@@ -14,6 +14,7 @@
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "hook.hpp"
+#include "previous.hpp"
 #include "resource.hpp"
 #include "state.hpp"
 
@@ -42,10 +43,13 @@ namespace cse
                 const float scale_factor);
     void cleanup(SDL_GPUDevice *gpu);
 
+    void update_previous();
+
   public:
-    std::weak_ptr<class scene> parent{};
+    std::weak_ptr<scene> parent{};
     help::object_state state{};
     help::object_graphics graphics{};
+    help::object_previous previous{};
     help::hook hook{};
 
   private:

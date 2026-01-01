@@ -57,6 +57,7 @@ namespace cse
 
     void update_parents();
     void process_updates();
+    void update_previous();
     void update_time();
     bool simulation_behind();
     bool should_render();
@@ -67,6 +68,7 @@ namespace cse
     std::unordered_map<help::id, std::shared_ptr<scene>> scenes{};
     std::weak_ptr<scene> current_scene{};
     std::optional<std::pair<help::id, std::shared_ptr<scene>>> pending_scene{};
+    std::pair<help::id, std::shared_ptr<scene>> previous_scene{};
     help::hook hook{};
 
   private:

@@ -49,9 +49,10 @@ namespace cse
     void cleanup(SDL_GPUDevice *gpu);
 
     void process_updates();
+    void update_previous();
 
   public:
-    std::weak_ptr<class game> parent{};
+    std::weak_ptr<game> parent{};
     std::shared_ptr<class camera> camera{};
     std::unordered_map<help::id, std::shared_ptr<object>> objects{};
     help::hook hook{};

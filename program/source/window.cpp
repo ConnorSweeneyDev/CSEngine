@@ -11,7 +11,7 @@
 namespace cse
 {
   window::window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
-    : state{dimensions_, fullscreen_, vsync_}, graphics{title_}
+    : state{dimensions_, fullscreen_, vsync_}, graphics{title_}, previous{state}
   {
     if (graphics.title.empty()) throw exception("Window title cannot be empty");
     state.width.change = [this]() { graphics.handle_manual_resize(state.width, state.height, state.fullscreen); };
@@ -95,4 +95,6 @@ namespace cse
     initialized = false;
     hook.call<void()>("cleanup");
   }
+
+  void window::update_previous() { previous = {state}; }
 }
