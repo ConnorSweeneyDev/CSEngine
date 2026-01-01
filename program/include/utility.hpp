@@ -53,6 +53,42 @@ std::shared_ptr<derived> try_as_a(const std::shared_ptr<base> &pointer) noexcept
   return nullptr;
 }
 
+template <typename type> cse::help::id id(const std::shared_ptr<type> &pointer,
+                                          const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map) noexcept
+{
+  for (const auto &[name, entry] : map)
+    if (entry == pointer) return name;
+  return cse::help::id{};
+}
+
+template <typename type> cse::help::id id(const std::weak_ptr<type> &pointer,
+                                          const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map) noexcept
+{
+  auto locked{pointer.lock()};
+  if (!locked) return cse::help::id{};
+  for (const auto &[name, entry] : map)
+    if (entry == locked) return name;
+  return cse::help::id{};
+}
+
+template <typename type> cse::help::id throw_id(const std::shared_ptr<type> &pointer,
+                                                const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map)
+{
+  for (const auto &[name, entry] : map)
+    if (entry == pointer) return name;
+  throw cse::exception("ID lookup failed");
+}
+
+template <typename type> cse::help::id throw_id(const std::weak_ptr<type> &pointer,
+                                                const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map)
+{
+  auto locked{pointer.lock()};
+  if (!locked) throw cse::exception("Weak pointer lock failed");
+  for (const auto &[name, entry] : map)
+    if (entry == locked) return name;
+  throw cse::exception("ID lookup failed");
+}
+
 template <typename type> std::shared_ptr<type> throw_lock(const std::weak_ptr<type> &pointer)
 {
   if (auto locked{pointer.lock()}) return locked;

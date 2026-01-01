@@ -193,13 +193,13 @@ namespace cse
   {
     auto current{current_scene.lock()};
     if (!current) throw exception("Current scene is null");
-    const help::id current_id{[this, &current]
-                              {
-                                for (const auto &[name, scene] : scenes)
-                                  if (scene == current) return name;
-                                return help::id{};
-                              }()};
-    previous_scene = {current_id, current};
+    previous_scene = {[this, &current]
+                      {
+                        for (const auto &[name, scene] : scenes)
+                          if (scene == current) return name;
+                        return help::id{};
+                      }(),
+                      current};
     window->update_previous();
     current->update_previous();
   }
