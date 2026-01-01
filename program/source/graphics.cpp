@@ -294,11 +294,11 @@ namespace cse::help
   }
 
   object_graphics::object_graphics(const glm::u8vec4 &color_, const std::pair<vertex, fragment> &shader_,
-                                   const std::tuple<image, group, std::size_t, double, bool> &texture_)
+                                   const std::tuple<image, group, std::size_t, double, bool, double> &texture_)
     : color{color_}, shader{{{shader_.first}, {shader_.second}}},
       texture{{{std::get<0>(texture_)},
                std::get<1>(texture_),
-               {std::get<2>(texture_), std::get<3>(texture_), std::get<4>(texture_)}}}
+               {std::get<2>(texture_), std::get<3>(texture_), std::get<4>(texture_), std::get<5>(texture_)}}}
   {
     shader.change = [this]()
     {
