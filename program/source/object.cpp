@@ -46,21 +46,23 @@ namespace cse
     state.translation.update();
     state.rotation.update();
     state.scale.update();
-    auto &group = graphics.texture->group;
-    auto &animation = graphics.texture->animation;
-    if (group.frames.empty())
+    auto &group{graphics.texture->group};
+    auto &animation{graphics.texture->animation};
+    auto frame_count{group.frames.size()};
+    bool no_frames{};
+    if (no_frames)
       animation.frame = 0;
-    else if (animation.frame >= group.frames.size())
-      animation.frame = group.frames.size() - 1;
-    if (animation.speed > 0.0 && !group.frames.empty())
+    else if (animation.frame >= frame_count)
+      animation.frame = frame_count - 1;
+    if (animation.speed > 0.0 && !no_frames)
     {
       animation.elapsed += poll_rate * animation.speed;
-      while (animation.frame < group.frames.size())
+      while (animation.frame < frame_count)
       {
         auto duration = group.frames[animation.frame].duration;
         if (duration <= 0 || animation.elapsed >= duration)
         {
-          if (animation.frame < group.frames.size() - 1)
+          if (animation.frame < frame_count - 1)
           {
             if (duration > 0) animation.elapsed -= duration;
             animation.frame++;
@@ -69,7 +71,7 @@ namespace cse
           {
             if (duration > 0)
               animation.elapsed -= duration;
-            else if (group.frames.size() == 1)
+            else if (frame_count == 1)
               break;
             animation.frame = 0;
           }
@@ -79,6 +81,26 @@ namespace cse
         else
           break;
       }
+    }
+    else if (animation.speed < 0.0 && !no_frames)
+    {
+      animation.elapsed += poll_rate * animation.speed;
+      while (animation.elapsed < 0)
+        if (animation.frame > 0)
+        {
+          animation.frame--;
+          auto duration = group.frames[animation.frame].duration;
+          if (duration > 0) animation.elapsed += duration;
+        }
+        else if (animation.loop)
+        {
+          if (frame_count == 1 && group.frames[0].duration <= 0) break;
+          animation.frame = frame_count - 1;
+          auto duration = group.frames[animation.frame].duration;
+          if (duration > 0) animation.elapsed += duration;
+        }
+        else
+          break;
     }
     hook.call<void()>("simulate");
     graphics.previous = {graphics.shader, graphics.texture};
