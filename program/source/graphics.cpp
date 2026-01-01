@@ -300,13 +300,28 @@ namespace cse::help
                std::get<1>(texture_),
                {std::get<2>(texture_), std::get<3>(texture_), std::get<4>(texture_)}}}
   {
-    shader.change = [this]() { generate_pipeline(); };
-    texture.change = [this]() { generate_and_upload_texture(); };
+    shader.change = [this]()
+    {
+      shader->vertex.change = [this]() { generate_pipeline(); };
+      shader->fragment.change = [this]() { generate_pipeline(); };
+      generate_pipeline();
+    };
+    shader->vertex.change = [this]() { generate_pipeline(); };
+    shader->fragment.change = [this]() { generate_pipeline(); };
+    texture.change = [this]()
+    {
+      texture->image.change = [this]() { generate_and_upload_texture(); };
+      generate_and_upload_texture();
+    };
+    texture->image.change = [this]() { generate_and_upload_texture(); };
   }
 
   object_graphics::~object_graphics()
   {
+    texture->image.change = nullptr;
     texture.change = nullptr;
+    shader->fragment.change = nullptr;
+    shader->vertex.change = nullptr;
     shader.change = nullptr;
   }
 
@@ -402,8 +417,8 @@ namespace cse::help
     const auto backend_formats{SDL_GetGPUShaderFormats(cached_gpu)};
     if (!(backend_formats & SDL_GPU_SHADERFORMAT_SPIRV))
       throw sdl_exception("No supported vulkan shader formats for object");
-    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader->vertex.source.size(),
-                                               .code = shader->vertex.source.data(),
+    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader->vertex->source.size(),
+                                               .code = shader->vertex->source.data(),
                                                .entrypoint = "main",
                                                .format = SDL_GPU_SHADERFORMAT_SPIRV,
                                                .stage = SDL_GPU_SHADERSTAGE_VERTEX,
@@ -414,8 +429,8 @@ namespace cse::help
                                                .props = 0};
     auto *vertex_shader{SDL_CreateGPUShader(cached_gpu, &vertex_shader_info)};
     if (!vertex_shader) throw sdl_exception("Could not create vertex shader for object");
-    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader->fragment.source.size(),
-                                                 .code = shader->fragment.source.data(),
+    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader->fragment->source.size(),
+                                                 .code = shader->fragment->source.data(),
                                                  .entrypoint = "main",
                                                  .format = SDL_GPU_SHADERFORMAT_SPIRV,
                                                  .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
@@ -499,24 +514,24 @@ namespace cse::help
     SDL_GPUTextureCreateInfo texture_info{.type = type,
                                           .format = format,
                                           .usage = usage,
-                                          .width = texture->image.width,
-                                          .height = texture->image.height,
+                                          .width = texture->image->width,
+                                          .height = texture->image->height,
                                           .layer_count_or_depth = 1,
                                           .num_levels = 1,
                                           .sample_count = SDL_GPU_SAMPLECOUNT_1,
                                           .props = 0};
     texture_buffer = SDL_CreateGPUTexture(cached_gpu, &texture_info);
     if (!texture_buffer) throw sdl_exception("Could not create texture for object");
-    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-                                                                 .size = texture->image.width * texture->image.height *
-                                                                         texture->image.channels,
-                                                                 .props = 0};
+    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{
+      .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+      .size = texture->image->width * texture->image->height * texture->image->channels,
+      .props = 0};
     texture_transfer_buffer = SDL_CreateGPUTransferBuffer(cached_gpu, &texture_transfer_buffer_info);
     if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for object");
     auto *texture_data{reinterpret_cast<Uint8 *>(SDL_MapGPUTransferBuffer(cached_gpu, texture_transfer_buffer, false))};
     if (!texture_data) throw sdl_exception("Could not map texture data for object");
-    SDL_memcpy(texture_data, texture->image.data.data(),
-               texture->image.width * texture->image.height * texture->image.channels);
+    SDL_memcpy(texture_data, texture->image->data.data(),
+               texture->image->width * texture->image->height * texture->image->channels);
     SDL_UnmapGPUTransferBuffer(cached_gpu, texture_transfer_buffer);
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(cached_gpu)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for object");
@@ -530,8 +545,8 @@ namespace cse::help
                                         .x = 0,
                                         .y = 0,
                                         .z = 0,
-                                        .w = texture->image.width,
-                                        .h = texture->image.height,
+                                        .w = texture->image->width,
+                                        .h = texture->image->height,
                                         .d = 1};
     SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
     SDL_EndGPUCopyPass(copy_pass);
