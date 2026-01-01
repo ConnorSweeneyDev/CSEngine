@@ -29,7 +29,7 @@ namespace cse
   {
     if (auto iterator{scenes.find(name)}; iterator == scenes.end())
       throw exception("Tried to set current scene to null");
-    else if (window->state.running)
+    else if (window->initialized)
       pending_scene = {name, {}};
     else
       current_scene = iterator->second;
@@ -41,7 +41,7 @@ namespace cse
     {
       const auto &scene{iterator->second};
       if (auto current{current_scene.lock()}; current == scene) throw exception("Tried to remove current scene");
-      if (window->state.running && scene->initialized) scene->cleanup(window->graphics.gpu);
+      if (scene->initialized) scene->cleanup(window->graphics.gpu);
       scenes.erase(iterator);
     }
   }
@@ -73,32 +73,31 @@ namespace cse
     update_parents();
     hook.call<void()>("pre_initialize");
     if (!window) throw exception("No window has been set for the game");
-    window->initialize();
+    if (!window->initialized) window->initialize();
     if (scenes.empty()) throw exception("No scenes have been added to the game");
-    if (current_scene.expired()) throw exception("No current scene has been set for the game");
     if (auto scene{current_scene.lock()})
     {
       if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
     }
     else
-      throw exception("Current scene is not initialized");
+      throw exception("No current scene has been set for the game");
     hook.call<void()>("post_initialize");
   }
 
   void game::event()
   {
-    auto scene{current_scene.lock()};
-    if (scene && scene->initialized)
-      scene->process_updates();
+    if (auto scene{current_scene.lock()})
+      while (SDL_PollEvent(&window->current_event))
+      {
+        hook.call<void()>("pre_event");
+        if (!window->initialized) throw exception("Window is not initialized");
+        window->event();
+        if (!scene->initialized) throw exception("Current scene is not initialized");
+        scene->event(window->current_event);
+        hook.call<void()>("post_event");
+      }
     else
-      throw exception("Current scene is not initialized");
-    while (SDL_PollEvent(&window->current_event))
-    {
-      hook.call<void()>("pre_event");
-      window->event();
-      scene->event(window->current_event);
-      hook.call<void()>("post_event");
-    }
+      throw exception("Current scene is null");
   }
 
   void game::input()
@@ -158,29 +157,35 @@ namespace cse
 
   void game::process_updates()
   {
-    if (!pending_scene.has_value()) return;
-    if (auto &[name, scene]{pending_scene.value()}; !scene)
+    if (pending_scene.has_value())
     {
-      if (auto iterator{scenes.find(name)}; iterator == scenes.end())
-        throw exception("Tried to set current scene to null");
+      auto current{current_scene.lock()};
+      if (!current) throw exception("Current scene is null");
+      if (auto &[name, scene]{pending_scene.value()}; !scene)
+      {
+        if (auto iterator{scenes.find(name)}; iterator == scenes.end())
+          throw exception("Tried to set current scene to null");
+        else
+        {
+          const auto &new_scene{iterator->second};
+          if (current->initialized) current->cleanup(window->graphics.gpu);
+          current_scene = new_scene;
+          if (!new_scene->initialized) new_scene->initialize(window->graphics.instance, window->graphics.gpu);
+        }
+      }
       else
       {
-        const auto &new_scene{iterator->second};
-        if (auto current{current_scene.lock()})
-          if (current->initialized) current->cleanup(window->graphics.gpu);
-        if (!new_scene->initialized) new_scene->initialize(window->graphics.instance, window->graphics.gpu);
-        current_scene = new_scene;
-      }
-    }
-    else
-    {
-      if (auto current{current_scene.lock()})
         if (current->initialized) current->cleanup(window->graphics.gpu);
-      scenes.insert_or_assign(name, scene);
-      if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
-      current_scene = scene;
+        scenes.insert_or_assign(name, scene);
+        current_scene = scene;
+        if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
+      }
+      pending_scene.reset();
     }
-    pending_scene.reset();
+    if (auto current{current_scene.lock()}; current && current->initialized)
+      current->process_updates();
+    else
+      throw exception("Current scene is not initialized");
   }
 
   void game::update_time()

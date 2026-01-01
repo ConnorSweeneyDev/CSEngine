@@ -42,6 +42,7 @@ namespace cse
     help::hook hook{};
 
   private:
+    bool initialized{};
     SDL_Event current_event{};
     const bool *current_keys{};
   };

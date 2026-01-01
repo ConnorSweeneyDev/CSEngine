@@ -49,6 +49,7 @@ namespace cse
   void scene::event(const SDL_Event &event)
   {
     hook.call<void(const SDL_Event &)>("pre_event", event);
+    if (!camera->initialized) throw exception("Camera is not initialized");
     camera->event(event);
     for (const auto &[name, object] : objects)
       if (!removals.contains(name))

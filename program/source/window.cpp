@@ -46,6 +46,7 @@ namespace cse
     graphics.create_app_and_window(state.width, state.height, state.left, state.top, state.display_index,
                                    state.fullscreen, state.vsync);
     state.running = true;
+    initialized = true;
     hook.call<void()>("initialize");
   }
 
@@ -91,6 +92,7 @@ namespace cse
     current_keys = nullptr;
     current_event = {};
     graphics.destroy_window_and_app();
+    initialized = false;
     hook.call<void()>("cleanup");
   }
 }
