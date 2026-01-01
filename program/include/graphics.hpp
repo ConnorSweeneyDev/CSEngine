@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <cstddef>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -119,7 +118,7 @@ namespace cse::help
   public:
     object_graphics() = default;
     object_graphics(const glm::u8vec4 &color_, const std::pair<vertex, fragment> &shader_,
-                    const std::tuple<image, group, std::size_t, double, bool, double> &texture_);
+                    const std::tuple<image, group, animation> &texture_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;
