@@ -62,11 +62,7 @@ namespace cse
     }
   }
 
-  void window::input()
-  {
-    current_keys = SDL_GetKeyboardState(nullptr);
-    hook.call<void(const bool *)>("input", current_keys);
-  }
+  void window::input() { hook.call<void(const bool *)>("input", current_keys); }
 
   void window::simulate() { hook.call<void()>("simulate"); }
 

@@ -5,6 +5,7 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
+#include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_timer.h"
 
 #include "exception.hpp"
@@ -92,12 +93,12 @@ namespace cse
     if (auto scene{current_scene.lock()})
       while (SDL_PollEvent(&window->current_event))
       {
-        hook.call<void()>("pre_event");
+        hook.call<void(const SDL_Event &)>("pre_event", window->current_event);
         if (!window->initialized) throw exception("Window is not initialized");
         window->event();
         if (!scene->initialized) throw exception("Current scene is not initialized");
         scene->event(window->current_event);
-        hook.call<void()>("post_event");
+        hook.call<void(const SDL_Event &)>("post_event", window->current_event);
       }
     else
       throw exception("Current scene is null");
@@ -105,13 +106,14 @@ namespace cse
 
   void game::input()
   {
-    hook.call<void()>("pre_input");
+    window->current_keys = SDL_GetKeyboardState(nullptr);
+    hook.call<void(const bool *)>("pre_input", window->current_keys);
     window->input();
     if (auto scene{current_scene.lock()})
       scene->input(window->current_keys);
     else
       throw exception("Current scene is not initialized");
-    hook.call<void()>("post_input");
+    hook.call<void(const bool *)>("post_input", window->current_keys);
   }
 
   void game::simulate()
