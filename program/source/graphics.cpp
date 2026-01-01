@@ -24,7 +24,10 @@
 
 namespace cse::help
 {
-  window_graphics::window_graphics(const std::string &title_) : title{title_} {}
+  window_graphics::window_graphics(const std::string &title_) : title{title_}
+  {
+    title.change = [this]() { handle_title_change(); };
+  }
 
   window_graphics::~window_graphics()
   {
@@ -52,7 +55,7 @@ namespace cse::help
       throw sdl_exception("Could not set app metadata creator");
     if (!SDL_Init(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be initialized");
 
-    instance = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height),
+    instance = SDL_CreateWindow(title->c_str(), static_cast<int>(width), static_cast<int>(height),
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
     if (!instance) throw sdl_exception("Could not create window");
     windowed_width = width;
@@ -175,6 +178,11 @@ namespace cse::help
       throw sdl_exception("Could not get bounds for display {}", display_index);
     return {display_bounds.x + (display_bounds.w - static_cast<int>(width)) / 2,
             display_bounds.y + (display_bounds.h - static_cast<int>(height)) / 2};
+  }
+
+  void window_graphics::handle_title_change()
+  {
+    if (!SDL_SetWindowTitle(instance, title->c_str())) throw sdl_exception("Could not set window title");
   }
 
   void window_graphics::handle_move(int &left, int &top, SDL_DisplayID &display_index, const bool fullscreen)

@@ -55,5 +55,11 @@ namespace cse
     hook.call<void()>("cleanup");
   }
 
-  void camera::update_previous() { previous = {state, graphics}; }
+  void camera::update_previous()
+  {
+    previous.state.translation = state.translation;
+    previous.state.forward = state.forward;
+    previous.state.up = state.up;
+    previous.graphics.fov = graphics.fov;
+  }
 }

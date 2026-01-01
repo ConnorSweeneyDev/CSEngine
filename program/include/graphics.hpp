@@ -42,6 +42,7 @@ namespace cse::help
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
                                         const unsigned int height);
+    void handle_title_change();
     void handle_move(int &left, int &top, SDL_DisplayID &display_index, const bool fullscreen);
     void handle_manual_move(const int left, const int top, const bool fullscreen);
     void handle_manual_display_move(const unsigned int width, const unsigned int height, int &left, int &top,
@@ -53,7 +54,7 @@ namespace cse::help
     void destroy_window_and_app();
 
   public:
-    const std::string title{};
+    property<std::string> title{};
 
   private:
     unsigned int windowed_width{};
@@ -75,6 +76,11 @@ namespace cse::help
   public:
     camera_graphics() = default;
     camera_graphics(const float fov_);
+    ~camera_graphics() = default;
+    camera_graphics(const camera_graphics &) = delete;
+    camera_graphics &operator=(const camera_graphics &) = delete;
+    camera_graphics(camera_graphics &&) = delete;
+    camera_graphics &operator=(camera_graphics &&) = delete;
 
   private:
     glm::mat4 calculate_projection_matrix(const float aspect_ratio);

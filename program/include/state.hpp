@@ -22,6 +22,11 @@ namespace cse::help
   public:
     window_state() = default;
     window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_);
+    ~window_state() = default;
+    window_state(const window_state &) = delete;
+    window_state &operator=(const window_state &) = delete;
+    window_state(window_state &&) = delete;
+    window_state &operator=(window_state &&) = delete;
 
   public:
     bool running{};
@@ -41,6 +46,11 @@ namespace cse::help
   public:
     camera_state() = default;
     camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_);
+    ~camera_state() = default;
+    camera_state(const camera_state &) = delete;
+    camera_state &operator=(const camera_state &) = delete;
+    camera_state(camera_state &&) = delete;
+    camera_state &operator=(camera_state &&) = delete;
 
   private:
     glm::mat4 calculate_view_matrix(const float scale_factor) const;
@@ -58,6 +68,11 @@ namespace cse::help
   public:
     object_state() = default;
     object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_);
+    ~object_state() = default;
+    object_state(const object_state &) = delete;
+    object_state &operator=(const object_state &) = delete;
+    object_state(object_state &&) = delete;
+    object_state &operator=(object_state &&) = delete;
 
   private:
     glm::mat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,

@@ -14,9 +14,10 @@ namespace cse::help
     state.display_index.change = nullptr;
     state.fullscreen.change = nullptr;
     state.vsync.change = nullptr;
+    graphics.title.change = nullptr;
   }
 
-  window_previous::window_previous(const window_state &state_)
+  window_previous::window_previous(const window_state &state_, const window_graphics &graphics_)
   {
     state.width.change = nullptr;
     state.height.change = nullptr;
@@ -25,6 +26,7 @@ namespace cse::help
     state.display_index.change = nullptr;
     state.fullscreen.change = nullptr;
     state.vsync.change = nullptr;
+    graphics.title.change = nullptr;
 
     state.running = state_.running;
     state.width = state_.width;
@@ -34,6 +36,17 @@ namespace cse::help
     state.display_index = state_.display_index;
     state.fullscreen = state_.fullscreen;
     state.vsync = state_.vsync;
+    graphics.title = graphics_.title;
+  }
+
+  camera_previous::camera_previous() {}
+
+  camera_previous::camera_previous(const camera_state &state_, const camera_graphics &graphics_)
+  {
+    state.translation = state_.translation;
+    state.forward = state_.forward;
+    state.up = state_.up;
+    graphics.fov = graphics_.fov;
   }
 
   object_previous::object_previous()
@@ -49,7 +62,9 @@ namespace cse::help
     graphics.shader.fragment.change = nullptr;
     graphics.shader.vertex.change = nullptr;
 
-    state = state_;
+    state.translation = state_.translation;
+    state.rotation = state_.rotation;
+    state.scale = state_.scale;
     graphics.color = graphics_.color;
     graphics.shader.vertex = graphics_.shader.vertex;
     graphics.shader.fragment = graphics_.shader.fragment;

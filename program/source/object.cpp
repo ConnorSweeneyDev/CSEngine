@@ -124,9 +124,14 @@ namespace cse
 
   void object::update_previous()
   {
-    previous.state = state;
+    previous.state.translation = state.translation;
+    previous.state.rotation = state.rotation;
+    previous.state.scale = state.scale;
     previous.graphics.color = graphics.color;
-    previous.graphics.shader = graphics.shader;
-    previous.graphics.texture = graphics.texture;
+    previous.graphics.shader.vertex = graphics.shader.vertex;
+    previous.graphics.shader.fragment = graphics.shader.fragment;
+    previous.graphics.texture.image = graphics.texture.image;
+    previous.graphics.texture.group = graphics.texture.group;
+    previous.graphics.texture.animation = graphics.texture.animation;
   }
 }

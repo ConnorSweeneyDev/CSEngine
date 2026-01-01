@@ -6,14 +6,11 @@
 #include "SDL3/SDL_keyboard.h"
 #include "glm/ext/vector_uint2.hpp"
 
-#include "exception.hpp"
-
 namespace cse
 {
   window::window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
-    : state{dimensions_, fullscreen_, vsync_}, graphics{title_}, previous{state}
+    : state{dimensions_, fullscreen_, vsync_}, graphics{title_}, previous{state, graphics}
   {
-    if (graphics.title.empty()) throw exception("Window title cannot be empty");
     state.width.change = [this]() { graphics.handle_manual_resize(state.width, state.height, state.fullscreen); };
     state.height.change = [this]() { graphics.handle_manual_resize(state.width, state.height, state.fullscreen); };
     state.left.change = [this]() { graphics.handle_manual_move(state.left, state.top, state.fullscreen); };
@@ -96,5 +93,16 @@ namespace cse
     hook.call<void()>("cleanup");
   }
 
-  void window::update_previous() { previous = {state}; }
+  void window::update_previous()
+  {
+    previous.state.running = state.running;
+    previous.state.width = state.width;
+    previous.state.height = state.height;
+    previous.state.left = state.left;
+    previous.state.top = state.top;
+    previous.state.display_index = state.display_index;
+    previous.state.fullscreen = state.fullscreen;
+    previous.state.vsync = state.vsync;
+    previous.graphics.title = graphics.title;
+  }
 }
