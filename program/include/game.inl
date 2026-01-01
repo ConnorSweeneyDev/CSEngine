@@ -7,8 +7,6 @@
 #include <string>
 #include <utility>
 
-#include "glm/ext/vector_uint2.hpp"
-
 #include "exception.hpp"
 #include "id.hpp"
 #include "traits.hpp"
@@ -17,10 +15,10 @@
 namespace cse
 {
   template <help::is_window window_type, typename... window_arguments>
-  void game::set_window(const std::string &title, const glm::uvec2 &dimensions, window_arguments &&...arguments)
+  void game::set_window(window_arguments &&...arguments)
   {
     if (window && window->initialized) throw exception("Tried to change window after initialization");
-    window = std::make_shared<window_type>(title, dimensions, std::forward<window_arguments>(arguments)...);
+    window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
     if (auto parent{weak_from_this()}; !parent.expired()) window->parent = parent;
   }
 
@@ -78,10 +76,10 @@ namespace cse
   }
 
   template <help::is_game game_type, typename... game_arguments>
-  std::shared_ptr<game_type> game::create(const std::pair<double, double> &rates, game_arguments &&...arguments)
+  std::shared_ptr<game_type> game::create(game_arguments &&...arguments)
   {
     if (!instance.expired()) throw exception("Tried to create a second game instance");
-    auto new_instance{std::shared_ptr<game_type>{new game_type{rates, std::forward<game_arguments>(arguments)...}}};
+    auto new_instance{std::shared_ptr<game_type>{new game_type{std::forward<game_arguments>(arguments)...}}};
     instance = new_instance;
     return new_instance;
   }
