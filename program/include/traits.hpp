@@ -86,7 +86,7 @@ namespace cse::help
     using extracted_type = type;
   };
 
-  template <typename callable> struct scene_type_from_callable
+  template <typename callable> struct type_from_callable
   {
     using signature = typename callable_traits<std::decay_t<callable>>::signature;
     using first_param = typename first_parameter_type<signature>::type;

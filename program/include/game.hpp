@@ -43,6 +43,8 @@ namespace cse
 
     template <help::is_game game_type, typename... game_arguments> static std::shared_ptr<game_type>
     create(const std::function<void(const std::shared_ptr<game_type>)> &config, game_arguments &&...arguments);
+    template <typename callable, typename... game_arguments>
+    static std::shared_ptr<game> create(callable &&config, game_arguments &&...arguments);
     void run();
 
   protected:

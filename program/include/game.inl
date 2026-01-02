@@ -45,7 +45,7 @@ namespace cse
   template <typename callable, typename... scene_arguments>
   std::shared_ptr<game> game::set_scene(const help::id name, callable &&config, scene_arguments &&...arguments)
   {
-    using scene_type = typename help::scene_type_from_callable<callable>::extracted_type;
+    using scene_type = typename help::type_from_callable<callable>::extracted_type;
     set_scene<scene_type, scene_arguments...>(
       name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
       std::forward<scene_arguments>(arguments)...);
@@ -74,7 +74,7 @@ namespace cse
   template <typename callable, typename... scene_arguments>
   std::shared_ptr<game> game::set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments)
   {
-    using scene_type = typename help::scene_type_from_callable<callable>::extracted_type;
+    using scene_type = typename help::type_from_callable<callable>::extracted_type;
     return set_current_scene<scene_type, scene_arguments...>(
       name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
       std::forward<scene_arguments>(arguments)...);
@@ -88,5 +88,14 @@ namespace cse
     config(new_instance);
     instance = new_instance;
     return new_instance;
+  }
+
+  template <typename callable, typename... game_arguments>
+  std::shared_ptr<game> game::create(callable &&config, game_arguments &&...arguments)
+  {
+    using game_type = typename help::type_from_callable<callable>::extracted_type;
+    return create<game_type, game_arguments...>(
+      std::function<void(const std::shared_ptr<game_type>)>(std::forward<callable>(config)),
+      std::forward<game_arguments>(arguments)...);
   }
 }
