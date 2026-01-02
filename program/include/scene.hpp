@@ -30,9 +30,9 @@ namespace cse
     scene &operator=(scene &&) = delete;
 
     template <help::is_camera camera_type, typename... camera_arguments>
-    void set_camera(camera_arguments &&...arguments);
+    std::shared_ptr<scene> set_camera(camera_arguments &&...arguments);
     template <help::is_object object_type, typename... object_arguments>
-    void set_object(const help::id name, object_arguments &&...arguments);
+    std::shared_ptr<scene> set_object(const help::id name, object_arguments &&...arguments);
     void remove_object(const help::id name);
 
   private:

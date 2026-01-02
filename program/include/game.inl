@@ -23,8 +23,9 @@ namespace cse
   }
 
   template <help::is_scene scene_type, typename... scene_arguments>
-  void game::set_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
-                       scene_arguments &&...arguments)
+  std::shared_ptr<game> game::set_scene(const help::id name,
+                                        const std::function<void(const std::shared_ptr<scene_type>)> &config,
+                                        scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) scene->parent = parent;
@@ -34,18 +35,20 @@ namespace cse
         if (auto iterator{scenes.find(name)}; iterator != scenes.end() && current == iterator->second)
         {
           state.next_scene = {name, scene};
-          return;
+          return shared_from_this();
         }
     scenes.insert_or_assign(name, scene);
+    return shared_from_this();
   }
 
   template <typename callable, typename... scene_arguments>
-  void game::set_scene(const help::id name, callable &&config, scene_arguments &&...arguments)
+  std::shared_ptr<game> game::set_scene(const help::id name, callable &&config, scene_arguments &&...arguments)
   {
     using scene_type = typename help::scene_type_from_callable<callable>::extracted_type;
     set_scene<scene_type, scene_arguments...>(
       name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
       std::forward<scene_arguments>(arguments)...);
+    return shared_from_this();
   }
 
   template <help::is_scene scene_type, typename... scene_arguments>

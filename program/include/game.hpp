@@ -27,10 +27,11 @@ namespace cse
     template <help::is_window window_type, typename... window_arguments>
     void set_window(window_arguments &&...arguments);
     template <help::is_scene scene_type, typename... scene_arguments>
-    void set_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
-                   scene_arguments &&...arguments);
+    std::shared_ptr<game> set_scene(const help::id name,
+                                    const std::function<void(const std::shared_ptr<scene_type>)> &config,
+                                    scene_arguments &&...arguments);
     template <typename callable, typename... scene_arguments>
-    void set_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
+    std::shared_ptr<game> set_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
     template <help::is_scene scene_type, typename... scene_arguments>
     void set_current_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                            scene_arguments &&...arguments);

@@ -11,23 +11,25 @@
 namespace cse
 {
   template <help::is_camera camera_type, typename... camera_arguments>
-  void scene::set_camera(camera_arguments &&...arguments)
+  std::shared_ptr<scene> scene::set_camera(camera_arguments &&...arguments)
   {
     camera = std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...);
-    camera->parent = shared_from_this();
+    camera->parent = weak_from_this();
+    return shared_from_this();
   }
 
   template <help::is_object object_type, typename... object_arguments>
-  void scene::set_object(const help::id name, object_arguments &&...arguments)
+  std::shared_ptr<scene> scene::set_object(const help::id name, object_arguments &&...arguments)
   {
     if (objects.contains(name)) removals.insert(name);
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
-    object->parent = shared_from_this();
+    object->parent = weak_from_this();
     if (!initialized)
     {
       objects.insert_or_assign(name, object);
-      return;
+      return shared_from_this();
     }
     additions.insert_or_assign(name, object);
+    return shared_from_this();
   }
 }
