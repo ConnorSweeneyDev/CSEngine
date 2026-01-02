@@ -32,7 +32,7 @@ namespace cse
     window.reset();
   }
 
-  void game::set_current_scene(const help::id name)
+  std::shared_ptr<game> game::set_current_scene(const help::id name)
   {
     if (auto iterator{scenes.find(name)}; iterator == scenes.end())
       throw exception("Tried to set current scene to null");
@@ -40,9 +40,10 @@ namespace cse
       state.next_scene = {name, {}};
     else
       state.scene = iterator->second;
+    return shared_from_this();
   }
 
-  void game::remove_scene(const help::id name)
+  std::shared_ptr<game> game::remove_scene(const help::id name)
   {
     if (auto iterator{scenes.find(name)}; iterator != scenes.end())
     {
@@ -51,6 +52,7 @@ namespace cse
       if (scene->initialized) scene->cleanup(window->graphics.gpu);
       scenes.erase(iterator);
     }
+    return shared_from_this();
   }
 
   void game::run()

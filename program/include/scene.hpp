@@ -33,7 +33,7 @@ namespace cse
     std::shared_ptr<scene> set_camera(camera_arguments &&...arguments);
     template <help::is_object object_type, typename... object_arguments>
     std::shared_ptr<scene> set_object(const help::id name, object_arguments &&...arguments);
-    void remove_object(const help::id name);
+    std::shared_ptr<scene> remove_object(const help::id name);
 
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);

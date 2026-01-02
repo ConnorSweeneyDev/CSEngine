@@ -15,11 +15,12 @@
 namespace cse
 {
   template <help::is_window window_type, typename... window_arguments>
-  void game::set_window(window_arguments &&...arguments)
+  std::shared_ptr<game> game::set_window(window_arguments &&...arguments)
   {
     if (window && window->initialized) throw exception("Tried to change window after initialization");
     window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
     if (auto parent{weak_from_this()}; !parent.expired()) window->parent = parent;
+    return shared_from_this();
   }
 
   template <help::is_scene scene_type, typename... scene_arguments>
@@ -52,9 +53,9 @@ namespace cse
   }
 
   template <help::is_scene scene_type, typename... scene_arguments>
-  void game::set_current_scene(const help::id name,
-                               const std::function<void(const std::shared_ptr<scene_type>)> &config,
-                               scene_arguments &&...arguments)
+  std::shared_ptr<game> game::set_current_scene(const help::id name,
+                                                const std::function<void(const std::shared_ptr<scene_type>)> &config,
+                                                scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) scene->parent = parent;
@@ -67,13 +68,14 @@ namespace cse
       state.scene = scene;
       previous.state.scene = scene;
     }
+    return shared_from_this();
   }
 
   template <typename callable, typename... scene_arguments>
-  void game::set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments)
+  std::shared_ptr<game> game::set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments)
   {
     using scene_type = typename help::scene_type_from_callable<callable>::extracted_type;
-    set_current_scene<scene_type, scene_arguments...>(
+    return set_current_scene<scene_type, scene_arguments...>(
       name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
       std::forward<scene_arguments>(arguments)...);
   }

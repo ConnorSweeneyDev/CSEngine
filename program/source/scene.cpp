@@ -25,14 +25,15 @@ namespace cse
     parent.reset();
   }
 
-  void scene::remove_object(const help::id name)
+  std::shared_ptr<scene> scene::remove_object(const help::id name)
   {
     if (!initialized)
     {
       if (auto iterator{objects.find(name)}; iterator != objects.end()) objects.erase(iterator);
-      return;
+      return shared_from_this();
     }
     if (objects.contains(name)) removals.insert(name);
+    return shared_from_this();
   }
 
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
