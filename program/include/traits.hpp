@@ -87,7 +87,8 @@ namespace cse::help
   };
 
   template <typename type>
-  concept is_callable = requires { typename callable_traits<std::decay_t<type>>::signature; };
+  concept is_callable =
+    std::is_function_v<std::remove_pointer_t<std::decay_t<type>>> || requires { &std::decay_t<type>::operator(); };
 
   template <is_callable callable> struct type_from_callable
   {
