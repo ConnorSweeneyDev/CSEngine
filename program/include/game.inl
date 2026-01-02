@@ -17,33 +17,10 @@ namespace cse
   template <help::is_window window_type, typename... window_arguments>
   std::shared_ptr<game> game::set_window(window_arguments &&...arguments)
   {
-    return set_window<window_type>({}, std::forward<window_arguments>(arguments)...);
-  }
-
-  template <help::is_window window_type, typename... window_arguments>
-  std::shared_ptr<game> game::set_window(const std::function<void(const std::shared_ptr<window_type>)> &config,
-                                         window_arguments &&...arguments)
-  {
     if (window && window->initialized) throw exception("Tried to change window after initialization");
     window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
     if (auto parent{weak_from_this()}; !parent.expired()) window->parent = parent;
-    if (config) config(std::static_pointer_cast<window_type>(window));
     return shared_from_this();
-  }
-
-  template <help::is_callable callable, typename... window_arguments>
-  std::shared_ptr<game> game::set_window(callable &&config, window_arguments &&...arguments)
-  {
-    using window_type = typename help::type_from_callable<callable>::extracted_type;
-    return set_window<window_type, window_arguments...>(
-      std::function<void(const std::shared_ptr<window_type>)>(std::forward<callable>(config)),
-      std::forward<window_arguments>(arguments)...);
-  }
-
-  template <help::is_scene scene_type, typename... scene_arguments>
-  std::shared_ptr<game> game::set_scene(const help::id name, scene_arguments &&...arguments)
-  {
-    return set_scene<scene_type>(name, {}, std::forward<scene_arguments>(arguments)...);
   }
 
   template <help::is_scene scene_type, typename... scene_arguments>
@@ -72,12 +49,6 @@ namespace cse
     return set_scene<scene_type, scene_arguments...>(
       name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
       std::forward<scene_arguments>(arguments)...);
-  }
-
-  template <help::is_scene scene_type, typename... scene_arguments>
-  std::shared_ptr<game> game::set_current_scene(const help::id name, scene_arguments &&...arguments)
-  {
-    return set_current_scene<scene_type>(name, {}, std::forward<scene_arguments>(arguments)...);
   }
 
   template <help::is_scene scene_type, typename... scene_arguments>
