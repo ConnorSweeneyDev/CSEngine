@@ -27,7 +27,7 @@ namespace cse
     return shared_from_this();
   }
 
-  template <typename callable, typename... camera_arguments>
+  template <help::is_callable callable, typename... camera_arguments>
   std::shared_ptr<scene> scene::set_camera(callable &&config, camera_arguments &&...arguments)
   {
     using camera_type = typename help::type_from_callable<callable>::extracted_type;
@@ -60,7 +60,7 @@ namespace cse
     return shared_from_this();
   }
 
-  template <typename callable, typename... object_arguments>
+  template <help::is_callable callable, typename... object_arguments>
   std::shared_ptr<scene> scene::set_object(const help::id name, callable &&config, object_arguments &&...arguments)
   {
     using object_type = typename help::type_from_callable<callable>::extracted_type;

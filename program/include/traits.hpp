@@ -86,7 +86,10 @@ namespace cse::help
     using extracted_type = type;
   };
 
-  template <typename callable> struct type_from_callable
+  template <typename type>
+  concept is_callable = requires { typename callable_traits<std::decay_t<type>>::signature; };
+
+  template <is_callable callable> struct type_from_callable
   {
     using signature = typename callable_traits<std::decay_t<callable>>::signature;
     using first_param = typename first_parameter_type<signature>::type;

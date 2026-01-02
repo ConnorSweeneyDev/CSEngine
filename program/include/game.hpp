@@ -28,7 +28,7 @@ namespace cse
     std::shared_ptr<game> set_window(window_arguments &&...arguments);
     template <help::is_window window_type, typename... window_arguments> std::shared_ptr<game>
     set_window(const std::function<void(const std::shared_ptr<window_type>)> &config, window_arguments &&...arguments);
-    template <typename callable, typename... window_arguments>
+    template <help::is_callable callable, typename... window_arguments>
     std::shared_ptr<game> set_window(callable &&config, window_arguments &&...arguments);
     template <help::is_scene scene_type, typename... scene_arguments>
     std::shared_ptr<game> set_scene(const help::id name, scene_arguments &&...arguments);
@@ -36,7 +36,7 @@ namespace cse
     std::shared_ptr<game> set_scene(const help::id name,
                                     const std::function<void(const std::shared_ptr<scene_type>)> &config,
                                     scene_arguments &&...arguments);
-    template <typename callable, typename... scene_arguments>
+    template <help::is_callable callable, typename... scene_arguments>
     std::shared_ptr<game> set_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
     template <help::is_scene scene_type, typename... scene_arguments>
     std::shared_ptr<game> set_current_scene(const help::id name, scene_arguments &&...arguments);
@@ -44,14 +44,14 @@ namespace cse
     std::shared_ptr<game> set_current_scene(const help::id name,
                                             const std::function<void(const std::shared_ptr<scene_type>)> &config,
                                             scene_arguments &&...arguments);
-    template <typename callable, typename... scene_arguments>
+    template <help::is_callable callable, typename... scene_arguments>
     std::shared_ptr<game> set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
     std::shared_ptr<game> set_current_scene(const help::id name);
     std::shared_ptr<game> remove_scene(const help::id name);
 
     template <help::is_game game_type, typename... game_arguments> static std::shared_ptr<game_type>
     create(const std::function<void(const std::shared_ptr<game_type>)> &config, game_arguments &&...arguments);
-    template <typename callable, typename... game_arguments>
+    template <help::is_callable callable, typename... game_arguments>
     static std::shared_ptr<game> create(callable &&config, game_arguments &&...arguments);
     void run();
 

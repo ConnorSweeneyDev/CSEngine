@@ -34,7 +34,7 @@ namespace cse
     std::shared_ptr<scene> set_camera(camera_arguments &&...arguments);
     template <help::is_camera camera_type, typename... camera_arguments> std::shared_ptr<scene>
     set_camera(const std::function<void(const std::shared_ptr<camera_type>)> &config, camera_arguments &&...arguments);
-    template <typename callable, typename... camera_arguments>
+    template <help::is_callable callable, typename... camera_arguments>
     std::shared_ptr<scene> set_camera(callable &&config, camera_arguments &&...arguments);
     template <help::is_object object_type, typename... object_arguments>
     std::shared_ptr<scene> set_object(const help::id name, object_arguments &&...arguments);
@@ -42,7 +42,7 @@ namespace cse
     std::shared_ptr<scene> set_object(const help::id name,
                                       const std::function<void(const std::shared_ptr<object_type>)> &config,
                                       object_arguments &&...arguments);
-    template <typename callable, typename... object_arguments>
+    template <help::is_callable callable, typename... object_arguments>
     std::shared_ptr<scene> set_object(const help::id name, callable &&config, object_arguments &&...arguments);
     std::shared_ptr<scene> remove_object(const help::id name);
 

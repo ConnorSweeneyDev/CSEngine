@@ -31,7 +31,7 @@ namespace cse
     return shared_from_this();
   }
 
-  template <typename callable, typename... window_arguments>
+  template <help::is_callable callable, typename... window_arguments>
   std::shared_ptr<game> game::set_window(callable &&config, window_arguments &&...arguments)
   {
     using window_type = typename help::type_from_callable<callable>::extracted_type;
@@ -65,7 +65,7 @@ namespace cse
     return shared_from_this();
   }
 
-  template <typename callable, typename... scene_arguments>
+  template <help::is_callable callable, typename... scene_arguments>
   std::shared_ptr<game> game::set_scene(const help::id name, callable &&config, scene_arguments &&...arguments)
   {
     using scene_type = typename help::type_from_callable<callable>::extracted_type;
@@ -99,7 +99,7 @@ namespace cse
     return shared_from_this();
   }
 
-  template <typename callable, typename... scene_arguments>
+  template <help::is_callable callable, typename... scene_arguments>
   std::shared_ptr<game> game::set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments)
   {
     using scene_type = typename help::type_from_callable<callable>::extracted_type;
@@ -118,7 +118,7 @@ namespace cse
     return new_instance;
   }
 
-  template <typename callable, typename... game_arguments>
+  template <help::is_callable callable, typename... game_arguments>
   std::shared_ptr<game> game::create(callable &&config, game_arguments &&...arguments)
   {
     using game_type = typename help::type_from_callable<callable>::extracted_type;
