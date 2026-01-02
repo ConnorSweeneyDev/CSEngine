@@ -33,15 +33,16 @@ namespace cse
     template <typename callable, typename... scene_arguments>
     std::shared_ptr<game> set_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
     template <help::is_scene scene_type, typename... scene_arguments>
-    std::shared_ptr<game> set_current_scene(const help::id name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
-                           scene_arguments &&...arguments);
+    std::shared_ptr<game> set_current_scene(const help::id name,
+                                            const std::function<void(const std::shared_ptr<scene_type>)> &config,
+                                            scene_arguments &&...arguments);
     template <typename callable, typename... scene_arguments>
     std::shared_ptr<game> set_current_scene(const help::id name, callable &&config, scene_arguments &&...arguments);
     std::shared_ptr<game> set_current_scene(const help::id name);
     std::shared_ptr<game> remove_scene(const help::id name);
 
-    template <help::is_game game_type, typename... game_arguments>
-    static std::shared_ptr<game_type> create(game_arguments &&...arguments);
+    template <help::is_game game_type, typename... game_arguments> static std::shared_ptr<game_type>
+    create(const std::function<void(const std::shared_ptr<game_type>)> &config, game_arguments &&...arguments);
     void run();
 
   protected:
