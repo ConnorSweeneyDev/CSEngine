@@ -17,10 +17,33 @@ namespace cse
   template <help::is_window window_type, typename... window_arguments>
   std::shared_ptr<game> game::set_window(window_arguments &&...arguments)
   {
+    return set_window<window_type>({}, std::forward<window_arguments>(arguments)...);
+  }
+
+  template <help::is_window window_type, typename... window_arguments>
+  std::shared_ptr<game> game::set_window(const std::function<void(const std::shared_ptr<window_type>)> &config,
+                                         window_arguments &&...arguments)
+  {
     if (window && window->initialized) throw exception("Tried to change window after initialization");
     window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
     if (auto parent{weak_from_this()}; !parent.expired()) window->parent = parent;
+    if (config) config(std::static_pointer_cast<window_type>(window));
     return shared_from_this();
+  }
+
+  template <typename callable, typename... window_arguments>
+  std::shared_ptr<game> game::set_window(callable &&config, window_arguments &&...arguments)
+  {
+    using window_type = typename help::type_from_callable<callable>::extracted_type;
+    return set_window<window_type, window_arguments...>(
+      std::function<void(const std::shared_ptr<window_type>)>(std::forward<callable>(config)),
+      std::forward<window_arguments>(arguments)...);
+  }
+
+  template <help::is_scene scene_type, typename... scene_arguments>
+  std::shared_ptr<game> game::set_scene(const help::id name, scene_arguments &&...arguments)
+  {
+    return set_scene<scene_type>(name, {}, std::forward<scene_arguments>(arguments)...);
   }
 
   template <help::is_scene scene_type, typename... scene_arguments>
@@ -30,7 +53,7 @@ namespace cse
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) scene->parent = parent;
-    config(scene);
+    if (config) config(scene);
     if (window && window->initialized)
       if (auto current{state.scene.lock()})
         if (auto iterator{scenes.find(name)}; iterator != scenes.end() && current == iterator->second)
@@ -46,10 +69,15 @@ namespace cse
   std::shared_ptr<game> game::set_scene(const help::id name, callable &&config, scene_arguments &&...arguments)
   {
     using scene_type = typename help::type_from_callable<callable>::extracted_type;
-    set_scene<scene_type, scene_arguments...>(
+    return set_scene<scene_type, scene_arguments...>(
       name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
       std::forward<scene_arguments>(arguments)...);
-    return shared_from_this();
+  }
+
+  template <help::is_scene scene_type, typename... scene_arguments>
+  std::shared_ptr<game> game::set_current_scene(const help::id name, scene_arguments &&...arguments)
+  {
+    return set_current_scene<scene_type>(name, {}, std::forward<scene_arguments>(arguments)...);
   }
 
   template <help::is_scene scene_type, typename... scene_arguments>
@@ -59,7 +87,7 @@ namespace cse
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) scene->parent = parent;
-    config(scene);
+    if (config) config(scene);
     if (window && window->initialized)
       state.next_scene = {name, scene};
     else
@@ -85,7 +113,7 @@ namespace cse
   {
     if (!instance.expired()) throw exception("Tried to create a second game instance");
     auto new_instance{std::shared_ptr<game_type>{new game_type{std::forward<game_arguments>(arguments)...}}};
-    config(new_instance);
+    if (config) config(new_instance);
     instance = new_instance;
     return new_instance;
   }
