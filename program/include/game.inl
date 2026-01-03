@@ -32,7 +32,7 @@ namespace cse
     if (auto parent{weak_from_this()}; !parent.expired()) scene->parent = parent;
     if (config) config(scene);
     if (window && window->initialized)
-      if (auto iterator{scenes.find(name)}; iterator != scenes.end() && state.scene == iterator->second)
+      if (auto iterator{scenes.find(name)}; iterator != scenes.end() && state.scene.second == iterator->second)
       {
         state.next_scene = {name, scene};
         return shared_from_this();

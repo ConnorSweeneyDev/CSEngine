@@ -68,18 +68,28 @@ namespace cse
   void scene::input(const bool *keys)
   {
     hook.call<void(const bool *)>("pre_input", keys);
+    if (!camera->initialized) throw exception("Camera is not initialized");
     camera->input(keys);
     for (const auto &[name, object] : objects)
-      if (!removals.contains(name)) object->input(keys);
+      if (!removals.contains(name))
+      {
+        if (!object->initialized) throw exception("Object is not initialized");
+        object->input(keys);
+      }
     hook.call<void(const bool *)>("post_input", keys);
   }
 
   void scene::simulate(const double active_poll_rate)
   {
     hook.call<void(const float)>("pre_simulate", static_cast<float>(active_poll_rate));
+    if (!camera->initialized) throw exception("Camera is not initialized");
     camera->simulate(active_poll_rate);
     for (const auto &[name, object] : objects)
-      if (!removals.contains(name)) object->simulate(active_poll_rate);
+      if (!removals.contains(name))
+      {
+        if (!object->initialized) throw exception("Object is not initialized");
+        object->simulate(active_poll_rate);
+      }
     hook.call<void(const float)>("post_simulate", static_cast<float>(active_poll_rate));
   }
 
@@ -87,6 +97,7 @@ namespace cse
                      const double alpha, const float aspect_ratio, const float scale_factor)
   {
     hook.call<void()>("pre_render");
+    if (!camera->initialized) throw exception("Camera is not initialized");
     auto matrices = camera->render(alpha, aspect_ratio, scale_factor);
     std::vector<std::shared_ptr<object>> render_order{};
     render_order.reserve(objects.size() - removals.size());
@@ -107,7 +118,10 @@ namespace cse
                 return left->graphics.property.priority < right->graphics.property.priority;
               });
     for (const auto &object : render_order)
+    {
+      if (!object->initialized) throw exception("Object is not initialized");
       object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha, scale_factor);
+    }
     hook.call<void()>("post_render");
   }
 

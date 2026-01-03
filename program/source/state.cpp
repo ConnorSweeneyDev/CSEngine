@@ -23,7 +23,7 @@ namespace cse::help
       next_scene->second.reset();
       next_scene.reset();
     }
-    scene.reset();
+    scene.second.reset();
   }
 
   window_state::window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
