@@ -482,15 +482,15 @@ namespace cse::help
     opaque_target_info.has_depth_stencil_target = true;
     if (opaque_target_info.depth_stencil_format == SDL_GPU_TEXTUREFORMAT_INVALID)
       throw sdl_exception("No supported depth stencil format found for object");
-    SDL_GPUGraphicsPipelineCreateInfo pipeline_info{};
-    pipeline_info.vertex_shader = vertex_shader;
-    pipeline_info.fragment_shader = fragment_shader;
-    pipeline_info.vertex_input_state = vertex_input_state;
-    pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-    pipeline_info.rasterizer_state = rasterizer_state;
-    pipeline_info.depth_stencil_state = opaque_depth_stencil_state;
-    pipeline_info.target_info = opaque_target_info;
-    pipelines.opaque = SDL_CreateGPUGraphicsPipeline(cached_gpu, &pipeline_info);
+    SDL_GPUGraphicsPipelineCreateInfo opaque_pipeline_info{};
+    opaque_pipeline_info.vertex_shader = vertex_shader;
+    opaque_pipeline_info.fragment_shader = fragment_shader;
+    opaque_pipeline_info.vertex_input_state = vertex_input_state;
+    opaque_pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+    opaque_pipeline_info.rasterizer_state = rasterizer_state;
+    opaque_pipeline_info.depth_stencil_state = opaque_depth_stencil_state;
+    opaque_pipeline_info.target_info = opaque_target_info;
+    pipelines.opaque = SDL_CreateGPUGraphicsPipeline(cached_gpu, &opaque_pipeline_info);
     if (!pipelines.opaque) throw sdl_exception("Could not create graphics pipeline for object");
     SDL_GPUColorTargetBlendState blend_state{};
     blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
