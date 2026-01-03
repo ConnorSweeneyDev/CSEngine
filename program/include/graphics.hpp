@@ -69,7 +69,7 @@ namespace cse::help
     void destroy_window_and_app();
 
   public:
-    property<std::string> title{};
+    help::property<std::string> title{};
 
   private:
     unsigned int windowed_width{};
@@ -127,8 +127,8 @@ namespace cse::help
 
     struct shader
     {
-      property<struct vertex> vertex{};
-      property<struct fragment> fragment{};
+      help::property<struct vertex> vertex{};
+      help::property<struct fragment> fragment{};
     };
     struct texture
     {
@@ -137,7 +137,7 @@ namespace cse::help
         bool horizontal{};
         bool vertical{};
       };
-      property<struct image> image{};
+      help::property<struct image> image{};
       struct group group{};
       struct animation animation{};
       struct flip flip{};

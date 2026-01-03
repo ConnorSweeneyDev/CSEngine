@@ -342,18 +342,17 @@ namespace cse::help
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = sizeof(quad_vertices) + sizeof(quad_indices), .props = 0};
     vertex_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &vertex_transfer_buffer_info);
     if (!vertex_transfer_buffer) throw sdl_exception("Could not create transfer buffer for buffer object");
-    auto vertex_data{
-      reinterpret_cast<struct vertex_data *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
-    if (!vertex_data) throw sdl_exception("Could not map vertex data for object");
+    auto vertex{reinterpret_cast<struct vertex_data *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
+    if (!vertex) throw sdl_exception("Could not map vertex data for object");
     quad_vertices = std::array<struct vertex_data, 4>{{{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 1.0f},
                                                        {1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 0.0f},
                                                        {-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 1.0f},
                                                        {-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 0.0f}}};
-    std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
-    auto index_data{reinterpret_cast<Uint16 *>(&vertex_data[quad_vertices.size()])};
-    if (!index_data) throw sdl_exception("Could not map index data for object");
+    std::copy(quad_vertices.begin(), quad_vertices.end(), vertex);
+    auto index{reinterpret_cast<Uint16 *>(&vertex[quad_vertices.size()])};
+    if (!index) throw sdl_exception("Could not map index data for object");
     quad_indices = std::array<Uint16, 6>({3, 1, 0, 3, 0, 2});
-    std::copy(quad_indices.begin(), quad_indices.end(), index_data);
+    std::copy(quad_indices.begin(), quad_indices.end(), index);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
     generate_and_upload_texture();
   }
@@ -374,9 +373,8 @@ namespace cse::help
 
   void object_graphics::upload_dynamic_buffers(SDL_GPUDevice *gpu)
   {
-    auto vertex_data{
-      reinterpret_cast<struct vertex_data *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
-    if (!vertex_data) throw sdl_exception("Could not map vertex data for object");
+    auto vertex{reinterpret_cast<struct vertex_data *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
+    if (!vertex) throw sdl_exception("Could not map vertex data for object");
     auto &frame{texture.animation.frame};
     auto size{texture.group.frames.size()};
     if (frame >= size) frame = size - 1;
@@ -390,7 +388,7 @@ namespace cse::help
                                                        {1.0f, -1.0f, 0.0f, red, green, blue, alpha, right, bottom},
                                                        {-1.0f, 1.0f, 0.0f, red, green, blue, alpha, left, top},
                                                        {-1.0f, -1.0f, 0.0f, red, green, blue, alpha, left, bottom}}};
-    std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
+    std::copy(quad_vertices.begin(), quad_vertices.end(), vertex);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(gpu)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for object");
