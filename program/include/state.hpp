@@ -34,7 +34,7 @@ namespace cse::help
 
   public:
     double poll_rate{};
-    std::weak_ptr<class scene> scene{};
+    std::shared_ptr<class scene> scene{};
     std::optional<std::pair<help::id, std::shared_ptr<class scene>>> next_scene{};
   };
 

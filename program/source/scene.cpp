@@ -114,9 +114,9 @@ namespace cse
   void scene::cleanup(SDL_GPUDevice *gpu)
   {
     hook.call<void()>("pre_cleanup");
-    if (camera->initialized) camera->cleanup();
     for (const auto &[name, object] : objects)
       if (object->initialized) object->cleanup(gpu);
+    if (camera->initialized) camera->cleanup();
     initialized = false;
     hook.call<void()>("post_cleanup");
   }
