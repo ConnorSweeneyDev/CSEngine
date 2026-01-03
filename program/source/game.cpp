@@ -164,7 +164,7 @@ namespace cse
         {
           const auto &new_scene{iterator->second};
           if (state.scene.second->initialized) state.scene.second->cleanup(window->graphics.gpu);
-          state.scene.second = new_scene;
+          state.scene = {name, new_scene};
           if (!new_scene->initialized) new_scene->initialize(window->graphics.instance, window->graphics.gpu);
         }
       }
@@ -172,7 +172,7 @@ namespace cse
       {
         if (state.scene.second->initialized) state.scene.second->cleanup(window->graphics.gpu);
         scenes.insert_or_assign(name, scene);
-        state.scene.second = scene;
+        state.scene = {name, scene};
         if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
       }
       state.next_scene.reset();
