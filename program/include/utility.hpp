@@ -115,3 +115,8 @@ inline bool equal(const double first, const double second, const double epsilon 
 {
   return std::fabs(first - second) <= epsilon * std::max(1.0, std::max(std::fabs(first), std::fabs(second)));
 }
+
+inline bool equal(const float first, const float second, const float epsilon = 1e-5f)
+{
+  return std::fabs(first - second) <= epsilon * std::max(1.0f, std::max(std::fabs(first), std::fabs(second)));
+}

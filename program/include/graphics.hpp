@@ -115,12 +115,18 @@ namespace cse::help
     friend class cse::object;
 
   private:
-    struct uniform
+    struct pipelines
+    {
+      SDL_GPUGraphicsPipeline *opaque{};
+      SDL_GPUGraphicsPipeline *transparent{};
+    };
+    struct vertex_data
     {
       float x{}, y{}, z{};
       Uint8 r{}, g{}, b{}, a{};
       float u{}, v{};
     };
+
     struct shader
     {
       property<struct vertex> vertex{};
@@ -129,14 +135,20 @@ namespace cse::help
     struct texture
     {
       property<struct image> image{};
+      glm::u8vec4 color{};
+      float transparency{};
       struct group group{};
       struct animation animation{};
+    };
+    struct property
+    {
+      int priority{};
     };
 
   public:
     object_graphics() = default;
-    object_graphics(const glm::u8vec4 &color_, const std::pair<vertex, fragment> &shader_,
-                    const std::tuple<image, group, animation> &texture_);
+    object_graphics(const std::pair<vertex, fragment> &shader_,
+                    const std::tuple<image, glm::u8vec4, float, group, animation> &texture_, const int &property_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;
@@ -150,27 +162,26 @@ namespace cse::help
     void generate_pipeline();
     void generate_and_upload_texture();
     void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass);
-    void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const glm::mat4 &projection_matrix,
-                           const glm::mat4 &view_matrix, const glm::mat4 &model_matrix);
+    void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const std::array<glm::mat4, 3> &matrices);
     void draw_primitives(SDL_GPURenderPass *render_pass);
     void cleanup_object(SDL_GPUDevice *gpu);
 
   public:
-    glm::u8vec4 color{};
     struct shader shader{};
     struct texture texture{};
+    struct property property{};
 
   private:
     SDL_Window *cached_instance{};
     SDL_GPUDevice *cached_gpu{};
-    SDL_GPUGraphicsPipeline *pipeline{};
+    struct pipelines pipelines{};
     SDL_GPUBuffer *vertex_buffer{};
     SDL_GPUBuffer *index_buffer{};
     SDL_GPUTexture *texture_buffer{};
     SDL_GPUSampler *sampler_buffer{};
     SDL_GPUTransferBuffer *vertex_transfer_buffer{};
     SDL_GPUTransferBuffer *texture_transfer_buffer{};
-    std::array<uniform, 4> quad_vertices{};
+    std::array<vertex_data, 4> quad_vertices{};
     std::array<Uint16, 6> quad_indices{};
   };
 }

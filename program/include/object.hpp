@@ -25,8 +25,8 @@ namespace cse
     friend class scene;
 
   public:
-    object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
-           const std::pair<vertex, fragment> &shader_, const std::tuple<image, group, animation> &texture_);
+    object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const std::pair<vertex, fragment> &shader_,
+           const std::tuple<image, glm::u8vec4, float, group, animation> &texture_, const int &property_);
     virtual ~object();
     object(const object &) = delete;
     object &operator=(const object &) = delete;

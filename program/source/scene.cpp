@@ -1,17 +1,21 @@
 #include "scene.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
+#include "glm/geometric.hpp"
 
 #include "camera.hpp"
 #include "exception.hpp"
 #include "game.hpp"
 #include "id.hpp"
 #include "object.hpp"
+#include "utility.hpp"
 
 namespace cse
 {
@@ -84,9 +88,26 @@ namespace cse
   {
     hook.call<void()>("pre_render");
     auto matrices = camera->render(alpha, aspect_ratio, scale_factor);
+    std::vector<std::shared_ptr<object>> render_order{};
+    render_order.reserve(objects.size() - removals.size());
     for (const auto &[name, object] : objects)
-      if (!removals.contains(name))
-        object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha, scale_factor);
+    {
+      if (removals.contains(name)) continue;
+      object->state.translation.interpolate(alpha);
+      render_order.emplace_back(object);
+    }
+    const auto &camera_position = camera->state.translation.interpolated;
+    const auto camera_forward = glm::normalize(camera->state.forward.interpolated);
+    std::sort(render_order.begin(), render_order.end(),
+              [&camera_position, &camera_forward](const auto &left, const auto &right)
+              {
+                float depth_a = glm::dot(left->state.translation.interpolated - camera_position, camera_forward);
+                float depth_b = glm::dot(right->state.translation.interpolated - camera_position, camera_forward);
+                if (!equal(depth_a, depth_b, 1e-2f)) return depth_a > depth_b;
+                return left->graphics.property.priority < right->graphics.property.priority;
+              });
+    for (const auto &object : render_order)
+      object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha, scale_factor);
     hook.call<void()>("post_render");
   }
 
@@ -126,6 +147,7 @@ namespace cse
   void scene::update_previous()
   {
     camera->previous.update(camera->state, camera->graphics);
-    for (const auto &[name, object] : objects) object->previous.update(object->state, object->graphics);
+    for (const auto &[name, object] : objects)
+      if (!removals.contains(name)) object->previous.update(object->state, object->graphics);
   }
 }

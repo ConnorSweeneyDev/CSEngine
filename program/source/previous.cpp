@@ -83,11 +83,13 @@ namespace cse::help
     state.translation = new_state.translation;
     state.rotation = new_state.rotation;
     state.scale = new_state.scale;
-    graphics.color = new_graphics.color;
     graphics.shader.vertex = new_graphics.shader.vertex;
     graphics.shader.fragment = new_graphics.shader.fragment;
     graphics.texture.image = new_graphics.texture.image;
+    graphics.texture.color = new_graphics.texture.color;
+    graphics.texture.transparency = new_graphics.texture.transparency;
     graphics.texture.group = new_graphics.texture.group;
     graphics.texture.animation = new_graphics.texture.animation;
+    graphics.property.priority = new_graphics.property.priority;
   }
 }

@@ -14,9 +14,10 @@
 
 namespace cse
 {
-  object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const glm::u8vec4 &tint_,
-                 const std::pair<vertex, fragment> &shader_, const std::tuple<image, group, animation> &texture_)
-    : state{transform_}, graphics{tint_, shader_, texture_}, previous{state, graphics}
+  object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_,
+                 const std::pair<vertex, fragment> &shader_,
+                 const std::tuple<image, glm::u8vec4, float, group, animation> &texture_, const int &property_)
+    : state{transform_}, graphics{shader_, texture_, property_}, previous{state, graphics}
   {
   }
 
@@ -110,7 +111,7 @@ namespace cse
     graphics.bind_pipeline_and_buffers(render_pass);
     auto model_matrix{state.calculate_model_matrix(graphics.texture.image->frame_width,
                                                    graphics.texture.image->frame_height, scale_factor)};
-    graphics.push_uniform_data(command_buffer, projection_matrix, view_matrix, model_matrix);
+    graphics.push_uniform_data(command_buffer, {projection_matrix, view_matrix, model_matrix});
     graphics.draw_primitives(render_pass);
     hook.call<void(const glm::mat4 &)>("render", model_matrix);
   }

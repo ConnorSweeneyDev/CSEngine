@@ -8,6 +8,7 @@ namespace cse::help
 {
   class transform_value
   {
+    friend class cse::scene;
     friend class cse::camera;
     friend class cse::object;
     friend struct camera_state;
