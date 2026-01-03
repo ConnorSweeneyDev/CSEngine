@@ -605,7 +605,8 @@ namespace cse::help
                                           const std::array<glm::mat4, 3> &matrices)
   {
     SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
-    SDL_PushGPUFragmentUniformData(command_buffer, 0, &texture.transparency, sizeof(texture.transparency));
+    const auto transparency{static_cast<float>(texture.transparency)};
+    SDL_PushGPUFragmentUniformData(command_buffer, 0, &transparency, sizeof(transparency));
   }
 
   void object_graphics::draw_primitives(SDL_GPURenderPass *render_pass)

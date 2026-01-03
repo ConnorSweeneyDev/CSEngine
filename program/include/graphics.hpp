@@ -142,7 +142,7 @@ namespace cse::help
       struct animation animation{};
       struct flip flip{};
       glm::u8vec4 color{};
-      float transparency{};
+      double transparency{};
     };
     struct property
     {
