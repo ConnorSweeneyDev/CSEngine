@@ -64,7 +64,7 @@ namespace cse
     {
       scenes.insert_or_assign(name, scene);
       state.scene = {name, scene};
-      previous.state.scene.second = {name, scene};
+      previous.state.scene = {name, scene};
     }
     return shared_from_this();
   }
