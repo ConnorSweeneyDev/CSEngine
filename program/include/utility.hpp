@@ -56,6 +56,7 @@ std::shared_ptr<derived> try_as_a(const std::shared_ptr<base> &pointer) noexcept
 template <typename type> cse::help::id try_id(const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map,
                                               const std::shared_ptr<type> &pointer) noexcept
 {
+  if (!pointer) return cse::help::id{};
   for (const auto &[name, entry] : map)
     if (entry == pointer) return name;
   return cse::help::id{};
@@ -74,6 +75,7 @@ template <typename type> cse::help::id try_id(const std::unordered_map<cse::help
 template <typename type> cse::help::id throw_id(const std::unordered_map<cse::help::id, std::shared_ptr<type>> &map,
                                                 const std::shared_ptr<type> &pointer)
 {
+  if (!pointer) throw cse::exception("Pointer is null");
   for (const auto &[name, entry] : map)
     if (entry == pointer) return name;
   throw cse::exception("ID lookup failed");
