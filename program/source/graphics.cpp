@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <string>
-#include <tuple>
-#include <utility>
 
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_init.h"

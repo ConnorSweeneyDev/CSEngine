@@ -1,14 +1,14 @@
 #include "state.hpp"
 
 #include <cmath>
-#include <tuple>
 
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_float3.hpp"
-#include "glm/ext/vector_int3.hpp"
 #include "glm/ext/vector_uint2.hpp"
 #include "glm/trigonometric.hpp"
+
+#include "transform.hpp"
 
 namespace cse::help
 {
@@ -29,8 +29,9 @@ namespace cse::help
   {
   }
 
-  camera_state::camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_)
-    : translation{std::get<0>(transform_)}, forward{std::get<1>(transform_)}, up{std::get<2>(transform_)}
+  camera_state::camera_state(const transform_value &translation_, const transform_value &forward_,
+                             const transform_value &up_)
+    : translation{translation_}, forward{forward_}, up{up_}
   {
   }
 
@@ -40,8 +41,9 @@ namespace cse::help
                        (translation.interpolated * scale_factor) + forward.interpolated, up.interpolated);
   }
 
-  object_state::object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_)
-    : translation{std::get<0>(transform_)}, rotation{std::get<1>(transform_)}, scale{std::get<2>(transform_)}
+  object_state::object_state(const transform_value &translation_, const transform_value &rotation_,
+                             const transform_value &scale_)
+    : translation{translation_}, rotation{rotation_}, scale{scale_}
   {
   }
 

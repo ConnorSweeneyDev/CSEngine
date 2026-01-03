@@ -1,19 +1,18 @@
 #pragma once
 
 #include <memory>
-#include <tuple>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
-#include "glm/ext/vector_int3.hpp"
 
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "hook.hpp"
 #include "previous.hpp"
 #include "state.hpp"
+#include "transform.hpp"
 
 namespace cse
 {
@@ -22,8 +21,9 @@ namespace cse
     friend class scene;
 
   public:
-    object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_,
-           const struct help::object_graphics::shader &shader_, const struct help::object_graphics::texture &texture_,
+    object(const help::transform_value &translation_, const help::transform_value &rotation_,
+           const help::transform_value &scale_, const struct help::object_graphics::shader &shader_,
+           const struct help::object_graphics::texture &texture_,
            const struct help::object_graphics::property &property_);
     virtual ~object();
     object(const object &) = delete;
