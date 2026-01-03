@@ -82,7 +82,7 @@ namespace cse::help
     camera_state &operator=(camera_state &&) = delete;
 
   private:
-    glm::mat4 calculate_view_matrix(const float scale_factor) const;
+    glm::mat4 calculate_view_matrix() const;
 
   public:
     transform_value translation{};
@@ -104,8 +104,7 @@ namespace cse::help
     object_state &operator=(object_state &&) = delete;
 
   private:
-    glm::mat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
-                                     const float scale_factor) const;
+    glm::mat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height) const;
 
   public:
     transform_value translation{};

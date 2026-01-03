@@ -77,7 +77,6 @@ namespace cse
 
   private:
     static inline std::weak_ptr<game> instance{};
-    static constexpr float scale_factor{1.0f / 25.0f};
     static constexpr float aspect_ratio{16.0f / 9.0f};
     double active_poll_rate{1.0 / state.poll_rate};
     double active_frame_rate{1.0 / graphics.frame_rate};

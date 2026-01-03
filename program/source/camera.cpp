@@ -40,10 +40,9 @@ namespace cse
     hook.call<void(const float)>("simulate", static_cast<float>(active_poll_rate));
   }
 
-  std::pair<glm::mat4, glm::mat4> camera::render(const float aspect_ratio, const float scale_factor)
+  std::pair<glm::mat4, glm::mat4> camera::render(const float aspect_ratio)
   {
-    auto matrices =
-      std::pair{graphics.calculate_projection_matrix(aspect_ratio), state.calculate_view_matrix(scale_factor)};
+    auto matrices = std::pair{graphics.calculate_projection_matrix(aspect_ratio), state.calculate_view_matrix()};
     hook.call<void(const glm::mat4 &, const glm::mat4 &)>("render", matrices.first, matrices.second);
     return matrices;
   }

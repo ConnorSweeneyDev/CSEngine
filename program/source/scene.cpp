@@ -94,14 +94,14 @@ namespace cse
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     const double alpha, const float aspect_ratio, const float scale_factor)
+                     const double alpha, const float aspect_ratio)
   {
     hook.call<void()>("pre_render");
     if (!camera->initialized) throw exception("Camera is not initialized");
     camera->state.translation.interpolate(alpha);
     camera->state.forward.interpolate(alpha);
     camera->state.up.interpolate(alpha);
-    auto matrices = camera->render(aspect_ratio, scale_factor);
+    auto matrices = camera->render(aspect_ratio);
     std::vector<std::shared_ptr<object>> render_order{};
     render_order.reserve(objects.size() - removals.size());
     for (const auto &[name, object] : objects)
@@ -125,7 +125,7 @@ namespace cse
     for (const auto &object : render_order)
     {
       if (!object->initialized) throw exception("Object is not initialized");
-      object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, scale_factor);
+      object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second);
     }
     hook.call<void()>("post_render");
   }

@@ -132,7 +132,7 @@ namespace cse
     if (!window->start_render(aspect_ratio)) return;
     if (!state.current.scene->initialized) throw exception("Current scene is not initialized");
     state.current.scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass,
-                                alpha, aspect_ratio, scale_factor);
+                                alpha, aspect_ratio);
     window->end_render();
     hook.call<void()>("post_render");
   }
