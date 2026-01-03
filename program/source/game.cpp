@@ -160,7 +160,7 @@ namespace cse
       {
         if (auto iterator{scenes.find(name)}; iterator == scenes.end())
           throw exception("Tried to set current scene to null");
-        else
+        else if (name != state.current.name)
         {
           const auto &new_scene{iterator->second};
           if (state.current.scene->initialized) state.current.scene->cleanup(window->graphics.gpu);

@@ -98,13 +98,18 @@ namespace cse
   {
     hook.call<void()>("pre_render");
     if (!camera->initialized) throw exception("Camera is not initialized");
-    auto matrices = camera->render(alpha, aspect_ratio, scale_factor);
+    camera->state.translation.interpolate(alpha);
+    camera->state.forward.interpolate(alpha);
+    camera->state.up.interpolate(alpha);
+    auto matrices = camera->render(aspect_ratio, scale_factor);
     std::vector<std::shared_ptr<object>> render_order{};
     render_order.reserve(objects.size() - removals.size());
     for (const auto &[name, object] : objects)
     {
       if (removals.contains(name)) continue;
       object->state.translation.interpolate(alpha);
+      object->state.rotation.interpolate(alpha);
+      object->state.scale.interpolate(alpha);
       render_order.emplace_back(object);
     }
     const auto &camera_position = camera->state.translation.interpolated;
@@ -120,7 +125,7 @@ namespace cse
     for (const auto &object : render_order)
     {
       if (!object->initialized) throw exception("Object is not initialized");
-      object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha, scale_factor);
+      object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, scale_factor);
     }
     hook.call<void()>("post_render");
   }

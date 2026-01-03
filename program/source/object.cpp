@@ -101,12 +101,8 @@ namespace cse
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                      const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const double alpha,
-                      const float scale_factor)
+                      const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float scale_factor)
   {
-    state.translation.interpolate(alpha);
-    state.rotation.interpolate(alpha);
-    state.scale.interpolate(alpha);
     graphics.upload_dynamic_buffers(gpu);
     graphics.bind_pipeline_and_buffers(render_pass);
     auto model_matrix{state.calculate_model_matrix(graphics.texture.image->frame_width,
