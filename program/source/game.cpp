@@ -10,7 +10,7 @@
 #include "SDL3/SDL_timer.h"
 
 #include "exception.hpp"
-#include "id.hpp"
+#include "name.hpp"
 #include "print.hpp"
 #include "scene.hpp"
 #include "system.hpp"
@@ -32,23 +32,23 @@ namespace cse
     window.reset();
   }
 
-  std::shared_ptr<game> game::set_current_scene(const help::id name)
+  std::shared_ptr<game> game::set_current_scene(const help::name name)
   {
     if (auto iterator{scenes.find(name)}; iterator == scenes.end())
       throw exception("Tried to set current scene to null");
     else if (window->initialized)
-      state.next_scene = {name, {}};
+      state.next = {name, {}};
     else
-      state.scene.second = iterator->second;
+      state.current.scene = iterator->second;
     return shared_from_this();
   }
 
-  std::shared_ptr<game> game::remove_scene(const help::id name)
+  std::shared_ptr<game> game::remove_scene(const help::name name)
   {
     if (auto iterator{scenes.find(name)}; iterator != scenes.end())
     {
       const auto &scene{iterator->second};
-      if (state.scene.second == scene) throw exception("Tried to remove current scene");
+      if (state.current.scene == scene) throw exception("Tried to remove current scene");
       if (scene->initialized) scene->cleanup(window->graphics.gpu);
       scenes.erase(iterator);
     }
@@ -85,9 +85,9 @@ namespace cse
     if (!window) throw exception("No window has been set for the game");
     if (!window->initialized) window->initialize();
     if (scenes.empty()) throw exception("No scenes have been added to the game");
-    if (!state.scene.second) throw exception("No current scene has been set for the game");
-    if (!state.scene.second->initialized)
-      state.scene.second->initialize(window->graphics.instance, window->graphics.gpu);
+    if (!state.current.scene) throw exception("No current scene has been set for the game");
+    if (!state.current.scene->initialized)
+      state.current.scene->initialize(window->graphics.instance, window->graphics.gpu);
     hook.call<void()>("post_initialize");
   }
 
@@ -98,8 +98,8 @@ namespace cse
       hook.call<void(const SDL_Event &)>("pre_event", window->current_event);
       if (!window->initialized) throw exception("Window is not initialized");
       window->event();
-      if (!state.scene.second->initialized) throw exception("Current scene is not initialized");
-      state.scene.second->event(window->current_event);
+      if (!state.current.scene->initialized) throw exception("Current scene is not initialized");
+      state.current.scene->event(window->current_event);
       hook.call<void(const SDL_Event &)>("post_event", window->current_event);
     }
   }
@@ -110,8 +110,8 @@ namespace cse
     hook.call<void(const bool *)>("pre_input", window->current_keys);
     if (!window->initialized) throw exception("Window is not initialized");
     window->input();
-    if (!state.scene.second->initialized) throw exception("Current scene is not initialized");
-    state.scene.second->input(window->current_keys);
+    if (!state.current.scene->initialized) throw exception("Current scene is not initialized");
+    state.current.scene->input(window->current_keys);
     hook.call<void(const bool *)>("post_input", window->current_keys);
   }
 
@@ -120,8 +120,8 @@ namespace cse
     hook.call<void(const float)>("pre_simulate", static_cast<float>(active_poll_rate));
     if (!window->initialized) throw exception("Window is not initialized");
     window->simulate(active_poll_rate);
-    if (!state.scene.second->initialized) throw exception("Current scene is not initialized");
-    state.scene.second->simulate(active_poll_rate);
+    if (!state.current.scene->initialized) throw exception("Current scene is not initialized");
+    state.current.scene->simulate(active_poll_rate);
     hook.call<void(const float)>("post_simulate", static_cast<float>(active_poll_rate));
   }
 
@@ -130,9 +130,9 @@ namespace cse
     hook.call<void()>("pre_render");
     if (!window->initialized) throw exception("Window is not initialized");
     if (!window->start_render(aspect_ratio)) return;
-    if (!state.scene.second->initialized) throw exception("Current scene is not initialized");
-    state.scene.second->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass,
-                               alpha, aspect_ratio, scale_factor);
+    if (!state.current.scene->initialized) throw exception("Current scene is not initialized");
+    state.current.scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass,
+                                alpha, aspect_ratio, scale_factor);
     window->end_render();
     hook.call<void()>("post_render");
   }
@@ -140,7 +140,7 @@ namespace cse
   void game::cleanup()
   {
     hook.call<void()>("pre_cleanup");
-    if (state.scene.second->initialized) state.scene.second->cleanup(window->graphics.gpu);
+    if (state.current.scene->initialized) state.current.scene->cleanup(window->graphics.gpu);
     if (window->initialized) window->cleanup();
     hook.call<void()>("post_cleanup");
   }
@@ -154,40 +154,40 @@ namespace cse
 
   void game::process_updates()
   {
-    if (state.next_scene.has_value())
+    if (state.next.has_value())
     {
-      if (auto &[name, scene]{state.next_scene.value()}; !scene)
+      if (auto &[name, scene]{state.next.value()}; !scene)
       {
         if (auto iterator{scenes.find(name)}; iterator == scenes.end())
           throw exception("Tried to set current scene to null");
         else
         {
           const auto &new_scene{iterator->second};
-          if (state.scene.second->initialized) state.scene.second->cleanup(window->graphics.gpu);
-          state.scene = {name, new_scene};
+          if (state.current.scene->initialized) state.current.scene->cleanup(window->graphics.gpu);
+          state.current = {name, new_scene};
           if (!new_scene->initialized) new_scene->initialize(window->graphics.instance, window->graphics.gpu);
         }
       }
       else
       {
-        if (state.scene.second->initialized) state.scene.second->cleanup(window->graphics.gpu);
+        if (state.current.scene->initialized) state.current.scene->cleanup(window->graphics.gpu);
         scenes.insert_or_assign(name, scene);
-        state.scene = {name, scene};
+        state.current = {name, scene};
         if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
       }
-      state.next_scene.reset();
+      state.next.reset();
     }
-    if (state.scene.second->initialized) state.scene.second->process_updates();
+    if (state.current.scene->initialized) state.current.scene->process_updates();
   }
 
   void game::update_previous()
   {
     previous.state.poll_rate = state.poll_rate;
-    previous.state.scene = state.scene;
-    previous.state.next_scene = state.next_scene;
+    previous.state.current = state.current;
+    previous.state.next = state.next;
     previous.graphics.frame_rate = graphics.frame_rate;
     window->previous.update(window->state, window->graphics);
-    state.scene.second->update_previous();
+    state.current.scene->update_previous();
   }
 
   void game::update_time()

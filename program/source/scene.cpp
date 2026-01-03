@@ -13,7 +13,7 @@
 #include "camera.hpp"
 #include "exception.hpp"
 #include "game.hpp"
-#include "id.hpp"
+#include "name.hpp"
 #include "object.hpp"
 #include "utility.hpp"
 
@@ -29,7 +29,7 @@ namespace cse
     parent.reset();
   }
 
-  std::shared_ptr<scene> scene::remove_object(const help::id name)
+  std::shared_ptr<scene> scene::remove_object(const help::name name)
   {
     if (!initialized)
     {

@@ -18,12 +18,12 @@ namespace cse::help
 
   game_state::~game_state()
   {
-    if (next_scene.has_value())
+    if (next.has_value())
     {
-      next_scene->second.reset();
-      next_scene.reset();
+      next->scene.reset();
+      next.reset();
     }
-    scene.second.reset();
+    current.scene.reset();
   }
 
   window_state::window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)

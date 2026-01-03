@@ -11,7 +11,7 @@
 #include "camera.hpp"
 #include "declaration.hpp"
 #include "hook.hpp"
-#include "id.hpp"
+#include "name.hpp"
 #include "object.hpp"
 #include "traits.hpp"
 
@@ -32,8 +32,8 @@ namespace cse
     template <help::is_camera camera_type, typename... camera_arguments>
     std::shared_ptr<scene> set_camera(camera_arguments &&...arguments);
     template <help::is_object object_type, typename... object_arguments>
-    std::shared_ptr<scene> set_object(const help::id name, object_arguments &&...arguments);
-    std::shared_ptr<scene> remove_object(const help::id name);
+    std::shared_ptr<scene> set_object(const help::name name, object_arguments &&...arguments);
+    std::shared_ptr<scene> remove_object(const help::name name);
 
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
@@ -50,13 +50,13 @@ namespace cse
   public:
     std::weak_ptr<game> parent{};
     std::shared_ptr<class camera> camera{};
-    std::unordered_map<help::id, std::shared_ptr<class object>> objects{};
+    std::unordered_map<help::name, std::shared_ptr<class object>> objects{};
     help::hook hook{};
 
   private:
     bool initialized{};
-    std::unordered_set<help::id> removals{};
-    std::unordered_map<help::id, std::shared_ptr<object>> additions{};
+    std::unordered_set<help::name> removals{};
+    std::unordered_map<help::name, std::shared_ptr<object>> additions{};
   };
 }
 

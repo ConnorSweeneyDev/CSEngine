@@ -7,14 +7,14 @@
 
 namespace cse::help
 {
-  class id
+  class name
   {
   public:
-    id() = default;
-    constexpr id(const char *string_);
-    id(const std::string &string_);
+    name() = default;
+    constexpr name(const char *string_);
+    name(const std::string &string_);
 
-    bool operator==(const id &other) const;
+    bool operator==(const name &other) const;
 
     constexpr std::uint64_t get_hash() const;
 
@@ -27,9 +27,9 @@ namespace cse::help
   };
 }
 
-template <> struct std::hash<cse::help::id>
+template <> struct std::hash<cse::help::name>
 {
-  std::size_t operator()(const cse::help::id &id) const;
+  std::size_t operator()(const cse::help::name &id) const;
 };
 
-#include "id.inl" // IWYU pragma: keep
+#include "name.inl" // IWYU pragma: keep

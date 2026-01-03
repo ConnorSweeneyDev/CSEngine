@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "camera.hpp"
-#include "id.hpp"
+#include "name.hpp"
 #include "traits.hpp"
 
 namespace cse
@@ -19,7 +19,7 @@ namespace cse
   }
 
   template <help::is_object object_type, typename... object_arguments>
-  std::shared_ptr<scene> scene::set_object(const help::id name, object_arguments &&...arguments)
+  std::shared_ptr<scene> scene::set_object(const help::name name, object_arguments &&...arguments)
   {
     if (objects.contains(name)) removals.insert(name);
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
