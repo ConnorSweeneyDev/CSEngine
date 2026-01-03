@@ -101,9 +101,9 @@ namespace cse
     std::sort(render_order.begin(), render_order.end(),
               [&camera_position, &camera_forward](const auto &left, const auto &right)
               {
-                float depth_a = glm::dot(left->state.translation.interpolated - camera_position, camera_forward);
-                float depth_b = glm::dot(right->state.translation.interpolated - camera_position, camera_forward);
-                if (!equal(depth_a, depth_b, 1e-2f)) return depth_a > depth_b;
+                float depth_left = glm::dot(left->state.translation.interpolated - camera_position, camera_forward);
+                float depth_right = glm::dot(right->state.translation.interpolated - camera_position, camera_forward);
+                if (!equal(depth_left, depth_right, 1e-4f)) return depth_left > depth_right;
                 return left->graphics.property.priority < right->graphics.property.priority;
               });
     for (const auto &object : render_order)
