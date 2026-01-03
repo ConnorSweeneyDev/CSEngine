@@ -39,9 +39,9 @@ namespace cse::help
     game_state &operator=(game_state &&) = delete;
 
   public:
-    double poll_rate{};
     struct active current{};
     std::optional<struct active> next{};
+    double poll_rate{};
   };
 
   struct window_state

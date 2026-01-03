@@ -11,6 +11,8 @@ namespace cse::help
 
   void game_previous::update(const game_state &new_state, const game_graphics &new_graphics)
   {
+    state.current = new_state.current;
+    state.next = new_state.next;
     state.poll_rate = new_state.poll_rate;
     graphics.frame_rate = new_graphics.frame_rate;
   }

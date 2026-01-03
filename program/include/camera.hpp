@@ -36,6 +36,8 @@ namespace cse
     std::pair<glm::mat4, glm::mat4> render(const float aspect_ratio, const float scale_factor);
     void cleanup();
 
+    void update_previous();
+
   public:
     std::weak_ptr<scene> parent{};
     help::camera_state state{};

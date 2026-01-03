@@ -90,4 +90,6 @@ namespace cse
     initialized = false;
     hook.call<void()>("cleanup");
   }
+
+  void window::update_previous() { previous.update(state, graphics); }
 }

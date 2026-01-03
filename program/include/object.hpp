@@ -40,6 +40,8 @@ namespace cse
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const float scale_factor);
     void cleanup(SDL_GPUDevice *gpu);
 
+    void update_previous();
+
   public:
     std::weak_ptr<scene> parent{};
     help::object_state state{};

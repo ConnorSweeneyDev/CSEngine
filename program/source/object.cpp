@@ -118,4 +118,6 @@ namespace cse
     initialized = false;
     hook.call<void()>("cleanup");
   }
+
+  void object::update_previous() { previous.update(state, graphics); }
 }

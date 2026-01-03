@@ -61,6 +61,7 @@ namespace cse
     void update_parents();
     void process_updates();
     void update_previous();
+
     void update_time();
     bool simulation_behind();
     bool should_render();

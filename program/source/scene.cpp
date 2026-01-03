@@ -165,8 +165,8 @@ namespace cse
 
   void scene::update_previous()
   {
-    camera->previous.update(camera->state, camera->graphics);
+    camera->update_previous();
     for (const auto &[name, object] : objects)
-      if (!removals.contains(name)) object->previous.update(object->state, object->graphics);
+      if (!removals.contains(name)) object->update_previous();
   }
 }

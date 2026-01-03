@@ -182,11 +182,8 @@ namespace cse
 
   void game::update_previous()
   {
-    previous.state.poll_rate = state.poll_rate;
-    previous.state.current = state.current;
-    previous.state.next = state.next;
-    previous.graphics.frame_rate = graphics.frame_rate;
-    window->previous.update(window->state, window->graphics);
+    previous.update(state, graphics);
+    window->update_previous();
     state.current.scene->update_previous();
   }
 

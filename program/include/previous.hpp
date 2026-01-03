@@ -29,7 +29,7 @@ namespace cse::help
 
   struct window_previous
   {
-    friend class cse::game;
+    friend class cse::window;
 
   public:
     window_previous();
@@ -51,7 +51,7 @@ namespace cse::help
 
   struct camera_previous
   {
-    friend class cse::scene;
+    friend class cse::camera;
 
   public:
     camera_previous();
@@ -72,7 +72,7 @@ namespace cse::help
 
   struct object_previous
   {
-    friend class cse::scene;
+    friend class cse::object;
 
   public:
     object_previous();
