@@ -135,10 +135,10 @@ namespace cse::help
     struct texture
     {
       property<struct image> image{};
-      glm::u8vec4 color{};
-      float transparency{};
       struct group group{};
       struct animation animation{};
+      glm::u8vec4 color{};
+      float transparency{};
     };
     struct property
     {
@@ -148,7 +148,7 @@ namespace cse::help
   public:
     object_graphics() = default;
     object_graphics(const std::pair<vertex, fragment> &shader_,
-                    const std::tuple<image, glm::u8vec4, float, group, animation> &texture_, const int &property_);
+                    const std::tuple<image, group, animation, glm::u8vec4, float> &texture_, const int &property_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;

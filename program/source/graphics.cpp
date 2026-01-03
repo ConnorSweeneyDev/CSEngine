@@ -303,7 +303,7 @@ namespace cse::help
   }
 
   object_graphics::object_graphics(const std::pair<vertex, fragment> &shader_,
-                                   const std::tuple<image, glm::u8vec4, float, group, animation> &texture_,
+                                   const std::tuple<image, group, animation, glm::u8vec4, float> &texture_,
                                    const int &property_)
     : shader{shader_.first, shader_.second},
       texture{std::get<0>(texture_), std::get<1>(texture_), std::get<2>(texture_), std::get<3>(texture_),
