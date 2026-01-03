@@ -5,6 +5,7 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_float3.hpp"
+#include "glm/ext/vector_int3.hpp"
 #include "glm/ext/vector_uint2.hpp"
 #include "glm/trigonometric.hpp"
 
@@ -29,8 +30,7 @@ namespace cse::help
   {
   }
 
-  camera_state::camera_state(const transform_value &translation_, const transform_value &forward_,
-                             const transform_value &up_)
+  camera_state::camera_state(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
     : translation{translation_}, forward{forward_}, up{up_}
   {
   }
@@ -41,8 +41,7 @@ namespace cse::help
                        (translation.interpolated * scale_factor) + forward.interpolated, up.interpolated);
   }
 
-  object_state::object_state(const transform_value &translation_, const transform_value &rotation_,
-                             const transform_value &scale_)
+  object_state::object_state(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_)
     : translation{translation_}, rotation{rotation_}, scale{scale_}
   {
   }

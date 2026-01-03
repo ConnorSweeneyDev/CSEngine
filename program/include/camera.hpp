@@ -5,13 +5,13 @@
 
 #include "SDL3/SDL_events.h"
 #include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/vector_float3.hpp"
 
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "hook.hpp"
 #include "previous.hpp"
 #include "state.hpp"
-#include "transform.hpp"
 
 namespace cse
 {
@@ -20,8 +20,7 @@ namespace cse
     friend class scene;
 
   public:
-    camera(const help::transform_value &translation_, const help::transform_value &forward_,
-           const help::transform_value &up_, const float fov_);
+    camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, const float fov_);
     virtual ~camera();
     camera(const camera &) = delete;
     camera &operator=(const camera &) = delete;

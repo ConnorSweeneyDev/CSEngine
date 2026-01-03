@@ -4,13 +4,13 @@
 
 #include "SDL3/SDL_events.h"
 #include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/vector_float3.hpp"
 
 #include "transform.hpp"
 
 namespace cse
 {
-  camera::camera(const help::transform_value &translation_, const help::transform_value &forward_,
-                 const help::transform_value &up_, const float fov_)
+  camera::camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, const float fov_)
     : state{translation_, forward_, up_}, graphics{fov_}, previous{state, graphics}
   {
   }
