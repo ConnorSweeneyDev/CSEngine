@@ -86,10 +86,11 @@ namespace cse::help
     graphics.shader.vertex = new_graphics.shader.vertex;
     graphics.shader.fragment = new_graphics.shader.fragment;
     graphics.texture.image = new_graphics.texture.image;
-    graphics.texture.color = new_graphics.texture.color;
-    graphics.texture.transparency = new_graphics.texture.transparency;
     graphics.texture.group = new_graphics.texture.group;
     graphics.texture.animation = new_graphics.texture.animation;
+    graphics.texture.flip = new_graphics.texture.flip;
+    graphics.texture.color = new_graphics.texture.color;
+    graphics.texture.transparency = new_graphics.texture.transparency;
     graphics.property.priority = new_graphics.property.priority;
   }
 }

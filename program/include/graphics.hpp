@@ -132,9 +132,15 @@ namespace cse::help
     };
     struct texture
     {
+      struct flip
+      {
+        bool horizontal{};
+        bool vertical{};
+      };
       property<struct image> image{};
       struct group group{};
       struct animation animation{};
+      struct flip flip{};
       glm::u8vec4 color{};
       float transparency{};
     };

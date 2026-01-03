@@ -381,15 +381,15 @@ namespace cse::help
     auto size{texture.group.frames.size()};
     if (frame >= size) frame = size - 1;
     const auto &frame_coords{texture.group.frames[frame].coords};
-    const auto &red{texture.color.r};
-    const auto &green{texture.color.g};
-    const auto &blue{texture.color.b};
-    const auto &alpha{texture.color.a};
-    quad_vertices = std::array<struct vertex_data, 4>{
-      {{1.0f, 1.0f, 0.0f, red, green, blue, alpha, frame_coords.right, frame_coords.top},
-       {1.0f, -1.0f, 0.0f, red, green, blue, alpha, frame_coords.right, frame_coords.bottom},
-       {-1.0f, 1.0f, 0.0f, red, green, blue, alpha, frame_coords.left, frame_coords.top},
-       {-1.0f, -1.0f, 0.0f, red, green, blue, alpha, frame_coords.left, frame_coords.bottom}}};
+    const auto red{texture.color.r}, green{texture.color.g}, blue{texture.color.b}, alpha{texture.color.a};
+    const auto left{texture.flip.horizontal ? frame_coords.right : frame_coords.left},
+      right{texture.flip.horizontal ? frame_coords.left : frame_coords.right},
+      top{texture.flip.vertical ? frame_coords.bottom : frame_coords.top},
+      bottom{texture.flip.vertical ? frame_coords.top : frame_coords.bottom};
+    quad_vertices = std::array<struct vertex_data, 4>{{{1.0f, 1.0f, 0.0f, red, green, blue, alpha, right, top},
+                                                       {1.0f, -1.0f, 0.0f, red, green, blue, alpha, right, bottom},
+                                                       {-1.0f, 1.0f, 0.0f, red, green, blue, alpha, left, top},
+                                                       {-1.0f, -1.0f, 0.0f, red, green, blue, alpha, left, bottom}}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex_data);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(gpu)};
