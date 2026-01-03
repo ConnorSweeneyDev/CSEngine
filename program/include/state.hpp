@@ -1,7 +1,5 @@
 #pragma once
 
-#include "declaration.hpp"
-
 #include <memory>
 #include <optional>
 #include <tuple>
@@ -12,6 +10,7 @@
 #include "glm/ext/vector_int3.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
+#include "declaration.hpp"
 #include "name.hpp"
 #include "property.hpp"
 #include "transform.hpp"

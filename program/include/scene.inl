@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "camera.hpp"
+#include "exception.hpp"
 #include "name.hpp"
 #include "traits.hpp"
 
@@ -13,6 +14,7 @@ namespace cse
   template <help::is_camera camera_type, typename... camera_arguments>
   std::shared_ptr<scene> scene::set_camera(camera_arguments &&...arguments)
   {
+    if (camera && camera->initialized) throw exception("Tried to change camera after initialization");
     camera = std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...);
     camera->parent = weak_from_this();
     return shared_from_this();
