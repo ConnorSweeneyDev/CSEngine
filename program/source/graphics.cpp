@@ -302,13 +302,9 @@ namespace cse::help
     return glm::perspective(glm::radians(fov), aspect_ratio, near_clip, far_clip);
   }
 
-  object_graphics::object_graphics(const std::pair<vertex, fragment> &shader_,
-                                   const std::tuple<image, group, animation, glm::u8vec4, float> &texture_,
-                                   const int &property_)
-    : shader{shader_.first, shader_.second},
-      texture{std::get<0>(texture_), std::get<1>(texture_), std::get<2>(texture_), std::get<3>(texture_),
-              std::get<4>(texture_)},
-      property{property_}
+  object_graphics::object_graphics(const struct shader &shader_, const struct texture &texture_,
+                                   const struct property &property_)
+    : shader{shader_}, texture{texture_}, property{property_}
   {
     shader.vertex.change = [this]() { generate_pipeline(); };
     shader.fragment.change = [this]() { generate_pipeline(); };

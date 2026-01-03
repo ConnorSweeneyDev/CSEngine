@@ -2,8 +2,6 @@
 
 #include <array>
 #include <string>
-#include <tuple>
-#include <utility>
 
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_stdinc.h"
@@ -147,8 +145,7 @@ namespace cse::help
 
   public:
     object_graphics() = default;
-    object_graphics(const std::pair<vertex, fragment> &shader_,
-                    const std::tuple<image, group, animation, glm::u8vec4, float> &texture_, const int &property_);
+    object_graphics(const struct shader &shader_, const struct texture &texture_, const struct property &property_);
     ~object_graphics();
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;
