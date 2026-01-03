@@ -1,6 +1,7 @@
 #include "state.hpp"
 
 #include <cmath>
+#include <tuple>
 
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
@@ -30,8 +31,8 @@ namespace cse::help
   {
   }
 
-  camera_state::camera_state(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_)
-    : translation{translation_}, forward{forward_}, up{up_}
+  camera_state::camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_)
+    : translation{std::get<0>(transform_)}, forward{std::get<1>(transform_)}, up{std::get<2>(transform_)}
   {
   }
 
@@ -41,8 +42,8 @@ namespace cse::help
                        (translation.interpolated * scale_factor) + forward.interpolated, up.interpolated);
   }
 
-  object_state::object_state(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_)
-    : translation{translation_}, rotation{rotation_}, scale{scale_}
+  object_state::object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_)
+    : translation{std::get<0>(transform_)}, rotation{std::get<1>(transform_)}, scale{std::get<2>(transform_)}
   {
   }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <tuple>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
@@ -21,7 +22,7 @@ namespace cse
     friend class scene;
 
   public:
-    object(const glm::ivec3 &translation_, const glm::ivec3 &rotation_, const glm::ivec3 &scale_,
+    object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_,
            const struct help::object_graphics::shader &shader_, const struct help::object_graphics::texture &texture_,
            const struct help::object_graphics::property &property_);
     virtual ~object();

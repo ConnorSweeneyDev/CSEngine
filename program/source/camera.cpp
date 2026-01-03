@@ -1,5 +1,6 @@
 #include "camera.hpp"
 
+#include <tuple>
 #include <utility>
 
 #include "SDL3/SDL_events.h"
@@ -10,8 +11,8 @@
 
 namespace cse
 {
-  camera::camera(const glm::vec3 &translation_, const glm::vec3 &forward_, const glm::vec3 &up_, const float fov_)
-    : state{translation_, forward_, up_}, graphics{fov_}, previous{state, graphics}
+  camera::camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const float fov_)
+    : state{transform_}, graphics{fov_}, previous{state, graphics}
   {
   }
 
