@@ -251,6 +251,8 @@ namespace cse::help
   {
     int current_width{}, current_height{};
     SDL_GetWindowSize(instance, &current_width, &current_height);
+    if (current_width <= 0) current_width = 1;
+    if (current_height <= 0) current_height = 1;
     width = static_cast<unsigned int>(current_width);
     height = static_cast<unsigned int>(current_height);
     if (!fullscreen)
