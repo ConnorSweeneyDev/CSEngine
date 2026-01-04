@@ -77,7 +77,7 @@ namespace cse
                                                 scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
-    if (auto parent{weak_from_this()}; !parent.expired()) scene->parent = parent;
+    if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
     if (config) config(scene);
     if (state.active.window && state.active.window->state.initialized)
       state.next.scene = {name, scene};
