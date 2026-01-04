@@ -62,7 +62,7 @@ namespace cse
     hook.call<void(const float)>("simulate", static_cast<float>(active_poll_rate));
   }
 
-  bool window::start_render(const float aspect_ratio)
+  bool window::start_render(const double aspect_ratio)
   {
     if (!graphics.acquire_swapchain_texture()) return false;
     graphics.start_render_pass(aspect_ratio, state.active.width, state.active.height);

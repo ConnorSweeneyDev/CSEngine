@@ -32,7 +32,10 @@
 
 namespace cse::help
 {
-  game_graphics::game_graphics(const double frame_rate_) : previous{frame_rate_}, active{frame_rate_} {}
+  game_graphics::game_graphics(const double frame_rate_, const double aspect_ratio_)
+    : previous{frame_rate_, aspect_ratio_}, active{frame_rate_, aspect_ratio_}
+  {
+  }
 
   void game_graphics::initialize_app()
   {
@@ -52,7 +55,11 @@ namespace cse::help
 
   void game_graphics::cleanup_app() { SDL_Quit(); }
 
-  void game_graphics::update_previous() { previous.frame_rate = active.frame_rate; }
+  void game_graphics::update_previous()
+  {
+    previous.aspect_ratio = active.aspect_ratio;
+    previous.frame_rate = active.frame_rate;
+  }
 
   window_graphics::window_graphics(const std::string &title_) : previous{title_}, active{title_}
   {
@@ -111,7 +118,8 @@ namespace cse::help
     return true;
   }
 
-  void window_graphics::start_render_pass(const float aspect_ratio, const unsigned int width, const unsigned int height)
+  void window_graphics::start_render_pass(const double aspect_ratio, const unsigned int width,
+                                          const unsigned int height)
   {
     SDL_GPUColorTargetInfo color_target_info{};
     color_target_info.texture = swapchain_texture;
@@ -129,14 +137,14 @@ namespace cse::help
     if ((static_cast<float>(width) / static_cast<float>(height)) > aspect_ratio)
     {
       viewport_height = static_cast<float>(height);
-      viewport_width = viewport_height * aspect_ratio;
+      viewport_width = viewport_height * static_cast<float>(aspect_ratio);
       viewport_y = 0.0f;
       viewport_x = (static_cast<float>(width) - viewport_width) / 2.0f;
     }
     else
     {
       viewport_width = static_cast<float>(width);
-      viewport_height = viewport_width / aspect_ratio;
+      viewport_height = viewport_width / static_cast<float>(aspect_ratio);
       viewport_x = 0.0f;
       viewport_y = (static_cast<float>(height) - viewport_height) / 2.0f;
     }
@@ -361,9 +369,9 @@ namespace cse::help
   {
   }
 
-  glm::mat4 camera_graphics::calculate_projection_matrix(const float aspect_ratio)
+  glm::mat4 camera_graphics::calculate_projection_matrix(const double aspect_ratio)
   {
-    return glm::perspective(glm::radians(active.fov), aspect_ratio, near_clip, far_clip);
+    return glm::perspective(glm::radians(active.fov), static_cast<float>(aspect_ratio), near_clip, far_clip);
   }
 
   void camera_graphics::update_previous() { previous.fov = active.fov; }

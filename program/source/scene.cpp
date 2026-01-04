@@ -83,7 +83,7 @@ namespace cse
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     const double alpha, const float aspect_ratio)
+                     const double alpha, const double aspect_ratio)
   {
     hook.call<void()>("pre_render");
     graphics.interpolate(alpha, state.active.camera, state.active.objects, state.removals);

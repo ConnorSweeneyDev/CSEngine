@@ -19,7 +19,10 @@
 
 namespace cse
 {
-  game::game(const std::pair<double, double> &rates_) : state{rates_.first}, graphics{rates_.second} {}
+  game::game(const double poll_rate_, const double frame_rate, const double aspect_ratio_)
+    : state{poll_rate_}, graphics{frame_rate, aspect_ratio_}
+  {
+  }
 
   game::~game()
   {
@@ -128,10 +131,11 @@ namespace cse
   {
     hook.call<void()>("pre_render");
     if (!state.active.window->state.initialized) throw exception("Window is not initialized");
-    if (!state.active.window->start_render(graphics.aspect_ratio)) return;
+    if (!state.active.window->start_render(graphics.active.aspect_ratio)) return;
     if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
     state.active.scene.pointer->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
-                                       state.active.window->graphics.render_pass, state.alpha, graphics.aspect_ratio);
+                                       state.active.window->graphics.render_pass, state.alpha,
+                                       graphics.active.aspect_ratio);
     state.active.window->end_render();
     hook.call<void()>("post_render");
   }

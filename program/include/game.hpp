@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <memory>
-#include <utility>
 
 #include "declaration.hpp"
 #include "graphics.hpp"
@@ -46,7 +45,7 @@ namespace cse
     void run();
 
   protected:
-    game(const std::pair<double, double> &rates_);
+    game(const double poll_rate_, const double frame_rate, const double aspect_ratio_);
 
   private:
     void initialize();

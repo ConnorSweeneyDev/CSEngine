@@ -28,15 +28,17 @@ namespace cse::help
     struct previous
     {
       double frame_rate{};
+      double aspect_ratio{};
     };
     struct active
     {
       double frame_rate{};
+      double aspect_ratio{};
     };
 
   public:
     game_graphics() = default;
-    game_graphics(const double frame_rate_);
+    game_graphics(const double frame_rate_, const double aspect_ratio_);
     ~game_graphics() = default;
     game_graphics(const game_graphics &) = delete;
     game_graphics &operator=(const game_graphics &) = delete;
@@ -54,7 +56,6 @@ namespace cse::help
     struct active active{};
 
   private:
-    static constexpr float aspect_ratio{16.0f / 9.0f};
     double actual_frame_rate{1.0 / active.frame_rate};
   };
 
@@ -87,7 +88,7 @@ namespace cse::help
     void create_window(const unsigned int width, const unsigned int height, int &left, int &top,
                        SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
-    void start_render_pass(const float aspect_ratio, const unsigned int width, const unsigned int height);
+    void start_render_pass(const double aspect_ratio, const unsigned int width, const unsigned int height);
     void end_render_pass();
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
@@ -168,7 +169,7 @@ namespace cse::help
     camera_graphics &operator=(camera_graphics &&) = delete;
 
   private:
-    glm::mat4 calculate_projection_matrix(const float aspect_ratio);
+    glm::mat4 calculate_projection_matrix(const double aspect_ratio);
 
     void update_previous();
 
