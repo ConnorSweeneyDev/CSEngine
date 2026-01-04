@@ -2,14 +2,12 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_map>
 #include <utility>
 
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "hook.hpp"
 #include "name.hpp"
-#include "previous.hpp"
 #include "state.hpp"
 #include "traits.hpp"
 
@@ -24,6 +22,10 @@ namespace cse
     game(game &&) = delete;
     game &operator=(game &&) = delete;
 
+    template <help::is_game game_type, typename... game_arguments> static std::shared_ptr<game_type>
+    create(const std::function<void(const std::shared_ptr<game_type>)> &config, game_arguments &&...arguments);
+    template <help::is_callable callable, typename... game_arguments>
+    static std::shared_ptr<game> create(callable &&config, game_arguments &&...arguments);
     template <help::is_window window_type, typename... window_arguments>
     std::shared_ptr<game> set_window(window_arguments &&...arguments);
     template <help::is_scene scene_type, typename... scene_arguments>
@@ -40,10 +42,6 @@ namespace cse
     std::shared_ptr<game> set_current_scene(const help::name name, callable &&config, scene_arguments &&...arguments);
     std::shared_ptr<game> set_current_scene(const help::name name);
     std::shared_ptr<game> remove_scene(const help::name name);
-    template <help::is_game game_type, typename... game_arguments> static std::shared_ptr<game_type>
-    create(const std::function<void(const std::shared_ptr<game_type>)> &config, game_arguments &&...arguments);
-    template <help::is_callable callable, typename... game_arguments>
-    static std::shared_ptr<game> create(callable &&config, game_arguments &&...arguments);
 
     void run();
 
@@ -68,21 +66,12 @@ namespace cse
     void update_fps();
 
   public:
-    std::shared_ptr<class window> window{};
-    std::unordered_map<help::name, std::shared_ptr<class scene>> scenes{};
     help::game_state state{};
     help::game_graphics graphics{};
-    help::game_previous previous{};
     help::hook hook{};
 
   private:
     static inline std::weak_ptr<game> instance{};
-    static constexpr float aspect_ratio{16.0f / 9.0f};
-    double active_poll_rate{1.0 / state.poll_rate};
-    double active_frame_rate{1.0 / graphics.frame_rate};
-    double time{};
-    double accumulator{};
-    double alpha{};
   };
 }
 

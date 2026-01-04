@@ -8,60 +8,54 @@
 namespace cse
 {
   window::window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
-    : state{dimensions_, fullscreen_, vsync_}, graphics{title_}, previous{state, graphics}
+    : state{dimensions_, fullscreen_, vsync_}, graphics{title_}
   {
-    state.width.change = [this]() { graphics.handle_manual_resize(state.width, state.height, state.fullscreen); };
-    state.height.change = [this]() { graphics.handle_manual_resize(state.width, state.height, state.fullscreen); };
-    state.left.change = [this]() { graphics.handle_manual_move(state.left, state.top, state.fullscreen); };
-    state.top.change = [this]() { graphics.handle_manual_move(state.left, state.top, state.fullscreen); };
-    state.display_index.change = [this]()
+    state.active.width.change = [this]()
+    { graphics.handle_manual_resize(state.active.width, state.active.height, state.active.fullscreen); };
+    state.active.height.change = [this]()
+    { graphics.handle_manual_resize(state.active.width, state.active.height, state.active.fullscreen); };
+    state.active.left.change = [this]()
+    { graphics.handle_manual_move(state.active.left, state.active.top, state.active.fullscreen); };
+    state.active.top.change = [this]()
+    { graphics.handle_manual_move(state.active.left, state.active.top, state.active.fullscreen); };
+    state.active.display_index.change = [this]()
     {
-      graphics.handle_manual_display_move(state.width, state.height, state.left, state.top, state.display_index,
-                                          state.fullscreen);
+      graphics.handle_manual_display_move(state.active.width, state.active.height, state.active.left, state.active.top,
+                                          state.active.display_index, state.active.fullscreen);
     };
-    state.fullscreen.change = [this]() { graphics.handle_fullscreen(state.fullscreen, state.display_index); };
-    state.vsync.change = [this]() { graphics.handle_vsync(state.vsync); };
+    state.active.fullscreen.change = [this]()
+    { graphics.handle_fullscreen(state.active.fullscreen, state.active.display_index); };
+    state.active.vsync.change = [this]() { graphics.handle_vsync(state.active.vsync); };
   }
 
-  window::~window()
-  {
-    current_keys = nullptr;
-    hook.reset();
-    state.vsync.change = nullptr;
-    state.fullscreen.change = nullptr;
-    state.display_index.change = nullptr;
-    state.top.change = nullptr;
-    state.left.change = nullptr;
-    state.height.change = nullptr;
-    state.width.change = nullptr;
-    parent.reset();
-  }
+  window::~window() { hook.reset(); }
 
   void window::initialize()
   {
-    graphics.create_app_and_window(state.width, state.height, state.left, state.top, state.display_index,
-                                   state.fullscreen, state.vsync);
-    state.running = true;
-    initialized = true;
+    graphics.create_app_and_window(state.active.width, state.active.height, state.active.left, state.active.top,
+                                   state.active.display_index, state.active.fullscreen, state.active.vsync);
+    state.active.running = true;
+    state.initialized = true;
     hook.call<void()>("initialize");
   }
 
   void window::event()
   {
-    switch (current_event.type)
+    switch (state.event.type)
     {
-      case SDL_EVENT_QUIT: state.running = false; break;
+      case SDL_EVENT_QUIT: state.active.running = false; break;
       case SDL_EVENT_WINDOW_MOVED:
-        graphics.handle_move(state.left, state.top, state.display_index, state.fullscreen);
+        graphics.handle_move(state.active.left, state.active.top, state.active.display_index, state.active.fullscreen);
         break;
       case SDL_EVENT_WINDOW_RESIZED:
-        graphics.handle_resize(state.width, state.height, state.display_index, state.fullscreen);
+        graphics.handle_resize(state.active.width, state.active.height, state.active.display_index,
+                               state.active.fullscreen);
         break;
-      default: hook.call<void(const SDL_Event &)>("event", current_event); break;
+      default: hook.call<void(const SDL_Event &)>("event", state.event); break;
     }
   }
 
-  void window::input() { hook.call<void(const bool *)>("input", current_keys); }
+  void window::input() { hook.call<void(const bool *)>("input", state.keys); }
 
   void window::simulate(const double active_poll_rate)
   {
@@ -71,8 +65,8 @@ namespace cse
   bool window::start_render(const float aspect_ratio)
   {
     if (!graphics.acquire_swapchain_texture()) return false;
-    graphics.start_render_pass(aspect_ratio, state.width, state.height);
-    hook.call<void(const unsigned int, const unsigned int)>("pre_render", state.width, state.height);
+    graphics.start_render_pass(aspect_ratio, state.active.width, state.active.height);
+    hook.call<void(const unsigned int, const unsigned int)>("pre_render", state.active.width, state.active.height);
     return true;
   }
 
@@ -84,12 +78,16 @@ namespace cse
 
   void window::cleanup()
   {
-    current_keys = nullptr;
-    current_event = {};
+    state.keys = nullptr;
+    state.event = {};
     graphics.destroy_window_and_app();
-    initialized = false;
+    state.initialized = false;
     hook.call<void()>("cleanup");
   }
 
-  void window::update_previous() { previous.update(state, graphics); }
+  void window::update_previous()
+  {
+    state.update_previous();
+    graphics.update_previous();
+  }
 }

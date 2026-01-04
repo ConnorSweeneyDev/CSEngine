@@ -1,65 +1,54 @@
 #include "scene.hpp"
 
-#include <algorithm>
 #include <memory>
 #include <utility>
-#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
-#include "glm/geometric.hpp"
 
 #include "camera.hpp"
 #include "exception.hpp"
 #include "game.hpp"
 #include "name.hpp"
 #include "object.hpp"
-#include "utility.hpp"
 
 namespace cse
 {
-  scene::~scene()
-  {
-    additions.clear();
-    removals.clear();
-    hook.reset();
-    objects.clear();
-    camera.reset();
-    parent.reset();
-  }
+  scene::~scene() { hook.reset(); }
 
   std::shared_ptr<scene> scene::remove_object(const help::name name)
   {
-    if (!initialized)
+    if (!state.initialized)
     {
-      if (auto iterator{objects.find(name)}; iterator != objects.end()) objects.erase(iterator);
+      if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
+        state.active.objects.erase(iterator);
       return shared_from_this();
     }
-    if (objects.contains(name)) removals.insert(name);
+    if (state.active.objects.contains(name)) state.removals.insert(name);
     return shared_from_this();
   }
 
   void scene::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
     hook.call<void()>("pre_initialize");
-    if (!camera) throw exception("Scene must have a camera to be initialized");
-    if (!camera->initialized) camera->initialize();
-    for (const auto &[name, object] : objects)
-      if (!removals.contains(name) && !object->initialized) object->initialize(instance, gpu);
-    initialized = true;
+    if (!state.active.camera) throw exception("Scene must have a camera to be initialized");
+    if (!state.active.camera->state.initialized) state.active.camera->initialize();
+    for (const auto &[name, object] : state.active.objects)
+      if (!state.removals.contains(name) && !object->state.initialized) object->initialize(instance, gpu);
+    state.initialized = true;
     hook.call<void()>("post_initialize");
   }
 
   void scene::event(const SDL_Event &event)
   {
     hook.call<void(const SDL_Event &)>("pre_event", event);
-    if (!camera->initialized) throw exception("Camera is not initialized");
-    camera->event(event);
-    for (const auto &[name, object] : objects)
-      if (!removals.contains(name))
+    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
+    state.active.camera->event(event);
+    for (const auto &[name, object] : state.active.objects)
+      if (!state.removals.contains(name))
       {
-        if (!object->initialized) throw exception("Object is not initialized");
+        if (!object->state.initialized) throw exception("Object is not initialized");
         object->event(event);
       }
     hook.call<void(const SDL_Event &)>("post_event", event);
@@ -68,12 +57,12 @@ namespace cse
   void scene::input(const bool *keys)
   {
     hook.call<void(const bool *)>("pre_input", keys);
-    if (!camera->initialized) throw exception("Camera is not initialized");
-    camera->input(keys);
-    for (const auto &[name, object] : objects)
-      if (!removals.contains(name))
+    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
+    state.active.camera->input(keys);
+    for (const auto &[name, object] : state.active.objects)
+      if (!state.removals.contains(name))
       {
-        if (!object->initialized) throw exception("Object is not initialized");
+        if (!object->state.initialized) throw exception("Object is not initialized");
         object->input(keys);
       }
     hook.call<void(const bool *)>("post_input", keys);
@@ -82,12 +71,12 @@ namespace cse
   void scene::simulate(const double active_poll_rate)
   {
     hook.call<void(const float)>("pre_simulate", static_cast<float>(active_poll_rate));
-    if (!camera->initialized) throw exception("Camera is not initialized");
-    camera->simulate(active_poll_rate);
-    for (const auto &[name, object] : objects)
-      if (!removals.contains(name))
+    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
+    state.active.camera->simulate(active_poll_rate);
+    for (const auto &[name, object] : state.active.objects)
+      if (!state.removals.contains(name))
       {
-        if (!object->initialized) throw exception("Object is not initialized");
+        if (!object->state.initialized) throw exception("Object is not initialized");
         object->simulate(active_poll_rate);
       }
     hook.call<void(const float)>("post_simulate", static_cast<float>(active_poll_rate));
@@ -97,34 +86,12 @@ namespace cse
                      const double alpha, const float aspect_ratio)
   {
     hook.call<void()>("pre_render");
-    if (!camera->initialized) throw exception("Camera is not initialized");
-    camera->state.translation.interpolate(alpha);
-    camera->state.forward.interpolate(alpha);
-    camera->state.up.interpolate(alpha);
-    auto matrices = camera->render(aspect_ratio);
-    std::vector<std::shared_ptr<object>> render_order{};
-    render_order.reserve(objects.size() - removals.size());
-    for (const auto &[name, object] : objects)
+    graphics.interpolate(alpha, state.active.camera, state.active.objects, state.removals);
+    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
+    auto matrices = state.active.camera->render(aspect_ratio);
+    for (const auto &object : graphics.generate_render_order(state.active.camera, state.active.objects, state.removals))
     {
-      if (removals.contains(name)) continue;
-      object->state.translation.interpolate(alpha);
-      object->state.rotation.interpolate(alpha);
-      object->state.scale.interpolate(alpha);
-      render_order.emplace_back(object);
-    }
-    const auto &camera_position = camera->state.translation.interpolated;
-    const auto camera_forward = glm::normalize(camera->state.forward.interpolated);
-    std::sort(render_order.begin(), render_order.end(),
-              [&camera_position, &camera_forward](const auto &left, const auto &right)
-              {
-                float depth_left = glm::dot(left->state.translation.interpolated - camera_position, camera_forward);
-                float depth_right = glm::dot(right->state.translation.interpolated - camera_position, camera_forward);
-                if (!equal(depth_left, depth_right, 1e-4f)) return depth_left > depth_right;
-                return left->graphics.property.priority < right->graphics.property.priority;
-              });
-    for (const auto &object : render_order)
-    {
-      if (!object->initialized) throw exception("Object is not initialized");
+      if (!object->state.initialized) throw exception("Object is not initialized");
       object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second);
     }
     hook.call<void()>("post_render");
@@ -133,40 +100,52 @@ namespace cse
   void scene::cleanup(SDL_GPUDevice *gpu)
   {
     hook.call<void()>("pre_cleanup");
-    for (const auto &[name, object] : objects)
-      if (object->initialized) object->cleanup(gpu);
-    if (camera->initialized) camera->cleanup();
-    initialized = false;
+    for (const auto &[name, object] : state.active.objects)
+    {
+      if (!object->state.initialized) throw exception("Object is not initialized");
+      object->cleanup(gpu);
+    }
+    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
+    state.active.camera->cleanup();
+    state.initialized = false;
     hook.call<void()>("post_cleanup");
   }
 
   void scene::process_updates()
   {
-    if (removals.empty() && additions.empty()) return;
-    auto game{parent.lock()};
-    for (const auto &name : removals)
-      if (auto iterator{objects.find(name)}; iterator != objects.end())
+    if (state.removals.empty() && state.additions.empty() && !state.next.camera.has_value()) return;
+    if (state.next.camera.has_value())
+    {
+      state.active.camera = state.next.camera.value();
+      state.next.camera.reset();
+    }
+    if (state.removals.empty() && state.additions.empty()) return;
+    auto game{state.active.parent.lock()};
+    for (const auto &name : state.removals)
+      if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
       {
         const auto &object{iterator->second};
-        if (initialized && object->initialized)
-          if (game) object->cleanup(game->window->graphics.gpu);
-        objects.erase(iterator);
+        if (state.initialized && object->state.initialized)
+          if (game) object->cleanup(game->state.active.window->graphics.gpu);
+        state.active.objects.erase(iterator);
       }
-    removals.clear();
-    if (additions.empty()) return;
-    for (auto &[name, object] : additions)
+    state.removals.clear();
+    if (state.additions.empty()) return;
+    for (auto &[name, object] : state.additions)
     {
-      objects.insert_or_assign(name, object);
-      if (initialized && !object->initialized)
-        if (game) object->initialize(game->window->graphics.instance, game->window->graphics.gpu);
+      state.active.objects.insert_or_assign(name, object);
+      if (state.initialized && !object->state.initialized)
+        if (game)
+          object->initialize(game->state.active.window->graphics.instance, game->state.active.window->graphics.gpu);
     }
-    additions.clear();
+    state.additions.clear();
   }
 
   void scene::update_previous()
   {
-    camera->update_previous();
-    for (const auto &[name, object] : objects)
-      if (!removals.contains(name)) object->update_previous();
+    state.update_previous();
+    state.active.camera->update_previous();
+    for (const auto &[name, object] : state.active.objects)
+      if (!state.removals.contains(name)) object->update_previous();
   }
 }

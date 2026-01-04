@@ -1,7 +1,11 @@
 #pragma once
 
 #include <array>
+#include <memory>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_stdinc.h"
@@ -11,6 +15,7 @@
 #include "glm/ext/vector_uint4_sized.hpp"
 
 #include "declaration.hpp"
+#include "name.hpp"
 #include "property.hpp"
 #include "resource.hpp"
 
@@ -19,6 +24,15 @@ namespace cse::help
   struct game_graphics
   {
     friend class cse::game;
+
+    struct previous
+    {
+      double frame_rate{};
+    };
+    struct active
+    {
+      double frame_rate{};
+    };
 
   public:
     game_graphics() = default;
@@ -30,7 +44,15 @@ namespace cse::help
     game_graphics &operator=(game_graphics &&) = delete;
 
   public:
-    double frame_rate{};
+    void update_previous();
+
+  public:
+    struct previous previous{};
+    struct active active{};
+
+  private:
+    static constexpr float aspect_ratio{16.0f / 9.0f};
+    double actual_frame_rate{1.0 / active.frame_rate};
   };
 
   struct window_graphics
@@ -38,6 +60,16 @@ namespace cse::help
     friend class cse::game;
     friend class cse::window;
     friend class cse::scene;
+
+  private:
+    struct previous
+    {
+      std::string title{};
+    };
+    struct active
+    {
+      help::property<std::string> title{};
+    };
 
   public:
     window_graphics() = default;
@@ -68,8 +100,11 @@ namespace cse::help
     void handle_vsync(const bool vsync);
     void destroy_window_and_app();
 
+    void update_previous();
+
   public:
-    help::property<std::string> title{};
+    struct previous previous{};
+    struct active active{};
 
   private:
     unsigned int windowed_width{};
@@ -84,9 +119,41 @@ namespace cse::help
     SDL_GPURenderPass *render_pass{};
   };
 
+  struct scene_graphics
+  {
+    friend class cse::scene;
+
+  public:
+    scene_graphics() = default;
+    ~scene_graphics() = default;
+    scene_graphics(const scene_graphics &) = delete;
+    scene_graphics &operator=(const scene_graphics &) = delete;
+    scene_graphics(scene_graphics &&) = delete;
+    scene_graphics &operator=(scene_graphics &&) = delete;
+
+  private:
+    void interpolate(const double alpha, std::shared_ptr<class camera> camera,
+                     const std::unordered_map<help::name, std::shared_ptr<class object>> &objects,
+                     const std::unordered_set<help::name> &removals);
+    std::vector<std::shared_ptr<object>>
+    generate_render_order(const std::shared_ptr<camera> camera,
+                          const std::unordered_map<help::name, std::shared_ptr<object>> &objects,
+                          const std::unordered_set<help::name> &removals);
+  };
+
   struct camera_graphics
   {
     friend class cse::camera;
+
+  private:
+    struct previous
+    {
+      float fov{};
+    };
+    struct active
+    {
+      float fov{};
+    };
 
   public:
     camera_graphics() = default;
@@ -100,8 +167,11 @@ namespace cse::help
   private:
     glm::mat4 calculate_projection_matrix(const float aspect_ratio);
 
+    void update_previous();
+
   public:
-    float fov{};
+    struct previous previous{};
+    struct active active{};
 
   private:
     float near_clip{};
@@ -149,6 +219,22 @@ namespace cse::help
       int priority{};
     };
 
+    struct previous
+    {
+      previous() = default;
+      previous(const struct shader &shader_, const struct texture &texture_, const struct property &property_);
+
+      struct shader shader{};
+      struct texture texture{};
+      struct property property{};
+    };
+    struct active
+    {
+      struct shader shader{};
+      struct texture texture{};
+      struct property property{};
+    };
+
   public:
     object_graphics() = default;
     object_graphics(const struct shader &shader_, const struct texture &texture_, const struct property &property_);
@@ -164,15 +250,17 @@ namespace cse::help
     void upload_dynamic_buffers(SDL_GPUDevice *gpu);
     void generate_pipeline();
     void generate_and_upload_texture();
+    void update_animation(const double active_poll_rate);
     void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass);
     void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const std::array<glm::mat4, 3> &matrices);
     void draw_primitives(SDL_GPURenderPass *render_pass);
     void cleanup_object(SDL_GPUDevice *gpu);
 
+    void update_previous();
+
   public:
-    struct shader shader{};
-    struct texture texture{};
-    struct property property{};
+    struct previous previous{};
+    struct active active{};
 
   private:
     SDL_Window *cached_instance{};

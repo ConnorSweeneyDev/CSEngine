@@ -1,18 +1,16 @@
 #pragma once
 
 #include <memory>
-#include <unordered_map>
-#include <unordered_set>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 
-#include "camera.hpp"
 #include "declaration.hpp"
+#include "graphics.hpp"
 #include "hook.hpp"
 #include "name.hpp"
-#include "object.hpp"
+#include "state.hpp"
 #include "traits.hpp"
 
 namespace cse
@@ -48,15 +46,9 @@ namespace cse
     void update_previous();
 
   public:
-    std::weak_ptr<game> parent{};
-    std::shared_ptr<class camera> camera{};
-    std::unordered_map<help::name, std::shared_ptr<class object>> objects{};
+    help::scene_state state{};
+    help::scene_graphics graphics{};
     help::hook hook{};
-
-  private:
-    bool initialized{};
-    std::unordered_set<help::name> removals{};
-    std::unordered_map<help::name, std::shared_ptr<object>> additions{};
   };
 }
 

@@ -13,14 +13,12 @@ namespace cse::help
 {
   struct game_state;
   struct game_graphics;
-  struct game_previous;
   struct window_state;
   struct window_graphics;
-  struct window_previous;
+  struct scene_state;
+  struct scene_graphics;
   struct camera_state;
   struct camera_graphics;
-  struct camera_previous;
   struct object_state;
   struct object_graphics;
-  struct object_previous;
 }

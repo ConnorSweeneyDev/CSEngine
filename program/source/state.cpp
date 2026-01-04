@@ -14,54 +14,168 @@
 
 namespace cse::help
 {
-  game_state::game_state(const double poll_rate_) : poll_rate{poll_rate_} {}
+  game_state::game_state(const double poll_rate_)
+    : previous{[&]()
+               {
+                 struct previous temp{};
+                 temp.poll_rate = poll_rate_;
+                 return temp;
+               }()},
+      active{[&]()
+             {
+               struct active temp{};
+               temp.poll_rate = poll_rate_;
+               return temp;
+             }()}
+  {
+  }
 
   game_state::~game_state()
   {
-    if (next.has_value())
+    if (next.scene.has_value())
     {
-      next->scene.reset();
-      next.reset();
+      next.scene->pointer.reset();
+      next.scene.reset();
     }
-    current.scene.reset();
+    active.scene.pointer.reset();
+    active.scenes.clear();
+    active.window.reset();
+    active.parent.reset();
+    previous.scene.pointer.reset();
+    previous.scene_names.clear();
+    previous.window.reset();
+  }
+
+  void game_state::update_previous()
+  {
+    previous.window = active.window;
+    previous.scene_names.clear();
+    previous.scene_names.reserve(active.scenes.size());
+    for (const auto &[name, scene] : active.scenes) previous.scene_names.push_back(name);
+    previous.scene = active.scene;
+    previous.poll_rate = active.poll_rate;
   }
 
   window_state::window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
-    : width{dimensions_.x}, height{dimensions_.y}, fullscreen{fullscreen_}, vsync{vsync_}
+    : previous{[&]()
+               {
+                 struct previous temp{};
+                 temp.width = dimensions_.x;
+                 temp.height = dimensions_.y;
+                 temp.fullscreen = fullscreen_;
+                 temp.vsync = vsync_;
+                 return temp;
+               }()},
+      active{[&]()
+             {
+               struct active temp{};
+               temp.width = dimensions_.x;
+               temp.height = dimensions_.y;
+               temp.fullscreen = fullscreen_;
+               temp.vsync = vsync_;
+               return temp;
+             }()}
   {
+  }
+
+  window_state::~window_state()
+  {
+    keys = nullptr;
+    active.vsync.change = nullptr;
+    active.fullscreen.change = nullptr;
+    active.display_index.change = nullptr;
+    active.top.change = nullptr;
+    active.left.change = nullptr;
+    active.height.change = nullptr;
+    active.width.change = nullptr;
+    active.parent.reset();
+  }
+
+  void window_state::update_previous()
+  {
+    previous.running = active.running;
+    previous.width = active.width;
+    previous.height = active.height;
+    previous.left = active.left;
+    previous.top = active.top;
+    previous.display_index = active.display_index;
+    previous.fullscreen = active.fullscreen;
+    previous.vsync = active.vsync;
+  }
+
+  scene_state::~scene_state()
+  {
+    next.camera.reset();
+    active.objects.clear();
+    active.camera.reset();
+    active.parent.reset();
+    previous.object_names.clear();
+    previous.camera.reset();
+  }
+
+  void scene_state::update_previous()
+  {
+    previous.camera = active.camera;
+    previous.object_names.clear();
+    previous.object_names.reserve(active.objects.size());
+    for (const auto &[name, object] : active.objects) previous.object_names.push_back(name);
   }
 
   camera_state::camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_)
-    : translation{std::get<0>(transform_)}, forward{std::get<1>(transform_)}, up{std::get<2>(transform_)}
+    : previous{std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)},
+      active{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)}
   {
   }
+
+  camera_state::~camera_state() { active.parent.reset(); }
 
   glm::mat4 camera_state::calculate_view_matrix() const
   {
-    return glm::lookAt(translation.interpolated, translation.interpolated + forward.interpolated, up.interpolated);
+    return glm::lookAt(active.translation.interpolated, active.translation.interpolated + active.forward.interpolated,
+                       active.up.interpolated);
+  }
+
+  void camera_state::update_previous()
+  {
+    previous.translation = active.translation;
+    previous.forward = active.forward;
+    previous.up = active.up;
   }
 
   object_state::object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_)
-    : translation{std::get<0>(transform_)}, rotation{std::get<1>(transform_)}, scale{std::get<2>(transform_)}
+    : previous{glm::vec3{std::get<0>(transform_)}, glm::vec3{std::get<1>(transform_)},
+               glm::vec3{std::get<2>(transform_)}},
+      active{
+        {}, glm::vec3{std::get<0>(transform_)}, glm::vec3{std::get<1>(transform_)}, glm::vec3{std::get<2>(transform_)}}
   {
   }
+
+  object_state::~object_state() { active.parent.reset(); }
 
   glm::mat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height) const
   {
     glm::mat4 model_matrix{glm::mat4(1.0f)};
+    model_matrix = glm::translate(
+      model_matrix, {std::floor(active.translation.interpolated.x) - (frame_width % 2 == 1 ? 0.5f : 0.0f),
+                     std::floor(active.translation.interpolated.y) - (frame_height % 2 == 1 ? 0.5f : 0.0f),
+                     std::floor(active.translation.interpolated.z)});
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(active.rotation.interpolated.x) * 90.0f),
+                               glm::vec3(1.0f, 0.0f, 0.0f));
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(active.rotation.interpolated.y) * 90.0f),
+                               glm::vec3(0.0f, 1.0f, 0.0f));
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(active.rotation.interpolated.z) * 90.0f),
+                               glm::vec3(0.0f, 0.0f, 1.0f));
     model_matrix =
-      glm::translate(model_matrix, {std::floor(translation.interpolated.x) - (frame_width % 2 == 1 ? 0.5f : 0.0f),
-                                    std::floor(translation.interpolated.y) - (frame_height % 2 == 1 ? 0.5f : 0.0f),
-                                    std::floor(translation.interpolated.z)});
-    model_matrix =
-      glm::rotate(model_matrix, glm::radians(std::floor(rotation.interpolated.x) * 90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    model_matrix =
-      glm::rotate(model_matrix, glm::radians(std::floor(rotation.interpolated.y) * 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    model_matrix =
-      glm::rotate(model_matrix, glm::radians(std::floor(rotation.interpolated.z) * 90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    model_matrix = glm::scale(model_matrix, {std::floor(scale.interpolated.x) * static_cast<float>(frame_width) / 2.0f,
-                                             std::floor(scale.interpolated.y) * static_cast<float>(frame_height) / 2.0f,
-                                             std::floor(scale.interpolated.z)});
+      glm::scale(model_matrix, {std::floor(active.scale.interpolated.x) * static_cast<float>(frame_width) / 2.0f,
+                                std::floor(active.scale.interpolated.y) * static_cast<float>(frame_height) / 2.0f,
+                                std::floor(active.scale.interpolated.z)});
     return model_matrix;
+  }
+
+  void object_state::update_previous()
+  {
+    previous.translation = active.translation;
+    previous.rotation = active.rotation;
+    previous.scale = active.scale;
   }
 }

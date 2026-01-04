@@ -7,24 +7,18 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float3.hpp"
 
-#include "transform.hpp"
-
 namespace cse
 {
   camera::camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const float fov_)
-    : state{transform_}, graphics{fov_}, previous{state, graphics}
+    : state{transform_}, graphics{fov_}
   {
   }
 
-  camera::~camera()
-  {
-    hook.reset();
-    parent.reset();
-  }
+  camera::~camera() { hook.reset(); }
 
   void camera::initialize()
   {
-    initialized = true;
+    state.initialized = true;
     hook.call<void()>("initialize");
   }
 
@@ -34,9 +28,9 @@ namespace cse
 
   void camera::simulate(const double active_poll_rate)
   {
-    state.translation.update();
-    state.forward.update();
-    state.up.update();
+    state.active.translation.update_previous();
+    state.active.forward.update_previous();
+    state.active.up.update_previous();
     hook.call<void(const float)>("simulate", static_cast<float>(active_poll_rate));
   }
 
@@ -49,9 +43,13 @@ namespace cse
 
   void camera::cleanup()
   {
-    initialized = false;
+    state.initialized = false;
     hook.call<void()>("cleanup");
   }
 
-  void camera::update_previous() { previous.update(state, graphics); }
+  void camera::update_previous()
+  {
+    state.update_previous();
+    graphics.update_previous();
+  }
 }

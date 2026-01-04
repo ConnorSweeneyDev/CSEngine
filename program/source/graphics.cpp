@@ -2,7 +2,11 @@
 
 #include <algorithm>
 #include <array>
+#include <memory>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_init.h"
@@ -14,19 +18,27 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_uint2.hpp"
 #include "glm/ext/vector_uint4_sized.hpp"
+#include "glm/geometric.hpp"
 #include "glm/trigonometric.hpp"
 
+#include "camera.hpp"
+#include "declaration.hpp"
 #include "exception.hpp"
+#include "name.hpp"
+#include "object.hpp"
 #include "resource.hpp"
 #include "system.hpp"
+#include "utility.hpp"
 
 namespace cse::help
 {
-  game_graphics::game_graphics(const double frame_rate_) : frame_rate{frame_rate_} {}
+  game_graphics::game_graphics(const double frame_rate_) : previous{frame_rate_}, active{frame_rate_} {}
 
-  window_graphics::window_graphics(const std::string &title_) : title{title_}
+  void game_graphics::update_previous() { previous.frame_rate = active.frame_rate; }
+
+  window_graphics::window_graphics(const std::string &title_) : previous{title_}, active{title_}
   {
-    title.change = [this]() { handle_title_change(); };
+    active.title.change = [this]() { handle_title_change(); };
   }
 
   window_graphics::~window_graphics()
@@ -55,7 +67,7 @@ namespace cse::help
       throw sdl_exception("Could not set app metadata creator");
     if (!SDL_Init(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be initialized");
 
-    instance = SDL_CreateWindow(title->c_str(), static_cast<int>(width), static_cast<int>(height),
+    instance = SDL_CreateWindow(active.title->c_str(), static_cast<int>(width), static_cast<int>(height),
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
     if (!instance) throw sdl_exception("Could not create window");
     windowed_width = width;
@@ -182,7 +194,7 @@ namespace cse::help
 
   void window_graphics::handle_title_change()
   {
-    if (!SDL_SetWindowTitle(instance, title->c_str())) throw sdl_exception("Could not set window title");
+    if (!SDL_SetWindowTitle(instance, active.title->c_str())) throw sdl_exception("Could not set window title");
   }
 
   void window_graphics::handle_move(int &left, int &top, SDL_DisplayID &display_index, const bool fullscreen)
@@ -293,27 +305,85 @@ namespace cse::help
     SDL_Quit();
   }
 
-  camera_graphics::camera_graphics(const float fov_) : fov{fov_}, near_clip{0.01f}, far_clip{100.0f} {}
+  void window_graphics::update_previous() { previous.title = active.title; }
+
+  void scene_graphics::interpolate(const double alpha, std::shared_ptr<class camera> camera,
+                                   const std::unordered_map<help::name, std::shared_ptr<class object>> &objects,
+                                   const std::unordered_set<help::name> &removals)
+  {
+    camera->state.active.translation.interpolate(alpha);
+    camera->state.active.forward.interpolate(alpha);
+    camera->state.active.up.interpolate(alpha);
+    for (const auto &[name, object] : objects)
+    {
+      if (removals.contains(name)) continue;
+      object->state.active.translation.interpolate(alpha);
+      object->state.active.rotation.interpolate(alpha);
+      object->state.active.scale.interpolate(alpha);
+    }
+  }
+
+  std::vector<std::shared_ptr<object>>
+  scene_graphics::generate_render_order(const std::shared_ptr<camera> camera,
+                                        const std::unordered_map<help::name, std::shared_ptr<object>> &objects,
+                                        const std::unordered_set<help::name> &removals)
+  {
+    std::vector<std::shared_ptr<object>> render_order{};
+    render_order.reserve(objects.size() - removals.size());
+    for (const auto &[name, object] : objects)
+    {
+      if (removals.contains(name)) continue;
+      render_order.emplace_back(object);
+    }
+    const auto &camera_position = camera->state.active.translation.interpolated;
+    const auto camera_forward = glm::normalize(camera->state.active.forward.interpolated);
+    std::sort(render_order.begin(), render_order.end(),
+              [&camera_position, &camera_forward](const auto &left, const auto &right)
+              {
+                float depth_left =
+                  glm::dot(left->state.active.translation.interpolated - camera_position, camera_forward);
+                float depth_right =
+                  glm::dot(right->state.active.translation.interpolated - camera_position, camera_forward);
+                if (!equal(depth_left, depth_right, 1e-4f)) return depth_left > depth_right;
+                return left->graphics.active.property.priority < right->graphics.active.property.priority;
+              });
+    return render_order;
+  }
+
+  camera_graphics::camera_graphics(const float fov_) : previous{fov_}, active{fov_}, near_clip{0.01f}, far_clip{100.0f}
+  {
+  }
 
   glm::mat4 camera_graphics::calculate_projection_matrix(const float aspect_ratio)
   {
-    return glm::perspective(glm::radians(fov), aspect_ratio, near_clip, far_clip);
+    return glm::perspective(glm::radians(active.fov), aspect_ratio, near_clip, far_clip);
+  }
+
+  void camera_graphics::update_previous() { previous.fov = active.fov; }
+
+  object_graphics::previous::previous(const struct shader &shader_, const struct texture &texture_,
+                                      const struct property &property_)
+    : shader{shader_}, texture{texture_}, property{property_}
+  {
+    shader.vertex.change = nullptr;
+    shader.fragment.change = nullptr;
+    texture.image.change = nullptr;
   }
 
   object_graphics::object_graphics(const struct shader &shader_, const struct texture &texture_,
                                    const struct property &property_)
-    : shader{shader_}, texture{texture_}, property{property_}
+    : previous{shader_, texture_, property_}, active{shader_, texture_, property_}
   {
-    shader.vertex.change = [this]() { generate_pipeline(); };
-    shader.fragment.change = [this]() { generate_pipeline(); };
-    texture.image.change = [this]() { generate_and_upload_texture(); };
+    active.shader.vertex.change = [this]() { generate_pipeline(); };
+    active.shader.fragment.change = [this]() { generate_pipeline(); };
+    active.texture.image.change = [this]() { generate_and_upload_texture(); };
   }
 
   object_graphics::~object_graphics()
   {
-    texture.image.change = nullptr;
-    shader.fragment.change = nullptr;
-    shader.vertex.change = nullptr;
+    active.texture.image.change = nullptr;
+    active.shader.fragment.change = nullptr;
+    active.shader.vertex.change = nullptr;
   }
 
   void object_graphics::create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu)
@@ -375,15 +445,16 @@ namespace cse::help
   {
     auto vertex{reinterpret_cast<struct vertex_data *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     if (!vertex) throw sdl_exception("Could not map vertex data for object");
-    auto &frame{texture.animation.frame};
-    auto size{texture.group.frames.size()};
+    auto &frame{active.texture.animation.frame};
+    auto size{active.texture.group.frames.size()};
     if (frame >= size) frame = size - 1;
-    const auto &frame_coords{texture.group.frames[frame].coords};
-    const auto red{texture.color.r}, green{texture.color.g}, blue{texture.color.b}, alpha{texture.color.a};
-    const auto left{texture.flip.horizontal ? frame_coords.right : frame_coords.left},
-      right{texture.flip.horizontal ? frame_coords.left : frame_coords.right},
-      top{texture.flip.vertical ? frame_coords.bottom : frame_coords.top},
-      bottom{texture.flip.vertical ? frame_coords.top : frame_coords.bottom};
+    const auto &frame_coords{active.texture.group.frames[frame].coords};
+    const auto red{active.texture.color.r}, green{active.texture.color.g}, blue{active.texture.color.b},
+      alpha{active.texture.color.a};
+    const auto left{active.texture.flip.horizontal ? frame_coords.right : frame_coords.left},
+      right{active.texture.flip.horizontal ? frame_coords.left : frame_coords.right},
+      top{active.texture.flip.vertical ? frame_coords.bottom : frame_coords.top},
+      bottom{active.texture.flip.vertical ? frame_coords.top : frame_coords.bottom};
     quad_vertices = std::array<struct vertex_data, 4>{{{1.0f, 1.0f, 0.0f, red, green, blue, alpha, right, top},
                                                        {1.0f, -1.0f, 0.0f, red, green, blue, alpha, right, bottom},
                                                        {-1.0f, 1.0f, 0.0f, red, green, blue, alpha, left, top},
@@ -417,8 +488,8 @@ namespace cse::help
     const auto backend_formats{SDL_GetGPUShaderFormats(cached_gpu)};
     if (!(backend_formats & SDL_GPU_SHADERFORMAT_SPIRV))
       throw sdl_exception("No supported vulkan shader formats for object");
-    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader.vertex->source.size(),
-                                               .code = shader.vertex->source.data(),
+    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = active.shader.vertex->source.size(),
+                                               .code = active.shader.vertex->source.data(),
                                                .entrypoint = "main",
                                                .format = SDL_GPU_SHADERFORMAT_SPIRV,
                                                .stage = SDL_GPU_SHADERSTAGE_VERTEX,
@@ -429,8 +500,8 @@ namespace cse::help
                                                .props = 0};
     auto *vertex_shader{SDL_CreateGPUShader(cached_gpu, &vertex_shader_info)};
     if (!vertex_shader) throw sdl_exception("Could not create vertex shader for object");
-    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader.fragment->source.size(),
-                                                 .code = shader.fragment->source.data(),
+    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = active.shader.fragment->source.size(),
+                                                 .code = active.shader.fragment->source.data(),
                                                  .entrypoint = "main",
                                                  .format = SDL_GPU_SHADERFORMAT_SPIRV,
                                                  .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
@@ -547,24 +618,24 @@ namespace cse::help
     SDL_GPUTextureCreateInfo texture_info{.type = type,
                                           .format = format,
                                           .usage = usage,
-                                          .width = texture.image->width,
-                                          .height = texture.image->height,
+                                          .width = active.texture.image->width,
+                                          .height = active.texture.image->height,
                                           .layer_count_or_depth = 1,
                                           .num_levels = 1,
                                           .sample_count = SDL_GPU_SAMPLECOUNT_1,
                                           .props = 0};
     texture_buffer = SDL_CreateGPUTexture(cached_gpu, &texture_info);
     if (!texture_buffer) throw sdl_exception("Could not create texture for object");
-    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-                                                                 .size = texture.image->width * texture.image->height *
-                                                                         texture.image->channels,
-                                                                 .props = 0};
+    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{
+      .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+      .size = active.texture.image->width * active.texture.image->height * active.texture.image->channels,
+      .props = 0};
     texture_transfer_buffer = SDL_CreateGPUTransferBuffer(cached_gpu, &texture_transfer_buffer_info);
     if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for object");
     auto *texture_data{reinterpret_cast<Uint8 *>(SDL_MapGPUTransferBuffer(cached_gpu, texture_transfer_buffer, false))};
     if (!texture_data) throw sdl_exception("Could not map texture data for object");
-    SDL_memcpy(texture_data, texture.image->data.data(),
-               texture.image->width * texture.image->height * texture.image->channels);
+    SDL_memcpy(texture_data, active.texture.image->data.data(),
+               active.texture.image->width * active.texture.image->height * active.texture.image->channels);
     SDL_UnmapGPUTransferBuffer(cached_gpu, texture_transfer_buffer);
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(cached_gpu)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for object");
@@ -578,8 +649,8 @@ namespace cse::help
                                         .x = 0,
                                         .y = 0,
                                         .z = 0,
-                                        .w = texture.image->width,
-                                        .h = texture.image->height,
+                                        .w = active.texture.image->width,
+                                        .h = active.texture.image->height,
                                         .d = 1};
     SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
     SDL_EndGPUCopyPass(copy_pass);
@@ -588,9 +659,66 @@ namespace cse::help
     texture_transfer_buffer = nullptr;
   }
 
+  void object_graphics::update_animation(const double active_poll_rate)
+  {
+    auto &group{active.texture.group};
+    auto &animation{active.texture.animation};
+    auto no_frames{group.frames.empty()};
+    auto frame_count{group.frames.size()};
+    if (no_frames)
+      animation.frame = 0;
+    else if (animation.frame >= frame_count)
+      animation.frame = frame_count - 1;
+    if (animation.speed > 0.0 && !no_frames)
+    {
+      animation.elapsed += active_poll_rate * animation.speed;
+      while (true)
+      {
+        auto duration = group.frames[animation.frame].duration;
+        if (duration > 0 && animation.elapsed < duration) break;
+        if (animation.frame < frame_count - 1)
+        {
+          if (duration > 0) animation.elapsed -= duration;
+          animation.frame++;
+        }
+        else if (animation.loop)
+        {
+          if (duration > 0)
+            animation.elapsed -= duration;
+          else
+            break;
+          animation.frame = 0;
+        }
+        else
+          break;
+      }
+    }
+    else if (animation.speed < 0.0 && !no_frames)
+    {
+      animation.elapsed += active_poll_rate * animation.speed;
+      while (animation.elapsed < 0)
+        if (animation.frame > 0)
+        {
+          animation.frame--;
+          auto duration = group.frames[animation.frame].duration;
+          if (duration > 0) animation.elapsed += duration;
+        }
+        else if (animation.loop)
+        {
+          if (group.frames[0].duration <= 0) break;
+          animation.frame = frame_count - 1;
+          auto duration = group.frames[animation.frame].duration;
+          if (duration > 0) animation.elapsed += duration;
+        }
+        else
+          break;
+    }
+  }
+
   void object_graphics::bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass)
   {
-    SDL_BindGPUGraphicsPipeline(render_pass, (texture.transparency < 1.0) ? pipelines.transparent : pipelines.opaque);
+    SDL_BindGPUGraphicsPipeline(render_pass,
+                                (active.texture.transparency < 1.0) ? pipelines.transparent : pipelines.opaque);
     SDL_GPUBufferBinding vertex_buffer_binding{.buffer = vertex_buffer, .offset = 0};
     SDL_BindGPUVertexBuffers(render_pass, 0, &vertex_buffer_binding, 1);
     SDL_GPUBufferBinding index_buffer_binding{.buffer = index_buffer, .offset = 0};
@@ -603,7 +731,7 @@ namespace cse::help
                                           const std::array<glm::mat4, 3> &matrices)
   {
     SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
-    const auto transparency{static_cast<float>(texture.transparency)};
+    const auto transparency{static_cast<float>(active.texture.transparency)};
     SDL_PushGPUFragmentUniformData(command_buffer, 0, &transparency, sizeof(transparency));
   }
 
@@ -632,5 +760,18 @@ namespace cse::help
     pipelines.opaque = nullptr;
     cached_gpu = nullptr;
     cached_instance = nullptr;
+  }
+
+  void object_graphics::update_previous()
+  {
+    previous.shader.vertex = active.shader.vertex;
+    previous.shader.fragment = active.shader.fragment;
+    previous.texture.image = active.texture.image;
+    previous.texture.group = active.texture.group;
+    previous.texture.animation = active.texture.animation;
+    previous.texture.flip = active.texture.flip;
+    previous.texture.color = active.texture.color;
+    previous.texture.transparency = active.texture.transparency;
+    previous.property.priority = active.property.priority;
   }
 }

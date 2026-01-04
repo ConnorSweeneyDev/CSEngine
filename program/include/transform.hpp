@@ -8,18 +8,18 @@ namespace cse::help
 {
   class transform_value
   {
-    friend class cse::scene;
     friend class cse::camera;
     friend class cse::object;
     friend struct camera_state;
     friend struct object_state;
+    friend struct scene_graphics;
 
   public:
     transform_value() = default;
     transform_value(const glm::vec3 &value_);
 
   private:
-    void update();
+    void update_previous();
     void interpolate(const double alpha);
 
   public:

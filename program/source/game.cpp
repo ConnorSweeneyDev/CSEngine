@@ -19,38 +19,36 @@
 
 namespace cse
 {
-  game::game(const std::pair<double, double> &rates_)
-    : state{rates_.first}, graphics{rates_.second}, previous{state, graphics}
-  {
-  }
+  game::game(const std::pair<double, double> &rates_) : state{rates_.first}, graphics{rates_.second} {}
 
   game::~game()
   {
     instance.reset();
     hook.reset();
-    scenes.clear();
-    window.reset();
   }
 
   std::shared_ptr<game> game::set_current_scene(const help::name name)
   {
-    if (auto iterator{scenes.find(name)}; iterator == scenes.end())
+    if (auto iterator{state.active.scenes.find(name)}; iterator == state.active.scenes.end())
       throw exception("Tried to set current scene to null");
-    else if (window->initialized)
-      state.next = {name, {}};
+    else if (state.active.window->state.initialized)
+      state.next.scene = {name, {}};
     else
-      state.current.scene = iterator->second;
+    {
+      state.active.scene = {name, iterator->second};
+      state.previous.scene = {name, iterator->second};
+    }
     return shared_from_this();
   }
 
   std::shared_ptr<game> game::remove_scene(const help::name name)
   {
-    if (auto iterator{scenes.find(name)}; iterator != scenes.end())
+    if (auto iterator{state.active.scenes.find(name)}; iterator != state.active.scenes.end())
     {
       const auto &scene{iterator->second};
-      if (state.current.scene == scene) throw exception("Tried to remove current scene");
-      if (scene->initialized) scene->cleanup(window->graphics.gpu);
-      scenes.erase(iterator);
+      if (state.active.scene.pointer == scene) throw exception("Tried to remove current scene");
+      if (state.active.scene.pointer->state.initialized) scene->cleanup(state.active.window->graphics.gpu);
+      state.active.scenes.erase(iterator);
     }
     return shared_from_this();
   }
@@ -58,7 +56,7 @@ namespace cse
   void game::run()
   {
     initialize();
-    while (window->state.running)
+    while (state.active.window->state.active.running)
     {
       update_time();
       while (simulation_behind())
@@ -82,138 +80,146 @@ namespace cse
   {
     update_parents();
     hook.call<void()>("pre_initialize");
-    if (!window) throw exception("No window has been set for the game");
-    if (!window->initialized) window->initialize();
-    if (scenes.empty()) throw exception("No scenes have been added to the game");
-    if (!state.current.scene) throw exception("No current scene has been set for the game");
-    if (!state.current.scene->initialized)
-      state.current.scene->initialize(window->graphics.instance, window->graphics.gpu);
+    if (!state.active.window) throw exception("No window has been set for the game");
+    if (!state.active.window->state.initialized) state.active.window->initialize();
+    if (state.active.scenes.empty()) throw exception("No scenes have been added to the game");
+    if (!state.active.scene.pointer) throw exception("No current scene has been set for the game");
+    if (!state.active.scene.pointer->state.initialized)
+      state.active.scene.pointer->initialize(state.active.window->graphics.instance, state.active.window->graphics.gpu);
     hook.call<void()>("post_initialize");
   }
 
   void game::event()
   {
-    while (SDL_PollEvent(&window->current_event))
+    while (SDL_PollEvent(&state.active.window->state.event))
     {
-      hook.call<void(const SDL_Event &)>("pre_event", window->current_event);
-      if (!window->initialized) throw exception("Window is not initialized");
-      window->event();
-      if (!state.current.scene->initialized) throw exception("Current scene is not initialized");
-      state.current.scene->event(window->current_event);
-      hook.call<void(const SDL_Event &)>("post_event", window->current_event);
+      hook.call<void(const SDL_Event &)>("pre_event", state.active.window->state.event);
+      if (!state.active.window->state.initialized) throw exception("Window is not initialized");
+      state.active.window->event();
+      if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
+      state.active.scene.pointer->event(state.active.window->state.event);
+      hook.call<void(const SDL_Event &)>("post_event", state.active.window->state.event);
     }
   }
 
   void game::input()
   {
-    window->current_keys = SDL_GetKeyboardState(nullptr);
-    hook.call<void(const bool *)>("pre_input", window->current_keys);
-    if (!window->initialized) throw exception("Window is not initialized");
-    window->input();
-    if (!state.current.scene->initialized) throw exception("Current scene is not initialized");
-    state.current.scene->input(window->current_keys);
-    hook.call<void(const bool *)>("post_input", window->current_keys);
+    state.active.window->state.keys = SDL_GetKeyboardState(nullptr);
+    hook.call<void(const bool *)>("pre_input", state.active.window->state.keys);
+    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
+    state.active.window->input();
+    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
+    state.active.scene.pointer->input(state.active.window->state.keys);
+    hook.call<void(const bool *)>("post_input", state.active.window->state.keys);
   }
 
   void game::simulate()
   {
-    hook.call<void(const float)>("pre_simulate", static_cast<float>(active_poll_rate));
-    if (!window->initialized) throw exception("Window is not initialized");
-    window->simulate(active_poll_rate);
-    if (!state.current.scene->initialized) throw exception("Current scene is not initialized");
-    state.current.scene->simulate(active_poll_rate);
-    hook.call<void(const float)>("post_simulate", static_cast<float>(active_poll_rate));
+    hook.call<void(const float)>("pre_simulate", static_cast<float>(state.actual_poll_rate));
+    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
+    state.active.window->simulate(state.actual_poll_rate);
+    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
+    state.active.scene.pointer->simulate(state.actual_poll_rate);
+    hook.call<void(const float)>("post_simulate", static_cast<float>(state.actual_poll_rate));
   }
 
   void game::render()
   {
     hook.call<void()>("pre_render");
-    if (!window->initialized) throw exception("Window is not initialized");
-    if (!window->start_render(aspect_ratio)) return;
-    if (!state.current.scene->initialized) throw exception("Current scene is not initialized");
-    state.current.scene->render(window->graphics.gpu, window->graphics.command_buffer, window->graphics.render_pass,
-                                alpha, aspect_ratio);
-    window->end_render();
+    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
+    if (!state.active.window->start_render(graphics.aspect_ratio)) return;
+    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
+    state.active.scene.pointer->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
+                                       state.active.window->graphics.render_pass, state.alpha, graphics.aspect_ratio);
+    state.active.window->end_render();
     hook.call<void()>("post_render");
   }
 
   void game::cleanup()
   {
     hook.call<void()>("pre_cleanup");
-    if (state.current.scene->initialized) state.current.scene->cleanup(window->graphics.gpu);
-    if (window->initialized) window->cleanup();
+    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
+    state.active.scene.pointer->cleanup(state.active.window->graphics.gpu);
+    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
+    state.active.window->cleanup();
     hook.call<void()>("post_cleanup");
   }
 
   void game::update_parents()
   {
-    if (window && window->parent.expired()) window->parent = weak_from_this();
-    for (const auto &[name, scene] : scenes)
-      if (scene->parent.expired()) scene->parent = weak_from_this();
+    if (state.active.window && state.active.window->state.active.parent.expired())
+      state.active.window->state.active.parent = weak_from_this();
+    for (const auto &[name, scene] : state.active.scenes)
+      if (scene->state.active.parent.expired()) scene->state.active.parent = weak_from_this();
   }
 
   void game::process_updates()
   {
-    if (state.next.has_value())
+    if (state.next.scene.has_value())
     {
-      if (auto &[name, scene]{state.next.value()}; !scene)
+      if (auto &[name, scene]{state.next.scene.value()}; !scene)
       {
-        if (auto iterator{scenes.find(name)}; iterator == scenes.end())
+        if (auto iterator{state.active.scenes.find(name)}; iterator == state.active.scenes.end())
           throw exception("Tried to set current scene to null");
-        else if (name != state.current.name)
+        else if (name != state.active.scene.name)
         {
           const auto &new_scene{iterator->second};
-          if (state.current.scene->initialized) state.current.scene->cleanup(window->graphics.gpu);
-          state.current = {name, new_scene};
-          if (!new_scene->initialized) new_scene->initialize(window->graphics.instance, window->graphics.gpu);
+          if (state.active.scene.pointer->state.initialized)
+            state.active.scene.pointer->cleanup(state.active.window->graphics.gpu);
+          state.active.scene = {name, new_scene};
+          if (!new_scene->state.initialized)
+            new_scene->initialize(state.active.window->graphics.instance, state.active.window->graphics.gpu);
         }
       }
       else
       {
-        if (state.current.scene->initialized) state.current.scene->cleanup(window->graphics.gpu);
-        scenes.insert_or_assign(name, scene);
-        state.current = {name, scene};
-        if (!scene->initialized) scene->initialize(window->graphics.instance, window->graphics.gpu);
+        if (state.active.scene.pointer->state.initialized)
+          state.active.scene.pointer->cleanup(state.active.window->graphics.gpu);
+        state.active.scenes.insert_or_assign(name, scene);
+        state.active.scene = {name, scene};
+        if (!scene->state.initialized)
+          scene->initialize(state.active.window->graphics.instance, state.active.window->graphics.gpu);
       }
-      state.next.reset();
+      state.next.scene.reset();
     }
-    if (state.current.scene->initialized) state.current.scene->process_updates();
+    if (state.active.scene.pointer->state.initialized) state.active.scene.pointer->process_updates();
   }
 
   void game::update_previous()
   {
-    previous.update(state, graphics);
-    window->update_previous();
-    state.current.scene->update_previous();
+    state.update_previous();
+    graphics.update_previous();
+    state.active.window->update_previous();
+    state.active.scene.pointer->update_previous();
   }
 
   void game::update_time()
   {
     constexpr double minimum_poll_rate{10.0};
     constexpr double minimum_frame_rate{1.0};
-    state.poll_rate = std::max(state.poll_rate, minimum_poll_rate);
-    graphics.frame_rate = std::max(graphics.frame_rate, minimum_frame_rate);
-    const double real_poll_rate = 1.0 / state.poll_rate;
-    const double real_frame_rate = 1.0 / graphics.frame_rate;
-    if (!equal(real_poll_rate, active_poll_rate))
+    state.active.poll_rate = std::max(minimum_poll_rate, state.active.poll_rate);
+    graphics.active.frame_rate = std::max(minimum_frame_rate, graphics.active.frame_rate);
+    const double real_poll_rate = 1.0 / state.active.poll_rate;
+    const double real_frame_rate = 1.0 / graphics.active.frame_rate;
+    if (!equal(real_poll_rate, state.actual_poll_rate))
     {
-      accumulator = accumulator * (real_poll_rate / active_poll_rate);
-      active_poll_rate = real_poll_rate;
+      state.accumulator = state.accumulator * (real_poll_rate / state.actual_poll_rate);
+      state.actual_poll_rate = real_poll_rate;
     }
-    if (!equal(real_frame_rate, active_frame_rate)) active_frame_rate = real_frame_rate;
-    time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    if (!equal(real_frame_rate, graphics.actual_frame_rate)) graphics.actual_frame_rate = real_frame_rate;
+    state.time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
     static double simulation_time{};
-    double delta_time{time - simulation_time};
-    simulation_time = time;
+    double delta_time{state.time - simulation_time};
+    simulation_time = state.time;
     if (delta_time > 0.1) delta_time = 0.1;
-    accumulator += delta_time;
+    state.accumulator += delta_time;
   }
 
   bool game::simulation_behind()
   {
-    if (accumulator >= active_poll_rate)
+    if (state.accumulator >= state.actual_poll_rate)
     {
-      accumulator -= active_poll_rate;
+      state.accumulator -= state.actual_poll_rate;
       return true;
     }
     return false;
@@ -222,10 +228,10 @@ namespace cse
   bool game::should_render()
   {
     static double render_time{};
-    if (time - render_time >= active_frame_rate)
+    if (state.time - render_time >= graphics.actual_frame_rate)
     {
-      render_time = time;
-      alpha = accumulator / active_poll_rate;
+      render_time = state.time;
+      state.alpha = state.accumulator / state.actual_poll_rate;
       return true;
     }
     return false;
@@ -236,10 +242,10 @@ namespace cse
     static double fps_time{};
     static unsigned int frame_count{};
     frame_count++;
-    if (time - fps_time >= 1.0)
+    if (state.time - fps_time >= 1.0)
     {
       if constexpr (debug) print<CLOG>("{} FPS\n", frame_count);
-      fps_time = time;
+      fps_time = state.time;
       frame_count = 0;
     }
   }

@@ -1,15 +1,12 @@
 #pragma once
 
-#include <memory>
 #include <string>
 
-#include "SDL3/SDL_events.h"
 #include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "hook.hpp"
-#include "previous.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -39,15 +36,8 @@ namespace cse
     void update_previous();
 
   public:
-    std::weak_ptr<game> parent{};
     help::window_state state{};
     help::window_graphics graphics{};
-    help::window_previous previous{};
     help::hook hook{};
-
-  private:
-    bool initialized{};
-    SDL_Event current_event{};
-    const bool *current_keys{};
   };
 }

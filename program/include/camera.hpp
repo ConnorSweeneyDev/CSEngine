@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <tuple>
 #include <utility>
 
@@ -11,7 +10,6 @@
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "hook.hpp"
-#include "previous.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -39,13 +37,8 @@ namespace cse
     void update_previous();
 
   public:
-    std::weak_ptr<scene> parent{};
     help::camera_state state{};
     help::camera_graphics graphics{};
-    help::camera_previous previous{};
     help::hook hook{};
-
-  private:
-    bool initialized{};
   };
 }
