@@ -13,7 +13,6 @@ namespace cse
   template <help::is_camera camera_type, typename... camera_arguments>
   std::shared_ptr<scene> scene::set_camera(camera_arguments &&...arguments)
   {
-    if (state.active.camera && state.active.camera->state.initialized) state.active.camera->cleanup();
     if (!state.initialized)
     {
       state.active.camera = std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...);
