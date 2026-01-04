@@ -14,7 +14,6 @@ namespace cse
   class window
   {
     friend class game;
-    friend class scene;
 
   public:
     window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_);
