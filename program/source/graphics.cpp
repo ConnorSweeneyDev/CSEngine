@@ -241,7 +241,10 @@ namespace cse::help
   void window_graphics::handle_resize(unsigned int &width, unsigned int &height, SDL_DisplayID &display_index,
                                       const bool fullscreen)
   {
-    SDL_GetWindowSize(instance, reinterpret_cast<int *>(&width), reinterpret_cast<int *>(&height));
+    int current_width{}, current_height{};
+    SDL_GetWindowSize(instance, &current_width, &current_height);
+    width = static_cast<unsigned int>(current_width);
+    height = static_cast<unsigned int>(current_height);
     if (!fullscreen)
     {
       windowed_width = width;
@@ -416,14 +419,15 @@ namespace cse::help
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = sizeof(quad_vertices) + sizeof(quad_indices), .props = 0};
     vertex_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &vertex_transfer_buffer_info);
     if (!vertex_transfer_buffer) throw sdl_exception("Could not create transfer buffer for buffer object");
-    auto vertex{reinterpret_cast<struct vertex_data *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
+    auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
+    auto vertex{reinterpret_cast<struct vertex_data *>(start)};
     if (!vertex) throw sdl_exception("Could not map vertex data for object");
     quad_vertices = std::array<struct vertex_data, 4>{{{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 1.0f},
                                                        {1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 0.0f},
                                                        {-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 1.0f},
                                                        {-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 0.0f}}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex);
-    auto index{reinterpret_cast<Uint16 *>(&vertex[quad_vertices.size()])};
+    auto index{reinterpret_cast<Uint16 *>(start + sizeof(quad_vertices))};
     if (!index) throw sdl_exception("Could not map index data for object");
     quad_indices = std::array<Uint16, 6>({3, 1, 0, 3, 0, 2});
     std::copy(quad_indices.begin(), quad_indices.end(), index);
@@ -447,7 +451,8 @@ namespace cse::help
 
   void object_graphics::upload_dynamic_buffers(SDL_GPUDevice *gpu)
   {
-    auto vertex{reinterpret_cast<struct vertex_data *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
+    auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
+    auto vertex{reinterpret_cast<struct vertex_data *>(start)};
     if (!vertex) throw sdl_exception("Could not map vertex data for object");
     auto &frame{active.texture.animation.frame};
     auto size{active.texture.group.frames.size()};
@@ -636,7 +641,8 @@ namespace cse::help
       .props = 0};
     texture_transfer_buffer = SDL_CreateGPUTransferBuffer(cached_gpu, &texture_transfer_buffer_info);
     if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for object");
-    auto *texture_data{reinterpret_cast<Uint8 *>(SDL_MapGPUTransferBuffer(cached_gpu, texture_transfer_buffer, false))};
+    auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(cached_gpu, texture_transfer_buffer, false))};
+    auto texture_data{reinterpret_cast<Uint8 *>(start)};
     if (!texture_data) throw sdl_exception("Could not map texture data for object");
     SDL_memcpy(texture_data, active.texture.image->data.data(),
                active.texture.image->width * active.texture.image->height * active.texture.image->channels);
