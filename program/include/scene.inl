@@ -17,6 +17,7 @@ namespace cse
     {
       state.active.camera = std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...);
       state.active.camera->state.active.parent = weak_from_this();
+      state.previous.camera = state.active.camera;
       return shared_from_this();
     }
     state.next.camera = std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...);
