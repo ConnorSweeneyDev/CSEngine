@@ -36,10 +36,15 @@ namespace cse
   template <help::is_window window_type, typename... window_arguments>
   std::shared_ptr<game> game::set_window(window_arguments &&...arguments)
   {
-    if (state.active.window && state.active.window->state.initialized)
-      throw exception("Tried to change window after initialization");
-    state.active.window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
-    if (auto parent{weak_from_this()}; !parent.expired()) state.active.window->state.active.parent = parent;
+    if (!state.active.window || !state.active.window->state.initialized)
+    {
+      state.active.window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
+      if (auto parent{weak_from_this()}; !parent.expired()) state.active.window->state.active.parent = parent;
+      state.previous.window = state.active.window;
+      return shared_from_this();
+    }
+    state.next.window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
+    if (auto parent{weak_from_this()}; !parent.expired()) state.next.window.value()->state.active.parent = parent;
     return shared_from_this();
   }
 

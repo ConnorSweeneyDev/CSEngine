@@ -44,6 +44,9 @@ namespace cse::help
     game_graphics &operator=(game_graphics &&) = delete;
 
   public:
+    void initialize_app();
+    void cleanup_app();
+
     void update_previous();
 
   public:
@@ -81,8 +84,8 @@ namespace cse::help
     window_graphics &operator=(window_graphics &&) = delete;
 
   private:
-    void create_app_and_window(const unsigned int width, const unsigned int height, int &left, int &top,
-                               SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
+    void create_window(const unsigned int width, const unsigned int height, int &left, int &top,
+                       SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
     void start_render_pass(const float aspect_ratio, const unsigned int width, const unsigned int height);
     void end_render_pass();
@@ -98,7 +101,7 @@ namespace cse::help
     void handle_manual_resize(const unsigned int width, const unsigned int height, const bool fullscreen);
     void handle_fullscreen(const bool fullscreen, const SDL_DisplayID display_index);
     void handle_vsync(const bool vsync);
-    void destroy_window_and_app();
+    void destroy_window();
 
     void update_previous();
 

@@ -34,6 +34,24 @@ namespace cse::help
 {
   game_graphics::game_graphics(const double frame_rate_) : previous{frame_rate_}, active{frame_rate_} {}
 
+  void game_graphics::initialize_app()
+  {
+    SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
+      throw sdl_exception("Could not set app metadata type");
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "Connor.Sweeney.Engine"))
+      throw sdl_exception("Could not set app metadata identifier");
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, "CSEngine"))
+      throw sdl_exception("Could not set app metadata name");
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "0.0.0"))
+      throw sdl_exception("Could not set app metadata version");
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
+      throw sdl_exception("Could not set app metadata creator");
+    if (!SDL_Init(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be initialized");
+  }
+
+  void game_graphics::cleanup_app() { SDL_Quit(); }
+
   void game_graphics::update_previous() { previous.frame_rate = active.frame_rate; }
 
   window_graphics::window_graphics(const std::string &title_) : previous{title_}, active{title_}
@@ -51,22 +69,9 @@ namespace cse::help
     instance = nullptr;
   }
 
-  void window_graphics::create_app_and_window(const unsigned int width, const unsigned int height, int &left, int &top,
-                                              SDL_DisplayID &display_index, const bool fullscreen, const bool vsync)
+  void window_graphics::create_window(const unsigned int width, const unsigned int height, int &left, int &top,
+                                      SDL_DisplayID &display_index, const bool fullscreen, const bool vsync)
   {
-    SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
-      throw sdl_exception("Could not set app metadata type");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "Connor.Sweeney.Engine"))
-      throw sdl_exception("Could not set app metadata identifier");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, "CSEngine"))
-      throw sdl_exception("Could not set app metadata name");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "0.0.0"))
-      throw sdl_exception("Could not set app metadata version");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
-      throw sdl_exception("Could not set app metadata creator");
-    if (!SDL_Init(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be initialized");
-
     instance = SDL_CreateWindow(active.title->c_str(), static_cast<int>(width), static_cast<int>(height),
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
     if (!instance) throw sdl_exception("Could not create window");
@@ -296,13 +301,12 @@ namespace cse::help
         throw sdl_exception("Could not disable VSYNC");
   }
 
-  void window_graphics::destroy_window_and_app()
+  void window_graphics::destroy_window()
   {
     SDL_ReleaseGPUTexture(gpu, depth_texture);
     SDL_ReleaseWindowFromGPUDevice(gpu, instance);
     SDL_DestroyGPUDevice(gpu);
     SDL_DestroyWindow(instance);
-    SDL_Quit();
   }
 
   void window_graphics::update_previous() { previous.title = active.title; }

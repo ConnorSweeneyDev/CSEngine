@@ -78,7 +78,8 @@ namespace cse
 
   void game::initialize()
   {
-    update_parents();
+    graphics.initialize_app();
+    setup_parents();
     hook.call<void()>("pre_initialize");
     if (!state.active.window) throw exception("No window has been set for the game");
     if (!state.active.window->state.initialized) state.active.window->initialize();
@@ -142,10 +143,11 @@ namespace cse
     state.active.scene.pointer->cleanup(state.active.window->graphics.gpu);
     if (!state.active.window->state.initialized) throw exception("Window is not initialized");
     state.active.window->cleanup();
+    graphics.cleanup_app();
     hook.call<void()>("post_cleanup");
   }
 
-  void game::update_parents()
+  void game::setup_parents()
   {
     if (state.active.window && state.active.window->state.active.parent.expired())
       state.active.window->state.active.parent = weak_from_this();
@@ -155,6 +157,23 @@ namespace cse
 
   void game::process_updates()
   {
+    if (state.next.window.has_value())
+    {
+      if (auto &window{state.next.window.value()})
+      {
+        if (state.active.scene.pointer->state.initialized)
+          state.active.scene.pointer->cleanup(state.active.window->graphics.gpu);
+        if (state.active.window->state.initialized) state.active.window->cleanup();
+        state.active.window = window;
+        if (!window->state.initialized) window->initialize();
+        if (!state.active.scene.pointer->state.initialized)
+          state.active.scene.pointer->initialize(state.active.window->graphics.instance,
+                                                 state.active.window->graphics.gpu);
+      }
+      else
+        throw exception("Tried to set window to null");
+      state.next.window.reset();
+    }
     if (state.next.scene.has_value())
     {
       if (auto &[name, scene]{state.next.scene.value()}; !scene)

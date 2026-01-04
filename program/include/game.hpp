@@ -56,7 +56,7 @@ namespace cse
     void render();
     void cleanup();
 
-    void update_parents();
+    void setup_parents();
     void process_updates();
     void update_previous();
 

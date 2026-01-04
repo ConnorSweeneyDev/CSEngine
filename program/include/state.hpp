@@ -49,6 +49,7 @@ namespace cse::help
     };
     struct next
     {
+      std::optional<std::shared_ptr<class window>> window{};
       std::optional<struct scene_reference> scene{};
     };
 

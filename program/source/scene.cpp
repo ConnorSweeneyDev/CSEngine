@@ -116,9 +116,9 @@ namespace cse
     if (state.removals.empty() && state.additions.empty() && !state.next.camera.has_value()) return;
     if (state.next.camera.has_value())
     {
-      if (state.initialized && state.active.camera->state.initialized) state.active.camera->cleanup();
+      if (state.active.camera->state.initialized) state.active.camera->cleanup();
       state.active.camera = state.next.camera.value();
-      if (state.initialized && !state.active.camera->state.initialized) state.active.camera->initialize();
+      if (!state.active.camera->state.initialized) state.active.camera->initialize();
       state.next.camera.reset();
     }
     if (state.removals.empty() && state.additions.empty()) return;
@@ -127,7 +127,7 @@ namespace cse
       if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
       {
         const auto &object{iterator->second};
-        if (state.initialized && object->state.initialized)
+        if (object->state.initialized)
           if (game) object->cleanup(game->state.active.window->graphics.gpu);
         state.active.objects.erase(iterator);
       }
@@ -136,7 +136,7 @@ namespace cse
     for (auto &[name, object] : state.additions)
     {
       state.active.objects.insert_or_assign(name, object);
-      if (state.initialized && !object->state.initialized)
+      if (!object->state.initialized)
         if (game)
           object->initialize(game->state.active.window->graphics.instance, game->state.active.window->graphics.gpu);
     }

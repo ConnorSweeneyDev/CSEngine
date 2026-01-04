@@ -32,8 +32,8 @@ namespace cse
 
   void window::initialize()
   {
-    graphics.create_app_and_window(state.active.width, state.active.height, state.active.left, state.active.top,
-                                   state.active.display_index, state.active.fullscreen, state.active.vsync);
+    graphics.create_window(state.active.width, state.active.height, state.active.left, state.active.top,
+                           state.active.display_index, state.active.fullscreen, state.active.vsync);
     state.active.running = true;
     state.initialized = true;
     hook.call<void()>("initialize");
@@ -80,7 +80,7 @@ namespace cse
   {
     state.keys = nullptr;
     state.event = {};
-    graphics.destroy_window_and_app();
+    graphics.destroy_window();
     state.initialized = false;
     hook.call<void()>("cleanup");
   }
