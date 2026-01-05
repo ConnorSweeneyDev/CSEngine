@@ -50,7 +50,7 @@ namespace cse
 
   void scene::update()
   {
-    if (state.removals.empty() && state.additions.empty() && !state.next.camera.has_value()) return;
+    hook.call<void()>("pre_update");
     if (state.next.camera.has_value())
     {
       if (state.active.camera->state.initialized) state.active.camera->cleanup();
@@ -58,26 +58,31 @@ namespace cse
       if (!state.active.camera->state.initialized) state.active.camera->initialize();
       state.next.camera.reset();
     }
-    if (state.removals.empty() && state.additions.empty()) return;
     auto game{state.active.parent.lock()};
-    for (const auto &name : state.removals)
-      if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
-      {
-        const auto &object{iterator->second};
-        if (object->state.initialized)
-          if (game) object->cleanup(game->state.active.window->graphics.gpu);
-        state.active.objects.erase(iterator);
-      }
-    state.removals.clear();
-    if (state.additions.empty()) return;
-    for (auto &[name, object] : state.additions)
+    if (!state.removals.empty())
     {
-      state.active.objects.insert_or_assign(name, object);
-      if (!object->state.initialized)
-        if (game)
-          object->initialize(game->state.active.window->graphics.instance, game->state.active.window->graphics.gpu);
+      for (const auto &name : state.removals)
+        if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
+        {
+          const auto &object{iterator->second};
+          if (object->state.initialized)
+            if (game) object->cleanup(game->state.active.window->graphics.gpu);
+          state.active.objects.erase(iterator);
+        }
+      state.removals.clear();
     }
-    state.additions.clear();
+    if (!state.additions.empty())
+    {
+      for (auto &[name, object] : state.additions)
+      {
+        state.active.objects.insert_or_assign(name, object);
+        if (!object->state.initialized)
+          if (game)
+            object->initialize(game->state.active.window->graphics.instance, game->state.active.window->graphics.gpu);
+      }
+      state.additions.clear();
+    }
+    hook.call<void()>("post_update");
   }
 
   void scene::event(const SDL_Event &event)

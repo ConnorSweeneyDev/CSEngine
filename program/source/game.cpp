@@ -103,6 +103,7 @@ namespace cse
 
   void game::update()
   {
+    hook.call<void()>("pre_update");
     if (state.next.window.has_value())
     {
       if (auto &window{state.next.window.value()})
@@ -148,6 +149,7 @@ namespace cse
       state.next.scene.reset();
     }
     if (state.active.scene.pointer->state.initialized) state.active.scene.pointer->update();
+    hook.call<void()>("post_update");
   }
 
   void game::event()
