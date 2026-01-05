@@ -48,8 +48,8 @@ namespace cse
     game(const double poll_rate_, const double frame_rate, const double aspect_ratio_);
 
   private:
-    void initialize();
     void parent();
+    void initialize();
     void previous();
     void update();
     void event();

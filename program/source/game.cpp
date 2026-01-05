@@ -80,6 +80,14 @@ namespace cse
     cleanup();
   }
 
+  void game::parent()
+  {
+    if (state.active.window && state.active.window->state.active.parent.expired())
+      state.active.window->state.active.parent = weak_from_this();
+    for (const auto &[name, scene] : state.active.scenes)
+      if (scene->state.active.parent.expired()) scene->state.active.parent = weak_from_this();
+  }
+
   void game::initialize()
   {
     graphics.initialize_app();
@@ -208,14 +216,6 @@ namespace cse
     state.active.window->cleanup();
     graphics.cleanup_app();
     hook.call<void()>("post_cleanup");
-  }
-
-  void game::parent()
-  {
-    if (state.active.window && state.active.window->state.active.parent.expired())
-      state.active.window->state.active.parent = weak_from_this();
-    for (const auto &[name, scene] : state.active.scenes)
-      if (scene->state.active.parent.expired()) scene->state.active.parent = weak_from_this();
   }
 
   bool game::running() { return state.active.window->state.active.running; }
