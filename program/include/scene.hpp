@@ -35,15 +35,14 @@ namespace cse
 
   private:
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
+    void previous();
+    void update();
     void event(const SDL_Event &event);
     void input(const bool *keys);
-    void simulate(const double active_poll_rate);
+    void simulate(const float poll_rate);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const double alpha, const double aspect_ratio);
+                const double alpha, const float aspect_ratio);
     void cleanup(SDL_GPUDevice *gpu);
-
-    void process_updates();
-    void update_previous();
 
   public:
     help::scene_state state{};

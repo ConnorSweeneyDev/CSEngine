@@ -16,8 +16,8 @@
 
 #include "declaration.hpp"
 #include "name.hpp"
-#include "property.hpp"
 #include "resource.hpp"
+#include "wrapper.hpp"
 
 namespace cse::help
 {
@@ -46,10 +46,10 @@ namespace cse::help
     game_graphics &operator=(game_graphics &&) = delete;
 
   public:
+    void update_previous();
+
     void initialize_app();
     void cleanup_app();
-
-    void update_previous();
 
   public:
     struct previous previous{};
@@ -72,7 +72,7 @@ namespace cse::help
     };
     struct active
     {
-      help::property<std::string> title{};
+      cse::property<std::string> title{};
     };
 
   public:
@@ -85,10 +85,12 @@ namespace cse::help
     window_graphics &operator=(window_graphics &&) = delete;
 
   private:
+    void update_previous();
+
     void create_window(const unsigned int width, const unsigned int height, int &left, int &top,
                        SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
-    void start_render_pass(const double aspect_ratio, const unsigned int width, const unsigned int height);
+    void start_render_pass(const unsigned int width, const unsigned int height, const float aspect_ratio);
     void end_render_pass();
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
@@ -103,8 +105,6 @@ namespace cse::help
     void handle_fullscreen(const bool fullscreen, const SDL_DisplayID display_index);
     void handle_vsync(const bool vsync);
     void destroy_window();
-
-    void update_previous();
 
   public:
     struct previous previous{};
@@ -136,13 +136,10 @@ namespace cse::help
     scene_graphics &operator=(scene_graphics &&) = delete;
 
   private:
-    void interpolate(const double alpha, std::shared_ptr<class camera> camera,
-                     const std::unordered_map<help::name, std::shared_ptr<class object>> &objects,
-                     const std::unordered_set<help::name> &removals);
     std::vector<std::shared_ptr<object>>
     generate_render_order(const std::shared_ptr<camera> camera,
                           const std::unordered_map<help::name, std::shared_ptr<object>> &objects,
-                          const std::unordered_set<help::name> &removals);
+                          const std::unordered_set<help::name> &removals, const double alpha);
   };
 
   struct camera_graphics
@@ -152,16 +149,16 @@ namespace cse::help
   private:
     struct previous
     {
-      float fov{};
+      double fov{};
     };
     struct active
     {
-      float fov{};
+      double fov{};
     };
 
   public:
     camera_graphics() = default;
-    camera_graphics(const float fov_);
+    camera_graphics(const double fov_);
     ~camera_graphics() = default;
     camera_graphics(const camera_graphics &) = delete;
     camera_graphics &operator=(const camera_graphics &) = delete;
@@ -169,9 +166,9 @@ namespace cse::help
     camera_graphics &operator=(camera_graphics &&) = delete;
 
   private:
-    glm::mat4 calculate_projection_matrix(const double aspect_ratio);
-
     void update_previous();
+
+    glm::mat4 calculate_projection_matrix(const double alpha, const float aspect_ratio);
 
   public:
     struct previous previous{};
@@ -201,8 +198,8 @@ namespace cse::help
 
     struct shader
     {
-      help::property<struct vertex> vertex{};
-      help::property<struct fragment> fragment{};
+      cse::property<struct vertex> vertex{};
+      cse::property<struct fragment> fragment{};
     };
     struct texture
     {
@@ -211,7 +208,7 @@ namespace cse::help
         bool horizontal{};
         bool vertical{};
       };
-      help::property<struct image> image{};
+      cse::property<struct image> image{};
       struct group group{};
       struct animation animation{};
       struct flip flip{};
@@ -249,18 +246,19 @@ namespace cse::help
     object_graphics &operator=(object_graphics &&) = delete;
 
   private:
+    void update_previous();
+
     void create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu);
     void upload_static_buffers(SDL_GPUDevice *gpu);
-    void upload_dynamic_buffers(SDL_GPUDevice *gpu);
+    void upload_dynamic_buffers(SDL_GPUDevice *gpu, const double alpha);
     void generate_pipeline();
     void generate_and_upload_texture();
-    void update_animation(const double active_poll_rate);
-    void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass);
-    void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const std::array<glm::mat4, 3> &matrices);
+    void update_animation(const float poll_rate);
+    void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass, const double alpha);
+    void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const std::array<glm::mat4, 3> &matrices,
+                           const double alpha);
     void draw_primitives(SDL_GPURenderPass *render_pass);
     void cleanup_object(SDL_GPUDevice *gpu);
-
-    void update_previous();
 
   public:
     struct previous previous{};

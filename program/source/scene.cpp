@@ -40,78 +40,15 @@ namespace cse
     hook.call<void()>("post_initialize");
   }
 
-  void scene::event(const SDL_Event &event)
+  void scene::previous()
   {
-    hook.call<void(const SDL_Event &)>("pre_event", event);
-    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
-    state.active.camera->event(event);
+    state.update_previous();
+    state.active.camera->previous();
     for (const auto &[name, object] : state.active.objects)
-      if (!state.removals.contains(name))
-      {
-        if (!object->state.initialized) throw exception("Object is not initialized");
-        object->event(event);
-      }
-    hook.call<void(const SDL_Event &)>("post_event", event);
+      if (!state.removals.contains(name)) object->previous();
   }
 
-  void scene::input(const bool *keys)
-  {
-    hook.call<void(const bool *)>("pre_input", keys);
-    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
-    state.active.camera->input(keys);
-    for (const auto &[name, object] : state.active.objects)
-      if (!state.removals.contains(name))
-      {
-        if (!object->state.initialized) throw exception("Object is not initialized");
-        object->input(keys);
-      }
-    hook.call<void(const bool *)>("post_input", keys);
-  }
-
-  void scene::simulate(const double active_poll_rate)
-  {
-    hook.call<void(const float)>("pre_simulate", static_cast<float>(active_poll_rate));
-    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
-    state.active.camera->simulate(active_poll_rate);
-    for (const auto &[name, object] : state.active.objects)
-      if (!state.removals.contains(name))
-      {
-        if (!object->state.initialized) throw exception("Object is not initialized");
-        object->simulate(active_poll_rate);
-      }
-    hook.call<void(const float)>("post_simulate", static_cast<float>(active_poll_rate));
-  }
-
-  void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     const double alpha, const double aspect_ratio)
-  {
-    hook.call<void()>("pre_render");
-    graphics.interpolate(alpha, state.active.camera, state.active.objects, state.removals);
-    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
-    auto matrices = state.active.camera->render(aspect_ratio);
-    for (const auto &object : graphics.generate_render_order(state.active.camera, state.active.objects, state.removals))
-    {
-      if (!object->state.initialized) throw exception("Object is not initialized");
-      object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second);
-    }
-    hook.call<void()>("post_render");
-  }
-
-  void scene::cleanup(SDL_GPUDevice *gpu)
-  {
-    hook.call<void()>("pre_cleanup");
-    for (const auto &[name, object] : state.active.objects)
-    {
-      if (!object->state.initialized) throw exception("Object is not initialized");
-      object->cleanup(gpu);
-    }
-    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
-    state.active.camera->cleanup();
-    state.initialized = false;
-    hook.call<void()>("post_cleanup");
-  }
-
-  void scene::process_updates()
+  void scene::update()
   {
     if (state.removals.empty() && state.additions.empty() && !state.next.camera.has_value()) return;
     if (state.next.camera.has_value())
@@ -143,11 +80,74 @@ namespace cse
     state.additions.clear();
   }
 
-  void scene::update_previous()
+  void scene::event(const SDL_Event &event)
   {
-    state.update_previous();
-    state.active.camera->update_previous();
+    hook.call<void(const SDL_Event &)>("pre_event", event);
+    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
+    state.active.camera->event(event);
     for (const auto &[name, object] : state.active.objects)
-      if (!state.removals.contains(name)) object->update_previous();
+      if (!state.removals.contains(name))
+      {
+        if (!object->state.initialized) throw exception("Object is not initialized");
+        object->event(event);
+      }
+    hook.call<void(const SDL_Event &)>("post_event", event);
+  }
+
+  void scene::input(const bool *keys)
+  {
+    hook.call<void(const bool *)>("pre_input", keys);
+    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
+    state.active.camera->input(keys);
+    for (const auto &[name, object] : state.active.objects)
+      if (!state.removals.contains(name))
+      {
+        if (!object->state.initialized) throw exception("Object is not initialized");
+        object->input(keys);
+      }
+    hook.call<void(const bool *)>("post_input", keys);
+  }
+
+  void scene::simulate(const float poll_rate)
+  {
+    hook.call<void(const float)>("pre_simulate", poll_rate);
+    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
+    state.active.camera->simulate(poll_rate);
+    for (const auto &[name, object] : state.active.objects)
+      if (!state.removals.contains(name))
+      {
+        if (!object->state.initialized) throw exception("Object is not initialized");
+        object->simulate(poll_rate);
+      }
+    hook.call<void(const float)>("post_simulate", poll_rate);
+  }
+
+  void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
+                     const double alpha, const float aspect_ratio)
+  {
+    hook.call<void(const double)>("pre_render", alpha);
+    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
+    auto matrices = state.active.camera->render(alpha, aspect_ratio);
+    for (const auto &object :
+         graphics.generate_render_order(state.active.camera, state.active.objects, state.removals, alpha))
+    {
+      if (!object->state.initialized) throw exception("Object is not initialized");
+      object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha);
+    }
+    hook.call<void(const double)>("post_render", alpha);
+  }
+
+  void scene::cleanup(SDL_GPUDevice *gpu)
+  {
+    hook.call<void()>("pre_cleanup");
+    for (const auto &[name, object] : state.active.objects)
+    {
+      if (!object->state.initialized) throw exception("Object is not initialized");
+      object->cleanup(gpu);
+    }
+    if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
+    state.active.camera->cleanup();
+    state.initialized = false;
+    hook.call<void()>("post_cleanup");
   }
 }

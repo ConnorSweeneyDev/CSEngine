@@ -49,20 +49,20 @@ namespace cse
 
   private:
     void initialize();
+    void parent();
+    void previous();
+    void update();
     void event();
     void input();
     void simulate();
     void render();
     void cleanup();
 
-    void setup_parents();
-    void process_updates();
-    void update_previous();
-
-    void update_time();
-    bool simulation_behind();
-    bool should_render();
-    void update_fps();
+    bool running();
+    void time();
+    bool behind();
+    bool ready();
+    void fps();
 
   public:
     help::game_state state{};

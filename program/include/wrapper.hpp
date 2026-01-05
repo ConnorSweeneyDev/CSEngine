@@ -5,8 +5,20 @@
 #include <functional>
 #include <istream>
 
-namespace cse::help
+namespace cse
 {
+  template <typename type> class dynamic
+  {
+  public:
+    dynamic() = default;
+    dynamic(const type &value_);
+
+  public:
+    type value{};
+    type velocity{};
+    type acceleration{};
+  };
+
   template <typename type> class property
   {
   public:
@@ -56,15 +68,15 @@ namespace cse::help
   template <typename type> std::istream &operator>>(std::istream &stream_, property<type> &destination_);
 }
 
-template <typename type> struct std::formatter<cse::help::property<type>> : std::formatter<type>
+template <typename type> struct std::formatter<cse::property<type>> : std::formatter<type>
 {
-  auto format(const cse::help::property<type> &property, auto &context) const;
+  auto format(const cse::property<type> &property, auto &context) const;
 };
 
-template <typename type> struct std::hash<cse::help::property<type>>
+template <typename type> struct std::hash<cse::property<type>>
 {
-  std::size_t operator()(const cse::help::property<type> &property) const
+  std::size_t operator()(const cse::property<type> &property) const
     noexcept(noexcept(std::hash<type>{}(std::declval<type>())));
 };
 
-#include "property.inl" // IWYU pragma: keep
+#include "wrapper.inl" // IWYU pragma: keep

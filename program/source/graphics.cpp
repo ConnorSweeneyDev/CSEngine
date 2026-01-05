@@ -16,6 +16,8 @@
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/vector_float3.hpp"
+#include "glm/ext/vector_float4.hpp"
 #include "glm/ext/vector_uint2.hpp"
 #include "glm/ext/vector_uint4_sized.hpp"
 #include "glm/geometric.hpp"
@@ -118,8 +120,7 @@ namespace cse::help
     return true;
   }
 
-  void window_graphics::start_render_pass(const double aspect_ratio, const unsigned int width,
-                                          const unsigned int height)
+  void window_graphics::start_render_pass(const unsigned int width, const unsigned int height, const float aspect_ratio)
   {
     SDL_GPUColorTargetInfo color_target_info{};
     color_target_info.texture = swapchain_texture;
@@ -137,14 +138,14 @@ namespace cse::help
     if ((static_cast<float>(width) / static_cast<float>(height)) > aspect_ratio)
     {
       viewport_height = static_cast<float>(height);
-      viewport_width = viewport_height * static_cast<float>(aspect_ratio);
+      viewport_width = viewport_height * aspect_ratio;
       viewport_y = 0.0f;
       viewport_x = (static_cast<float>(width) - viewport_width) / 2.0f;
     }
     else
     {
       viewport_width = static_cast<float>(width);
-      viewport_height = viewport_width / static_cast<float>(aspect_ratio);
+      viewport_height = viewport_width / aspect_ratio;
       viewport_x = 0.0f;
       viewport_y = (static_cast<float>(height) - viewport_height) / 2.0f;
     }
@@ -324,26 +325,10 @@ namespace cse::help
 
   void window_graphics::update_previous() { previous.title = active.title; }
 
-  void scene_graphics::interpolate(const double alpha, std::shared_ptr<class camera> camera,
-                                   const std::unordered_map<help::name, std::shared_ptr<class object>> &objects,
-                                   const std::unordered_set<help::name> &removals)
-  {
-    camera->state.active.translation.interpolate(alpha);
-    camera->state.active.forward.interpolate(alpha);
-    camera->state.active.up.interpolate(alpha);
-    for (const auto &[name, object] : objects)
-    {
-      if (removals.contains(name)) continue;
-      object->state.active.translation.interpolate(alpha);
-      object->state.active.rotation.interpolate(alpha);
-      object->state.active.scale.interpolate(alpha);
-    }
-  }
-
   std::vector<std::shared_ptr<object>>
   scene_graphics::generate_render_order(const std::shared_ptr<camera> camera,
                                         const std::unordered_map<help::name, std::shared_ptr<object>> &objects,
-                                        const std::unordered_set<help::name> &removals)
+                                        const std::unordered_set<help::name> &removals, const double alpha)
   {
     std::vector<std::shared_ptr<object>> render_order{};
     render_order.reserve(objects.size() - removals.size());
@@ -352,28 +337,41 @@ namespace cse::help
       if (removals.contains(name)) continue;
       render_order.emplace_back(object);
     }
-    const auto &camera_position = camera->state.active.translation.interpolated;
-    const auto camera_forward = glm::normalize(camera->state.active.forward.interpolated);
+    auto camera_translation = camera->state.previous.translation.value +
+                              (camera->state.active.translation.value - camera->state.previous.translation.value) *
+                                glm::vec3(static_cast<float>(alpha));
+    auto camera_forward = glm::normalize(camera->state.previous.forward.value +
+                                         (camera->state.active.forward.value - camera->state.previous.forward.value) *
+                                           glm::vec3(static_cast<float>(alpha)));
     std::sort(render_order.begin(), render_order.end(),
-              [&camera_position, &camera_forward](const auto &left, const auto &right)
+              [alpha, &camera_translation, &camera_forward](const auto &left, const auto &right)
               {
-                float depth_left =
-                  glm::dot(left->state.active.translation.interpolated - camera_position, camera_forward);
-                float depth_right =
-                  glm::dot(right->state.active.translation.interpolated - camera_position, camera_forward);
-                if (!equal(depth_left, depth_right, 1e-4f)) return depth_left > depth_right;
+                float left_depth =
+                  glm::dot((left->state.previous.translation.value +
+                            (left->state.active.translation.value - left->state.previous.translation.value) *
+                              glm::vec3(static_cast<float>(alpha))) -
+                             camera_translation,
+                           camera_forward);
+                float right_depth =
+                  glm::dot((right->state.previous.translation.value +
+                            (right->state.active.translation.value - right->state.previous.translation.value) *
+                              glm::vec3(static_cast<float>(alpha))) -
+                             camera_translation,
+                           camera_forward);
+                if (!equal(left_depth, right_depth, 1e-4f)) return left_depth > right_depth;
                 return left->graphics.active.property.priority < right->graphics.active.property.priority;
               });
     return render_order;
   }
 
-  camera_graphics::camera_graphics(const float fov_) : previous{fov_}, active{fov_}, near_clip{0.01f}, far_clip{100.0f}
+  camera_graphics::camera_graphics(const double fov_) : previous{fov_}, active{fov_}, near_clip{0.01f}, far_clip{100.0f}
   {
   }
 
-  glm::mat4 camera_graphics::calculate_projection_matrix(const double aspect_ratio)
+  glm::mat4 camera_graphics::calculate_projection_matrix(const double alpha, const float aspect_ratio)
   {
-    return glm::perspective(glm::radians(active.fov), static_cast<float>(aspect_ratio), near_clip, far_clip);
+    return glm::perspective(glm::radians(static_cast<float>(previous.fov + (active.fov - previous.fov) * alpha)),
+                            aspect_ratio, near_clip, far_clip);
   }
 
   void camera_graphics::update_previous() { previous.fov = active.fov; }
@@ -459,7 +457,7 @@ namespace cse::help
     SDL_SubmitGPUCommandBuffer(command_buffer);
   }
 
-  void object_graphics::upload_dynamic_buffers(SDL_GPUDevice *gpu)
+  void object_graphics::upload_dynamic_buffers(SDL_GPUDevice *gpu, const double alpha)
   {
     auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     auto vertex{reinterpret_cast<struct vertex_data *>(start)};
@@ -468,16 +466,18 @@ namespace cse::help
     auto size{active.texture.group.frames.size()};
     if (frame >= size) frame = size - 1;
     const auto &frame_coords{active.texture.group.frames[frame].coords};
-    const auto red{active.texture.color.r}, green{active.texture.color.g}, blue{active.texture.color.b},
-      alpha{active.texture.color.a};
+    const auto color{
+      glm::u8vec4(glm::vec4(previous.texture.color) +
+                  (glm::vec4(active.texture.color) - glm::vec4(previous.texture.color)) * static_cast<float>(alpha))};
     const auto left{active.texture.flip.horizontal ? frame_coords.right : frame_coords.left},
       right{active.texture.flip.horizontal ? frame_coords.left : frame_coords.right},
       top{active.texture.flip.vertical ? frame_coords.bottom : frame_coords.top},
       bottom{active.texture.flip.vertical ? frame_coords.top : frame_coords.bottom};
-    quad_vertices = std::array<struct vertex_data, 4>{{{1.0f, 1.0f, 0.0f, red, green, blue, alpha, right, top},
-                                                       {1.0f, -1.0f, 0.0f, red, green, blue, alpha, right, bottom},
-                                                       {-1.0f, 1.0f, 0.0f, red, green, blue, alpha, left, top},
-                                                       {-1.0f, -1.0f, 0.0f, red, green, blue, alpha, left, bottom}}};
+    quad_vertices =
+      std::array<struct vertex_data, 4>{{{1.0f, 1.0f, 0.0f, color.r, color.g, color.b, color.a, right, top},
+                                         {1.0f, -1.0f, 0.0f, color.r, color.g, color.b, color.a, right, bottom},
+                                         {-1.0f, 1.0f, 0.0f, color.r, color.g, color.b, color.a, left, top},
+                                         {-1.0f, -1.0f, 0.0f, color.r, color.g, color.b, color.a, left, bottom}}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(gpu)};
@@ -679,7 +679,7 @@ namespace cse::help
     texture_transfer_buffer = nullptr;
   }
 
-  void object_graphics::update_animation(const double active_poll_rate)
+  void object_graphics::update_animation(const float poll_rate)
   {
     auto &group{active.texture.group};
     auto &animation{active.texture.animation};
@@ -691,7 +691,7 @@ namespace cse::help
       animation.frame = frame_count - 1;
     if (animation.speed > 0.0 && !no_frames)
     {
-      animation.elapsed += active_poll_rate * animation.speed;
+      animation.elapsed += static_cast<double>(poll_rate) * animation.speed;
       while (true)
       {
         auto duration = group.frames[animation.frame].duration;
@@ -715,7 +715,7 @@ namespace cse::help
     }
     else if (animation.speed < 0.0 && !no_frames)
     {
-      animation.elapsed += active_poll_rate * animation.speed;
+      animation.elapsed += static_cast<double>(poll_rate) * animation.speed;
       while (animation.elapsed < 0)
         if (animation.frame > 0)
         {
@@ -735,10 +735,13 @@ namespace cse::help
     }
   }
 
-  void object_graphics::bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass)
+  void object_graphics::bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass, const double alpha)
   {
-    SDL_BindGPUGraphicsPipeline(render_pass,
-                                (active.texture.transparency < 1.0) ? pipelines.transparent : pipelines.opaque);
+    SDL_BindGPUGraphicsPipeline(
+      render_pass,
+      (previous.texture.transparency + (active.texture.transparency - previous.texture.transparency) * alpha) < 1.0
+        ? pipelines.transparent
+        : pipelines.opaque);
     SDL_GPUBufferBinding vertex_buffer_binding{.buffer = vertex_buffer, .offset = 0};
     SDL_BindGPUVertexBuffers(render_pass, 0, &vertex_buffer_binding, 1);
     SDL_GPUBufferBinding index_buffer_binding{.buffer = index_buffer, .offset = 0};
@@ -748,10 +751,11 @@ namespace cse::help
   }
 
   void object_graphics::push_uniform_data(SDL_GPUCommandBuffer *command_buffer,
-                                          const std::array<glm::mat4, 3> &matrices)
+                                          const std::array<glm::mat4, 3> &matrices, const double alpha)
   {
     SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
-    const auto transparency{static_cast<float>(active.texture.transparency)};
+    const auto transparency{static_cast<float>(previous.texture.transparency +
+                                               (active.texture.transparency - previous.texture.transparency) * alpha)};
     SDL_PushGPUFragmentUniformData(command_buffer, 0, &transparency, sizeof(transparency));
   }
 

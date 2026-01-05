@@ -19,7 +19,7 @@ namespace cse
     friend class scene;
 
   public:
-    camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const float fov_);
+    camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const double fov_);
     virtual ~camera();
     camera(const camera &) = delete;
     camera &operator=(const camera &) = delete;
@@ -28,13 +28,12 @@ namespace cse
 
   private:
     void initialize();
+    void previous();
     void event(const SDL_Event &event);
     void input(const bool *keys);
-    void simulate(const double active_poll_rate);
-    std::pair<glm::mat4, glm::mat4> render(const double aspect_ratio);
+    void simulate(const float poll_rate);
+    std::pair<glm::mat4, glm::mat4> render(const double alpha, const float aspect_ratio);
     void cleanup();
-
-    void update_previous();
 
   public:
     help::camera_state state{};

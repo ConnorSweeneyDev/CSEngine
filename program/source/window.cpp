@@ -57,23 +57,20 @@ namespace cse
 
   void window::input() { hook.call<void(const bool *)>("input", state.keys); }
 
-  void window::simulate(const double active_poll_rate)
-  {
-    hook.call<void(const float)>("simulate", static_cast<float>(active_poll_rate));
-  }
+  void window::simulate(const float poll_rate) { hook.call<void(const float)>("simulate", poll_rate); }
 
-  bool window::start_render(const double aspect_ratio)
+  bool window::start_render(const double alpha, const float aspect_ratio)
   {
     if (!graphics.acquire_swapchain_texture()) return false;
-    graphics.start_render_pass(aspect_ratio, state.active.width, state.active.height);
-    hook.call<void(const unsigned int, const unsigned int)>("pre_render", state.active.width, state.active.height);
+    graphics.start_render_pass(state.active.width, state.active.height, aspect_ratio);
+    hook.call<void(const double)>("pre_render", alpha);
     return true;
   }
 
-  void window::end_render()
+  void window::end_render(const double alpha)
   {
     graphics.end_render_pass();
-    hook.call<void()>("post_render");
+    hook.call<void(const double)>("post_render", alpha);
   }
 
   void window::cleanup()
@@ -85,7 +82,7 @@ namespace cse
     hook.call<void()>("cleanup");
   }
 
-  void window::update_previous()
+  void window::previous()
   {
     state.update_previous();
     graphics.update_previous();

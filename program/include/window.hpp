@@ -25,14 +25,13 @@ namespace cse
 
   private:
     void initialize();
+    void previous();
     void event();
     void input();
-    void simulate(const double active_poll_rate);
-    bool start_render(const double aspect_ratio);
-    void end_render();
+    void simulate(const float poll_rate);
+    bool start_render(const double alpha, const float aspect_ratio);
+    void end_render(const double alpha);
     void cleanup();
-
-    void update_previous();
 
   public:
     help::window_state state{};

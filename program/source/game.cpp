@@ -58,22 +58,23 @@ namespace cse
 
   void game::run()
   {
+    parent();
     initialize();
-    while (state.active.window->state.active.running)
+    while (running())
     {
-      update_time();
-      while (simulation_behind())
+      time();
+      while (behind())
       {
-        process_updates();
+        previous();
+        update();
         event();
         input();
         simulate();
-        update_previous();
       }
-      if (should_render())
+      if (ready())
       {
         render();
-        update_fps();
+        fps();
       }
     }
     cleanup();
@@ -82,7 +83,6 @@ namespace cse
   void game::initialize()
   {
     graphics.initialize_app();
-    setup_parents();
     hook.call<void()>("pre_initialize");
     if (!state.active.window) throw exception("No window has been set for the game");
     if (!state.active.window->state.initialized) state.active.window->initialize();
@@ -93,73 +93,15 @@ namespace cse
     hook.call<void()>("post_initialize");
   }
 
-  void game::event()
+  void game::previous()
   {
-    while (SDL_PollEvent(&state.active.window->state.event))
-    {
-      hook.call<void(const SDL_Event &)>("pre_event", state.active.window->state.event);
-      if (!state.active.window->state.initialized) throw exception("Window is not initialized");
-      state.active.window->event();
-      if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
-      state.active.scene.pointer->event(state.active.window->state.event);
-      hook.call<void(const SDL_Event &)>("post_event", state.active.window->state.event);
-    }
+    state.update_previous();
+    graphics.update_previous();
+    state.active.window->previous();
+    state.active.scene.pointer->previous();
   }
 
-  void game::input()
-  {
-    state.active.window->state.keys = SDL_GetKeyboardState(nullptr);
-    hook.call<void(const bool *)>("pre_input", state.active.window->state.keys);
-    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
-    state.active.window->input();
-    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
-    state.active.scene.pointer->input(state.active.window->state.keys);
-    hook.call<void(const bool *)>("post_input", state.active.window->state.keys);
-  }
-
-  void game::simulate()
-  {
-    hook.call<void(const float)>("pre_simulate", static_cast<float>(state.actual_poll_rate));
-    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
-    state.active.window->simulate(state.actual_poll_rate);
-    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
-    state.active.scene.pointer->simulate(state.actual_poll_rate);
-    hook.call<void(const float)>("post_simulate", static_cast<float>(state.actual_poll_rate));
-  }
-
-  void game::render()
-  {
-    hook.call<void()>("pre_render");
-    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
-    if (!state.active.window->start_render(graphics.active.aspect_ratio)) return;
-    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
-    state.active.scene.pointer->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
-                                       state.active.window->graphics.render_pass, state.alpha,
-                                       graphics.active.aspect_ratio);
-    state.active.window->end_render();
-    hook.call<void()>("post_render");
-  }
-
-  void game::cleanup()
-  {
-    hook.call<void()>("pre_cleanup");
-    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
-    state.active.scene.pointer->cleanup(state.active.window->graphics.gpu);
-    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
-    state.active.window->cleanup();
-    graphics.cleanup_app();
-    hook.call<void()>("post_cleanup");
-  }
-
-  void game::setup_parents()
-  {
-    if (state.active.window && state.active.window->state.active.parent.expired())
-      state.active.window->state.active.parent = weak_from_this();
-    for (const auto &[name, scene] : state.active.scenes)
-      if (scene->state.active.parent.expired()) scene->state.active.parent = weak_from_this();
-  }
-
-  void game::process_updates()
+  void game::update()
   {
     if (state.next.window.has_value())
     {
@@ -205,18 +147,78 @@ namespace cse
       }
       state.next.scene.reset();
     }
-    if (state.active.scene.pointer->state.initialized) state.active.scene.pointer->process_updates();
+    if (state.active.scene.pointer->state.initialized) state.active.scene.pointer->update();
   }
 
-  void game::update_previous()
+  void game::event()
   {
-    state.update_previous();
-    graphics.update_previous();
-    state.active.window->update_previous();
-    state.active.scene.pointer->update_previous();
+    while (SDL_PollEvent(&state.active.window->state.event))
+    {
+      hook.call<void(const SDL_Event &)>("pre_event", state.active.window->state.event);
+      if (!state.active.window->state.initialized) throw exception("Window is not initialized");
+      state.active.window->event();
+      if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
+      state.active.scene.pointer->event(state.active.window->state.event);
+      hook.call<void(const SDL_Event &)>("post_event", state.active.window->state.event);
+    }
   }
 
-  void game::update_time()
+  void game::input()
+  {
+    state.active.window->state.keys = SDL_GetKeyboardState(nullptr);
+    hook.call<void(const bool *)>("pre_input", state.active.window->state.keys);
+    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
+    state.active.window->input();
+    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
+    state.active.scene.pointer->input(state.active.window->state.keys);
+    hook.call<void(const bool *)>("post_input", state.active.window->state.keys);
+  }
+
+  void game::simulate()
+  {
+    hook.call<void(const float)>("pre_simulate", static_cast<float>(state.actual_poll_rate));
+    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
+    state.active.window->simulate(static_cast<float>(state.actual_poll_rate));
+    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
+    state.active.scene.pointer->simulate(static_cast<float>(state.actual_poll_rate));
+    hook.call<void(const float)>("post_simulate", static_cast<float>(state.actual_poll_rate));
+  }
+
+  void game::render()
+  {
+    hook.call<void(const double)>("pre_render", state.alpha);
+    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
+    if (!state.active.window->start_render(state.alpha, static_cast<float>(graphics.active.aspect_ratio))) return;
+    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
+    state.active.scene.pointer->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
+                                       state.active.window->graphics.render_pass, state.alpha,
+                                       static_cast<float>(graphics.active.aspect_ratio));
+    state.active.window->end_render(state.alpha);
+    hook.call<void(const double)>("post_render", state.alpha);
+  }
+
+  void game::cleanup()
+  {
+    hook.call<void()>("pre_cleanup");
+    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
+    state.active.scene.pointer->cleanup(state.active.window->graphics.gpu);
+    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
+    state.active.window->cleanup();
+    graphics.cleanup_app();
+    hook.call<void()>("post_cleanup");
+  }
+
+  void game::parent()
+  {
+    if (state.active.window && state.active.window->state.active.parent.expired())
+      state.active.window->state.active.parent = weak_from_this();
+    for (const auto &[name, scene] : state.active.scenes)
+      if (scene->state.active.parent.expired()) scene->state.active.parent = weak_from_this();
+  }
+
+  bool game::running() { return state.active.window->state.active.running; }
+
+  void game::time()
   {
     constexpr double minimum_poll_rate{10.0};
     constexpr double minimum_frame_rate{1.0};
@@ -238,7 +240,7 @@ namespace cse
     state.accumulator += delta_time;
   }
 
-  bool game::simulation_behind()
+  bool game::behind()
   {
     if (state.accumulator >= state.actual_poll_rate)
     {
@@ -248,7 +250,7 @@ namespace cse
     return false;
   }
 
-  bool game::should_render()
+  bool game::ready()
   {
     static double render_time{};
     if (state.time - render_time >= graphics.actual_frame_rate)
@@ -260,7 +262,7 @@ namespace cse
     return false;
   }
 
-  void game::update_fps()
+  void game::fps()
   {
     static double fps_time{};
     static unsigned int frame_count{};

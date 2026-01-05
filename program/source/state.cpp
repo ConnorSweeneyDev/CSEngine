@@ -10,8 +10,6 @@
 #include "glm/ext/vector_uint2.hpp"
 #include "glm/trigonometric.hpp"
 
-#include "transform.hpp"
-
 namespace cse::help
 {
   game_state::game_state(const double poll_rate_)
@@ -129,10 +127,14 @@ namespace cse::help
 
   camera_state::~camera_state() { active.parent.reset(); }
 
-  glm::mat4 camera_state::calculate_view_matrix() const
+  glm::mat4 camera_state::calculate_view_matrix(const double alpha) const
   {
-    return glm::lookAt(active.translation.interpolated, active.translation.interpolated + active.forward.interpolated,
-                       active.up.interpolated);
+    auto translation = previous.translation.value +
+                       (active.translation.value - previous.translation.value) * glm::vec3(static_cast<float>(alpha));
+    auto forward =
+      previous.forward.value + (active.forward.value - previous.forward.value) * glm::vec3(static_cast<float>(alpha));
+    auto up = previous.up.value + (active.up.value - previous.up.value) * glm::vec3(static_cast<float>(alpha));
+    return glm::lookAt(translation, translation + forward, up);
   }
 
   void camera_state::update_previous()
@@ -152,23 +154,25 @@ namespace cse::help
 
   object_state::~object_state() { active.parent.reset(); }
 
-  glm::mat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height) const
+  glm::mat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
+                                                 const double alpha) const
   {
+    auto translation = previous.translation.value +
+                       (active.translation.value - previous.translation.value) * glm::vec3(static_cast<float>(alpha));
+    auto rotation = previous.rotation.value +
+                    (active.rotation.value - previous.rotation.value) * glm::vec3(static_cast<float>(alpha));
+    auto scale =
+      previous.scale.value + (active.scale.value - previous.scale.value) * glm::vec3(static_cast<float>(alpha));
     glm::mat4 model_matrix{glm::mat4(1.0f)};
-    model_matrix = glm::translate(
-      model_matrix, {std::floor(active.translation.interpolated.x) - (frame_width % 2 == 1 ? 0.5f : 0.0f),
-                     std::floor(active.translation.interpolated.y) - (frame_height % 2 == 1 ? 0.5f : 0.0f),
-                     std::floor(active.translation.interpolated.z)});
-    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(active.rotation.interpolated.x) * 90.0f),
-                               glm::vec3(1.0f, 0.0f, 0.0f));
-    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(active.rotation.interpolated.y) * 90.0f),
-                               glm::vec3(0.0f, 1.0f, 0.0f));
-    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(active.rotation.interpolated.z) * 90.0f),
-                               glm::vec3(0.0f, 0.0f, 1.0f));
+    model_matrix = glm::translate(model_matrix, {std::floor(translation.x) - (frame_width % 2 == 1 ? 0.5f : 0.0f),
+                                                 std::floor(translation.y) - (frame_height % 2 == 1 ? 0.5f : 0.0f),
+                                                 std::floor(translation.z)});
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.x) * 90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.y) * 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.z) * 90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     model_matrix =
-      glm::scale(model_matrix, {std::floor(active.scale.interpolated.x) * static_cast<float>(frame_width) / 2.0f,
-                                std::floor(active.scale.interpolated.y) * static_cast<float>(frame_height) / 2.0f,
-                                std::floor(active.scale.interpolated.z)});
+      glm::scale(model_matrix, {std::floor(scale.x) * static_cast<float>(frame_width) / 2.0f,
+                                std::floor(scale.y) * static_cast<float>(frame_height) / 2.0f, std::floor(scale.z)});
     return model_matrix;
   }
 

@@ -1,14 +1,16 @@
 #pragma once
 
-#include "property.hpp"
+#include "wrapper.hpp"
 
 #include <cstddef>
 #include <format>
 #include <functional>
 #include <istream>
 
-namespace cse::help
+namespace cse
 {
+  template <typename type> dynamic<type>::dynamic(const type &value_) : value{value_} {}
+
   template <typename type> property<type>::property(const type &value_) : value{value_} {}
 
   template <typename type> property<type> &property<type>::operator=(const property<type> &other_)
@@ -178,13 +180,13 @@ namespace cse::help
 }
 
 template <typename type>
-auto std::formatter<cse::help::property<type>>::format(const cse::help::property<type> &property, auto &context) const
+auto std::formatter<cse::property<type>>::format(const cse::property<type> &property, auto &context) const
 {
   return std::formatter<type>::format(static_cast<type>(property), context);
 }
 
 template <typename type>
-std::size_t std::hash<cse::help::property<type>>::operator()(const cse::help::property<type> &property) const
+std::size_t std::hash<cse::property<type>>::operator()(const cse::property<type> &property) const
   noexcept(noexcept(std::hash<type>{}(std::declval<type>())))
 {
   return std::hash<type>{}(static_cast<type>(property));

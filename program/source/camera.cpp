@@ -9,7 +9,7 @@
 
 namespace cse
 {
-  camera::camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const float fov_)
+  camera::camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const double fov_)
     : state{transform_}, graphics{fov_}
   {
   }
@@ -22,34 +22,27 @@ namespace cse
     hook.call<void()>("initialize");
   }
 
+  void camera::previous()
+  {
+    state.update_previous();
+    graphics.update_previous();
+  }
+
   void camera::event(const SDL_Event &event) { hook.call<void(const SDL_Event &)>("event", event); }
 
   void camera::input(const bool *keys) { hook.call<void(const bool *)>("input", keys); }
 
-  void camera::simulate(const double active_poll_rate)
-  {
-    state.active.translation.update_previous();
-    state.active.forward.update_previous();
-    state.active.up.update_previous();
-    hook.call<void(const float)>("simulate", static_cast<float>(active_poll_rate));
-  }
+  void camera::simulate(const float poll_rate) { hook.call<void(const float)>("simulate", poll_rate); }
 
-  std::pair<glm::mat4, glm::mat4> camera::render(const double aspect_ratio)
+  std::pair<glm::mat4, glm::mat4> camera::render(const double alpha, const float aspect_ratio)
   {
-    auto matrices = std::pair{graphics.calculate_projection_matrix(aspect_ratio), state.calculate_view_matrix()};
-    hook.call<void(const glm::mat4 &, const glm::mat4 &)>("render", matrices.first, matrices.second);
-    return matrices;
+    hook.call<void(const double)>("render", alpha);
+    return {graphics.calculate_projection_matrix(alpha, aspect_ratio), state.calculate_view_matrix(alpha)};
   }
 
   void camera::cleanup()
   {
     state.initialized = false;
     hook.call<void()>("cleanup");
-  }
-
-  void camera::update_previous()
-  {
-    state.update_previous();
-    graphics.update_previous();
   }
 }

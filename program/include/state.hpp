@@ -16,8 +16,7 @@
 
 #include "declaration.hpp"
 #include "name.hpp"
-#include "property.hpp"
-#include "transform.hpp"
+#include "wrapper.hpp"
 
 namespace cse::help
 {
@@ -181,16 +180,16 @@ namespace cse::help
   private:
     struct previous
     {
-      transform_value translation{};
-      transform_value forward{};
-      transform_value up{};
+      dynamic<glm::vec3> translation{};
+      dynamic<glm::vec3> forward{};
+      dynamic<glm::vec3> up{};
     };
     struct active
     {
       std::weak_ptr<class scene> parent{};
-      transform_value translation{};
-      transform_value forward{};
-      transform_value up{};
+      dynamic<glm::vec3> translation{};
+      dynamic<glm::vec3> forward{};
+      dynamic<glm::vec3> up{};
     };
 
   public:
@@ -203,9 +202,9 @@ namespace cse::help
     camera_state &operator=(camera_state &&) = delete;
 
   private:
-    glm::mat4 calculate_view_matrix() const;
-
     void update_previous();
+
+    glm::mat4 calculate_view_matrix(const double alpha) const;
 
   public:
     struct previous previous{};
@@ -223,16 +222,16 @@ namespace cse::help
   private:
     struct previous
     {
-      transform_value translation{};
-      transform_value rotation{};
-      transform_value scale{};
+      dynamic<glm::vec3> translation{};
+      dynamic<glm::vec3> rotation{};
+      dynamic<glm::vec3> scale{};
     };
     struct active
     {
       std::weak_ptr<class scene> parent{};
-      transform_value translation{};
-      transform_value rotation{};
-      transform_value scale{};
+      dynamic<glm::vec3> translation{};
+      dynamic<glm::vec3> rotation{};
+      dynamic<glm::vec3> scale{};
     };
 
   public:
@@ -245,9 +244,10 @@ namespace cse::help
     object_state &operator=(object_state &&) = delete;
 
   private:
-    glm::mat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height) const;
-
     void update_previous();
+
+    glm::mat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
+                                     const double alpha) const;
 
   public:
     struct previous previous{};
