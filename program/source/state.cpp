@@ -78,7 +78,7 @@ namespace cse::help
 
   window_state::~window_state()
   {
-    keys = nullptr;
+    input = nullptr;
     active.vsync.change = nullptr;
     active.fullscreen.change = nullptr;
     active.display_index.change = nullptr;

@@ -99,18 +99,18 @@ namespace cse
     hook.call<void(const SDL_Event &)>("post_event", event);
   }
 
-  void scene::input(const bool *keys)
+  void scene::input(const bool *input)
   {
-    hook.call<void(const bool *)>("pre_input", keys);
+    hook.call<void(const bool *)>("pre_input", input);
     if (!state.active.camera->state.initialized) throw exception("Camera is not initialized");
-    state.active.camera->input(keys);
+    state.active.camera->input(input);
     for (const auto &[name, object] : state.active.objects)
       if (!state.removals.contains(name))
       {
         if (!object->state.initialized) throw exception("Object is not initialized");
-        object->input(keys);
+        object->input(input);
       }
-    hook.call<void(const bool *)>("post_input", keys);
+    hook.call<void(const bool *)>("post_input", input);
   }
 
   void scene::simulate(const float poll_rate)

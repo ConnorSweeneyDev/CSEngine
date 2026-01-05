@@ -40,7 +40,7 @@ namespace cse
 
   void object::event(const SDL_Event &event) { hook.call<void(const SDL_Event &)>("event", event); }
 
-  void object::input(const bool *keys) { hook.call<void(const bool *)>("input", keys); }
+  void object::input(const bool *input) { hook.call<void(const bool *)>("input", input); }
 
   void object::simulate(const float poll_rate)
   {

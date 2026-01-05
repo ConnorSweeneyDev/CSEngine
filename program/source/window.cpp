@@ -55,7 +55,7 @@ namespace cse
     }
   }
 
-  void window::input() { hook.call<void(const bool *)>("input", state.keys); }
+  void window::input() { hook.call<void(const bool *)>("input", state.input); }
 
   void window::simulate(const float poll_rate) { hook.call<void(const float)>("simulate", poll_rate); }
 
@@ -75,7 +75,7 @@ namespace cse
 
   void window::cleanup()
   {
-    state.keys = nullptr;
+    state.input = nullptr;
     state.event = {};
     graphics.destroy_window();
     state.initialized = false;

@@ -125,7 +125,7 @@ namespace cse::help
   private:
     bool initialized{};
     SDL_Event event{};
-    const bool *keys{};
+    const bool *input{};
   };
 
   struct scene_state

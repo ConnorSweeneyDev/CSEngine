@@ -167,13 +167,13 @@ namespace cse
 
   void game::input()
   {
-    state.active.window->state.keys = SDL_GetKeyboardState(nullptr);
-    hook.call<void(const bool *)>("pre_input", state.active.window->state.keys);
+    state.active.window->state.input = SDL_GetKeyboardState(nullptr);
+    hook.call<void(const bool *)>("pre_input", state.active.window->state.input);
     if (!state.active.window->state.initialized) throw exception("Window is not initialized");
     state.active.window->input();
     if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
-    state.active.scene.pointer->input(state.active.window->state.keys);
-    hook.call<void(const bool *)>("post_input", state.active.window->state.keys);
+    state.active.scene.pointer->input(state.active.window->state.input);
+    hook.call<void(const bool *)>("post_input", state.active.window->state.input);
   }
 
   void game::simulate()

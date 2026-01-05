@@ -33,7 +33,7 @@ namespace cse
     void initialize(SDL_Window *instance, SDL_GPUDevice *gpu);
     void previous();
     void event(const SDL_Event &event);
-    void input(const bool *keys);
+    void input(const bool *input);
     void simulate(const float poll_rate);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const double alpha);

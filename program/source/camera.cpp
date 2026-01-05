@@ -30,7 +30,7 @@ namespace cse
 
   void camera::event(const SDL_Event &event) { hook.call<void(const SDL_Event &)>("event", event); }
 
-  void camera::input(const bool *keys) { hook.call<void(const bool *)>("input", keys); }
+  void camera::input(const bool *input) { hook.call<void(const bool *)>("input", input); }
 
   void camera::simulate(const float poll_rate) { hook.call<void(const float)>("simulate", poll_rate); }
 
