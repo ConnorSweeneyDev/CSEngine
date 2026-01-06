@@ -9,8 +9,8 @@
 
 #include "exception.hpp"
 #include "name.hpp"
+#include "scene.hpp"
 #include "traits.hpp"
-#include "window.hpp"
 
 namespace cse
 {
@@ -36,15 +36,15 @@ namespace cse
   template <help::is_window window_type, typename... window_arguments>
   std::shared_ptr<game> game::set_window(window_arguments &&...arguments)
   {
+    auto window{std::make_shared<window_type>(std::forward<window_arguments>(arguments)...)};
+    if (auto parent{weak_from_this()}; !parent.expired()) window->state.active.parent = parent;
     if (state.created)
+      state.next.window = window;
+    else
     {
-      state.next.window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
-      if (auto parent{weak_from_this()}; !parent.expired()) state.next.window.value()->state.active.parent = parent;
-      return shared_from_this();
+      state.active.window = window;
+      state.previous.window = window;
     }
-    state.active.window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
-    if (auto parent{weak_from_this()}; !parent.expired()) state.active.window->state.active.parent = parent;
-    state.previous.window = state.active.window;
     return shared_from_this();
   }
 
@@ -56,14 +56,19 @@ namespace cse
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
     if (config) config(scene);
-    if (state.created)
-      if (auto iterator{state.active.scenes.find(name)};
-          iterator != state.active.scenes.end() && state.active.scene.pointer == iterator->second)
+    if (auto iterator{state.active.scenes.find(name)}; state.created && iterator != state.active.scenes.end())
+    {
+      auto target{iterator->second};
+      if (state.active.scene.pointer == target)
       {
         state.next.scene = {name, scene};
         return shared_from_this();
       }
+      else
+        target->clean();
+    }
     state.active.scenes.insert_or_assign(name, scene);
+    if (state.created && !scene->state.prepared) scene->prepare();
     return shared_from_this();
   }
 

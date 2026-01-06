@@ -49,7 +49,7 @@ namespace cse
     if (auto iterator{state.active.scenes.find(name)}; iterator != state.active.scenes.end())
     {
       const auto &scene{iterator->second};
-      if (state.active.scene.pointer == scene || state.active.scene.pointer->state.created)
+      if (state.active.scene.pointer == scene || scene->state.created)
         throw exception("Tried to remove current or created scene");
       scene->clean();
       state.active.scenes.erase(iterator);
@@ -162,6 +162,7 @@ namespace cse
           const auto &next_scene{iterator->second};
           state.active.scene.pointer->destroy(state.active.window->graphics.gpu);
           state.active.scene = {name, next_scene};
+          if (!next_scene->state.prepared) next_scene->prepare();
           next_scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
         }
       }

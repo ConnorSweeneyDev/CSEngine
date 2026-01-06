@@ -18,12 +18,16 @@ namespace cse
 
   std::shared_ptr<scene> scene::remove_object(const help::name name)
   {
-    if (state.active.objects.contains(name))
+    if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
     {
-      if (state.prepared)
+      auto &object{iterator->second};
+      if (state.created)
         state.removals.insert(name);
-      else
-        state.active.objects.erase(name);
+      else if (object->state.prepared)
+      {
+        object->clean();
+        state.active.objects.erase(iterator);
+      }
     }
     return shared_from_this();
   }
@@ -84,7 +88,7 @@ namespace cse
         if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
         {
           const auto &object{iterator->second};
-          object->destroy(gpu);
+          if (object->state.created) object->destroy(gpu);
           object->clean();
           state.active.objects.erase(iterator);
         }
