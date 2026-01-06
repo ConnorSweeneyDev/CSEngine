@@ -77,7 +77,7 @@ namespace cse::help
     struct next next{};
 
   private:
-    enum class phase phase = {phase::CLEANED};
+    enum phase phase = {phase::CLEANED};
     double actual_poll_rate{1.0 / active.poll_rate};
     double time{};
     double accumulator{};
@@ -131,7 +131,7 @@ namespace cse::help
     struct active active{};
 
   private:
-    enum class phase phase = {phase::CLEANED};
+    enum phase phase = {phase::CLEANED};
     SDL_Event event{};
     const bool *input{};
   };
@@ -175,7 +175,7 @@ namespace cse::help
     struct next next{};
 
   private:
-    enum class phase phase = {phase::CLEANED};
+    enum phase phase = {phase::CLEANED};
     std::unordered_set<help::name> removals{};
     std::unordered_map<help::name, std::shared_ptr<object>> additions{};
   };
@@ -219,7 +219,7 @@ namespace cse::help
     struct active active{};
 
   private:
-    enum class phase phase = {phase::CLEANED};
+    enum phase phase = {phase::CLEANED};
   };
 
   struct object_state
@@ -262,6 +262,6 @@ namespace cse::help
     struct active active{};
 
   private:
-    enum class phase phase = {phase::CLEANED};
+    enum phase phase = {phase::CLEANED};
   };
 }
