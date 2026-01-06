@@ -10,6 +10,7 @@
 #include "exception.hpp"
 #include "name.hpp"
 #include "scene.hpp"
+#include "state.hpp"
 #include "traits.hpp"
 
 namespace cse
@@ -38,7 +39,7 @@ namespace cse
   {
     auto window{std::make_shared<window_type>(std::forward<window_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) window->state.active.parent = parent;
-    if (state.created)
+    if (state.phase == help::phase::CREATED)
       state.next.window = window;
     else
     {
@@ -56,7 +57,8 @@ namespace cse
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
     if (config) config(scene);
-    if (auto iterator{state.active.scenes.find(name)}; state.created && iterator != state.active.scenes.end())
+    if (auto iterator{state.active.scenes.find(name)};
+        state.phase == help::phase::CREATED && iterator != state.active.scenes.end())
     {
       auto target{iterator->second};
       if (state.active.scene.pointer == target)
@@ -68,7 +70,7 @@ namespace cse
         target->clean();
     }
     state.active.scenes.insert_or_assign(name, scene);
-    if (state.created && !scene->state.prepared) scene->prepare();
+    if (state.phase == help::phase::CREATED && scene->state.phase == help::phase::CLEANED) scene->prepare();
     return shared_from_this();
   }
 
@@ -89,7 +91,7 @@ namespace cse
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
     if (config) config(scene);
-    if (state.created)
+    if (state.phase == help::phase::CREATED)
       state.next.scene = {name, scene};
     else
     {

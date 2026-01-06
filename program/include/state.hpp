@@ -20,6 +20,13 @@
 
 namespace cse::help
 {
+  enum class phase
+  {
+    CLEANED,
+    PREPARED,
+    CREATED
+  };
+
   struct game_state
   {
     friend class cse::game;
@@ -70,8 +77,7 @@ namespace cse::help
     struct next next{};
 
   private:
-    bool prepared{};
-    bool created{};
+    phase phase{phase::CLEANED};
     double actual_poll_rate{1.0 / active.poll_rate};
     double time{};
     double accumulator{};
@@ -125,8 +131,7 @@ namespace cse::help
     struct active active{};
 
   private:
-    bool prepared{};
-    bool created{};
+    phase phase{phase::CLEANED};
     SDL_Event event{};
     const bool *input{};
   };
@@ -170,8 +175,7 @@ namespace cse::help
     struct next next{};
 
   private:
-    bool prepared{};
-    bool created{};
+    phase phase{phase::CLEANED};
     std::unordered_set<help::name> removals{};
     std::unordered_map<help::name, std::shared_ptr<object>> additions{};
   };
@@ -215,8 +219,7 @@ namespace cse::help
     struct active active{};
 
   private:
-    bool prepared{};
-    bool created{};
+    phase phase{phase::CLEANED};
   };
 
   struct object_state
@@ -259,7 +262,6 @@ namespace cse::help
     struct active active{};
 
   private:
-    bool prepared{};
-    bool created{};
+    phase phase{phase::CLEANED};
   };
 }

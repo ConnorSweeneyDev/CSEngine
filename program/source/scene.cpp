@@ -11,6 +11,7 @@
 #include "exception.hpp"
 #include "name.hpp"
 #include "object.hpp"
+#include "state.hpp"
 
 namespace cse
 {
@@ -21,11 +22,11 @@ namespace cse
     if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
     {
       auto &object{iterator->second};
-      if (state.created)
+      if (state.phase == help::phase::CREATED)
         state.removals.insert(name);
-      else if (object->state.prepared)
+      else
       {
-        object->clean();
+        if (object->state.phase == help::phase::PREPARED) object->clean();
         state.active.objects.erase(iterator);
       }
     }
@@ -34,33 +35,30 @@ namespace cse
 
   void scene::prepare()
   {
-    if (state.prepared) throw exception("Scene cannot be prepared more than once");
-    if (state.created) throw exception("Scene cannot be prepared while created");
+    if (state.phase != help::phase::CLEANED) throw exception("Scene must be cleaned before preparation");
     hook.call<void()>("pre_prepare");
     if (!state.active.camera) throw exception("Scene must have a camera to be prepared");
     state.active.camera->prepare();
     for (const auto &[name, object] : state.active.objects)
       if (!state.removals.contains(name)) object->prepare();
-    state.prepared = true;
+    state.phase = help::phase::PREPARED;
     hook.call<void()>("post_prepare");
   }
 
   void scene::create(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
-    if (!state.prepared) throw exception("Scene must be prepared before creation");
-    if (state.created) throw exception("Scene cannot be created more than once");
+    if (state.phase != help::phase::PREPARED) throw exception("Scene must be prepared before creation");
     hook.call<void()>("pre_create");
     state.active.camera->create();
     for (const auto &[name, object] : state.active.objects)
       if (!state.removals.contains(name)) object->create(instance, gpu);
-    state.created = true;
+    state.phase = help::phase::CREATED;
     hook.call<void()>("post_create");
   }
 
   void scene::previous()
   {
-    if (!state.prepared) throw exception("Scene must be prepared before updating previous state");
-    if (!state.created) throw exception("Scene must be created before updating previous state");
+    if (state.phase != help::phase::CREATED) throw exception("Scene must be created before updating previous state");
     state.update_previous();
     state.active.camera->previous();
     for (const auto &[name, object] : state.active.objects)
@@ -69,8 +67,7 @@ namespace cse
 
   void scene::sync(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
-    if (!state.prepared) throw exception("Scene must be prepared before syncing");
-    if (!state.created) throw exception("Scene must be created before syncing");
+    if (state.phase != help::phase::CREATED) throw exception("Scene must be created before syncing");
     hook.call<void()>("pre_sync");
     if (state.next.camera.has_value())
     {
@@ -88,7 +85,7 @@ namespace cse
         if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
         {
           const auto &object{iterator->second};
-          if (object->state.created) object->destroy(gpu);
+          if (object->state.phase == help::phase::CREATED) object->destroy(gpu);
           object->clean();
           state.active.objects.erase(iterator);
         }
@@ -109,8 +106,7 @@ namespace cse
 
   void scene::event(const SDL_Event &event)
   {
-    if (!state.prepared) throw exception("Scene must be prepared before processing events");
-    if (!state.created) throw exception("Scene must be created before processing events");
+    if (state.phase != help::phase::CREATED) throw exception("Scene must be created before processing events");
     hook.call<void(const SDL_Event &)>("pre_event", event);
     state.active.camera->event(event);
     for (const auto &[name, object] : state.active.objects)
@@ -120,8 +116,7 @@ namespace cse
 
   void scene::input(const bool *input)
   {
-    if (!state.prepared) throw exception("Scene must be prepared before processing input");
-    if (!state.created) throw exception("Scene must be created before processing input");
+    if (state.phase != help::phase::CREATED) throw exception("Scene must be created before processing input");
     hook.call<void(const bool *)>("pre_input", input);
     state.active.camera->input(input);
     for (const auto &[name, object] : state.active.objects)
@@ -131,8 +126,7 @@ namespace cse
 
   void scene::simulate(const float poll_rate)
   {
-    if (!state.prepared) throw exception("Scene must be prepared before simulation");
-    if (!state.created) throw exception("Scene must be created before simulation");
+    if (state.phase != help::phase::CREATED) throw exception("Scene must be created before simulation");
     hook.call<void(const float)>("pre_simulate", poll_rate);
     state.active.camera->simulate(poll_rate);
     for (const auto &[name, object] : state.active.objects)
@@ -143,8 +137,7 @@ namespace cse
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                      const double alpha, const float aspect_ratio)
   {
-    if (!state.prepared) throw exception("Scene must be prepared before rendering");
-    if (!state.created) throw exception("Scene must be created before rendering");
+    if (state.phase != help::phase::CREATED) throw exception("Scene must be created before rendering");
     hook.call<void(const double)>("pre_render", alpha);
     auto matrices = state.active.camera->render(alpha, aspect_ratio);
     for (const auto &object :
@@ -155,23 +148,21 @@ namespace cse
 
   void scene::destroy(SDL_GPUDevice *gpu)
   {
-    if (!state.prepared) throw exception("Scene must be prepared before destruction");
-    if (!state.created) throw exception("Scene cannot be destroyed more than once");
+    if (state.phase != help::phase::CREATED) throw exception("Scene must be created before destruction");
     hook.call<void()>("pre_destroy");
     for (const auto &[name, object] : state.active.objects) object->destroy(gpu);
     state.active.camera->destroy();
-    state.created = false;
+    state.phase = help::phase::PREPARED;
     hook.call<void()>("post_destroy");
   }
 
   void scene::clean()
   {
-    if (!state.prepared) throw exception("Scene cannot be cleaned more than once");
-    if (state.created) throw exception("Scene must be destroyed before cleaning");
+    if (state.phase != help::phase::PREPARED) throw exception("Scene must be prepared before cleaning");
     hook.call<void()>("pre_clean");
     for (const auto &[name, object] : state.active.objects) object->clean();
     state.active.camera->clean();
-    state.prepared = false;
+    state.phase = help::phase::CLEANED;
     hook.call<void()>("post_clean");
   }
 }

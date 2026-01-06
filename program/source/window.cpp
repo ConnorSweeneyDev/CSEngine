@@ -6,6 +6,7 @@
 #include "glm/ext/vector_uint2.hpp"
 
 #include "exception.hpp"
+#include "state.hpp"
 
 namespace cse
 {
@@ -34,35 +35,31 @@ namespace cse
 
   void window::prepare()
   {
-    if (state.prepared) throw exception("Window cannot be prepared more than once");
-    if (state.created) throw exception("Window cannot be prepared while created");
+    if (state.phase != help::phase::CLEANED) throw exception("Window must be cleaned before preparation");
     state.active.running = true;
-    state.prepared = true;
+    state.phase = help::phase::PREPARED;
     hook.call<void()>("prepare");
   }
 
   void window::create()
   {
-    if (!state.prepared) throw exception("Window must be prepared before creation");
-    if (state.created) throw exception("Window cannot be created more than once");
+    if (state.phase != help::phase::PREPARED) throw exception("Window must be prepared before creation");
     graphics.create_window(state.active.width, state.active.height, state.active.left, state.active.top,
                            state.active.display_index, state.active.fullscreen, state.active.vsync);
-    state.created = true;
+    state.phase = help::phase::CREATED;
     hook.call<void()>("create");
   }
 
   void window::previous()
   {
-    if (!state.prepared) throw exception("Window must be prepared before updating previous state");
-    if (!state.created) throw exception("Window must be created before updating previous state");
+    if (state.phase != help::phase::CREATED) throw exception("Window must be created before updating previous state");
     state.update_previous();
     graphics.update_previous();
   }
 
   void window::event()
   {
-    if (!state.prepared) throw exception("Window must be prepared before processing events");
-    if (!state.created) throw exception("Window must be created before processing events");
+    if (state.phase != help::phase::CREATED) throw exception("Window must be created before processing events");
     switch (state.event.type)
     {
       case SDL_EVENT_QUIT: state.active.running = false; break;
@@ -79,22 +76,19 @@ namespace cse
 
   void window::input()
   {
-    if (!state.prepared) throw exception("Window must be prepared before processing input");
-    if (!state.created) throw exception("Window must be created before processing input");
+    if (state.phase != help::phase::CREATED) throw exception("Window must be created before processing input");
     hook.call<void(const bool *)>("input", state.input);
   }
 
   void window::simulate(const float poll_rate)
   {
-    if (!state.prepared) throw exception("Window must be prepared before simulation");
-    if (!state.created) throw exception("Window must be created before simulation");
+    if (state.phase != help::phase::CREATED) throw exception("Window must be created before simulation");
     hook.call<void(const float)>("simulate", poll_rate);
   }
 
   bool window::pre_render(const double alpha, const float aspect_ratio)
   {
-    if (!state.prepared) throw exception("Window must be prepared before starting rendering");
-    if (!state.created) throw exception("Window must be created before starting rendering");
+    if (state.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
     if (!graphics.acquire_swapchain_texture()) return false;
     graphics.start_render_pass(state.active.width, state.active.height, aspect_ratio);
     hook.call<void(const double)>("pre_render", alpha);
@@ -103,28 +97,25 @@ namespace cse
 
   void window::post_render(const double alpha)
   {
-    if (!state.prepared) throw exception("Window must be prepared before ending rendering");
-    if (!state.created) throw exception("Window must be created before ending rendering");
+    if (state.phase != help::phase::CREATED) throw exception("Window must be created before post-rendering");
     graphics.end_render_pass();
     hook.call<void(const double)>("post_render", alpha);
   }
 
   void window::destroy()
   {
-    if (!state.prepared) throw exception("Window must be prepared before destruction");
-    if (!state.created) throw exception("Window cannot be destroyed more than once");
+    if (state.phase != help::phase::CREATED) throw exception("Window must be created before destruction");
     state.input = nullptr;
     state.event = {};
     graphics.destroy_window();
-    state.created = false;
+    state.phase = help::phase::PREPARED;
     hook.call<void()>("destroy");
   }
 
   void window::clean()
   {
-    if (!state.prepared) throw exception("Window cannot be cleaned more than once");
-    if (state.created) throw exception("Window must be destroyed before cleaning");
-    state.prepared = false;
+    if (state.phase != help::phase::PREPARED) throw exception("Window must be prepared before cleaning");
+    state.phase = help::phase::CLEANED;
     hook.call<void()>("clean");
   }
 }
