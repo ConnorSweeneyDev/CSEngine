@@ -13,15 +13,15 @@ namespace cse
   template <help::is_camera camera_type, typename... camera_arguments>
   std::shared_ptr<scene> scene::set_camera(camera_arguments &&...arguments)
   {
-    if (!state.initialized)
+    if (state.prepared)
     {
-      state.active.camera = std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...);
-      state.active.camera->state.active.parent = weak_from_this();
-      state.previous.camera = state.active.camera;
+      state.next.camera = std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...);
+      state.next.camera.value()->state.active.parent = weak_from_this();
       return shared_from_this();
     }
-    state.next.camera = std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...);
-    state.next.camera.value()->state.active.parent = weak_from_this();
+    state.active.camera = std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...);
+    state.active.camera->state.active.parent = weak_from_this();
+    state.previous.camera = state.active.camera;
     return shared_from_this();
   }
 
@@ -31,12 +31,12 @@ namespace cse
     if (state.active.objects.contains(name)) state.removals.insert(name);
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
     object->state.active.parent = weak_from_this();
-    if (!state.initialized)
+    if (state.prepared)
     {
-      state.active.objects.insert_or_assign(name, object);
+      state.additions.insert_or_assign(name, object);
       return shared_from_this();
     }
-    state.additions.insert_or_assign(name, object);
+    state.active.objects.insert_or_assign(name, object);
     return shared_from_this();
   }
 }

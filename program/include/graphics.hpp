@@ -48,8 +48,8 @@ namespace cse::help
   public:
     void update_previous();
 
-    void initialize_app();
-    void cleanup_app();
+    void create_app();
+    void destroy_app();
 
   public:
     struct previous previous{};
@@ -258,7 +258,7 @@ namespace cse::help
     void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const std::array<glm::mat4, 3> &matrices,
                            const double alpha);
     void draw_primitives(SDL_GPURenderPass *render_pass);
-    void cleanup_object(SDL_GPUDevice *gpu);
+    void destroy_resources(SDL_GPUDevice *gpu);
 
   public:
     struct previous previous{};

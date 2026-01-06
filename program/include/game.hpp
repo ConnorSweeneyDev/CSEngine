@@ -48,15 +48,16 @@ namespace cse
     game(const double poll_rate_, const double frame_rate, const double aspect_ratio_);
 
   private:
-    void parent();
-    void initialize();
+    void prepare();
+    void create();
     void previous();
-    void update();
+    void sync();
     void event();
     void input();
     void simulate();
     void render();
-    void cleanup();
+    void destroy();
+    void clean();
 
     bool running();
     void time();

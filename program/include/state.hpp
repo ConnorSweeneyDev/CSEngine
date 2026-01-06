@@ -61,7 +61,7 @@ namespace cse::help
     game_state(game_state &&) = delete;
     game_state &operator=(game_state &&) = delete;
 
-  public:
+  private:
     void update_previous();
 
   public:
@@ -70,6 +70,8 @@ namespace cse::help
     struct next next{};
 
   private:
+    bool prepared{};
+    bool created{};
     double actual_poll_rate{1.0 / active.poll_rate};
     double time{};
     double accumulator{};
@@ -123,7 +125,8 @@ namespace cse::help
     struct active active{};
 
   private:
-    bool initialized{};
+    bool prepared{};
+    bool created{};
     SDL_Event event{};
     const bool *input{};
   };
@@ -167,7 +170,8 @@ namespace cse::help
     struct next next{};
 
   private:
-    bool initialized{};
+    bool prepared{};
+    bool created{};
     std::unordered_set<help::name> removals{};
     std::unordered_map<help::name, std::shared_ptr<object>> additions{};
   };
@@ -211,7 +215,8 @@ namespace cse::help
     struct active active{};
 
   private:
-    bool initialized{};
+    bool prepared{};
+    bool created{};
   };
 
   struct object_state
@@ -254,6 +259,7 @@ namespace cse::help
     struct active active{};
 
   private:
-    bool initialized{};
+    bool prepared{};
+    bool created{};
   };
 }

@@ -34,7 +34,7 @@ namespace cse
   {
     if (auto iterator{state.active.scenes.find(name)}; iterator == state.active.scenes.end())
       throw exception("Tried to set current scene to null");
-    else if (state.active.window->state.initialized)
+    else if (state.created)
       state.next.scene = {name, {}};
     else
     {
@@ -49,8 +49,9 @@ namespace cse
     if (auto iterator{state.active.scenes.find(name)}; iterator != state.active.scenes.end())
     {
       const auto &scene{iterator->second};
-      if (state.active.scene.pointer == scene) throw exception("Tried to remove current scene");
-      if (state.active.scene.pointer->state.initialized) scene->cleanup(state.active.window->graphics.gpu);
+      if (state.active.scene.pointer == scene || state.active.scene.pointer->state.created)
+        throw exception("Tried to remove current or created scene");
+      scene->clean();
       state.active.scenes.erase(iterator);
     }
     return shared_from_this();
@@ -58,15 +59,15 @@ namespace cse
 
   void game::run()
   {
-    parent();
-    initialize();
+    prepare();
+    create();
     while (running())
     {
       time();
       while (behind())
       {
         previous();
-        update();
+        sync();
         event();
         input();
         simulate();
@@ -77,53 +78,65 @@ namespace cse
         fps();
       }
     }
-    cleanup();
+    destroy();
+    clean();
   }
 
-  void game::parent()
+  void game::prepare()
   {
-    if (state.active.window && state.active.window->state.active.parent.expired())
-      state.active.window->state.active.parent = weak_from_this();
+    if (state.prepared) throw exception("Game cannot be prepared more than once");
+    if (state.created) throw exception("Game cannot be prepared while created");
+    if (!state.active.window) throw exception("No window has been set for the game");
+    if (state.active.window->state.active.parent.expired()) state.active.window->state.active.parent = weak_from_this();
     for (const auto &[name, scene] : state.active.scenes)
       if (scene->state.active.parent.expired()) scene->state.active.parent = weak_from_this();
-  }
-
-  void game::initialize()
-  {
-    graphics.initialize_app();
-    hook.call<void()>("pre_initialize");
-    if (!state.active.window) throw exception("No window has been set for the game");
-    if (!state.active.window->state.initialized) state.active.window->initialize();
+    hook.call<void()>("pre_prepare");
+    state.active.window->prepare();
     if (state.active.scenes.empty()) throw exception("No scenes have been added to the game");
     if (!state.active.scene.pointer) throw exception("No current scene has been set for the game");
-    if (!state.active.scene.pointer->state.initialized)
-      state.active.scene.pointer->initialize(state.active.window->graphics.instance, state.active.window->graphics.gpu);
-    hook.call<void()>("post_initialize");
+    state.active.scene.pointer->prepare();
+    state.prepared = true;
+    hook.call<void()>("post_prepare");
+  }
+
+  void game::create()
+  {
+    if (!state.prepared) throw exception("Game must be prepared before creation");
+    if (state.created) throw exception("Game cannot be created more than once");
+    hook.call<void()>("pre_create");
+    graphics.create_app();
+    state.active.window->create();
+    state.active.scene.pointer->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+    state.created = true;
+    hook.call<void()>("post_create");
   }
 
   void game::previous()
   {
+    if (!state.prepared) throw exception("Game must be prepared before updating previous state");
+    if (!state.created) throw exception("Game must be created before updating previous state");
     state.update_previous();
     graphics.update_previous();
     state.active.window->previous();
     state.active.scene.pointer->previous();
   }
 
-  void game::update()
+  void game::sync()
   {
-    hook.call<void()>("pre_update");
+    if (!state.prepared) throw exception("Game must be prepared before syncing");
+    if (!state.created) throw exception("Game must be created before syncing");
+    hook.call<void()>("pre_sync");
     if (state.next.window.has_value())
     {
       if (auto &window{state.next.window.value()})
       {
-        if (state.active.scene.pointer->state.initialized)
-          state.active.scene.pointer->cleanup(state.active.window->graphics.gpu);
-        if (state.active.window->state.initialized) state.active.window->cleanup();
+        state.active.scene.pointer->destroy(state.active.window->graphics.gpu);
+        state.active.window->destroy();
+        state.active.window->clean();
         state.active.window = window;
-        if (!window->state.initialized) window->initialize();
-        if (!state.active.scene.pointer->state.initialized)
-          state.active.scene.pointer->initialize(state.active.window->graphics.instance,
-                                                 state.active.window->graphics.gpu);
+        window->prepare();
+        window->create();
+        state.active.scene.pointer->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
       }
       else
         throw exception("Tried to set window to null");
@@ -131,43 +144,41 @@ namespace cse
     }
     if (state.next.scene.has_value())
     {
-      if (auto &[name, scene]{state.next.scene.value()}; !scene)
+      if (auto &[name, scene]{state.next.scene.value()}; scene)
+      {
+        state.active.scene.pointer->destroy(state.active.window->graphics.gpu);
+        if (name == state.active.scene.name) state.active.scene.pointer->clean();
+        state.active.scenes.insert_or_assign(name, scene);
+        state.active.scene = {name, scene};
+        scene->prepare();
+        scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+      }
+      else
       {
         if (auto iterator{state.active.scenes.find(name)}; iterator == state.active.scenes.end())
           throw exception("Tried to set current scene to null");
         else if (name != state.active.scene.name)
         {
-          const auto &new_scene{iterator->second};
-          if (state.active.scene.pointer->state.initialized)
-            state.active.scene.pointer->cleanup(state.active.window->graphics.gpu);
-          state.active.scene = {name, new_scene};
-          if (!new_scene->state.initialized)
-            new_scene->initialize(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+          const auto &next_scene{iterator->second};
+          state.active.scene.pointer->destroy(state.active.window->graphics.gpu);
+          state.active.scene = {name, next_scene};
+          next_scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
         }
-      }
-      else
-      {
-        if (state.active.scene.pointer->state.initialized)
-          state.active.scene.pointer->cleanup(state.active.window->graphics.gpu);
-        state.active.scenes.insert_or_assign(name, scene);
-        state.active.scene = {name, scene};
-        if (!scene->state.initialized)
-          scene->initialize(state.active.window->graphics.instance, state.active.window->graphics.gpu);
       }
       state.next.scene.reset();
     }
-    if (state.active.scene.pointer->state.initialized) state.active.scene.pointer->update();
-    hook.call<void()>("post_update");
+    state.active.scene.pointer->sync(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+    hook.call<void()>("post_sync");
   }
 
   void game::event()
   {
+    if (!state.prepared) throw exception("Game must be prepared before processing events");
+    if (!state.created) throw exception("Game must be created before processing events");
     while (SDL_PollEvent(&state.active.window->state.event))
     {
       hook.call<void(const SDL_Event &)>("pre_event", state.active.window->state.event);
-      if (!state.active.window->state.initialized) throw exception("Window is not initialized");
       state.active.window->event();
-      if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
       state.active.scene.pointer->event(state.active.window->state.event);
       hook.call<void(const SDL_Event &)>("post_event", state.active.window->state.event);
     }
@@ -175,47 +186,59 @@ namespace cse
 
   void game::input()
   {
+    if (!state.prepared) throw exception("Game must be prepared before processing input");
+    if (!state.created) throw exception("Game must be created before processing input");
     state.active.window->state.input = SDL_GetKeyboardState(nullptr);
     hook.call<void(const bool *)>("pre_input", state.active.window->state.input);
-    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
     state.active.window->input();
-    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
     state.active.scene.pointer->input(state.active.window->state.input);
     hook.call<void(const bool *)>("post_input", state.active.window->state.input);
   }
 
   void game::simulate()
   {
+    if (!state.prepared) throw exception("Game must be prepared before simulation");
+    if (!state.created) throw exception("Game must be created before simulation");
     hook.call<void(const float)>("pre_simulate", static_cast<float>(state.actual_poll_rate));
-    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
     state.active.window->simulate(static_cast<float>(state.actual_poll_rate));
-    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
     state.active.scene.pointer->simulate(static_cast<float>(state.actual_poll_rate));
     hook.call<void(const float)>("post_simulate", static_cast<float>(state.actual_poll_rate));
   }
 
   void game::render()
   {
+    if (!state.prepared) throw exception("Game must be prepared before rendering");
+    if (!state.created) throw exception("Game must be created before rendering");
     hook.call<void(const double)>("pre_render", state.alpha);
-    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
-    if (!state.active.window->start_render(state.alpha, static_cast<float>(graphics.active.aspect_ratio))) return;
-    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
+    if (!state.active.window->pre_render(state.alpha, static_cast<float>(graphics.active.aspect_ratio))) return;
     state.active.scene.pointer->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
                                        state.active.window->graphics.render_pass, state.alpha,
                                        static_cast<float>(graphics.active.aspect_ratio));
-    state.active.window->end_render(state.alpha);
+    state.active.window->post_render(state.alpha);
     hook.call<void(const double)>("post_render", state.alpha);
   }
 
-  void game::cleanup()
+  void game::destroy()
   {
-    hook.call<void()>("pre_cleanup");
-    if (!state.active.scene.pointer->state.initialized) throw exception("Current scene is not initialized");
-    state.active.scene.pointer->cleanup(state.active.window->graphics.gpu);
-    if (!state.active.window->state.initialized) throw exception("Window is not initialized");
-    state.active.window->cleanup();
-    graphics.cleanup_app();
-    hook.call<void()>("post_cleanup");
+    if (!state.prepared) throw exception("Game must be prepared before destruction");
+    if (!state.created) throw exception("Game cannot be destroyed more than once");
+    hook.call<void()>("pre_destroy");
+    state.active.scene.pointer->destroy(state.active.window->graphics.gpu);
+    state.active.window->destroy();
+    graphics.destroy_app();
+    state.created = false;
+    hook.call<void()>("post_destroy");
+  }
+
+  void game::clean()
+  {
+    if (!state.prepared) throw exception("Game cannot be cleaned more than once");
+    if (state.created) throw exception("Game must be destroyed before cleaning");
+    hook.call<void()>("pre_clean");
+    state.active.scene.pointer->clean();
+    state.active.window->clean();
+    state.prepared = false;
+    hook.call<void()>("post_clean");
   }
 
   bool game::running() { return state.active.window->state.active.running; }

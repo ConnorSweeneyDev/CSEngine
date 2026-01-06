@@ -8,6 +8,7 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_int3.hpp"
 
+#include "exception.hpp"
 #include "graphics.hpp"
 #include "state.hpp"
 
@@ -23,27 +24,51 @@ namespace cse
 
   object::~object() { hook.reset(); }
 
-  void object::initialize(SDL_Window *instance, SDL_GPUDevice *gpu)
+  void object::prepare()
   {
+    if (state.prepared) throw exception("Object cannot be prepared more than once");
+    if (state.created) throw exception("Object cannot be prepared while created");
+    state.prepared = true;
+    hook.call<void()>("prepare");
+  }
+
+  void object::create(SDL_Window *instance, SDL_GPUDevice *gpu)
+  {
+    if (!state.prepared) throw exception("Object must be prepared before creation");
+    if (state.created) throw exception("Object cannot be created more than once");
     graphics.create_pipeline_and_buffers(instance, gpu);
     graphics.upload_static_buffers(gpu);
     graphics.upload_dynamic_buffers(gpu, 1.0);
-    state.initialized = true;
-    hook.call<void()>("initialize");
+    state.created = true;
+    hook.call<void()>("create");
   }
 
   void object::previous()
   {
+    if (!state.prepared) throw exception("Object must be prepared before updating previous state");
+    if (!state.created) throw exception("Object must be created before updating previous state");
     state.update_previous();
     graphics.update_previous();
   }
 
-  void object::event(const SDL_Event &event) { hook.call<void(const SDL_Event &)>("event", event); }
+  void object::event(const SDL_Event &event)
+  {
+    if (!state.prepared) throw exception("Object must be prepared before processing events");
+    if (!state.created) throw exception("Object must be created before processing events");
+    hook.call<void(const SDL_Event &)>("event", event);
+  }
 
-  void object::input(const bool *input) { hook.call<void(const bool *)>("input", input); }
+  void object::input(const bool *input)
+  {
+    if (!state.prepared) throw exception("Object must be prepared before processing input");
+    if (!state.created) throw exception("Object must be created before processing input");
+    hook.call<void(const bool *)>("input", input);
+  }
 
   void object::simulate(const float poll_rate)
   {
+    if (!state.prepared) throw exception("Object must be prepared before simulation");
+    if (!state.created) throw exception("Object must be created before simulation");
     graphics.update_animation(poll_rate);
     hook.call<void(const float)>("simulate", poll_rate);
   }
@@ -51,6 +76,8 @@ namespace cse
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                       const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const double alpha)
   {
+    if (!state.prepared) throw exception("Object must be prepared before rendering");
+    if (!state.created) throw exception("Object must be created before rendering");
     graphics.upload_dynamic_buffers(gpu, alpha);
     graphics.bind_pipeline_and_buffers(render_pass, alpha);
     graphics.push_uniform_data(command_buffer,
@@ -62,10 +89,20 @@ namespace cse
     hook.call<void(const double)>("render", alpha);
   }
 
-  void object::cleanup(SDL_GPUDevice *gpu)
+  void object::destroy(SDL_GPUDevice *gpu)
   {
-    graphics.cleanup_object(gpu);
-    state.initialized = false;
-    hook.call<void()>("cleanup");
+    if (!state.prepared) throw exception("Object must be prepared before destruction");
+    if (!state.created) throw exception("Object cannot be destroyed more than once");
+    graphics.destroy_resources(gpu);
+    state.created = false;
+    hook.call<void()>("destroy");
+  }
+
+  void object::clean()
+  {
+    if (!state.prepared) throw exception("Object cannot be cleaned more than once");
+    if (state.created) throw exception("Object must be destroyed before cleaning");
+    state.prepared = false;
+    hook.call<void()>("clean");
   }
 }

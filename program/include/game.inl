@@ -36,15 +36,15 @@ namespace cse
   template <help::is_window window_type, typename... window_arguments>
   std::shared_ptr<game> game::set_window(window_arguments &&...arguments)
   {
-    if (!state.active.window || !state.active.window->state.initialized)
+    if (state.created)
     {
-      state.active.window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
-      if (auto parent{weak_from_this()}; !parent.expired()) state.active.window->state.active.parent = parent;
-      state.previous.window = state.active.window;
+      state.next.window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
+      if (auto parent{weak_from_this()}; !parent.expired()) state.next.window.value()->state.active.parent = parent;
       return shared_from_this();
     }
-    state.next.window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
-    if (auto parent{weak_from_this()}; !parent.expired()) state.next.window.value()->state.active.parent = parent;
+    state.active.window = std::make_shared<window_type>(std::forward<window_arguments>(arguments)...);
+    if (auto parent{weak_from_this()}; !parent.expired()) state.active.window->state.active.parent = parent;
+    state.previous.window = state.active.window;
     return shared_from_this();
   }
 
@@ -56,7 +56,7 @@ namespace cse
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
     if (config) config(scene);
-    if (state.active.window && state.active.window->state.initialized)
+    if (state.created)
       if (auto iterator{state.active.scenes.find(name)};
           iterator != state.active.scenes.end() && state.active.scene.pointer == iterator->second)
       {
@@ -84,7 +84,7 @@ namespace cse
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
     if (config) config(scene);
-    if (state.active.window && state.active.window->state.initialized)
+    if (state.created)
       state.next.scene = {name, scene};
     else
     {

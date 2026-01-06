@@ -39,7 +39,7 @@ namespace cse::help
   {
   }
 
-  void game_graphics::initialize_app()
+  void game_graphics::create_app()
   {
     SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
@@ -52,10 +52,10 @@ namespace cse::help
       throw sdl_exception("Could not set app metadata version");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
       throw sdl_exception("Could not set app metadata creator");
-    if (!SDL_Init(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be initialized");
+    if (!SDL_Init(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be prepared");
   }
 
-  void game_graphics::cleanup_app() { SDL_Quit(); }
+  void game_graphics::destroy_app() { SDL_Quit(); }
 
   void game_graphics::update_previous()
   {
@@ -764,7 +764,7 @@ namespace cse::help
     SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0);
   }
 
-  void object_graphics::cleanup_object(SDL_GPUDevice *gpu)
+  void object_graphics::destroy_resources(SDL_GPUDevice *gpu)
   {
     SDL_ReleaseGPUTransferBuffer(gpu, texture_transfer_buffer);
     SDL_ReleaseGPUTransferBuffer(gpu, vertex_transfer_buffer);
