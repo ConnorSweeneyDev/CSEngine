@@ -30,11 +30,10 @@ namespace cse::help
 
   game_state::~game_state()
   {
-    if (next.scene.has_value())
-    {
-      next.scene->pointer.reset();
-      next.scene.reset();
-    }
+    if (next.scene.has_value()) next.scene->pointer.reset();
+    next.scene.reset();
+    if (next.window.has_value()) next.window->reset();
+    next.window.reset();
     active.scene.pointer.reset();
     active.scenes.clear();
     active.window.reset();
@@ -46,6 +45,7 @@ namespace cse::help
 
   void game_state::update_previous()
   {
+    previous.phase = active.phase;
     previous.window = active.window;
     previous.scene_names.clear();
     previous.scene_names.reserve(active.scenes.size());
@@ -91,6 +91,7 @@ namespace cse::help
 
   void window_state::update_previous()
   {
+    previous.phase = active.phase;
     previous.running = active.running;
     previous.width = active.width;
     previous.height = active.height;
@@ -113,6 +114,7 @@ namespace cse::help
 
   void scene_state::update_previous()
   {
+    previous.phase = active.phase;
     previous.camera = active.camera;
     previous.object_names.clear();
     previous.object_names.reserve(active.objects.size());
@@ -120,8 +122,8 @@ namespace cse::help
   }
 
   camera_state::camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_)
-    : previous{std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)},
-      active{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)}
+    : previous{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)},
+      active{{}, {}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)}
   {
   }
 
@@ -139,16 +141,22 @@ namespace cse::help
 
   void camera_state::update_previous()
   {
+    previous.phase = active.phase;
     previous.translation = active.translation;
     previous.forward = active.forward;
     previous.up = active.up;
   }
 
   object_state::object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_)
-    : previous{glm::vec3{std::get<0>(transform_)}, glm::vec3{std::get<1>(transform_)},
+    : previous{{},
+               glm::vec3{std::get<0>(transform_)},
+               glm::vec3{std::get<1>(transform_)},
                glm::vec3{std::get<2>(transform_)}},
-      active{
-        {}, glm::vec3{std::get<0>(transform_)}, glm::vec3{std::get<1>(transform_)}, glm::vec3{std::get<2>(transform_)}}
+      active{{},
+             {},
+             glm::vec3{std::get<0>(transform_)},
+             glm::vec3{std::get<1>(transform_)},
+             glm::vec3{std::get<2>(transform_)}}
   {
   }
 
@@ -178,6 +186,7 @@ namespace cse::help
 
   void object_state::update_previous()
   {
+    previous.phase = active.phase;
     previous.translation = active.translation;
     previous.rotation = active.rotation;
     previous.scale = active.scale;

@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "SDL3/SDL_gpu.h"
@@ -138,8 +137,7 @@ namespace cse::help
   private:
     std::vector<std::shared_ptr<object>>
     generate_render_order(const std::shared_ptr<camera> camera,
-                          const std::unordered_map<help::name, std::shared_ptr<object>> &objects,
-                          const std::unordered_set<help::name> &removals, const double alpha);
+                          const std::unordered_map<help::name, std::shared_ptr<object>> &objects, const double alpha);
   };
 
   struct camera_graphics

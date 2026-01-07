@@ -21,61 +21,62 @@ namespace cse
 
   void camera::prepare()
   {
-    if (state.phase != help::phase::CLEANED) throw exception("Camera must be cleaned before preparation");
-    state.phase = help::phase::PREPARED;
+    if (state.active.phase != help::phase::CLEANED) throw exception("Camera must be cleaned before preparation");
+    state.active.phase = help::phase::PREPARED;
     hook.call<void()>("prepare");
   }
 
   void camera::create()
   {
-    if (state.phase != help::phase::PREPARED) throw exception("Camera must be prepared before creation");
-    state.phase = help::phase::CREATED;
+    if (state.active.phase != help::phase::PREPARED) throw exception("Camera must be prepared before creation");
+    state.active.phase = help::phase::CREATED;
     hook.call<void()>("create");
   }
 
   void camera::previous()
   {
-    if (state.phase != help::phase::CREATED) throw exception("Camera must be created before updating previous state");
+    if (state.active.phase != help::phase::CREATED)
+      throw exception("Camera must be created before updating previous state");
     state.update_previous();
     graphics.update_previous();
   }
 
   void camera::event(const SDL_Event &event)
   {
-    if (state.phase != help::phase::CREATED) throw exception("Camera must be created before processing events");
+    if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before processing events");
     hook.call<void(const SDL_Event &)>("event", event);
   }
 
   void camera::input(const bool *input)
   {
-    if (state.phase != help::phase::CREATED) throw exception("Camera must be created before processing input");
+    if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before processing input");
     hook.call<void(const bool *)>("input", input);
   }
 
   void camera::simulate(const float poll_rate)
   {
-    if (state.phase != help::phase::CREATED) throw exception("Camera must be created before simulation");
+    if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before simulation");
     hook.call<void(const float)>("simulate", poll_rate);
   }
 
   std::pair<glm::mat4, glm::mat4> camera::render(const double alpha, const float aspect_ratio)
   {
-    if (state.phase != help::phase::CREATED) throw exception("Camera must be created before rendering");
+    if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before rendering");
     hook.call<void(const double)>("render", alpha);
     return {graphics.calculate_projection_matrix(alpha, aspect_ratio), state.calculate_view_matrix(alpha)};
   }
 
   void camera::destroy()
   {
-    if (state.phase != help::phase::CREATED) throw exception("Camera must be created before destruction");
-    state.phase = help::phase::PREPARED;
+    if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before destruction");
+    state.active.phase = help::phase::PREPARED;
     hook.call<void()>("destroy");
   }
 
   void camera::clean()
   {
-    if (state.phase != help::phase::PREPARED) throw exception("Camera must be prepared before cleaning");
-    state.phase = help::phase::CLEANED;
+    if (state.active.phase != help::phase::PREPARED) throw exception("Camera must be prepared before cleaning");
+    state.active.phase = help::phase::CLEANED;
     hook.call<void()>("clean");
   }
 }

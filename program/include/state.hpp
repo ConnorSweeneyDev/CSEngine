@@ -40,6 +40,7 @@ namespace cse::help
 
     struct previous
     {
+      enum phase phase = {};
       std::shared_ptr<class window> window{};
       std::vector<help::name> scene_names{};
       struct scene_reference scene{};
@@ -47,6 +48,7 @@ namespace cse::help
     };
     struct active
     {
+      enum phase phase = {};
       std::weak_ptr<class game> parent{};
       std::shared_ptr<class window> window{};
       std::unordered_map<help::name, std::shared_ptr<class scene>> scenes{};
@@ -77,7 +79,6 @@ namespace cse::help
     struct next next{};
 
   private:
-    enum phase phase = {phase::CLEANED};
     double actual_poll_rate{1.0 / active.poll_rate};
     double time{};
     double accumulator{};
@@ -92,6 +93,7 @@ namespace cse::help
   private:
     struct previous
     {
+      enum phase phase = {};
       bool running{};
       unsigned int width{};
       unsigned int height{};
@@ -103,6 +105,7 @@ namespace cse::help
     };
     struct active
     {
+      enum phase phase = {};
       std::weak_ptr<class game> parent{};
       bool running{};
       property<unsigned int> width{};
@@ -131,7 +134,6 @@ namespace cse::help
     struct active active{};
 
   private:
-    enum phase phase = {phase::CLEANED};
     SDL_Event event{};
     const bool *input{};
   };
@@ -144,11 +146,13 @@ namespace cse::help
   private:
     struct previous
     {
+      enum phase phase = {};
       std::shared_ptr<class camera> camera{};
       std::vector<help::name> object_names{};
     };
     struct active
     {
+      enum phase phase = {};
       std::weak_ptr<class game> parent{};
       std::shared_ptr<class camera> camera{};
       std::unordered_map<help::name, std::shared_ptr<class object>> objects{};
@@ -175,7 +179,6 @@ namespace cse::help
     struct next next{};
 
   private:
-    enum phase phase = {phase::CLEANED};
     std::unordered_set<help::name> removals{};
     std::unordered_map<help::name, std::shared_ptr<object>> additions{};
   };
@@ -188,12 +191,14 @@ namespace cse::help
   private:
     struct previous
     {
+      enum phase phase = {};
       dynamic<glm::vec3> translation{};
       dynamic<glm::vec3> forward{};
       dynamic<glm::vec3> up{};
     };
     struct active
     {
+      enum phase phase = {};
       std::weak_ptr<class scene> parent{};
       dynamic<glm::vec3> translation{};
       dynamic<glm::vec3> forward{};
@@ -217,9 +222,6 @@ namespace cse::help
   public:
     struct previous previous{};
     struct active active{};
-
-  private:
-    enum phase phase = {phase::CLEANED};
   };
 
   struct object_state
@@ -230,12 +232,14 @@ namespace cse::help
   private:
     struct previous
     {
+      enum phase phase = {};
       dynamic<glm::vec3> translation{};
       dynamic<glm::vec3> rotation{};
       dynamic<glm::vec3> scale{};
     };
     struct active
     {
+      enum phase phase = {};
       std::weak_ptr<class scene> parent{};
       dynamic<glm::vec3> translation{};
       dynamic<glm::vec3> rotation{};
@@ -260,8 +264,5 @@ namespace cse::help
   public:
     struct previous previous{};
     struct active active{};
-
-  private:
-    enum phase phase = {phase::CLEANED};
   };
 }

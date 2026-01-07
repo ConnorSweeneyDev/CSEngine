@@ -17,7 +17,7 @@ namespace cse
   {
     auto camera{std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...)};
     camera->state.active.parent = weak_from_this();
-    switch (state.phase)
+    switch (state.active.phase)
     {
       case help::phase::CLEANED:
         state.active.camera = camera;
@@ -38,12 +38,12 @@ namespace cse
   {
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
     object->state.active.parent = weak_from_this();
-    switch (state.phase)
+    switch (state.active.phase)
     {
       case help::phase::CLEANED: state.active.objects.insert_or_assign(name, object); break;
       case help::phase::PREPARED:
         if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
-          if (iterator->second->state.phase == help::phase::PREPARED) iterator->second->clean();
+          if (iterator->second->state.active.phase == help::phase::PREPARED) iterator->second->clean();
         state.active.objects.insert_or_assign(name, object);
         object->prepare();
         break;

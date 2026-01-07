@@ -5,7 +5,6 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "SDL3/SDL_gpu.h"
@@ -328,15 +327,11 @@ namespace cse::help
   std::vector<std::shared_ptr<object>>
   scene_graphics::generate_render_order(const std::shared_ptr<camera> camera,
                                         const std::unordered_map<help::name, std::shared_ptr<object>> &objects,
-                                        const std::unordered_set<help::name> &removals, const double alpha)
+                                        const double alpha)
   {
     std::vector<std::shared_ptr<object>> render_order{};
-    render_order.reserve(objects.size() - removals.size());
-    for (const auto &[name, object] : objects)
-    {
-      if (removals.contains(name)) continue;
-      render_order.emplace_back(object);
-    }
+    render_order.reserve(objects.size());
+    for (const auto &[name, object] : objects) render_order.emplace_back(object);
     auto camera_translation = camera->state.previous.translation.value +
                               (camera->state.active.translation.value - camera->state.previous.translation.value) *
                                 glm::vec3(static_cast<float>(alpha));

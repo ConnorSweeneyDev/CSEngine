@@ -39,7 +39,7 @@ namespace cse
   {
     auto window{std::make_shared<window_type>(std::forward<window_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) window->state.active.parent = parent;
-    if (state.phase == help::phase::CREATED)
+    if (state.active.phase == help::phase::CREATED)
       state.next.window = window;
     else
     {
@@ -58,7 +58,7 @@ namespace cse
     if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
     if (config) config(scene);
     if (auto iterator{state.active.scenes.find(name)};
-        state.phase == help::phase::CREATED && iterator != state.active.scenes.end())
+        state.active.phase == help::phase::CREATED && iterator != state.active.scenes.end())
     {
       auto target{iterator->second};
       if (state.active.scene.pointer == target)
@@ -70,7 +70,8 @@ namespace cse
         target->clean();
     }
     state.active.scenes.insert_or_assign(name, scene);
-    if (state.phase == help::phase::CREATED && scene->state.phase == help::phase::CLEANED) scene->prepare();
+    if (state.active.phase == help::phase::CREATED && scene->state.active.phase == help::phase::CLEANED)
+      scene->prepare();
     return shared_from_this();
   }
 
@@ -91,7 +92,7 @@ namespace cse
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
     if (config) config(scene);
-    if (state.phase == help::phase::CREATED)
+    if (state.active.phase == help::phase::CREATED)
       state.next.scene = {name, scene};
     else
     {
