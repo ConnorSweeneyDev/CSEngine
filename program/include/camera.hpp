@@ -20,17 +20,17 @@ namespace cse
     friend class scene;
 
   protected:
-    struct hooks : public cse::extensible_enum<hooks>
+    struct hooks : public enumeration<hooks>
     {
-      using extensible_enum::extensible_enum;
-      extensible_enum_value(hooks, PREPARE);
-      extensible_enum_value(hooks, CREATE);
-      extensible_enum_value(hooks, EVENT);
-      extensible_enum_value(hooks, INPUT);
-      extensible_enum_value(hooks, SIMULATE);
-      extensible_enum_value(hooks, RENDER);
-      extensible_enum_value(hooks, DESTROY);
-      extensible_enum_value(hooks, CLEAN);
+      using enumeration::enumeration;
+      static constexpr enumeration_value<hooks> PREPARE{};
+      static constexpr enumeration_value<hooks> CREATE{};
+      static constexpr enumeration_value<hooks> EVENT{};
+      static constexpr enumeration_value<hooks> INPUT{};
+      static constexpr enumeration_value<hooks> SIMULATE{};
+      static constexpr enumeration_value<hooks> RENDER{};
+      static constexpr enumeration_value<hooks> DESTROY{};
+      static constexpr enumeration_value<hooks> CLEAN{};
     };
 
   public:

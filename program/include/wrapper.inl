@@ -197,34 +197,51 @@ std::size_t std::hash<cse::property<type>>::operator()(const cse::property<type>
 
 namespace cse
 {
-  template <typename derived> extensible_enum<derived>::extensible_enum() : value{next_value()++} {}
-
-  template <typename derived> extensible_enum<derived>::extensible_enum(int value_) : value{value_}
+  template <typename derived> enumeration_value<derived>::operator const derived &() const noexcept
   {
-    if (next_value() <= value_) next_value() = value_ + 1;
+    static const derived instance{};
+    return instance;
   }
 
-  template <typename derived> extensible_enum<derived>::operator int() const noexcept { return value; }
-
-  template <typename derived> bool extensible_enum<derived>::operator==(const extensible_enum &other_) const noexcept
+  template <typename derived> enumeration_value<derived>::operator int() const noexcept
   {
-    return value == other_.value;
+    return static_cast<int>(static_cast<const derived &>(*this));
   }
 
-  template <typename derived> auto extensible_enum<derived>::operator<=>(const extensible_enum &other_) const noexcept
+  template <typename derived> enumeration<derived>::enumeration() : count{next_count()++} {}
+
+  template <typename derived> enumeration<derived>::enumeration(int count_) : count{count_}
   {
-    return value <=> other_.value;
+    if (next_count() <= count_) next_count() = count_ + 1;
   }
 
-  template <typename derived> int &extensible_enum<derived>::next_value()
+  template <typename derived> enumeration<derived>::operator int() const noexcept { return count; }
+
+  template <typename derived> bool enumeration<derived>::operator==(const enumeration &other_) const noexcept
+  {
+    return count == other_.count;
+  }
+
+  template <typename derived> auto enumeration<derived>::operator<=>(const enumeration &other_) const noexcept
+  {
+    return count <=> other_.count;
+  }
+
+  template <typename derived> int &enumeration<derived>::next_count()
   {
     static int counter = 0;
     return counter;
   }
 }
 
-template <typename derived> std::size_t
-std::hash<cse::extensible_enum<derived>>::operator()(const cse::extensible_enum<derived> &enum_) const noexcept
+template <typename derived> std::size_t std::hash<cse::enumeration_value<derived>>::operator()(
+  const cse::enumeration_value<derived> &enumeration) const noexcept
 {
-  return std::hash<int>{}(static_cast<int>(enum_));
+  return std::hash<int>{}(static_cast<int>(enumeration));
+}
+
+template <typename derived> std::size_t
+std::hash<cse::enumeration<derived>>::operator()(const cse::enumeration<derived> &enumeration) const noexcept
+{
+  return std::hash<int>{}(static_cast<int>(enumeration));
 }

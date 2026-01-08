@@ -81,41 +81,47 @@ template <typename type> struct std::hash<cse::property<type>>
 
 namespace cse
 {
-  template <typename derived> class extensible_enum
+  template <typename derived> struct enumeration_value
+  {
+    constexpr enumeration_value() = default;
+
+    operator const derived &() const noexcept;
+    operator int() const noexcept;
+  };
+  template <typename derived> class enumeration
   {
   public:
-    explicit extensible_enum(int value_);
-    ~extensible_enum() = default;
-    extensible_enum(const extensible_enum &) = default;
-    extensible_enum &operator=(const extensible_enum &) = delete;
-    extensible_enum(extensible_enum &&) = default;
-    extensible_enum &operator=(extensible_enum &&) = delete;
+    explicit enumeration(int count_);
+    ~enumeration() = default;
+    enumeration(const enumeration &) = default;
+    enumeration &operator=(const enumeration &) = delete;
+    enumeration(enumeration &&) = default;
+    enumeration &operator=(enumeration &&) = delete;
 
     operator int() const noexcept;
 
-    bool operator==(const extensible_enum &other_) const noexcept;
-    auto operator<=>(const extensible_enum &other_) const noexcept;
+    bool operator==(const enumeration &other_) const noexcept;
+    auto operator<=>(const enumeration &other_) const noexcept;
 
   protected:
-    extensible_enum();
+    enumeration();
 
   private:
-    static int &next_value();
+    static int &next_count();
 
   private:
-    const int value;
+    const int count;
   };
-#define extensible_enum_value(type, value)                                                                             \
-  static const type &value()                                                                                           \
-  {                                                                                                                    \
-    static const type enum_value_instance{};                                                                           \
-    return enum_value_instance;                                                                                        \
-  }
 }
 
-template <typename derived> struct std::hash<cse::extensible_enum<derived>>
+template <typename derived> struct std::hash<cse::enumeration_value<derived>>
 {
-  std::size_t operator()(const cse::extensible_enum<derived> &enum_) const noexcept;
+  std::size_t operator()(const cse::enumeration_value<derived> &value) const noexcept;
+};
+
+template <typename derived> struct std::hash<cse::enumeration<derived>>
+{
+  std::size_t operator()(const cse::enumeration<derived> &enumeration) const noexcept;
 };
 
 #include "wrapper.inl" // IWYU pragma: keep
