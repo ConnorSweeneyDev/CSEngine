@@ -10,7 +10,10 @@
 namespace cse
 {
   template <typename type> dynamic<type>::dynamic(const type &value_) : value{value_} {}
+}
 
+namespace cse
+{
   template <typename type> property<type>::property(const type &value_) : value{value_} {}
 
   template <typename type> property<type> &property<type>::operator=(const property<type> &other_)
@@ -190,4 +193,38 @@ std::size_t std::hash<cse::property<type>>::operator()(const cse::property<type>
   noexcept(noexcept(std::hash<type>{}(std::declval<type>())))
 {
   return std::hash<type>{}(static_cast<type>(property));
+}
+
+namespace cse
+{
+  template <typename derived> extensible_enum<derived>::extensible_enum() : value{next_value()++} {}
+
+  template <typename derived> extensible_enum<derived>::extensible_enum(int value_) : value{value_}
+  {
+    if (next_value() <= value_) next_value() = value_ + 1;
+  }
+
+  template <typename derived> extensible_enum<derived>::operator int() const noexcept { return value; }
+
+  template <typename derived> bool extensible_enum<derived>::operator==(const extensible_enum &other_) const noexcept
+  {
+    return value == other_.value;
+  }
+
+  template <typename derived> auto extensible_enum<derived>::operator<=>(const extensible_enum &other_) const noexcept
+  {
+    return value <=> other_.value;
+  }
+
+  template <typename derived> int &extensible_enum<derived>::next_value()
+  {
+    static int counter = 0;
+    return counter;
+  }
+}
+
+template <typename derived> std::size_t
+std::hash<cse::extensible_enum<derived>>::operator()(const cse::extensible_enum<derived> &enum_) const noexcept
+{
+  return std::hash<int>{}(static_cast<int>(enum_));
 }

@@ -18,7 +18,10 @@ namespace cse
     type velocity{};
     type acceleration{};
   };
+}
 
+namespace cse
+{
   template <typename type> class property
   {
   public:
@@ -64,19 +67,55 @@ namespace cse
   private:
     type value{};
   };
-
   template <typename type> std::istream &operator>>(std::istream &stream_, property<type> &destination_);
 }
-
 template <typename type> struct std::formatter<cse::property<type>> : std::formatter<type>
 {
   auto format(const cse::property<type> &property, auto &context) const;
 };
-
 template <typename type> struct std::hash<cse::property<type>>
 {
   std::size_t operator()(const cse::property<type> &property) const
     noexcept(noexcept(std::hash<type>{}(std::declval<type>())));
+};
+
+namespace cse
+{
+  template <typename derived> class extensible_enum
+  {
+  public:
+    explicit extensible_enum(int value_);
+    ~extensible_enum() = default;
+    extensible_enum(const extensible_enum &) = default;
+    extensible_enum &operator=(const extensible_enum &) = delete;
+    extensible_enum(extensible_enum &&) = default;
+    extensible_enum &operator=(extensible_enum &&) = delete;
+
+    operator int() const noexcept;
+
+    bool operator==(const extensible_enum &other_) const noexcept;
+    auto operator<=>(const extensible_enum &other_) const noexcept;
+
+  protected:
+    extensible_enum();
+
+  private:
+    static int &next_value();
+
+  private:
+    const int value;
+  };
+#define extensible_enum_value(type, value)                                                                             \
+  static const type &value()                                                                                           \
+  {                                                                                                                    \
+    static const type enum_value_instance{};                                                                           \
+    return enum_value_instance;                                                                                        \
+  }
+}
+
+template <typename derived> struct std::hash<cse::extensible_enum<derived>>
+{
+  std::size_t operator()(const cse::extensible_enum<derived> &enum_) const noexcept;
 };
 
 #include "wrapper.inl" // IWYU pragma: keep

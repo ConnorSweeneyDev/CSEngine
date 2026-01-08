@@ -12,12 +12,37 @@
 #include "name.hpp"
 #include "state.hpp"
 #include "traits.hpp"
+#include "wrapper.hpp"
 
 namespace cse
 {
   class scene : public std::enable_shared_from_this<scene>
   {
     friend class game;
+
+  protected:
+    struct hooks : public cse::extensible_enum<hooks>
+    {
+      using extensible_enum::extensible_enum;
+      extensible_enum_value(hooks, PRE_PREPARE);
+      extensible_enum_value(hooks, POST_PREPARE);
+      extensible_enum_value(hooks, PRE_CREATE);
+      extensible_enum_value(hooks, POST_CREATE);
+      extensible_enum_value(hooks, PRE_SYNC);
+      extensible_enum_value(hooks, POST_SYNC);
+      extensible_enum_value(hooks, PRE_EVENT);
+      extensible_enum_value(hooks, POST_EVENT);
+      extensible_enum_value(hooks, PRE_INPUT);
+      extensible_enum_value(hooks, POST_INPUT);
+      extensible_enum_value(hooks, PRE_SIMULATE);
+      extensible_enum_value(hooks, POST_SIMULATE);
+      extensible_enum_value(hooks, PRE_RENDER);
+      extensible_enum_value(hooks, POST_RENDER);
+      extensible_enum_value(hooks, PRE_DESTROY);
+      extensible_enum_value(hooks, POST_DESTROY);
+      extensible_enum_value(hooks, PRE_CLEAN);
+      extensible_enum_value(hooks, POST_CLEAN);
+    };
 
   public:
     scene() = default;
