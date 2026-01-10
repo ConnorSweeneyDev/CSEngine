@@ -87,12 +87,6 @@ namespace cse
     class value
     {
     public:
-      struct hash
-      {
-        std::size_t operator()(const value &value_) const noexcept;
-      };
-
-    public:
       value();
 
       operator int() const noexcept;

@@ -197,12 +197,6 @@ std::size_t std::hash<cse::property<type>>::operator()(const cse::property<type>
 
 namespace cse
 {
-  template <typename derived>
-  std::size_t enumeration<derived>::value::hash::operator()(const value &value_) const noexcept
-  {
-    return std::hash<int>{}(static_cast<int>(value_));
-  }
-
   template <typename derived> enumeration<derived>::value::value() : data{next()} {}
 
   template <typename derived> enumeration<derived>::value::operator int() const noexcept { return data; }
