@@ -28,7 +28,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::CLEANED) throw exception("Object must be cleaned before preparation");
     state.active.phase = help::phase::PREPARED;
-    hook.call<void()>(hooks::PREPARE);
+    hook.call<void()>(hook::PREPARE);
   }
 
   void object::create(SDL_Window *instance, SDL_GPUDevice *gpu)
@@ -38,7 +38,7 @@ namespace cse
     graphics.upload_static_buffers(gpu);
     graphics.upload_dynamic_buffers(gpu, 1.0);
     state.active.phase = help::phase::CREATED;
-    hook.call<void()>(hooks::CREATE);
+    hook.call<void()>(hook::CREATE);
   }
 
   void object::previous()
@@ -52,20 +52,20 @@ namespace cse
   void object::event(const SDL_Event &event)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before processing events");
-    hook.call<void(const SDL_Event &)>(hooks::EVENT, event);
+    hook.call<void(const SDL_Event &)>(hook::EVENT, event);
   }
 
   void object::input(const bool *input)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before processing input");
-    hook.call<void(const bool *)>(hooks::INPUT, input);
+    hook.call<void(const bool *)>(hook::INPUT, input);
   }
 
   void object::simulate(const float poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
     graphics.update_animation(poll_rate);
-    hook.call<void(const float)>(hooks::SIMULATE, poll_rate);
+    hook.call<void(const float)>(hook::SIMULATE, poll_rate);
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
@@ -80,7 +80,7 @@ namespace cse
                                                              graphics.active.texture.image->frame_height, alpha)},
                                alpha);
     graphics.draw_primitives(render_pass);
-    hook.call<void(const double)>(hooks::RENDER, alpha);
+    hook.call<void(const double)>(hook::RENDER, alpha);
   }
 
   void object::destroy(SDL_GPUDevice *gpu)
@@ -88,13 +88,13 @@ namespace cse
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before destruction");
     graphics.destroy_resources(gpu);
     state.active.phase = help::phase::PREPARED;
-    hook.call<void()>(hooks::DESTROY);
+    hook.call<void()>(hook::DESTROY);
   }
 
   void object::clean()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Object must be prepared before cleaning");
     state.active.phase = help::phase::CLEANED;
-    hook.call<void()>(hooks::CLEAN);
+    hook.call<void()>(hook::CLEAN);
   }
 }

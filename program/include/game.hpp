@@ -16,27 +16,27 @@ namespace cse
   class game : public std::enable_shared_from_this<game>
   {
   protected:
-    struct hooks : public enumeration<hooks>
+    struct hook : public enumeration<hook>
     {
       using enumeration::enumeration;
-      static constexpr enumeration_value<hooks> PRE_PREPARE{};
-      static constexpr enumeration_value<hooks> POST_PREPARE{};
-      static constexpr enumeration_value<hooks> PRE_CREATE{};
-      static constexpr enumeration_value<hooks> POST_CREATE{};
-      static constexpr enumeration_value<hooks> PRE_SYNC{};
-      static constexpr enumeration_value<hooks> POST_SYNC{};
-      static constexpr enumeration_value<hooks> PRE_EVENT{};
-      static constexpr enumeration_value<hooks> POST_EVENT{};
-      static constexpr enumeration_value<hooks> PRE_INPUT{};
-      static constexpr enumeration_value<hooks> POST_INPUT{};
-      static constexpr enumeration_value<hooks> PRE_SIMULATE{};
-      static constexpr enumeration_value<hooks> POST_SIMULATE{};
-      static constexpr enumeration_value<hooks> PRE_RENDER{};
-      static constexpr enumeration_value<hooks> POST_RENDER{};
-      static constexpr enumeration_value<hooks> PRE_DESTROY{};
-      static constexpr enumeration_value<hooks> POST_DESTROY{};
-      static constexpr enumeration_value<hooks> PRE_CLEAN{};
-      static constexpr enumeration_value<hooks> POST_CLEAN{};
+      static constexpr enumeration_value<hook> PRE_PREPARE{};
+      static constexpr enumeration_value<hook> POST_PREPARE{};
+      static constexpr enumeration_value<hook> PRE_CREATE{};
+      static constexpr enumeration_value<hook> POST_CREATE{};
+      static constexpr enumeration_value<hook> PRE_SYNC{};
+      static constexpr enumeration_value<hook> POST_SYNC{};
+      static constexpr enumeration_value<hook> PRE_EVENT{};
+      static constexpr enumeration_value<hook> POST_EVENT{};
+      static constexpr enumeration_value<hook> PRE_INPUT{};
+      static constexpr enumeration_value<hook> POST_INPUT{};
+      static constexpr enumeration_value<hook> PRE_SIMULATE{};
+      static constexpr enumeration_value<hook> POST_SIMULATE{};
+      static constexpr enumeration_value<hook> PRE_RENDER{};
+      static constexpr enumeration_value<hook> POST_RENDER{};
+      static constexpr enumeration_value<hook> PRE_DESTROY{};
+      static constexpr enumeration_value<hook> POST_DESTROY{};
+      static constexpr enumeration_value<hook> PRE_CLEAN{};
+      static constexpr enumeration_value<hook> POST_CLEAN{};
     };
 
   public:
