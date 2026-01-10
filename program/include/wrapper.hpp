@@ -4,7 +4,6 @@
 #include <format>
 #include <functional>
 #include <istream>
-#include <type_traits>
 
 namespace cse
 {
@@ -84,8 +83,7 @@ namespace cse
 {
   template <typename derived> struct enumeration_value
   {
-    static_assert(std::is_same_v<derived, typename derived::domain_type>,
-                  "enumeration_value must use the base domain type, not a derived type");
+    using domain_type = typename derived::domain_type;
 
   public:
     enumeration_value();

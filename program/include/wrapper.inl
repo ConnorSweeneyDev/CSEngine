@@ -197,13 +197,10 @@ std::size_t std::hash<cse::property<type>>::operator()(const cse::property<type>
 
 namespace cse
 {
-  template <typename derived> int enumeration<derived>::next()
+  template <typename derived> enumeration_value<derived>::enumeration_value()
+    : value{enumeration<typename derived::domain_type>::next()}
   {
-    static int counter{};
-    return counter++;
   }
-
-  template <typename derived> enumeration_value<derived>::enumeration_value() : value{enumeration<derived>::next()} {}
 
   template <typename derived> enumeration_value<derived>::operator int() const noexcept { return value; }
 
@@ -217,6 +214,12 @@ namespace cse
   auto enumeration_value<derived>::operator<=>(const enumeration_value &other_) const noexcept
   {
     return value <=> other_.value;
+  }
+
+  template <typename derived> int enumeration<derived>::next()
+  {
+    static int counter{};
+    return counter++;
   }
 }
 
