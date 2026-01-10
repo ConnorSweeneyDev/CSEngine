@@ -28,7 +28,7 @@ namespace cse
   game::~game()
   {
     instance.reset();
-    hook.reset();
+    hooks.reset();
   }
 
   std::shared_ptr<game> game::set_current_scene(const help::name name)
@@ -90,24 +90,24 @@ namespace cse
     if (state.active.window->state.active.parent.expired()) state.active.window->state.active.parent = weak_from_this();
     for (const auto &[name, scene] : state.active.scenes)
       if (scene->state.active.parent.expired()) scene->state.active.parent = weak_from_this();
-    hook.call<void()>(hook::PRE_PREPARE);
+    hooks.call<void()>(hook::PRE_PREPARE);
     state.active.window->prepare();
     if (state.active.scenes.empty()) throw exception("No scenes have been added to the game");
     if (!state.active.scene.pointer) throw exception("No current scene has been set for the game");
     state.active.scene.pointer->prepare();
     state.active.phase = help::phase::PREPARED;
-    hook.call<void()>(hook::POST_PREPARE);
+    hooks.call<void()>(hook::POST_PREPARE);
   }
 
   void game::create()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Game must be prepared before creation");
-    hook.call<void()>(hook::PRE_CREATE);
+    hooks.call<void()>(hook::PRE_CREATE);
     graphics.create_app();
     state.active.window->create();
     state.active.scene.pointer->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
     state.active.phase = help::phase::CREATED;
-    hook.call<void()>(hook::POST_CREATE);
+    hooks.call<void()>(hook::POST_CREATE);
   }
 
   void game::previous()
@@ -123,7 +123,7 @@ namespace cse
   void game::sync()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before synchronization");
-    hook.call<void()>(hook::PRE_SYNC);
+    hooks.call<void()>(hook::PRE_SYNC);
     if (state.next.window.has_value())
     {
       if (auto &window{state.next.window.value()})
@@ -167,7 +167,7 @@ namespace cse
       state.next.scene.reset();
     }
     state.active.scene.pointer->sync(state.active.window->graphics.instance, state.active.window->graphics.gpu);
-    hook.call<void()>(hook::POST_SYNC);
+    hooks.call<void()>(hook::POST_SYNC);
   }
 
   void game::event()
@@ -175,10 +175,10 @@ namespace cse
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing events");
     while (SDL_PollEvent(&state.active.window->state.event))
     {
-      hook.call<void(const SDL_Event &)>(hook::PRE_EVENT, state.active.window->state.event);
+      hooks.call<void(const SDL_Event &)>(hook::PRE_EVENT, state.active.window->state.event);
       state.active.window->event();
       state.active.scene.pointer->event(state.active.window->state.event);
-      hook.call<void(const SDL_Event &)>(hook::POST_EVENT, state.active.window->state.event);
+      hooks.call<void(const SDL_Event &)>(hook::POST_EVENT, state.active.window->state.event);
     }
   }
 
@@ -186,52 +186,52 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing input");
     state.active.window->state.input = SDL_GetKeyboardState(nullptr);
-    hook.call<void(const bool *)>(hook::PRE_INPUT, state.active.window->state.input);
+    hooks.call<void(const bool *)>(hook::PRE_INPUT, state.active.window->state.input);
     state.active.window->input();
     state.active.scene.pointer->input(state.active.window->state.input);
-    hook.call<void(const bool *)>(hook::POST_INPUT, state.active.window->state.input);
+    hooks.call<void(const bool *)>(hook::POST_INPUT, state.active.window->state.input);
   }
 
   void game::simulate()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before simulation");
-    hook.call<void(const float)>(hook::PRE_SIMULATE, static_cast<float>(state.actual_poll_rate));
+    hooks.call<void(const float)>(hook::PRE_SIMULATE, static_cast<float>(state.actual_poll_rate));
     state.active.window->simulate(static_cast<float>(state.actual_poll_rate));
     state.active.scene.pointer->simulate(static_cast<float>(state.actual_poll_rate));
-    hook.call<void(const float)>(hook::POST_SIMULATE, static_cast<float>(state.actual_poll_rate));
+    hooks.call<void(const float)>(hook::POST_SIMULATE, static_cast<float>(state.actual_poll_rate));
   }
 
   void game::render()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before rendering");
-    hook.call<void(const double)>(hook::PRE_RENDER, state.alpha);
+    hooks.call<void(const double)>(hook::PRE_RENDER, state.alpha);
     if (!state.active.window->pre_render(state.alpha, static_cast<float>(graphics.active.aspect_ratio))) return;
     state.active.scene.pointer->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
                                        state.active.window->graphics.render_pass, state.alpha,
                                        static_cast<float>(graphics.active.aspect_ratio));
     state.active.window->post_render(state.alpha);
-    hook.call<void(const double)>(hook::POST_RENDER, state.alpha);
+    hooks.call<void(const double)>(hook::POST_RENDER, state.alpha);
   }
 
   void game::destroy()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before destruction");
-    hook.call<void()>(hook::PRE_DESTROY);
+    hooks.call<void()>(hook::PRE_DESTROY);
     state.active.scene.pointer->destroy(state.active.window->graphics.gpu);
     state.active.window->destroy();
     graphics.destroy_app();
     state.active.phase = help::phase::PREPARED;
-    hook.call<void()>(hook::POST_DESTROY);
+    hooks.call<void()>(hook::POST_DESTROY);
   }
 
   void game::clean()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Game must be prepared before cleaning");
-    hook.call<void()>(hook::PRE_CLEAN);
+    hooks.call<void()>(hook::PRE_CLEAN);
     state.active.scene.pointer->clean();
     state.active.window->clean();
     state.active.phase = help::phase::CLEANED;
-    hook.call<void()>(hook::POST_CLEAN);
+    hooks.call<void()>(hook::POST_CLEAN);
   }
 
   bool game::running() { return state.active.window->state.active.running; }

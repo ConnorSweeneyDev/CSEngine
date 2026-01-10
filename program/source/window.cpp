@@ -31,14 +31,14 @@ namespace cse
     state.active.vsync.change = [this]() { graphics.handle_vsync(state.active.vsync); };
   }
 
-  window::~window() { hook.reset(); }
+  window::~window() { hooks.reset(); }
 
   void window::prepare()
   {
     if (state.active.phase != help::phase::CLEANED) throw exception("Window must be cleaned before preparation");
     state.active.running = true;
     state.active.phase = help::phase::PREPARED;
-    hook.call<void()>(hook::PREPARE);
+    hooks.call<void()>(hook::PREPARE);
   }
 
   void window::create()
@@ -47,7 +47,7 @@ namespace cse
     graphics.create_window(state.active.width, state.active.height, state.active.left, state.active.top,
                            state.active.display_index, state.active.fullscreen, state.active.vsync);
     state.active.phase = help::phase::CREATED;
-    hook.call<void()>(hook::CREATE);
+    hooks.call<void()>(hook::CREATE);
   }
 
   void window::previous()
@@ -71,20 +71,20 @@ namespace cse
         graphics.handle_resize(state.active.width, state.active.height, state.active.display_index,
                                state.active.fullscreen);
         break;
-      default: hook.call<void(const SDL_Event &)>(hook::EVENT, state.event); break;
+      default: hooks.call<void(const SDL_Event &)>(hook::EVENT, state.event); break;
     }
   }
 
   void window::input()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before processing input");
-    hook.call<void(const bool *)>(hook::INPUT, state.input);
+    hooks.call<void(const bool *)>(hook::INPUT, state.input);
   }
 
   void window::simulate(const float poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before simulation");
-    hook.call<void(const float)>(hook::SIMULATE, poll_rate);
+    hooks.call<void(const float)>(hook::SIMULATE, poll_rate);
   }
 
   bool window::pre_render(const double alpha, const float aspect_ratio)
@@ -92,7 +92,7 @@ namespace cse
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
     if (!graphics.acquire_swapchain_texture()) return false;
     graphics.start_render_pass(state.active.width, state.active.height, aspect_ratio);
-    hook.call<void(const double)>(hook::PRE_RENDER, alpha);
+    hooks.call<void(const double)>(hook::PRE_RENDER, alpha);
     return true;
   }
 
@@ -100,7 +100,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before post-rendering");
     graphics.end_render_pass();
-    hook.call<void(const double)>(hook::POST_RENDER, alpha);
+    hooks.call<void(const double)>(hook::POST_RENDER, alpha);
   }
 
   void window::destroy()
@@ -110,13 +110,13 @@ namespace cse
     state.event = {};
     graphics.destroy_window();
     state.active.phase = help::phase::PREPARED;
-    hook.call<void()>(hook::DESTROY);
+    hooks.call<void()>(hook::DESTROY);
   }
 
   void window::clean()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Window must be prepared before cleaning");
     state.active.phase = help::phase::CLEANED;
-    hook.call<void()>(hook::CLEAN);
+    hooks.call<void()>(hook::CLEAN);
   }
 }

@@ -6,7 +6,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
-#include "hook.hpp"
+#include "hooks.hpp"
 #include "state.hpp"
 #include "wrapper.hpp"
 
@@ -54,6 +54,6 @@ namespace cse
   public:
     help::window_state state{};
     help::window_graphics graphics{};
-    help::hook hook{};
+    help::hooks hooks{};
   };
 }

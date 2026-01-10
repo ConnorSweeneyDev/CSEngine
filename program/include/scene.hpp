@@ -8,7 +8,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
-#include "hook.hpp"
+#include "hooks.hpp"
 #include "name.hpp"
 #include "state.hpp"
 #include "traits.hpp"
@@ -74,7 +74,7 @@ namespace cse
   public:
     help::scene_state state{};
     help::scene_graphics graphics{};
-    help::hook hook{};
+    help::hooks hooks{};
   };
 }
 

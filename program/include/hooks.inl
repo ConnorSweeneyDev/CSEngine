@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hook.hpp"
+#include "hooks.hpp"
 
 #include <any>
 #include <functional>
@@ -15,7 +15,7 @@
 
 namespace cse::help
 {
-  template <typename signature> bool hook::has(const int key) const
+  template <typename signature> bool hooks::has(const int key) const
   {
     auto type_id{std::type_index(typeid(signature))};
     if (!functions.contains(type_id)) return false;
@@ -23,31 +23,31 @@ namespace cse::help
     return map.contains(key);
   }
 
-  template <typename signature> void hook::set(const int key, const std::function<signature> &function)
+  template <typename signature> void hooks::set(const int key, const std::function<signature> &function)
   {
     auto &map{get_map<signature>()};
     map.insert_or_assign(key, function);
   }
 
-  template <typename callable> void hook::set(const int key, callable &&function)
+  template <typename callable> void hooks::set(const int key, callable &&function)
   {
     using deduced_signature = typename callable_traits<std::decay_t<callable>>::signature;
     set<deduced_signature>(key, std::function<deduced_signature>(std::forward<callable>(function)));
   }
 
-  template <typename signature> void hook::remove(const int key)
+  template <typename signature> void hooks::remove(const int key)
   {
     auto &map{get_map<signature>()};
     map.erase(key);
   }
 
-  template <typename signature> void hook::reset() noexcept
+  template <typename signature> void hooks::reset() noexcept
   {
     auto type_id{std::type_index(typeid(signature))};
     if (functions.contains(type_id)) get_map<signature>().clear();
   }
 
-  template <typename signature, typename... arguments> auto hook::call(const int key, arguments &&...args) const
+  template <typename signature, typename... arguments> auto hooks::call(const int key, arguments &&...args) const
   {
     using extracted_return_type = typename function_traits<signature>::extracted_return_type;
     auto type_id{std::type_index(typeid(signature))};
@@ -68,7 +68,7 @@ namespace cse::help
       return map.at(key)(std::forward<arguments>(args)...);
   }
 
-  template <typename signature, typename... arguments> auto hook::throw_call(const int key, arguments &&...args) const
+  template <typename signature, typename... arguments> auto hooks::throw_call(const int key, arguments &&...args) const
   {
     auto type_id{std::type_index(typeid(signature))};
     if (!functions.contains(type_id)) throw exception("Attempted to call non-existent hook");
@@ -78,7 +78,7 @@ namespace cse::help
     return it->second(std::forward<arguments>(args)...);
   }
 
-  template <typename signature, typename... arguments> auto hook::try_call(const int key, arguments &&...args) const
+  template <typename signature, typename... arguments> auto hooks::try_call(const int key, arguments &&...args) const
   {
     using return_type = typename function_traits<signature>::extracted_return_type;
     using optional_type = std::conditional_t<std::is_void_v<return_type>, std::monostate, return_type>;
@@ -96,14 +96,14 @@ namespace cse::help
       return std::optional<optional_type>{it->second(std::forward<arguments>(args)...)};
   }
 
-  template <typename signature> std::unordered_map<int, std::function<signature>> &hook::get_map()
+  template <typename signature> std::unordered_map<int, std::function<signature>> &hooks::get_map()
   {
     auto type_id{std::type_index(typeid(signature))};
     if (!functions.contains(type_id)) functions[type_id] = std::unordered_map<int, std::function<signature>>{};
     return std::any_cast<std::unordered_map<int, std::function<signature>> &>(functions[type_id]);
   }
 
-  template <typename signature> const std::unordered_map<int, std::function<signature>> &hook::get_map() const
+  template <typename signature> const std::unordered_map<int, std::function<signature>> &hooks::get_map() const
   {
     auto type_id{std::type_index(typeid(signature))};
     return std::any_cast<const std::unordered_map<int, std::function<signature>> &>(functions.at(type_id));

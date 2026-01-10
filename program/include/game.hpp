@@ -5,7 +5,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
-#include "hook.hpp"
+#include "hooks.hpp"
 #include "name.hpp"
 #include "state.hpp"
 #include "traits.hpp"
@@ -93,7 +93,7 @@ namespace cse
   public:
     help::game_state state{};
     help::game_graphics graphics{};
-    help::hook hook{};
+    help::hooks hooks{};
 
   private:
     static inline std::weak_ptr<game> instance{};

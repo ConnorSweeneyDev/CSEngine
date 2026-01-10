@@ -10,7 +10,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
-#include "hook.hpp"
+#include "hooks.hpp"
 #include "state.hpp"
 #include "wrapper.hpp"
 
@@ -59,6 +59,6 @@ namespace cse
   public:
     help::object_state state{};
     help::object_graphics graphics{};
-    help::hook hook{};
+    help::hooks hooks{};
   };
 }

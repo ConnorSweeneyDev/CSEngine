@@ -9,7 +9,7 @@
 
 #include "declaration.hpp"
 #include "graphics.hpp"
-#include "hook.hpp"
+#include "hooks.hpp"
 #include "state.hpp"
 #include "wrapper.hpp"
 
@@ -55,6 +55,6 @@ namespace cse
   public:
     help::camera_state state{};
     help::camera_graphics graphics{};
-    help::hook hook{};
+    help::hooks hooks{};
   };
 }

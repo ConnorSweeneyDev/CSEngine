@@ -7,7 +7,7 @@
 
 namespace cse::help
 {
-  class hook
+  class hooks
   {
   public:
     template <typename signature> bool has(const int key) const;
@@ -29,4 +29,4 @@ namespace cse::help
   };
 }
 
-#include "hook.inl" // IWYU pragma: keep
+#include "hooks.inl" // IWYU pragma: keep
