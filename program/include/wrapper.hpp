@@ -95,7 +95,7 @@ namespace cse
       auto operator<=>(const value &other_) const noexcept;
 
     private:
-      int data;
+      int count;
     };
 
   protected:
