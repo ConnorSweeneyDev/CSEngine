@@ -197,47 +197,31 @@ std::size_t std::hash<cse::property<type>>::operator()(const cse::property<type>
 
 namespace cse
 {
-  template <typename derived> enumeration_value<derived>::enumeration_value()
-    : value{enumeration<derived>::next_count()++}
+  template <typename derived> int enumeration<derived>::next()
   {
+    static int counter{};
+    return counter++;
   }
+
+  template <typename derived> enumeration_value<derived>::enumeration_value() : value{enumeration<derived>::next()} {}
 
   template <typename derived> enumeration_value<derived>::operator int() const noexcept { return value; }
 
-  template <typename derived> enumeration<derived>::enumeration() : count{next_count()++} {}
-
-  template <typename derived> enumeration<derived>::enumeration(int count_) : count{count_}
+  template <typename derived>
+  bool enumeration_value<derived>::operator==(const enumeration_value &other_) const noexcept
   {
-    if (next_count() <= count_) next_count() = count_ + 1;
+    return value == other_.value;
   }
 
-  template <typename derived> enumeration<derived>::operator int() const noexcept { return count; }
-
-  template <typename derived> bool enumeration<derived>::operator==(const enumeration &other_) const noexcept
+  template <typename derived>
+  auto enumeration_value<derived>::operator<=>(const enumeration_value &other_) const noexcept
   {
-    return count == other_.count;
+    return value <=> other_.value;
   }
-
-  template <typename derived> auto enumeration<derived>::operator<=>(const enumeration &other_) const noexcept
-  {
-    return count <=> other_.count;
-  }
-
-  template <typename derived> int &enumeration<derived>::next_count()
-  {
-    static int counter = 0;
-    return counter;
-  }
-}
-
-template <typename derived> std::size_t std::hash<cse::enumeration_value<derived>>::operator()(
-  const cse::enumeration_value<derived> &enumeration) const noexcept
-{
-  return std::hash<int>{}(static_cast<int>(enumeration));
 }
 
 template <typename derived> std::size_t
-std::hash<cse::enumeration<derived>>::operator()(const cse::enumeration<derived> &enumeration) const noexcept
+std::hash<cse::enumeration_value<derived>>::operator()(const cse::enumeration_value<derived> &value_) const noexcept
 {
-  return std::hash<int>{}(static_cast<int>(enumeration));
+  return std::hash<int>{}(static_cast<int>(value_));
 }

@@ -19,16 +19,15 @@ namespace cse
   protected:
     struct hook : public enumeration<hook>
     {
-      using enumeration::enumeration;
-      inline static const enumeration_value<hook> PREPARE{};
-      inline static const enumeration_value<hook> CREATE{};
-      inline static const enumeration_value<hook> EVENT{};
-      inline static const enumeration_value<hook> INPUT{};
-      inline static const enumeration_value<hook> SIMULATE{};
-      inline static const enumeration_value<hook> PRE_RENDER{};
-      inline static const enumeration_value<hook> POST_RENDER{};
-      inline static const enumeration_value<hook> DESTROY{};
-      inline static const enumeration_value<hook> CLEAN{};
+      static inline const enumeration_value<hook> PREPARE{};
+      static inline const enumeration_value<hook> CREATE{};
+      static inline const enumeration_value<hook> EVENT{};
+      static inline const enumeration_value<hook> INPUT{};
+      static inline const enumeration_value<hook> SIMULATE{};
+      static inline const enumeration_value<hook> PRE_RENDER{};
+      static inline const enumeration_value<hook> POST_RENDER{};
+      static inline const enumeration_value<hook> DESTROY{};
+      static inline const enumeration_value<hook> CLEAN{};
     };
 
   public:

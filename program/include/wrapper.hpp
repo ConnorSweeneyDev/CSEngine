@@ -4,6 +4,7 @@
 #include <format>
 #include <functional>
 #include <istream>
+#include <type_traits>
 
 namespace cse
 {
@@ -83,50 +84,36 @@ namespace cse
 {
   template <typename derived> struct enumeration_value
   {
+    static_assert(std::is_same_v<derived, typename derived::domain_type>,
+                  "enumeration_value must use the base domain type, not a derived type");
+
   public:
     enumeration_value();
 
     operator int() const noexcept;
 
+    bool operator==(const enumeration_value &other_) const noexcept;
+    auto operator<=>(const enumeration_value &other_) const noexcept;
+
   private:
     int value;
   };
+
   template <typename derived> class enumeration
   {
     friend struct enumeration_value<derived>;
 
   public:
-    explicit enumeration(int count_);
-    ~enumeration() = default;
-    enumeration(const enumeration &) = default;
-    enumeration &operator=(const enumeration &) = delete;
-    enumeration(enumeration &&) = default;
-    enumeration &operator=(enumeration &&) = delete;
-
-    operator int() const noexcept;
-
-    bool operator==(const enumeration &other_) const noexcept;
-    auto operator<=>(const enumeration &other_) const noexcept;
+    using domain_type = derived;
 
   protected:
-    enumeration();
-
-  private:
-    static int &next_count();
-
-  private:
-    const int count;
+    static int next();
   };
 }
 
 template <typename derived> struct std::hash<cse::enumeration_value<derived>>
 {
-  std::size_t operator()(const cse::enumeration_value<derived> &value) const noexcept;
-};
-
-template <typename derived> struct std::hash<cse::enumeration<derived>>
-{
-  std::size_t operator()(const cse::enumeration<derived> &enumeration) const noexcept;
+  std::size_t operator()(const cse::enumeration_value<derived> &value_) const noexcept;
 };
 
 #include "wrapper.inl" // IWYU pragma: keep
