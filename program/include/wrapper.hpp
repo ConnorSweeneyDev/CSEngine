@@ -4,6 +4,7 @@
 #include <format>
 #include <functional>
 #include <istream>
+#include <optional>
 
 namespace cse
 {
@@ -88,6 +89,7 @@ namespace cse
     {
     public:
       value();
+      explicit value(int count_);
 
       operator int() const noexcept;
 
@@ -99,7 +101,7 @@ namespace cse
     };
 
   protected:
-    static int next();
+    static int next(std::optional<int> count = {});
   };
 }
 
