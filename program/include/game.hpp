@@ -18,24 +18,24 @@ namespace cse
   protected:
     struct hook : public enumeration<hook>
     {
-      static inline const enumeration_value<hook> PRE_PREPARE{};
-      static inline const enumeration_value<hook> POST_PREPARE{};
-      static inline const enumeration_value<hook> PRE_CREATE{};
-      static inline const enumeration_value<hook> POST_CREATE{};
-      static inline const enumeration_value<hook> PRE_SYNC{};
-      static inline const enumeration_value<hook> POST_SYNC{};
-      static inline const enumeration_value<hook> PRE_EVENT{};
-      static inline const enumeration_value<hook> POST_EVENT{};
-      static inline const enumeration_value<hook> PRE_INPUT{};
-      static inline const enumeration_value<hook> POST_INPUT{};
-      static inline const enumeration_value<hook> PRE_SIMULATE{};
-      static inline const enumeration_value<hook> POST_SIMULATE{};
-      static inline const enumeration_value<hook> PRE_RENDER{};
-      static inline const enumeration_value<hook> POST_RENDER{};
-      static inline const enumeration_value<hook> PRE_DESTROY{};
-      static inline const enumeration_value<hook> POST_DESTROY{};
-      static inline const enumeration_value<hook> PRE_CLEAN{};
-      static inline const enumeration_value<hook> POST_CLEAN{};
+      static inline const value PRE_PREPARE{};
+      static inline const value POST_PREPARE{};
+      static inline const value PRE_CREATE{};
+      static inline const value POST_CREATE{};
+      static inline const value PRE_SYNC{};
+      static inline const value POST_SYNC{};
+      static inline const value PRE_EVENT{};
+      static inline const value POST_EVENT{};
+      static inline const value PRE_INPUT{};
+      static inline const value POST_INPUT{};
+      static inline const value PRE_SIMULATE{};
+      static inline const value POST_SIMULATE{};
+      static inline const value PRE_RENDER{};
+      static inline const value POST_RENDER{};
+      static inline const value PRE_DESTROY{};
+      static inline const value POST_DESTROY{};
+      static inline const value PRE_CLEAN{};
+      static inline const value POST_CLEAN{};
     };
 
   public:

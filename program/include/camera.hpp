@@ -22,14 +22,14 @@ namespace cse
   protected:
     struct hook : public enumeration<hook>
     {
-      static inline const enumeration_value<hook> PREPARE{};
-      static inline const enumeration_value<hook> CREATE{};
-      static inline const enumeration_value<hook> EVENT{};
-      static inline const enumeration_value<hook> INPUT{};
-      static inline const enumeration_value<hook> SIMULATE{};
-      static inline const enumeration_value<hook> RENDER{};
-      static inline const enumeration_value<hook> DESTROY{};
-      static inline const enumeration_value<hook> CLEAN{};
+      static inline const value PREPARE{};
+      static inline const value CREATE{};
+      static inline const value EVENT{};
+      static inline const value INPUT{};
+      static inline const value SIMULATE{};
+      static inline const value RENDER{};
+      static inline const value DESTROY{};
+      static inline const value CLEAN{};
     };
 
   public:

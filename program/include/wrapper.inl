@@ -197,23 +197,24 @@ std::size_t std::hash<cse::property<type>>::operator()(const cse::property<type>
 
 namespace cse
 {
-  template <typename derived> enumeration_value<derived>::enumeration_value()
-    : value{enumeration<typename derived::domain_type>::next()}
+  template <typename derived>
+  std::size_t enumeration<derived>::value::hash::operator()(const value &value_) const noexcept
   {
+    return std::hash<int>{}(static_cast<int>(value_));
   }
 
-  template <typename derived> enumeration_value<derived>::operator int() const noexcept { return value; }
+  template <typename derived> enumeration<derived>::value::value() : data{next()} {}
 
-  template <typename derived>
-  bool enumeration_value<derived>::operator==(const enumeration_value &other_) const noexcept
+  template <typename derived> enumeration<derived>::value::operator int() const noexcept { return data; }
+
+  template <typename derived> bool enumeration<derived>::value::operator==(const value &other_) const noexcept
   {
-    return value == other_.value;
+    return data == other_.data;
   }
 
-  template <typename derived>
-  auto enumeration_value<derived>::operator<=>(const enumeration_value &other_) const noexcept
+  template <typename derived> auto enumeration<derived>::value::operator<=>(const value &other_) const noexcept
   {
-    return value <=> other_.value;
+    return data <=> other_.data;
   }
 
   template <typename derived> int enumeration<derived>::next()
@@ -221,10 +222,4 @@ namespace cse
     static int counter{};
     return counter++;
   }
-}
-
-template <typename derived> std::size_t
-std::hash<cse::enumeration_value<derived>>::operator()(const cse::enumeration_value<derived> &value_) const noexcept
-{
-  return std::hash<int>{}(static_cast<int>(value_));
 }

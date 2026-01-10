@@ -81,37 +81,32 @@ template <typename type> struct std::hash<cse::property<type>>
 
 namespace cse
 {
-  template <typename derived> struct enumeration_value
-  {
-    using domain_type = typename derived::domain_type;
-
-  public:
-    enumeration_value();
-
-    operator int() const noexcept;
-
-    bool operator==(const enumeration_value &other_) const noexcept;
-    auto operator<=>(const enumeration_value &other_) const noexcept;
-
-  private:
-    int value;
-  };
-
   template <typename derived> class enumeration
   {
-    friend struct enumeration_value<derived>;
-
   public:
-    using domain_type = derived;
+    class value
+    {
+    public:
+      struct hash
+      {
+        std::size_t operator()(const value &value_) const noexcept;
+      };
+
+    public:
+      value();
+
+      operator int() const noexcept;
+
+      bool operator==(const value &other_) const noexcept;
+      auto operator<=>(const value &other_) const noexcept;
+
+    private:
+      int data;
+    };
 
   protected:
     static int next();
   };
 }
-
-template <typename derived> struct std::hash<cse::enumeration_value<derived>>
-{
-  std::size_t operator()(const cse::enumeration_value<derived> &value_) const noexcept;
-};
 
 #include "wrapper.inl" // IWYU pragma: keep
