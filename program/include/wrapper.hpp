@@ -83,13 +83,18 @@ namespace cse
 {
   template <typename derived> struct enumeration_value
   {
-    constexpr enumeration_value() = default;
+  public:
+    enumeration_value();
 
-    operator const derived &() const noexcept;
     operator int() const noexcept;
+
+  private:
+    int value;
   };
   template <typename derived> class enumeration
   {
+    friend struct enumeration_value<derived>;
+
   public:
     explicit enumeration(int count_);
     ~enumeration() = default;

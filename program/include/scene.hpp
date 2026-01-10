@@ -24,24 +24,24 @@ namespace cse
     struct hook : public enumeration<hook>
     {
       using enumeration::enumeration;
-      static constexpr enumeration_value<hook> PRE_PREPARE{};
-      static constexpr enumeration_value<hook> POST_PREPARE{};
-      static constexpr enumeration_value<hook> PRE_CREATE{};
-      static constexpr enumeration_value<hook> POST_CREATE{};
-      static constexpr enumeration_value<hook> PRE_SYNC{};
-      static constexpr enumeration_value<hook> POST_SYNC{};
-      static constexpr enumeration_value<hook> PRE_EVENT{};
-      static constexpr enumeration_value<hook> POST_EVENT{};
-      static constexpr enumeration_value<hook> PRE_INPUT{};
-      static constexpr enumeration_value<hook> POST_INPUT{};
-      static constexpr enumeration_value<hook> PRE_SIMULATE{};
-      static constexpr enumeration_value<hook> POST_SIMULATE{};
-      static constexpr enumeration_value<hook> PRE_RENDER{};
-      static constexpr enumeration_value<hook> POST_RENDER{};
-      static constexpr enumeration_value<hook> PRE_DESTROY{};
-      static constexpr enumeration_value<hook> POST_DESTROY{};
-      static constexpr enumeration_value<hook> PRE_CLEAN{};
-      static constexpr enumeration_value<hook> POST_CLEAN{};
+      inline static const enumeration_value<hook> PRE_PREPARE{};
+      inline static const enumeration_value<hook> POST_PREPARE{};
+      inline static const enumeration_value<hook> PRE_CREATE{};
+      inline static const enumeration_value<hook> POST_CREATE{};
+      inline static const enumeration_value<hook> PRE_SYNC{};
+      inline static const enumeration_value<hook> POST_SYNC{};
+      inline static const enumeration_value<hook> PRE_EVENT{};
+      inline static const enumeration_value<hook> POST_EVENT{};
+      inline static const enumeration_value<hook> PRE_INPUT{};
+      inline static const enumeration_value<hook> POST_INPUT{};
+      inline static const enumeration_value<hook> PRE_SIMULATE{};
+      inline static const enumeration_value<hook> POST_SIMULATE{};
+      inline static const enumeration_value<hook> PRE_RENDER{};
+      inline static const enumeration_value<hook> POST_RENDER{};
+      inline static const enumeration_value<hook> PRE_DESTROY{};
+      inline static const enumeration_value<hook> POST_DESTROY{};
+      inline static const enumeration_value<hook> PRE_CLEAN{};
+      inline static const enumeration_value<hook> POST_CLEAN{};
     };
 
   public:
