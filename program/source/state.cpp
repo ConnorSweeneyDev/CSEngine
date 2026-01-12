@@ -172,9 +172,10 @@ namespace cse::help
     auto scale =
       previous.scale.value + (active.scale.value - previous.scale.value) * glm::vec3(static_cast<float>(alpha));
     glm::mat4 model_matrix{glm::mat4(1.0f)};
-    model_matrix = glm::translate(model_matrix, {std::floor(translation.x) - (frame_width % 2 == 1 ? 0.5f : 0.0f),
-                                                 std::floor(translation.y) - (frame_height % 2 == 1 ? 0.5f : 0.0f),
-                                                 std::floor(translation.z)});
+    model_matrix =
+      glm::translate(model_matrix, {std::floor(translation.x + 0.5f) - (frame_width % 2 == 1 ? 0.5f : 0.0f),
+                                    std::floor(translation.y + 0.5f) - (frame_height % 2 == 1 ? 0.5f : 0.0f),
+                                    std::floor(translation.z + 0.5f)});
     model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.x) * 90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.y) * 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.z) * 90.0f), glm::vec3(0.0f, 0.0f, 1.0f));

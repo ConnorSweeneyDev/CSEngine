@@ -10,7 +10,7 @@
 
 namespace cse
 {
-  template <typename type> dynamic<type>::dynamic(const type &value_) : value{value_} {}
+  template <typename type> physical<type>::physical(const type &value_) : value{value_} {}
 }
 
 namespace cse

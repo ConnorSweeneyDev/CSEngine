@@ -192,17 +192,17 @@ namespace cse::help
     struct previous
     {
       enum phase phase = {};
-      dynamic<glm::vec3> translation{};
-      dynamic<glm::vec3> forward{};
-      dynamic<glm::vec3> up{};
+      physical<glm::vec3> translation{};
+      physical<glm::vec3> forward{};
+      physical<glm::vec3> up{};
     };
     struct active
     {
       enum phase phase = {};
       std::weak_ptr<class scene> parent{};
-      dynamic<glm::vec3> translation{};
-      dynamic<glm::vec3> forward{};
-      dynamic<glm::vec3> up{};
+      physical<glm::vec3> translation{};
+      physical<glm::vec3> forward{};
+      physical<glm::vec3> up{};
     };
 
   public:
@@ -233,17 +233,17 @@ namespace cse::help
     struct previous
     {
       enum phase phase = {};
-      dynamic<glm::vec3> translation{};
-      dynamic<glm::vec3> rotation{};
-      dynamic<glm::vec3> scale{};
+      physical<glm::vec3> translation{};
+      physical<glm::vec3> rotation{};
+      physical<glm::vec3> scale{};
     };
     struct active
     {
       enum phase phase = {};
       std::weak_ptr<class scene> parent{};
-      dynamic<glm::vec3> translation{};
-      dynamic<glm::vec3> rotation{};
-      dynamic<glm::vec3> scale{};
+      physical<glm::vec3> translation{};
+      physical<glm::vec3> rotation{};
+      physical<glm::vec3> scale{};
     };
 
   public:

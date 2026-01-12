@@ -8,11 +8,11 @@
 
 namespace cse
 {
-  template <typename type> class dynamic
+  template <typename type> class physical
   {
   public:
-    dynamic() = default;
-    dynamic(const type &value_);
+    physical() = default;
+    physical(const type &value_);
 
   public:
     type value{};
