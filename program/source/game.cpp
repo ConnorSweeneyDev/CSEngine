@@ -31,7 +31,7 @@ namespace cse
     hooks.reset();
   }
 
-  game &game::set_current_scene(const help::name name)
+  game &game::current(const help::name name)
   {
     if (auto iterator{state.active.scenes.find(name)}; iterator == state.active.scenes.end())
       throw exception("Tried to set current scene to null");
@@ -45,7 +45,7 @@ namespace cse
     return *this;
   }
 
-  game &game::remove_scene(const help::name name)
+  game &game::remove(const help::name name)
   {
     if (auto iterator{state.active.scenes.find(name)}; iterator != state.active.scenes.end())
     {
