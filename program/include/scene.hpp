@@ -51,8 +51,7 @@ namespace cse
     scene(scene &&) = delete;
     scene &operator=(scene &&) = delete;
 
-    template <help::is_camera camera_type, typename... camera_arguments>
-    scene &set(camera_arguments &&...arguments);
+    template <help::is_camera camera_type, typename... camera_arguments> scene &set(camera_arguments &&...arguments);
     template <help::is_object object_type, typename... object_arguments>
     scene &set(const help::name name, object_arguments &&...arguments);
     scene &remove(const help::name name);

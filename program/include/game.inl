@@ -77,7 +77,7 @@ namespace cse
   game &game::set(const help::name name, callable &&config, scene_arguments &&...arguments)
   {
     using scene_type = typename help::type_from_callable<callable>::extracted_type;
-    return set_scene<scene_type, scene_arguments...>(
+    return set<scene_type, scene_arguments...>(
       name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
       std::forward<scene_arguments>(arguments)...);
   }
@@ -104,7 +104,7 @@ namespace cse
   game &game::current(const help::name name, callable &&config, scene_arguments &&...arguments)
   {
     using scene_type = typename help::type_from_callable<callable>::extracted_type;
-    return set_current_scene<scene_type, scene_arguments...>(
+    return current<scene_type, scene_arguments...>(
       name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
       std::forward<scene_arguments>(arguments)...);
   }
