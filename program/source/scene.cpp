@@ -17,7 +17,7 @@ namespace cse
 {
   scene::~scene() { hooks.reset(); }
 
-  std::shared_ptr<scene> scene::remove_object(const help::name name)
+  scene &scene::remove_object(const help::name name)
   {
     if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
     {
@@ -30,7 +30,7 @@ namespace cse
         state.active.objects.erase(iterator);
       }
     }
-    return shared_from_this();
+    return *this;
   }
 
   void scene::prepare()

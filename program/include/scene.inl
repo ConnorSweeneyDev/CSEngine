@@ -13,7 +13,7 @@
 namespace cse
 {
   template <help::is_camera camera_type, typename... camera_arguments>
-  std::shared_ptr<scene> scene::set_camera(camera_arguments &&...arguments)
+  scene &scene::set_camera(camera_arguments &&...arguments)
   {
     auto camera{std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...)};
     camera->state.active.parent = weak_from_this();
@@ -30,11 +30,11 @@ namespace cse
         break;
       case help::phase::CREATED: state.next.camera = camera; break;
     }
-    return shared_from_this();
+    return *this;
   }
 
   template <help::is_object object_type, typename... object_arguments>
-  std::shared_ptr<scene> scene::set_object(const help::name name, object_arguments &&...arguments)
+  scene &scene::set_object(const help::name name, object_arguments &&...arguments)
   {
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
     object->state.active.parent = weak_from_this();
@@ -52,6 +52,6 @@ namespace cse
         state.additions.insert_or_assign(name, object);
         break;
     }
-    return shared_from_this();
+    return *this;
   }
 }

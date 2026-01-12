@@ -31,7 +31,7 @@ namespace cse
     hooks.reset();
   }
 
-  std::shared_ptr<game> game::set_current_scene(const help::name name)
+  game &game::set_current_scene(const help::name name)
   {
     if (auto iterator{state.active.scenes.find(name)}; iterator == state.active.scenes.end())
       throw exception("Tried to set current scene to null");
@@ -42,10 +42,10 @@ namespace cse
       state.active.scene = {name, iterator->second};
       state.previous.scene = {name, iterator->second};
     }
-    return shared_from_this();
+    return *this;
   }
 
-  std::shared_ptr<game> game::remove_scene(const help::name name)
+  game &game::remove_scene(const help::name name)
   {
     if (auto iterator{state.active.scenes.find(name)}; iterator != state.active.scenes.end())
     {
@@ -55,7 +55,7 @@ namespace cse
       scene->clean();
       state.active.scenes.erase(iterator);
     }
-    return shared_from_this();
+    return *this;
   }
 
   void game::run()

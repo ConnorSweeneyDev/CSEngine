@@ -50,21 +50,19 @@ namespace cse
     template <help::is_callable callable, typename... game_arguments>
     static std::shared_ptr<game> create(callable &&config, game_arguments &&...arguments);
     template <help::is_window window_type, typename... window_arguments>
-    std::shared_ptr<game> set_window(window_arguments &&...arguments);
+    game &set_window(window_arguments &&...arguments);
     template <help::is_scene scene_type, typename... scene_arguments>
-    std::shared_ptr<game> set_scene(const help::name name,
-                                    const std::function<void(const std::shared_ptr<scene_type>)> &config,
-                                    scene_arguments &&...arguments);
+    game &set_scene(const help::name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+                    scene_arguments &&...arguments);
     template <help::is_callable callable, typename... scene_arguments>
-    std::shared_ptr<game> set_scene(const help::name name, callable &&config, scene_arguments &&...arguments);
+    game &set_scene(const help::name name, callable &&config, scene_arguments &&...arguments);
     template <help::is_scene scene_type, typename... scene_arguments>
-    std::shared_ptr<game> set_current_scene(const help::name name,
-                                            const std::function<void(const std::shared_ptr<scene_type>)> &config,
-                                            scene_arguments &&...arguments);
+    game &set_current_scene(const help::name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+                            scene_arguments &&...arguments);
     template <help::is_callable callable, typename... scene_arguments>
-    std::shared_ptr<game> set_current_scene(const help::name name, callable &&config, scene_arguments &&...arguments);
-    std::shared_ptr<game> set_current_scene(const help::name name);
-    std::shared_ptr<game> remove_scene(const help::name name);
+    game &set_current_scene(const help::name name, callable &&config, scene_arguments &&...arguments);
+    game &set_current_scene(const help::name name);
+    game &remove_scene(const help::name name);
 
     void run();
 
