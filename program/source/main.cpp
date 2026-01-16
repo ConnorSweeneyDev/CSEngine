@@ -8,8 +8,8 @@
 #include "print.hpp"
 
 int main(int argc, char *argv[])
-{
 #undef main
+{
   try
   {
     return cse::main(argc, argv);
