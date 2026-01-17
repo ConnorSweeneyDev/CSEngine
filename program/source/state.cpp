@@ -49,7 +49,7 @@ namespace cse::help
     previous.window = active.window;
     previous.scene_names.clear();
     previous.scene_names.reserve(active.scenes.size());
-    for (const auto &[name, scene] : active.scenes) previous.scene_names.push_back(name);
+    for (const auto &[name, scene] : active.scenes) previous.scene_names.insert(name);
     previous.scene = active.scene;
     previous.poll_rate = active.poll_rate;
   }
@@ -118,7 +118,7 @@ namespace cse::help
     previous.camera = active.camera;
     previous.object_names.clear();
     previous.object_names.reserve(active.objects.size());
-    for (const auto &[name, object] : active.objects) previous.object_names.push_back(name);
+    for (const auto &[name, object] : active.objects) previous.object_names.insert(name);
   }
 
   camera_state::camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_)

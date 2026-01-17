@@ -5,7 +5,6 @@
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
-#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_video.h"
@@ -42,7 +41,7 @@ namespace cse::help
     {
       enum phase phase = {};
       std::shared_ptr<class window> window{};
-      std::vector<help::name> scene_names{};
+      std::unordered_set<help::name> scene_names{};
       struct scene_reference scene{};
       double poll_rate{};
     };
@@ -148,7 +147,7 @@ namespace cse::help
     {
       enum phase phase = {};
       std::shared_ptr<class camera> camera{};
-      std::vector<help::name> object_names{};
+      std::unordered_set<help::name> object_names{};
     };
     struct active
     {
