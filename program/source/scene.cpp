@@ -15,7 +15,11 @@
 
 namespace cse
 {
-  scene::~scene() { hooks.reset(); }
+  scene::~scene()
+  {
+    timers.reset();
+    hooks.reset();
+  }
 
   scene &scene::remove(const help::name name)
   {
@@ -124,6 +128,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before simulation");
     hooks.call<void(const float)>(hook::PRE_SIMULATE, poll_rate);
+    timers.update(poll_rate);
     state.active.camera->simulate(poll_rate);
     for (const auto &[name, object] : state.active.objects) object->simulate(poll_rate);
     hooks.call<void(const float)>(hook::POST_SIMULATE, poll_rate);

@@ -12,6 +12,7 @@
 #include "graphics.hpp"
 #include "hooks.hpp"
 #include "state.hpp"
+#include "timers.hpp"
 #include "wrapper.hpp"
 
 namespace cse
@@ -59,5 +60,6 @@ namespace cse
     help::object_state state{};
     help::object_graphics graphics{};
     help::hooks hooks{};
+    help::timers timers{};
   };
 }

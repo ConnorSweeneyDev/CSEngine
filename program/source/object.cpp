@@ -22,7 +22,11 @@ namespace cse
   {
   }
 
-  object::~object() { hooks.reset(); }
+  object::~object()
+  {
+    timers.reset();
+    hooks.reset();
+  }
 
   void object::prepare()
   {
@@ -64,6 +68,7 @@ namespace cse
   void object::simulate(const float poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
+    timers.update(poll_rate);
     graphics.update_animation(poll_rate);
     hooks.call<void(const float)>(hook::SIMULATE, poll_rate);
   }

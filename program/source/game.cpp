@@ -28,6 +28,7 @@ namespace cse
   game::~game()
   {
     instance.reset();
+    timers.reset();
     hooks.reset();
   }
 
@@ -195,20 +196,22 @@ namespace cse
   void game::simulate()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before simulation");
-    hooks.call<void(const float)>(hook::PRE_SIMULATE, static_cast<float>(state.actual_poll_rate));
-    state.active.window->simulate(static_cast<float>(state.actual_poll_rate));
-    state.active.scene.pointer->simulate(static_cast<float>(state.actual_poll_rate));
-    hooks.call<void(const float)>(hook::POST_SIMULATE, static_cast<float>(state.actual_poll_rate));
+    const auto poll_rate = static_cast<float>(state.actual_poll_rate);
+    hooks.call<void(const float)>(hook::PRE_SIMULATE, poll_rate);
+    timers.update(poll_rate);
+    state.active.window->simulate(poll_rate);
+    state.active.scene.pointer->simulate(poll_rate);
+    hooks.call<void(const float)>(hook::POST_SIMULATE, poll_rate);
   }
 
   void game::render()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before rendering");
+    const auto aspect_ratio = static_cast<float>(graphics.active.aspect_ratio);
     hooks.call<void(const double)>(hook::PRE_RENDER, state.alpha);
-    if (!state.active.window->pre_render(state.alpha, static_cast<float>(graphics.active.aspect_ratio))) return;
+    if (!state.active.window->pre_render(state.alpha, aspect_ratio)) return;
     state.active.scene.pointer->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
-                                       state.active.window->graphics.render_pass, state.alpha,
-                                       static_cast<float>(graphics.active.aspect_ratio));
+                                       state.active.window->graphics.render_pass, state.alpha, aspect_ratio);
     state.active.window->post_render(state.alpha);
     hooks.call<void(const double)>(hook::POST_RENDER, state.alpha);
   }

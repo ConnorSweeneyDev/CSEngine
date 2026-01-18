@@ -11,6 +11,7 @@
 #include "hooks.hpp"
 #include "name.hpp"
 #include "state.hpp"
+#include "timers.hpp"
 #include "traits.hpp"
 #include "wrapper.hpp"
 
@@ -73,6 +74,7 @@ namespace cse
     help::scene_state state{};
     help::scene_graphics graphics{};
     help::hooks hooks{};
+    help::timers timers{};
   };
 }
 

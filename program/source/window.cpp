@@ -31,7 +31,11 @@ namespace cse
     state.active.vsync.change = [this]() { graphics.handle_vsync(state.active.vsync); };
   }
 
-  window::~window() { hooks.reset(); }
+  window::~window()
+  {
+    timers.reset();
+    hooks.reset();
+  }
 
   void window::prepare()
   {
@@ -84,6 +88,7 @@ namespace cse
   void window::simulate(const float poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before simulation");
+    timers.update(poll_rate);
     hooks.call<void(const float)>(hook::SIMULATE, poll_rate);
   }
 

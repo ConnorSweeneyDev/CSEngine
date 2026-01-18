@@ -17,7 +17,11 @@ namespace cse
   {
   }
 
-  camera::~camera() { hooks.reset(); }
+  camera::~camera()
+  {
+    timers.reset();
+    hooks.reset();
+  }
 
   void camera::prepare()
   {
@@ -56,6 +60,7 @@ namespace cse
   void camera::simulate(const float poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before simulation");
+    timers.update(poll_rate);
     hooks.call<void(const float)>(hook::SIMULATE, poll_rate);
   }
 
