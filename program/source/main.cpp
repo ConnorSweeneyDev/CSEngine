@@ -1,6 +1,5 @@
 #include "main.hpp"
 
-#include <cstdlib>
 #include <exception>
 
 #include "SDL3/SDL_main.h"
@@ -17,6 +16,6 @@ int main(int argc, char *argv[])
   catch (const std::exception &error)
   {
     cse::print<CERR>("{}.\n", error.what());
-    return EXIT_FAILURE;
+    return cse::failure;
   }
 }
