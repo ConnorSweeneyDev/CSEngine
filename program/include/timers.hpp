@@ -1,7 +1,9 @@
 #pragma once
 
+#include <any>
 #include <functional>
 #include <optional>
+#include <typeindex>
 #include <unordered_map>
 
 #include "declaration.hpp"
@@ -27,19 +29,24 @@ namespace cse::help
   private:
     struct entry
     {
-      std::function<void()> callback{};
+      std::any callback{};
+      std::type_index type{typeid(void)};
       struct time time{};
     };
 
   public:
     bool has(const help::name id) const;
+    template <typename signature> bool has(const help::name id) const;
     bool ready(const help::name id) const;
     std::optional<time> check(const help::name id) const;
+    template <typename signature>
+    void set(const help::name id, const double target, const std::function<signature> &callback);
     template <typename callable> void set(const help::name id, const double target, callable &&callback);
     void remove(const help::name id);
     void reset() noexcept;
-    bool call(const help::name id);
-    void throw_call(const help::name id);
+    template <typename signature, typename... arguments> auto call(const help::name id, arguments &&...args);
+    template <typename signature, typename... arguments> auto throw_call(const help::name id, arguments &&...args);
+    template <typename signature, typename... arguments> auto try_call(const help::name id, arguments &&...args);
 
   private:
     void update(const double poll_rate);

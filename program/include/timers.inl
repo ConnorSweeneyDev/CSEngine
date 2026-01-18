@@ -2,15 +2,109 @@
 
 #include "timers.hpp"
 
+#include <any>
 #include <functional>
+#include <optional>
+#include <type_traits>
+#include <typeindex>
 #include <utility>
+#include <variant>
 
+#include "exception.hpp"
 #include "name.hpp"
+#include "traits.hpp"
 
 namespace cse::help
 {
+  template <typename signature> bool timers::has(const help::name id) const
+  {
+    auto iterator{entries.find(id)};
+    if (iterator == entries.end()) return false;
+    return iterator->second.type == std::type_index(typeid(signature));
+  }
+
+  template <typename signature>
+  void timers::set(const help::name id, const double target, const std::function<signature> &callback)
+  {
+    entries.insert_or_assign(id, entry{callback, std::type_index(typeid(signature)), {0.0, target}});
+  }
+
   template <typename callable> void timers::set(const help::name id, const double target, callable &&callback)
   {
-    entries.insert_or_assign(id, entry{std::function<void()>(std::forward<callable>(callback)), {0.0, target}});
+    using deduced_signature = typename callable_traits<std::decay_t<callable>>::signature;
+    set<deduced_signature>(id, target, std::function<deduced_signature>(std::forward<callable>(callback)));
+  }
+
+  template <typename signature, typename... arguments> auto timers::call(const help::name id, arguments &&...args)
+  {
+    using extracted_return_type = typename function_traits<signature>::extracted_return_type;
+    auto iterator{entries.find(id)};
+    if (iterator == entries.end())
+    {
+      if constexpr (std::is_void_v<extracted_return_type>) return;
+      return extracted_return_type{};
+    }
+    auto &entry{iterator->second};
+    if (entry.time.elapsed < entry.time.target)
+    {
+      if constexpr (std::is_void_v<extracted_return_type>) return;
+      return extracted_return_type{};
+    }
+    const auto &function{std::any_cast<const std::function<signature> &>(entry.callback)};
+    if constexpr (std::is_void_v<extracted_return_type>)
+    {
+      function(std::forward<arguments>(args)...);
+      entries.erase(iterator);
+    }
+    else
+    {
+      auto result{function(std::forward<arguments>(args)...)};
+      entries.erase(iterator);
+      return result;
+    }
+  }
+
+  template <typename signature, typename... arguments> auto timers::throw_call(const help::name id, arguments &&...args)
+  {
+    auto iterator{entries.find(id)};
+    if (iterator == entries.end()) throw exception("Attempted to call non-existent timer");
+    auto &entry{iterator->second};
+    if (entry.time.elapsed < entry.time.target) throw exception("Attempted to call timer before ready");
+    const auto &function{std::any_cast<const std::function<signature> &>(entry.callback)};
+    using extracted_return_type = typename function_traits<signature>::extracted_return_type;
+    if constexpr (std::is_void_v<extracted_return_type>)
+    {
+      function(std::forward<arguments>(args)...);
+      entries.erase(iterator);
+    }
+    else
+    {
+      auto result{function(std::forward<arguments>(args)...)};
+      entries.erase(iterator);
+      return result;
+    }
+  }
+
+  template <typename signature, typename... arguments> auto timers::try_call(const help::name id, arguments &&...args)
+  {
+    using return_type = typename function_traits<signature>::extracted_return_type;
+    using optional_type = std::conditional_t<std::is_void_v<return_type>, std::monostate, return_type>;
+    auto iterator{entries.find(id)};
+    if (iterator == entries.end()) return std::optional<optional_type>{std::nullopt};
+    auto &entry{iterator->second};
+    if (entry.time.elapsed < entry.time.target) return std::optional<optional_type>{std::nullopt};
+    const auto &function{std::any_cast<const std::function<signature> &>(entry.callback)};
+    if constexpr (std::is_void_v<return_type>)
+    {
+      function(std::forward<arguments>(args)...);
+      entries.erase(iterator);
+      return std::optional<optional_type>{std::monostate{}};
+    }
+    else
+    {
+      auto result{function(std::forward<arguments>(args)...)};
+      entries.erase(iterator);
+      return std::optional<optional_type>{std::move(result)};
+    }
   }
 }
