@@ -9,23 +9,29 @@ namespace cse::help
 {
   class hooks
   {
+  private:
+    struct entry
+    {
+      std::any callback{};
+      std::type_index type{typeid(void)};
+    };
+
   public:
+    bool has(const int key) const;
     template <typename signature> bool has(const int key) const;
     template <typename signature> void set(const int key, const std::function<signature> &function);
     template <typename callable> void set(const int key, callable &&function);
-    template <typename signature> void remove(const int key);
-    template <typename signature> void reset() noexcept;
+    void remove(const int key);
     void reset() noexcept;
     template <typename signature, typename... arguments> auto call(const int key, arguments &&...args) const;
     template <typename signature, typename... arguments> auto throw_call(const int key, arguments &&...args) const;
     template <typename signature, typename... arguments> auto try_call(const int key, arguments &&...args) const;
 
   private:
-    template <typename signature> std::unordered_map<int, std::function<signature>> &get_map();
-    template <typename signature> const std::unordered_map<int, std::function<signature>> &get_map() const;
+    template <typename signature> const std::function<signature> &get_function(const entry &entry) const;
 
   private:
-    std::unordered_map<std::type_index, std::any> functions{};
+    std::unordered_map<int, entry> entries{};
   };
 }
 

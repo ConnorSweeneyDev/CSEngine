@@ -35,20 +35,21 @@ namespace cse::help
     };
 
   public:
-    bool has(const help::name id) const;
-    template <typename signature> bool has(const help::name id) const;
-    bool ready(const help::name id) const;
-    std::optional<time> check(const help::name id) const;
+    bool has(const help::name name) const;
+    template <typename signature> bool has(const help::name name) const;
+    bool ready(const help::name name) const;
+    std::optional<time> check(const help::name name) const;
     template <typename signature>
-    void set(const help::name id, const double target, const std::function<signature> &callback);
-    template <typename callable> void set(const help::name id, const double target, callable &&callback);
-    void remove(const help::name id);
+    void set(const help::name name, const double target, const std::function<signature> &callback);
+    template <typename callable> void set(const help::name name, const double target, callable &&callback);
+    void remove(const help::name name);
     void reset() noexcept;
-    template <typename signature, typename... arguments> auto call(const help::name id, arguments &&...args);
-    template <typename signature, typename... arguments> auto throw_call(const help::name id, arguments &&...args);
-    template <typename signature, typename... arguments> auto try_call(const help::name id, arguments &&...args);
+    template <typename signature, typename... arguments> auto call(const help::name name, arguments &&...args);
+    template <typename signature, typename... arguments> auto throw_call(const help::name name, arguments &&...args);
+    template <typename signature, typename... arguments> auto try_call(const help::name name, arguments &&...args);
 
   private:
+    template <typename signature> const std::function<signature> &get_function(const entry &entry) const;
     void update(const double poll_rate);
 
   private:
