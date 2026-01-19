@@ -48,14 +48,6 @@ namespace cse::help
       return function(std::forward<arguments>(args)...);
   }
 
-  template <typename signature, typename... arguments> auto hooks::throw_call(const int key, arguments &&...args) const
-  {
-    auto iterator{entries.find(key)};
-    if (iterator == entries.end()) throw exception("Attempted to call non-existent hook");
-    const auto &function{get_function<signature>(iterator->second)};
-    return function(std::forward<arguments>(args)...);
-  }
-
   template <typename signature, typename... arguments> auto hooks::try_call(const int key, arguments &&...args) const
   {
     using return_type = typename function_traits<signature>::extracted_return_type;
@@ -70,6 +62,14 @@ namespace cse::help
     }
     else
       return std::optional<optional_type>{function(std::forward<arguments>(args)...)};
+  }
+
+  template <typename signature, typename... arguments> auto hooks::throw_call(const int key, arguments &&...args) const
+  {
+    auto iterator{entries.find(key)};
+    if (iterator == entries.end()) throw exception("Attempted to call non-existent hook");
+    const auto &function{get_function<signature>(iterator->second)};
+    return function(std::forward<arguments>(args)...);
   }
 
   template <typename signature> const std::function<signature> &hooks::get_function(const entry &entry) const

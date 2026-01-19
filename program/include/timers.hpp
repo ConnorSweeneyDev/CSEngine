@@ -45,8 +45,8 @@ namespace cse::help
     void remove(const help::name name);
     void reset() noexcept;
     template <typename signature, typename... arguments> auto call(const help::name name, arguments &&...args);
-    template <typename signature, typename... arguments> auto throw_call(const help::name name, arguments &&...args);
     template <typename signature, typename... arguments> auto try_call(const help::name name, arguments &&...args);
+    template <typename signature, typename... arguments> auto throw_call(const help::name name, arguments &&...args);
 
   private:
     template <typename signature> const std::function<signature> &get_function(const entry &entry) const;

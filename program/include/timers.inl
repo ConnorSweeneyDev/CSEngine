@@ -64,28 +64,6 @@ namespace cse::help
     }
   }
 
-  template <typename signature, typename... arguments>
-  auto timers::throw_call(const help::name name, arguments &&...args)
-  {
-    auto iterator{entries.find(name)};
-    if (iterator == entries.end()) throw exception("Attempted to call non-existent timer");
-    auto &entry{iterator->second};
-    if (entry.time.elapsed < entry.time.target) throw exception("Attempted to call timer before ready");
-    const auto &function{get_function<signature>(entry)};
-    using extracted_return_type = typename function_traits<signature>::extracted_return_type;
-    if constexpr (std::is_void_v<extracted_return_type>)
-    {
-      function(std::forward<arguments>(args)...);
-      entries.erase(iterator);
-    }
-    else
-    {
-      auto result{function(std::forward<arguments>(args)...)};
-      entries.erase(iterator);
-      return result;
-    }
-  }
-
   template <typename signature, typename... arguments> auto timers::try_call(const help::name name, arguments &&...args)
   {
     using return_type = typename function_traits<signature>::extracted_return_type;
@@ -106,6 +84,28 @@ namespace cse::help
       auto result{function(std::forward<arguments>(args)...)};
       entries.erase(iterator);
       return std::optional<optional_type>{std::move(result)};
+    }
+  }
+
+  template <typename signature, typename... arguments>
+  auto timers::throw_call(const help::name name, arguments &&...args)
+  {
+    auto iterator{entries.find(name)};
+    if (iterator == entries.end()) throw exception("Attempted to call non-existent timer");
+    auto &entry{iterator->second};
+    if (entry.time.elapsed < entry.time.target) throw exception("Attempted to call timer before ready");
+    const auto &function{get_function<signature>(entry)};
+    using extracted_return_type = typename function_traits<signature>::extracted_return_type;
+    if constexpr (std::is_void_v<extracted_return_type>)
+    {
+      function(std::forward<arguments>(args)...);
+      entries.erase(iterator);
+    }
+    else
+    {
+      auto result{function(std::forward<arguments>(args)...)};
+      entries.erase(iterator);
+      return result;
     }
   }
 

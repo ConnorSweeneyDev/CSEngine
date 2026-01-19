@@ -24,8 +24,8 @@ namespace cse::help
     void remove(const int key);
     void reset() noexcept;
     template <typename signature, typename... arguments> auto call(const int key, arguments &&...args) const;
-    template <typename signature, typename... arguments> auto throw_call(const int key, arguments &&...args) const;
     template <typename signature, typename... arguments> auto try_call(const int key, arguments &&...args) const;
+    template <typename signature, typename... arguments> auto throw_call(const int key, arguments &&...args) const;
 
   private:
     template <typename signature> const std::function<signature> &get_function(const entry &entry) const;
