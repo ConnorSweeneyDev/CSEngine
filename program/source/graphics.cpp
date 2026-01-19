@@ -10,6 +10,7 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_log.h"
+#include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_rect.h"
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
@@ -33,8 +34,8 @@
 
 namespace cse::help
 {
-  game_graphics::game_graphics(const double frame_rate_, const double aspect_ratio_)
-    : previous{frame_rate_, aspect_ratio_}, active{frame_rate_, aspect_ratio_}
+  game_graphics::game_graphics(const double frame_rate_, const double aspect_ratio_, const SDL_FColor &clear_color_)
+    : previous{frame_rate_, aspect_ratio_, clear_color_}, active{frame_rate_, aspect_ratio_, clear_color_}
   {
   }
 
@@ -60,6 +61,7 @@ namespace cse::help
   {
     previous.aspect_ratio = active.aspect_ratio;
     previous.frame_rate = active.frame_rate;
+    previous.clear_color = active.clear_color;
   }
 
   window_graphics::window_graphics(const std::string &title_) : previous{title_}, active{title_}
@@ -119,11 +121,12 @@ namespace cse::help
     return true;
   }
 
-  void window_graphics::start_render_pass(const unsigned int width, const unsigned int height, const float aspect_ratio)
+  void window_graphics::start_render_pass(const unsigned int width, const unsigned int height, const float aspect_ratio,
+                                          const SDL_FColor &clear_color)
   {
     SDL_GPUColorTargetInfo color_target_info{};
     color_target_info.texture = swapchain_texture;
-    color_target_info.clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
+    color_target_info.clear_color = clear_color;
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     SDL_GPUDepthStencilTargetInfo depth_stencil_target_info{};

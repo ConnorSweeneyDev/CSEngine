@@ -3,6 +3,7 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
+#include "SDL3/SDL_pixels.h"
 #include "glm/ext/vector_uint2.hpp"
 
 #include "exception.hpp"
@@ -92,11 +93,11 @@ namespace cse
     hooks.call<void(const float)>(hook::SIMULATE, poll_rate);
   }
 
-  bool window::pre_render(const double alpha, const float aspect_ratio)
+  bool window::pre_render(const double alpha, const float aspect_ratio, const SDL_FColor &clear_color)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
     if (!graphics.acquire_swapchain_texture()) return false;
-    graphics.start_render_pass(state.active.width, state.active.height, aspect_ratio);
+    graphics.start_render_pass(state.active.width, state.active.height, aspect_ratio, clear_color);
     hooks.call<void(const double)>(hook::PRE_RENDER, alpha);
     return true;
   }

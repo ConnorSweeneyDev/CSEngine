@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "SDL3/SDL_gpu.h"
+#include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
@@ -28,16 +29,18 @@ namespace cse::help
     {
       double frame_rate{};
       double aspect_ratio{};
+      SDL_FColor clear_color{};
     };
     struct active
     {
       double frame_rate{};
       double aspect_ratio{};
+      SDL_FColor clear_color{};
     };
 
   public:
     game_graphics() = default;
-    game_graphics(const double frame_rate_, const double aspect_ratio_);
+    game_graphics(const double frame_rate_, const double aspect_ratio_, const SDL_FColor &clear_color_);
     ~game_graphics() = default;
     game_graphics(const game_graphics &) = delete;
     game_graphics &operator=(const game_graphics &) = delete;
@@ -89,7 +92,8 @@ namespace cse::help
     void create_window(const unsigned int width, const unsigned int height, int &left, int &top,
                        SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
-    void start_render_pass(const unsigned int width, const unsigned int height, const float aspect_ratio);
+    void start_render_pass(const unsigned int width, const unsigned int height, const float aspect_ratio,
+                           const SDL_FColor &clear_color);
     void end_render_pass();
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,

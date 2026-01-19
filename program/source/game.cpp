@@ -7,6 +7,7 @@
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_keyboard.h"
+#include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_timer.h"
 
 #include "exception.hpp"
@@ -20,8 +21,9 @@
 
 namespace cse
 {
-  game::game(const double poll_rate_, const double frame_rate, const double aspect_ratio_)
-    : state{poll_rate_}, graphics{frame_rate, aspect_ratio_}
+  game::game(const double poll_rate_, const double frame_rate_, const double aspect_ratio_,
+             const SDL_FColor &clear_color_)
+    : state{poll_rate_}, graphics{frame_rate_, aspect_ratio_, clear_color_}
   {
   }
 
@@ -209,7 +211,7 @@ namespace cse
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before rendering");
     const auto aspect_ratio = static_cast<float>(graphics.active.aspect_ratio);
     hooks.call<void(const double)>(hook::PRE_RENDER, state.alpha);
-    if (!state.active.window->pre_render(state.alpha, aspect_ratio)) return;
+    if (!state.active.window->pre_render(state.alpha, aspect_ratio, graphics.active.clear_color)) return;
     state.active.scene.pointer->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
                                        state.active.window->graphics.render_pass, state.alpha, aspect_ratio);
     state.active.window->post_render(state.alpha);

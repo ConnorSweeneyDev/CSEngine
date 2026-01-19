@@ -3,6 +3,8 @@
 #include <functional>
 #include <memory>
 
+#include "SDL3/SDL_pixels.h"
+
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "hooks.hpp"
@@ -67,7 +69,7 @@ namespace cse
     void run();
 
   protected:
-    game(const double poll_rate_, const double frame_rate, const double aspect_ratio_);
+    game(const double poll_rate_, const double frame_rate_, const double aspect_ratio_, const SDL_FColor &clear_color_);
 
   private:
     void prepare();
