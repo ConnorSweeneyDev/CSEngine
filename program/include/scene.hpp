@@ -45,8 +45,7 @@ namespace cse
     };
 
   public:
-    scene() = default;
-    virtual ~scene();
+    virtual ~scene() = default;
     scene(const scene &) = delete;
     scene &operator=(const scene &) = delete;
     scene(scene &&) = delete;
@@ -56,6 +55,9 @@ namespace cse
     template <help::is_object object_type, typename... object_arguments>
     scene &set(const help::name name, object_arguments &&...arguments);
     scene &remove(const help::name name);
+
+  protected:
+    scene() = default;
 
   private:
     void prepare();

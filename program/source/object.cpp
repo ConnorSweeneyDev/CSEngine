@@ -22,12 +22,6 @@ namespace cse
   {
   }
 
-  object::~object()
-  {
-    timers.reset();
-    hooks.reset();
-  }
-
   void object::prepare()
   {
     if (state.active.phase != help::phase::CLEANED) throw exception("Object must be cleaned before preparation");

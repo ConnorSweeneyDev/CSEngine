@@ -63,7 +63,7 @@ namespace cse::help
   public:
     game_state() = default;
     game_state(const double poll_rate_);
-    ~game_state();
+    ~game_state() = default;
     game_state(const game_state &) = delete;
     game_state &operator=(const game_state &) = delete;
     game_state(game_state &&) = delete;
@@ -119,7 +119,7 @@ namespace cse::help
   public:
     window_state() = default;
     window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_);
-    ~window_state();
+    ~window_state() = default;
     window_state(const window_state &) = delete;
     window_state &operator=(const window_state &) = delete;
     window_state(window_state &&) = delete;
@@ -163,7 +163,7 @@ namespace cse::help
 
   public:
     scene_state() = default;
-    ~scene_state();
+    ~scene_state() = default;
     scene_state(const scene_state &) = delete;
     scene_state &operator=(const scene_state &) = delete;
     scene_state(scene_state &&) = delete;
@@ -207,7 +207,7 @@ namespace cse::help
   public:
     camera_state() = default;
     camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_);
-    ~camera_state();
+    ~camera_state() = default;
     camera_state(const camera_state &) = delete;
     camera_state &operator=(const camera_state &) = delete;
     camera_state(camera_state &&) = delete;
@@ -248,7 +248,7 @@ namespace cse::help
   public:
     object_state() = default;
     object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_);
-    ~object_state();
+    ~object_state() = default;
     object_state(const object_state &) = delete;
     object_state &operator=(const object_state &) = delete;
     object_state(object_state &&) = delete;

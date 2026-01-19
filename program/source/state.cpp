@@ -28,21 +28,6 @@ namespace cse::help
   {
   }
 
-  game_state::~game_state()
-  {
-    if (next.scene.has_value()) next.scene->pointer.reset();
-    next.scene.reset();
-    if (next.window.has_value()) next.window->reset();
-    next.window.reset();
-    active.scene.pointer.reset();
-    active.scenes.clear();
-    active.window.reset();
-    active.parent.reset();
-    previous.scene.pointer.reset();
-    previous.scene_names.clear();
-    previous.window.reset();
-  }
-
   void game_state::update_previous()
   {
     previous.phase = active.phase;
@@ -76,19 +61,6 @@ namespace cse::help
   {
   }
 
-  window_state::~window_state()
-  {
-    input = nullptr;
-    active.vsync.change = nullptr;
-    active.fullscreen.change = nullptr;
-    active.display_index.change = nullptr;
-    active.top.change = nullptr;
-    active.left.change = nullptr;
-    active.height.change = nullptr;
-    active.width.change = nullptr;
-    active.parent.reset();
-  }
-
   void window_state::update_previous()
   {
     previous.phase = active.phase;
@@ -100,16 +72,6 @@ namespace cse::help
     previous.display_index = active.display_index;
     previous.fullscreen = active.fullscreen;
     previous.vsync = active.vsync;
-  }
-
-  scene_state::~scene_state()
-  {
-    next.camera.reset();
-    active.objects.clear();
-    active.camera.reset();
-    active.parent.reset();
-    previous.object_names.clear();
-    previous.camera.reset();
   }
 
   void scene_state::update_previous()
@@ -126,8 +88,6 @@ namespace cse::help
       active{{}, {}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)}
   {
   }
-
-  camera_state::~camera_state() { active.parent.reset(); }
 
   glm::mat4 camera_state::calculate_view_matrix(const double alpha) const
   {
@@ -159,8 +119,6 @@ namespace cse::help
              glm::vec3{std::get<2>(transform_)}}
   {
   }
-
-  object_state::~object_state() { active.parent.reset(); }
 
   glm::mat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
                                                  const double alpha) const

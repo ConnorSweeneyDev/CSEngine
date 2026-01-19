@@ -15,12 +15,6 @@
 
 namespace cse
 {
-  scene::~scene()
-  {
-    timers.reset();
-    hooks.reset();
-  }
-
   scene &scene::remove(const help::name name)
   {
     if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())

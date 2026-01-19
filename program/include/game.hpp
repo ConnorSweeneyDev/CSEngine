@@ -42,7 +42,7 @@ namespace cse
     };
 
   public:
-    virtual ~game();
+    virtual ~game() = default;
     game(const game &) = delete;
     game &operator=(const game &) = delete;
     game(game &&) = delete;

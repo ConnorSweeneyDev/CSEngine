@@ -80,7 +80,7 @@ namespace cse::help
   public:
     window_graphics() = default;
     window_graphics(const std::string &title_);
-    ~window_graphics();
+    ~window_graphics() = default;
     window_graphics(const window_graphics &) = delete;
     window_graphics &operator=(const window_graphics &) = delete;
     window_graphics(window_graphics &&) = delete;
@@ -241,7 +241,7 @@ namespace cse::help
   public:
     object_graphics() = default;
     object_graphics(const struct shader &shader_, const struct texture &texture_, const struct property &property_);
-    ~object_graphics();
+    ~object_graphics() = default;
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;
     object_graphics(object_graphics &&) = delete;

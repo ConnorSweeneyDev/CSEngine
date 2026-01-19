@@ -32,12 +32,6 @@ namespace cse
     state.active.vsync.change = [this]() { graphics.handle_vsync(state.active.vsync); };
   }
 
-  window::~window()
-  {
-    timers.reset();
-    hooks.reset();
-  }
-
   void window::prepare()
   {
     if (state.active.phase != help::phase::CLEANED) throw exception("Window must be cleaned before preparation");

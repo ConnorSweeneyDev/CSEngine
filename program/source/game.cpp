@@ -27,13 +27,6 @@ namespace cse
   {
   }
 
-  game::~game()
-  {
-    instance.reset();
-    timers.reset();
-    hooks.reset();
-  }
-
   game &game::current(const help::name name)
   {
     if (auto iterator{state.active.scenes.find(name)}; iterator == state.active.scenes.end())

@@ -39,6 +39,13 @@ namespace cse::help
   {
   }
 
+  void game_graphics::update_previous()
+  {
+    previous.aspect_ratio = active.aspect_ratio;
+    previous.frame_rate = active.frame_rate;
+    previous.clear_color = active.clear_color;
+  }
+
   void game_graphics::create_app()
   {
     SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
@@ -57,27 +64,12 @@ namespace cse::help
 
   void game_graphics::destroy_app() { SDL_Quit(); }
 
-  void game_graphics::update_previous()
-  {
-    previous.aspect_ratio = active.aspect_ratio;
-    previous.frame_rate = active.frame_rate;
-    previous.clear_color = active.clear_color;
-  }
-
   window_graphics::window_graphics(const std::string &title_) : previous{title_}, active{title_}
   {
     active.title.change = [this]() { handle_title_change(); };
   }
 
-  window_graphics::~window_graphics()
-  {
-    render_pass = nullptr;
-    depth_texture = nullptr;
-    swapchain_texture = nullptr;
-    command_buffer = nullptr;
-    gpu = nullptr;
-    instance = nullptr;
-  }
+  void window_graphics::update_previous() { previous.title = active.title; }
 
   void window_graphics::create_window(const unsigned int width, const unsigned int height, int &left, int &top,
                                       SDL_DisplayID &display_index, const bool fullscreen, const bool vsync)
@@ -325,8 +317,6 @@ namespace cse::help
     SDL_DestroyWindow(instance);
   }
 
-  void window_graphics::update_previous() { previous.title = active.title; }
-
   std::vector<std::shared_ptr<object>>
   scene_graphics::generate_render_order(const std::shared_ptr<camera> camera,
                                         const std::unordered_map<help::name, std::shared_ptr<object>> &objects,
@@ -366,13 +356,13 @@ namespace cse::help
   {
   }
 
+  void camera_graphics::update_previous() { previous.fov = active.fov; }
+
   glm::mat4 camera_graphics::calculate_projection_matrix(const double alpha, const float aspect_ratio)
   {
     return glm::perspective(glm::radians(static_cast<float>(previous.fov + (active.fov - previous.fov) * alpha)),
                             aspect_ratio, near_clip, far_clip);
   }
-
-  void camera_graphics::update_previous() { previous.fov = active.fov; }
 
   object_graphics::previous::previous(const struct shader &shader_, const struct texture &texture_,
                                       const struct property &property_)
@@ -392,11 +382,17 @@ namespace cse::help
     active.texture.image.change = [this]() { generate_and_upload_texture(); };
   }
 
-  object_graphics::~object_graphics()
+  void object_graphics::update_previous()
   {
-    active.texture.image.change = nullptr;
-    active.shader.fragment.change = nullptr;
-    active.shader.vertex.change = nullptr;
+    previous.shader.vertex = active.shader.vertex;
+    previous.shader.fragment = active.shader.fragment;
+    previous.texture.image = active.texture.image;
+    previous.texture.group = active.texture.group;
+    previous.texture.animation = active.texture.animation;
+    previous.texture.flip = active.texture.flip;
+    previous.texture.color = active.texture.color;
+    previous.texture.transparency = active.texture.transparency;
+    previous.property.priority = active.property.priority;
   }
 
   void object_graphics::create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu)
@@ -782,18 +778,5 @@ namespace cse::help
     pipelines.opaque = nullptr;
     cached_gpu = nullptr;
     cached_instance = nullptr;
-  }
-
-  void object_graphics::update_previous()
-  {
-    previous.shader.vertex = active.shader.vertex;
-    previous.shader.fragment = active.shader.fragment;
-    previous.texture.image = active.texture.image;
-    previous.texture.group = active.texture.group;
-    previous.texture.animation = active.texture.animation;
-    previous.texture.flip = active.texture.flip;
-    previous.texture.color = active.texture.color;
-    previous.texture.transparency = active.texture.transparency;
-    previous.property.priority = active.property.priority;
   }
 }

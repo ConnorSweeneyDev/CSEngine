@@ -33,12 +33,14 @@ namespace cse
     };
 
   public:
-    window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_);
-    virtual ~window();
+    virtual ~window() = default;
     window(const window &) = delete;
     window &operator=(const window &) = delete;
     window(window &&) = delete;
     window &operator=(window &&) = delete;
+
+  protected:
+    window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_);
 
   private:
     void prepare();

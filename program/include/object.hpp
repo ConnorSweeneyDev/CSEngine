@@ -35,14 +35,16 @@ namespace cse
     };
 
   public:
-    object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_,
-           const struct help::object_graphics::shader &shader_, const struct help::object_graphics::texture &texture_,
-           const struct help::object_graphics::property &property_);
-    virtual ~object();
+    virtual ~object() = default;
     object(const object &) = delete;
     object &operator=(const object &) = delete;
     object(object &&) = delete;
     object &operator=(object &&) = delete;
+
+  protected:
+    object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_,
+           const struct help::object_graphics::shader &shader_, const struct help::object_graphics::texture &texture_,
+           const struct help::object_graphics::property &property_);
 
   private:
     void prepare();

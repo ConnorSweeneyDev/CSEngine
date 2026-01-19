@@ -34,12 +34,14 @@ namespace cse
     };
 
   public:
-    camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const double fov_);
-    virtual ~camera();
+    virtual ~camera() = default;
     camera(const camera &) = delete;
     camera &operator=(const camera &) = delete;
     camera(camera &&) = delete;
     camera &operator=(camera &&) = delete;
+
+  protected:
+    camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const double fov_);
 
   private:
     void prepare();

@@ -17,12 +17,6 @@ namespace cse
   {
   }
 
-  camera::~camera()
-  {
-    timers.reset();
-    hooks.reset();
-  }
-
   void camera::prepare()
   {
     if (state.active.phase != help::phase::CLEANED) throw exception("Camera must be cleaned before preparation");
