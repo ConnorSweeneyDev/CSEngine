@@ -32,7 +32,8 @@ namespace cse::help
     set<deduced_signature>(key, std::function<deduced_signature>(std::forward<callable>(function)));
   }
 
-  template <typename signature, typename... arguments> auto hooks::call(const int key, arguments &&...args) const
+  template <typename signature, typename... call_arguments>
+  auto hooks::call(const int key, call_arguments &&...arguments) const
   {
     using extracted_return_type = typename function_traits<signature>::extracted_return_type;
     auto iterator{entries.find(key)};
@@ -43,12 +44,13 @@ namespace cse::help
     }
     const auto &function{get_function<signature>(iterator->second)};
     if constexpr (std::is_void_v<extracted_return_type>)
-      function(std::forward<arguments>(args)...);
+      function(std::forward<call_arguments>(arguments)...);
     else
-      return function(std::forward<arguments>(args)...);
+      return function(std::forward<call_arguments>(arguments)...);
   }
 
-  template <typename signature, typename... arguments> auto hooks::try_call(const int key, arguments &&...args) const
+  template <typename signature, typename... call_arguments>
+  auto hooks::try_call(const int key, call_arguments &&...arguments) const
   {
     using return_type = typename function_traits<signature>::extracted_return_type;
     using optional_type = std::conditional_t<std::is_void_v<return_type>, std::monostate, return_type>;
@@ -57,26 +59,27 @@ namespace cse::help
     const auto &function{get_function<signature>(iterator->second)};
     if constexpr (std::is_void_v<return_type>)
     {
-      function(std::forward<arguments>(args)...);
+      function(std::forward<call_arguments>(arguments)...);
       return std::optional<optional_type>{std::monostate{}};
     }
     else
-      return std::optional<optional_type>{function(std::forward<arguments>(args)...)};
+      return std::optional<optional_type>{function(std::forward<call_arguments>(arguments)...)};
   }
 
-  template <typename signature, typename... arguments> auto hooks::throw_call(const int key, arguments &&...args) const
+  template <typename signature, typename... call_arguments>
+  auto hooks::throw_call(const int key, call_arguments &&...arguments) const
   {
     auto iterator{entries.find(key)};
     if (iterator == entries.end()) throw exception("Attempted to call non-existent hook");
     const auto &function{get_function<signature>(iterator->second)};
-    return function(std::forward<arguments>(args)...);
+    return function(std::forward<call_arguments>(arguments)...);
   }
 
-  template <typename signature> const std::function<signature> &hooks::get_function(const entry &entry) const
+  template <typename signature> const std::function<signature> &hooks::get_function(const entry &target) const
   {
     try
     {
-      return std::any_cast<const std::function<signature> &>(entry.callback);
+      return std::any_cast<const std::function<signature> &>(target.callback);
     }
     catch (const std::bad_any_cast &)
     {
