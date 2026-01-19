@@ -28,6 +28,6 @@ namespace cse::help
 
   void timers::update(const double poll_rate)
   {
-    for (auto &[name, entry] : entries) entry.time.elapsed += poll_rate;
+    for (auto &[name, target] : entries) target.time.elapsed += poll_rate;
   }
 }
