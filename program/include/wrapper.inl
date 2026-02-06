@@ -10,7 +10,7 @@
 
 namespace cse
 {
-  template <typename type> physical<type>::physical(const type &value_) : value{value_} {}
+  template <typename type> temporal<type>::temporal(const type &value_) : value{value_} {}
 }
 
 namespace cse

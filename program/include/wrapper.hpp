@@ -8,16 +8,16 @@
 
 namespace cse
 {
-  template <typename type> class physical
+  template <typename type> class temporal
   {
   public:
-    physical() = default;
-    physical(const type &value_);
+    temporal() = default;
+    temporal(const type &value_);
 
   public:
     type value{};
-    type velocity{};
-    type acceleration{};
+    type rate{};
+    type curve{};
   };
 }
 
