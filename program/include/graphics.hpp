@@ -14,7 +14,6 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float4.hpp"
 #include "glm/ext/vector_uint2.hpp"
-#include "glm/ext/vector_uint4_sized.hpp"
 
 #include "declaration.hpp"
 #include "name.hpp"
@@ -197,7 +196,7 @@ namespace cse::help
     struct vertex_data
     {
       float x{}, y{}, z{};
-      Uint8 r{}, g{}, b{}, a{};
+      float r{}, g{}, b{}, a{};
       float u{}, v{};
     };
 
@@ -212,7 +211,7 @@ namespace cse::help
       struct group group{};
       struct animation animation{};
       struct flip flip{};
-      temporal<glm::u8vec4> color{};
+      temporal<glm::vec4> color{};
       temporal<double> transparency{};
     };
     struct property
@@ -236,7 +235,7 @@ namespace cse::help
   public:
     object_graphics() = default;
     object_graphics(const std::pair<vertex, fragment> &shader_,
-                    const std::tuple<image, group, animation, flip, glm::u8vec4, double> &texture_,
+                    const std::tuple<image, group, animation, flip, glm::vec4, double> &texture_,
                     const std::tuple<int> &property_);
     ~object_graphics() = default;
     object_graphics(const object_graphics &) = delete;

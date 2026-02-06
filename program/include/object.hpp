@@ -7,8 +7,8 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/vector_float4.hpp"
 #include "glm/ext/vector_int3.hpp"
-#include "glm/ext/vector_uint4_sized.hpp"
 
 #include "declaration.hpp"
 #include "graphics.hpp"
@@ -46,7 +46,7 @@ namespace cse
 
   protected:
     object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const std::pair<vertex, fragment> &shader_,
-           const std::tuple<image, group, animation, flip, glm::u8vec4, double> &texture_,
+           const std::tuple<image, group, animation, flip, glm::vec4, double> &texture_,
            const std::tuple<int> &property_);
 
   private:

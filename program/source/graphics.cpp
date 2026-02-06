@@ -19,7 +19,6 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float4.hpp"
 #include "glm/ext/vector_uint2.hpp"
-#include "glm/ext/vector_uint4_sized.hpp"
 #include "glm/geometric.hpp"
 #include "glm/trigonometric.hpp"
 
@@ -370,7 +369,7 @@ namespace cse::help
   }
 
   object_graphics::object_graphics(const std::pair<vertex, fragment> &shader_,
-                                   const std::tuple<image, group, animation, flip, glm::u8vec4, double> &texture_,
+                                   const std::tuple<image, group, animation, flip, glm::vec4, double> &texture_,
                                    const std::tuple<int> &property_)
     : previous{{std::get<0>(shader_), std::get<1>(shader_)},
                {std::get<0>(texture_), std::get<1>(texture_), std::get<2>(texture_), std::get<3>(texture_),
@@ -460,13 +459,12 @@ namespace cse::help
     auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     auto vertex{reinterpret_cast<struct vertex_data *>(start)};
     if (!vertex) throw sdl_exception("Could not map vertex data for object");
+    const auto color{previous.texture.color.value +
+                     (active.texture.color.value - previous.texture.color.value) * static_cast<float>(alpha)};
     auto &frame{active.texture.animation.frame};
     auto size{active.texture.group.frames.size()};
     if (frame >= size) frame = size - 1;
     const auto &frame_coords{active.texture.group.frames[frame].coords};
-    const auto color{glm::u8vec4{glm::vec4{previous.texture.color.value} +
-                                 (glm::vec4{active.texture.color.value} - glm::vec4{previous.texture.color.value}) *
-                                   static_cast<float>(alpha)}};
     const auto left{active.texture.flip.horizontal ? frame_coords.right : frame_coords.left},
       right{active.texture.flip.horizontal ? frame_coords.left : frame_coords.right},
       top{active.texture.flip.vertical ? frame_coords.bottom : frame_coords.top},
@@ -533,7 +531,7 @@ namespace cse::help
       .slot = 0, .pitch = sizeof(vertex_data), .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX, .instance_step_rate = 0};
     std::array<SDL_GPUVertexAttribute, 3> vertex_attributes{
       {{0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 0},
-       {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM,
+       {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
         sizeof(vertex_data::x) + sizeof(vertex_data::y) + sizeof(vertex_data::z)},
        {2, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
         sizeof(vertex_data::x) + sizeof(vertex_data::y) + sizeof(vertex_data::z) + sizeof(vertex_data::r) +
