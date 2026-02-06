@@ -91,11 +91,10 @@ namespace cse::help
 
   glm::mat4 camera_state::calculate_view_matrix(const double alpha) const
   {
-    auto translation = previous.translation.value +
-                       (active.translation.value - previous.translation.value) * glm::vec3(static_cast<float>(alpha));
-    auto forward =
-      previous.forward.value + (active.forward.value - previous.forward.value) * glm::vec3(static_cast<float>(alpha));
-    auto up = previous.up.value + (active.up.value - previous.up.value) * glm::vec3(static_cast<float>(alpha));
+    auto translation =
+      previous.translation.value + (active.translation.value - previous.translation.value) * static_cast<float>(alpha);
+    auto forward = previous.forward.value + (active.forward.value - previous.forward.value) * static_cast<float>(alpha);
+    auto up = previous.up.value + (active.up.value - previous.up.value) * static_cast<float>(alpha);
     return glm::lookAt(translation, translation + forward, up);
   }
 
@@ -123,20 +122,19 @@ namespace cse::help
   glm::mat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
                                                  const double alpha) const
   {
-    auto translation = previous.translation.value +
-                       (active.translation.value - previous.translation.value) * glm::vec3(static_cast<float>(alpha));
-    auto rotation = previous.rotation.value +
-                    (active.rotation.value - previous.rotation.value) * glm::vec3(static_cast<float>(alpha));
-    auto scale =
-      previous.scale.value + (active.scale.value - previous.scale.value) * glm::vec3(static_cast<float>(alpha));
+    auto translation =
+      previous.translation.value + (active.translation.value - previous.translation.value) * static_cast<float>(alpha);
+    auto rotation =
+      previous.rotation.value + (active.rotation.value - previous.rotation.value) * static_cast<float>(alpha);
+    auto scale = previous.scale.value + (active.scale.value - previous.scale.value) * static_cast<float>(alpha);
     glm::mat4 model_matrix{glm::mat4(1.0f)};
     model_matrix =
       glm::translate(model_matrix, {std::floor(translation.x + 0.5f) - (frame_width % 2 == 1 ? 0.5f : 0.0f),
                                     std::floor(translation.y + 0.5f) - (frame_height % 2 == 1 ? 0.5f : 0.0f),
                                     std::floor(translation.z + 0.5f)});
-    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.x) * 90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.y) * 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.z) * 90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.x) * 90.0f), glm::vec3{1.0f, 0.0f, 0.0f});
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.y) * 90.0f), glm::vec3{0.0f, 1.0f, 0.0f});
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.z) * 90.0f), glm::vec3{0.0f, 0.0f, 1.0f});
     model_matrix =
       glm::scale(model_matrix, {std::floor(scale.x) * static_cast<float>(frame_width) / 2.0f,
                                 std::floor(scale.y) * static_cast<float>(frame_height) / 2.0f, std::floor(scale.z)});

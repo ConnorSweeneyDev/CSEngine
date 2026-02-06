@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <span>
 
+#include "wrapper.hpp"
+
 namespace cse
 {
   struct vertex
@@ -64,8 +66,13 @@ namespace cse
   struct animation
   {
     std::size_t frame{};
-    double speed{};
+    temporal<double> speed{};
     bool loop{};
     double elapsed{};
+  };
+  struct flip
+  {
+    bool horizontal{};
+    bool vertical{};
   };
 }

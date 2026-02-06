@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "SDL3/SDL_pixels.h"
+#include "glm/ext/vector_float4.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
@@ -49,7 +49,8 @@ namespace cse
     void event();
     void input();
     void simulate(const float poll_rate);
-    bool pre_render(const double alpha, const float aspect_ratio, const SDL_FColor &clear_color);
+    bool pre_render(const glm::vec4 &previous_clear_color, const glm::vec4 &active_clear_color,
+                    const float aspect_ratio, const double alpha);
     void post_render(const double alpha);
     void destroy();
     void clean();

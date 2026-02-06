@@ -1,23 +1,26 @@
 #include "object.hpp"
 
 #include <tuple>
+#include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_int3.hpp"
+#include "glm/ext/vector_uint4_sized.hpp"
 
 #include "exception.hpp"
 #include "graphics.hpp"
+#include "resource.hpp"
 #include "state.hpp"
 
 namespace cse
 {
   object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_,
-                 const struct help::object_graphics::shader &shader_,
-                 const struct help::object_graphics::texture &texture_,
-                 const struct help::object_graphics::property &property_)
+                 const std::pair<vertex, fragment> &shader_,
+                 const std::tuple<image, group, animation, flip, glm::u8vec4, double> &texture_,
+                 const std::tuple<int> &property_)
     : state{transform_}, graphics{shader_, texture_, property_}
   {
   }

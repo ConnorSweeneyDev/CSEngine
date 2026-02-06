@@ -3,14 +3,16 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "SDL3/SDL_gpu.h"
-#include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/vector_float4.hpp"
 #include "glm/ext/vector_uint2.hpp"
 #include "glm/ext/vector_uint4_sized.hpp"
 
@@ -29,18 +31,18 @@ namespace cse::help
     {
       double frame_rate{};
       double aspect_ratio{};
-      SDL_FColor clear_color{};
+      temporal<glm::vec4> clear_color{};
     };
     struct active
     {
       double frame_rate{};
       double aspect_ratio{};
-      SDL_FColor clear_color{};
+      temporal<glm::vec4> clear_color{};
     };
 
   public:
     game_graphics() = default;
-    game_graphics(const double frame_rate_, const double aspect_ratio_, const SDL_FColor &clear_color_);
+    game_graphics(const double frame_rate_, const double aspect_ratio_, const glm::vec4 &clear_color_);
     ~game_graphics() = default;
     game_graphics(const game_graphics &) = delete;
     game_graphics &operator=(const game_graphics &) = delete;
@@ -93,7 +95,8 @@ namespace cse::help
                        SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
     void start_render_pass(const unsigned int width, const unsigned int height, const float aspect_ratio,
-                           const SDL_FColor &clear_color);
+                           const glm::vec4 &previous_clear_color, const glm::vec4 &active_clear_color,
+                           const double alpha);
     void end_render_pass();
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
@@ -151,11 +154,11 @@ namespace cse::help
   private:
     struct previous
     {
-      double fov{};
+      temporal<double> fov{};
     };
     struct active
     {
-      double fov{};
+      temporal<double> fov{};
     };
 
   public:
@@ -205,17 +208,12 @@ namespace cse::help
     };
     struct texture
     {
-      struct flip
-      {
-        bool horizontal{};
-        bool vertical{};
-      };
       cse::property<struct image> image{};
       struct group group{};
       struct animation animation{};
       struct flip flip{};
-      glm::u8vec4 color{};
-      double transparency{};
+      temporal<glm::u8vec4> color{};
+      temporal<double> transparency{};
     };
     struct property
     {
@@ -224,9 +222,6 @@ namespace cse::help
 
     struct previous
     {
-      previous() = default;
-      previous(const struct shader &shader_, const struct texture &texture_, const struct property &property_);
-
       struct shader shader{};
       struct texture texture{};
       struct property property{};
@@ -240,7 +235,9 @@ namespace cse::help
 
   public:
     object_graphics() = default;
-    object_graphics(const struct shader &shader_, const struct texture &texture_, const struct property &property_);
+    object_graphics(const std::pair<vertex, fragment> &shader_,
+                    const std::tuple<image, group, animation, flip, glm::u8vec4, double> &texture_,
+                    const std::tuple<int> &property_);
     ~object_graphics() = default;
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;

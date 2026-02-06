@@ -3,7 +3,7 @@
 #include <functional>
 #include <memory>
 
-#include "SDL3/SDL_pixels.h"
+#include "glm/ext/vector_float4.hpp"
 
 #include "declaration.hpp"
 #include "graphics.hpp"
@@ -69,7 +69,7 @@ namespace cse
     void run();
 
   protected:
-    game(const double poll_rate_, const double frame_rate_, const double aspect_ratio_, const SDL_FColor &clear_color_);
+    game(const double poll_rate_, const double frame_rate_, const double aspect_ratio_, const glm::vec4 &clear_color_);
 
   private:
     void prepare();
