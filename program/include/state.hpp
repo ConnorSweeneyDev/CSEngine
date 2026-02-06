@@ -8,8 +8,8 @@
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_video.h"
-#include "glm/ext/matrix_float4x4.hpp"
-#include "glm/ext/vector_float3.hpp"
+#include "glm/ext/matrix_double4x4.hpp"
+#include "glm/ext/vector_double3.hpp"
 #include "glm/ext/vector_int3.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
@@ -191,22 +191,22 @@ namespace cse::help
     struct previous
     {
       enum phase phase = {};
-      temporal<glm::vec3> translation{};
-      temporal<glm::vec3> forward{};
-      temporal<glm::vec3> up{};
+      temporal<glm::dvec3> translation{};
+      temporal<glm::dvec3> forward{};
+      temporal<glm::dvec3> up{};
     };
     struct active
     {
       enum phase phase = {};
       std::weak_ptr<class scene> parent{};
-      temporal<glm::vec3> translation{};
-      temporal<glm::vec3> forward{};
-      temporal<glm::vec3> up{};
+      temporal<glm::dvec3> translation{};
+      temporal<glm::dvec3> forward{};
+      temporal<glm::dvec3> up{};
     };
 
   public:
     camera_state() = default;
-    camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_);
+    camera_state(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_);
     ~camera_state() = default;
     camera_state(const camera_state &) = delete;
     camera_state &operator=(const camera_state &) = delete;
@@ -216,7 +216,7 @@ namespace cse::help
   private:
     void update_previous();
 
-    glm::mat4 calculate_view_matrix(const double alpha) const;
+    glm::dmat4 calculate_view_matrix(const double alpha) const;
 
   public:
     struct previous previous{};
@@ -232,17 +232,17 @@ namespace cse::help
     struct previous
     {
       enum phase phase = {};
-      temporal<glm::vec3> translation{};
-      temporal<glm::vec3> rotation{};
-      temporal<glm::vec3> scale{};
+      temporal<glm::dvec3> translation{};
+      temporal<glm::dvec3> rotation{};
+      temporal<glm::dvec3> scale{};
     };
     struct active
     {
       enum phase phase = {};
       std::weak_ptr<class scene> parent{};
-      temporal<glm::vec3> translation{};
-      temporal<glm::vec3> rotation{};
-      temporal<glm::vec3> scale{};
+      temporal<glm::dvec3> translation{};
+      temporal<glm::dvec3> rotation{};
+      temporal<glm::dvec3> scale{};
     };
 
   public:
@@ -257,8 +257,8 @@ namespace cse::help
   private:
     void update_previous();
 
-    glm::mat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
-                                     const double alpha) const;
+    glm::dmat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
+                                      const double alpha) const;
 
   public:
     struct previous previous{};

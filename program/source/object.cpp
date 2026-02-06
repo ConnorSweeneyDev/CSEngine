@@ -6,7 +6,7 @@
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
-#include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_float4.hpp"
 #include "glm/ext/vector_int3.hpp"
 
@@ -71,7 +71,7 @@ namespace cse
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                      const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const double alpha)
+                      const glm::dmat4 &projection_matrix, const glm::dmat4 &view_matrix, const double alpha)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before rendering");
     graphics.upload_dynamic_buffers(gpu, alpha);

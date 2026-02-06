@@ -4,15 +4,15 @@
 #include <utility>
 
 #include "SDL3/SDL_events.h"
-#include "glm/ext/matrix_float4x4.hpp"
-#include "glm/ext/vector_float3.hpp"
+#include "glm/ext/matrix_double4x4.hpp"
+#include "glm/ext/vector_double3.hpp"
 
 #include "exception.hpp"
 #include "state.hpp"
 
 namespace cse
 {
-  camera::camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const double fov_)
+  camera::camera(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_, const double fov_)
     : state{transform_}, graphics{fov_}
   {
   }
@@ -58,7 +58,7 @@ namespace cse
     hooks.call<void(const float)>(hook::SIMULATE, poll_rate);
   }
 
-  std::pair<glm::mat4, glm::mat4> camera::render(const double alpha, const float aspect_ratio)
+  std::pair<glm::dmat4, glm::dmat4> camera::render(const double alpha, const double aspect_ratio)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before rendering");
     hooks.call<void(const double)>(hook::RENDER, alpha);

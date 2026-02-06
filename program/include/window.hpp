@@ -49,8 +49,8 @@ namespace cse
     void event();
     void input();
     void simulate(const float poll_rate);
-    bool pre_render(const glm::vec4 &previous_clear_color, const glm::vec4 &active_clear_color,
-                    const float aspect_ratio, const double alpha);
+    bool pre_render(const glm::vec4 &previous_clear_color, const glm::vec4 &active_clear_color, const double alpha,
+                    const double aspect_ratio);
     void post_render(const double alpha);
     void destroy();
     void clean();

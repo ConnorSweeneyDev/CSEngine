@@ -4,8 +4,8 @@
 #include <utility>
 
 #include "SDL3/SDL_events.h"
-#include "glm/ext/matrix_float4x4.hpp"
-#include "glm/ext/vector_float3.hpp"
+#include "glm/ext/matrix_double4x4.hpp"
+#include "glm/ext/vector_double3.hpp"
 
 #include "declaration.hpp"
 #include "graphics.hpp"
@@ -41,7 +41,7 @@ namespace cse
     camera &operator=(camera &&) = delete;
 
   protected:
-    camera(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_, const double fov_);
+    camera(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_, const double fov_);
 
   private:
     void prepare();
@@ -50,7 +50,7 @@ namespace cse
     void event(const SDL_Event &event);
     void input(const bool *input);
     void simulate(const float poll_rate);
-    std::pair<glm::mat4, glm::mat4> render(const double alpha, const float aspect_ratio);
+    std::pair<glm::dmat4, glm::dmat4> render(const double alpha, const double aspect_ratio);
     void destroy();
     void clean();
 

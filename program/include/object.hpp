@@ -6,7 +6,7 @@
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
-#include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_float4.hpp"
 #include "glm/ext/vector_int3.hpp"
 
@@ -57,7 +57,7 @@ namespace cse
     void input(const bool *input);
     void simulate(const float poll_rate);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const glm::mat4 &projection_matrix, const glm::mat4 &view_matrix, const double alpha);
+                const glm::dmat4 &projection_matrix, const glm::dmat4 &view_matrix, const double alpha);
     void destroy(SDL_GPUDevice *gpu);
     void clean();
 

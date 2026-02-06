@@ -129,7 +129,7 @@ namespace cse
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     const double alpha, const float aspect_ratio)
+                     const double alpha, const double aspect_ratio)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before rendering");
     hooks.call<void(const double)>(hook::PRE_RENDER, alpha);

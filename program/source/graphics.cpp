@@ -16,6 +16,7 @@
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_float4.hpp"
 #include "glm/ext/vector_uint2.hpp"
@@ -112,9 +113,9 @@ namespace cse::help
     return true;
   }
 
-  void window_graphics::start_render_pass(const unsigned int width, const unsigned int height, const float aspect_ratio,
+  void window_graphics::start_render_pass(const unsigned int width, const unsigned int height,
                                           const glm::vec4 &previous_clear_color, const glm::vec4 &active_clear_color,
-                                          const double alpha)
+                                          const double alpha, const double aspect_ratio)
   {
     SDL_GPUColorTargetInfo color_target_info{};
     color_target_info.texture = swapchain_texture;
@@ -135,14 +136,14 @@ namespace cse::help
     if ((static_cast<float>(width) / static_cast<float>(height)) > aspect_ratio)
     {
       viewport_height = static_cast<float>(height);
-      viewport_width = viewport_height * aspect_ratio;
+      viewport_width = viewport_height * static_cast<float>(aspect_ratio);
       viewport_y = 0.0f;
       viewport_x = (static_cast<float>(width) - viewport_width) / 2.0f;
     }
     else
     {
       viewport_width = static_cast<float>(width);
-      viewport_height = viewport_width / aspect_ratio;
+      viewport_height = viewport_width / static_cast<float>(aspect_ratio);
       viewport_x = 0.0f;
       viewport_y = (static_cast<float>(height) - viewport_height) / 2.0f;
     }
@@ -330,42 +331,39 @@ namespace cse::help
     for (const auto &[name, object] : objects) render_order.emplace_back(object);
     auto camera_translation =
       camera->state.previous.translation.value +
-      (camera->state.active.translation.value - camera->state.previous.translation.value) * static_cast<float>(alpha);
-    auto camera_forward = glm::normalize(camera->state.previous.forward.value +
-                                         (camera->state.active.forward.value - camera->state.previous.forward.value) *
-                                           static_cast<float>(alpha));
+      (camera->state.active.translation.value - camera->state.previous.translation.value) * alpha;
+    auto camera_forward =
+      glm::normalize(camera->state.previous.forward.value +
+                     (camera->state.active.forward.value - camera->state.previous.forward.value) * alpha);
     std::sort(render_order.begin(), render_order.end(),
               [alpha, &camera_translation, &camera_forward](const auto &left, const auto &right)
               {
-                float left_depth =
+                double left_depth =
                   glm::dot((left->state.previous.translation.value +
-                            (left->state.active.translation.value - left->state.previous.translation.value) *
-                              static_cast<float>(alpha)) -
+                            (left->state.active.translation.value - left->state.previous.translation.value) * alpha) -
                              camera_translation,
                            camera_forward);
-                float right_depth =
+                double right_depth =
                   glm::dot((right->state.previous.translation.value +
-                            (right->state.active.translation.value - right->state.previous.translation.value) *
-                              static_cast<float>(alpha)) -
+                            (right->state.active.translation.value - right->state.previous.translation.value) * alpha) -
                              camera_translation,
                            camera_forward);
-                if (!equal(left_depth, right_depth, 1e-4f)) return left_depth > right_depth;
+                if (!equal(left_depth, right_depth, 1e-4)) return left_depth > right_depth;
                 return left->graphics.active.property.priority < right->graphics.active.property.priority;
               });
     return render_order;
   }
 
-  camera_graphics::camera_graphics(const double fov_) : previous{fov_}, active{fov_}, near_clip{0.01f}, far_clip{100.0f}
+  camera_graphics::camera_graphics(const double fov_) : previous{fov_}, active{fov_}, near_clip{0.01}, far_clip{100.0}
   {
   }
 
   void camera_graphics::update_previous() { previous.fov = active.fov; }
 
-  glm::mat4 camera_graphics::calculate_projection_matrix(const double alpha, const float aspect_ratio)
+  glm::dmat4 camera_graphics::calculate_projection_matrix(const double alpha, const double aspect_ratio)
   {
-    return glm::perspective(
-      glm::radians(static_cast<float>(previous.fov.value + (active.fov.value - previous.fov.value) * alpha)),
-      aspect_ratio, near_clip, far_clip);
+    return glm::perspective(glm::radians(previous.fov.value + (active.fov.value - previous.fov.value) * alpha),
+                            aspect_ratio, near_clip, far_clip);
   }
 
   object_graphics::object_graphics(const std::pair<vertex, fragment> &shader_,
@@ -747,9 +745,11 @@ namespace cse::help
   }
 
   void object_graphics::push_uniform_data(SDL_GPUCommandBuffer *command_buffer,
-                                          const std::array<glm::mat4, 3> &matrices, const double alpha)
+                                          const std::array<glm::dmat4, 3> &matrices, const double alpha)
   {
-    SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
+    const std::array<glm::mat4, 3> final_matrices{glm::mat4{matrices[0]}, glm::mat4{matrices[1]},
+                                                  glm::mat4{matrices[2]}};
+    SDL_PushGPUVertexUniformData(command_buffer, 0, &final_matrices, sizeof(final_matrices));
     const auto transparency{
       static_cast<float>(previous.texture.transparency.value +
                          (active.texture.transparency.value - previous.texture.transparency.value) * alpha)};

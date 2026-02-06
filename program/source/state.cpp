@@ -3,9 +3,9 @@
 #include <cmath>
 #include <tuple>
 
-#include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
-#include "glm/ext/vector_float3.hpp"
+#include "glm/ext/vector_double3.hpp"
 #include "glm/ext/vector_int3.hpp"
 #include "glm/ext/vector_uint2.hpp"
 #include "glm/trigonometric.hpp"
@@ -83,18 +83,17 @@ namespace cse::help
     for (const auto &[name, object] : active.objects) previous.object_names.insert(name);
   }
 
-  camera_state::camera_state(const std::tuple<glm::vec3, glm::vec3, glm::vec3> &transform_)
+  camera_state::camera_state(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_)
     : previous{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)},
       active{{}, {}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)}
   {
   }
 
-  glm::mat4 camera_state::calculate_view_matrix(const double alpha) const
+  glm::dmat4 camera_state::calculate_view_matrix(const double alpha) const
   {
-    auto translation =
-      previous.translation.value + (active.translation.value - previous.translation.value) * static_cast<float>(alpha);
-    auto forward = previous.forward.value + (active.forward.value - previous.forward.value) * static_cast<float>(alpha);
-    auto up = previous.up.value + (active.up.value - previous.up.value) * static_cast<float>(alpha);
+    auto translation = previous.translation.value + (active.translation.value - previous.translation.value) * alpha;
+    auto forward = previous.forward.value + (active.forward.value - previous.forward.value) * alpha;
+    auto up = previous.up.value + (active.up.value - previous.up.value) * alpha;
     return glm::lookAt(translation, translation + forward, up);
   }
 
@@ -108,36 +107,33 @@ namespace cse::help
 
   object_state::object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_)
     : previous{{},
-               glm::vec3{std::get<0>(transform_)},
-               glm::vec3{std::get<1>(transform_)},
-               glm::vec3{std::get<2>(transform_)}},
+               glm::dvec3{std::get<0>(transform_)},
+               glm::dvec3{std::get<1>(transform_)},
+               glm::dvec3{std::get<2>(transform_)}},
       active{{},
              {},
-             glm::vec3{std::get<0>(transform_)},
-             glm::vec3{std::get<1>(transform_)},
-             glm::vec3{std::get<2>(transform_)}}
+             glm::dvec3{std::get<0>(transform_)},
+             glm::dvec3{std::get<1>(transform_)},
+             glm::dvec3{std::get<2>(transform_)}}
   {
   }
 
-  glm::mat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
-                                                 const double alpha) const
+  glm::dmat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
+                                                  const double alpha) const
   {
-    auto translation =
-      previous.translation.value + (active.translation.value - previous.translation.value) * static_cast<float>(alpha);
-    auto rotation =
-      previous.rotation.value + (active.rotation.value - previous.rotation.value) * static_cast<float>(alpha);
-    auto scale = previous.scale.value + (active.scale.value - previous.scale.value) * static_cast<float>(alpha);
-    glm::mat4 model_matrix{glm::mat4(1.0f)};
+    auto translation = previous.translation.value + (active.translation.value - previous.translation.value) * alpha;
+    auto rotation = previous.rotation.value + (active.rotation.value - previous.rotation.value) * alpha;
+    auto scale = previous.scale.value + (active.scale.value - previous.scale.value) * alpha;
+    glm::dmat4 model_matrix{glm::dmat4(1.0)};
+    model_matrix = glm::translate(model_matrix, {std::floor(translation.x + 0.5) - (frame_width % 2 == 1 ? 0.5 : 0.0),
+                                                 std::floor(translation.y + 0.5) - (frame_height % 2 == 1 ? 0.5 : 0.0),
+                                                 std::floor(translation.z + 0.5)});
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.x) * 90.0), glm::dvec3{1.0, 0.0, 0.0});
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.y) * 90.0), glm::dvec3{0.0, 1.0, 0.0});
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.z) * 90.0), glm::dvec3{0.0, 0.0, 1.0});
     model_matrix =
-      glm::translate(model_matrix, {std::floor(translation.x + 0.5f) - (frame_width % 2 == 1 ? 0.5f : 0.0f),
-                                    std::floor(translation.y + 0.5f) - (frame_height % 2 == 1 ? 0.5f : 0.0f),
-                                    std::floor(translation.z + 0.5f)});
-    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.x) * 90.0f), glm::vec3{1.0f, 0.0f, 0.0f});
-    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.y) * 90.0f), glm::vec3{0.0f, 1.0f, 0.0f});
-    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation.z) * 90.0f), glm::vec3{0.0f, 0.0f, 1.0f});
-    model_matrix =
-      glm::scale(model_matrix, {std::floor(scale.x) * static_cast<float>(frame_width) / 2.0f,
-                                std::floor(scale.y) * static_cast<float>(frame_height) / 2.0f, std::floor(scale.z)});
+      glm::scale(model_matrix, {std::floor(scale.x) * static_cast<double>(frame_width) / 2.0,
+                                std::floor(scale.y) * static_cast<double>(frame_height) / 2.0, std::floor(scale.z)});
     return model_matrix;
   }
 

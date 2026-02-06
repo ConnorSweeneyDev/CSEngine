@@ -11,7 +11,7 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
-#include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_float4.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
@@ -93,9 +93,8 @@ namespace cse::help
     void create_window(const unsigned int width, const unsigned int height, int &left, int &top,
                        SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
-    void start_render_pass(const unsigned int width, const unsigned int height, const float aspect_ratio,
-                           const glm::vec4 &previous_clear_color, const glm::vec4 &active_clear_color,
-                           const double alpha);
+    void start_render_pass(const unsigned int width, const unsigned int height, const glm::vec4 &previous_clear_color,
+                           const glm::vec4 &active_clear_color, const double alpha, const double aspect_ratio);
     void end_render_pass();
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
@@ -172,15 +171,15 @@ namespace cse::help
   private:
     void update_previous();
 
-    glm::mat4 calculate_projection_matrix(const double alpha, const float aspect_ratio);
+    glm::dmat4 calculate_projection_matrix(const double alpha, const double aspect_ratio);
 
   public:
     struct previous previous{};
     struct active active{};
 
   private:
-    float near_clip{};
-    float far_clip{};
+    double near_clip{};
+    double far_clip{};
   };
 
   struct object_graphics
@@ -253,7 +252,7 @@ namespace cse::help
     void generate_and_upload_texture();
     void update_animation(const float poll_rate);
     void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass, const double alpha);
-    void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const std::array<glm::mat4, 3> &matrices,
+    void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const std::array<glm::dmat4, 3> &matrices,
                            const double alpha);
     void draw_primitives(SDL_GPURenderPass *render_pass);
     void destroy_resources(SDL_GPUDevice *gpu);
