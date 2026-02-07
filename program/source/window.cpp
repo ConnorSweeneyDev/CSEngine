@@ -3,7 +3,7 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
-#include "glm/ext/vector_float4.hpp"
+#include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
 #include "exception.hpp"
@@ -80,14 +80,14 @@ namespace cse
     hooks.call<void(const bool *)>(hook::INPUT, state.input);
   }
 
-  void window::simulate(const float poll_rate)
+  void window::simulate(const double poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before simulation");
     timers.update(poll_rate);
-    hooks.call<void(const float)>(hook::SIMULATE, poll_rate);
+    hooks.call<void(const double)>(hook::SIMULATE, poll_rate);
   }
 
-  bool window::pre_render(const glm::vec4 &previous_clear_color, const glm::vec4 &active_clear_color,
+  bool window::pre_render(const glm::dvec4 &previous_clear_color, const glm::dvec4 &active_clear_color,
                           const double alpha, const double aspect_ratio)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");

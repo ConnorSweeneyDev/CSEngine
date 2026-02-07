@@ -7,7 +7,7 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
-#include "glm/ext/vector_float4.hpp"
+#include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_int3.hpp"
 
 #include "exception.hpp"
@@ -19,7 +19,7 @@ namespace cse
 {
   object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_,
                  const std::pair<vertex, fragment> &shader_,
-                 const std::tuple<image, group, animation, flip, glm::vec4, double> &texture_,
+                 const std::tuple<image, group, animation, flip, glm::dvec4, double> &texture_,
                  const std::tuple<int> &property_)
     : state{transform_}, graphics{shader_, texture_, property_}
   {
@@ -62,12 +62,12 @@ namespace cse
     hooks.call<void(const bool *)>(hook::INPUT, input);
   }
 
-  void object::simulate(const float poll_rate)
+  void object::simulate(const double poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
     timers.update(poll_rate);
     graphics.update_animation(poll_rate);
-    hooks.call<void(const float)>(hook::SIMULATE, poll_rate);
+    hooks.call<void(const double)>(hook::SIMULATE, poll_rate);
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,

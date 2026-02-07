@@ -7,7 +7,7 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
-#include "glm/ext/vector_float4.hpp"
+#include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_int3.hpp"
 
 #include "declaration.hpp"
@@ -46,7 +46,7 @@ namespace cse
 
   protected:
     object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const std::pair<vertex, fragment> &shader_,
-           const std::tuple<image, group, animation, flip, glm::vec4, double> &texture_,
+           const std::tuple<image, group, animation, flip, glm::dvec4, double> &texture_,
            const std::tuple<int> &property_);
 
   private:
@@ -55,7 +55,7 @@ namespace cse
     void previous();
     void event(const SDL_Event &event);
     void input(const bool *input);
-    void simulate(const float poll_rate);
+    void simulate(const double poll_rate);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const glm::dmat4 &projection_matrix, const glm::dmat4 &view_matrix, const double alpha);
     void destroy(SDL_GPUDevice *gpu);

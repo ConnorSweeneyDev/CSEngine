@@ -18,6 +18,7 @@
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_float4.hpp"
 #include "glm/ext/vector_uint2.hpp"
 #include "glm/geometric.hpp"
@@ -34,7 +35,7 @@
 
 namespace cse::help
 {
-  game_graphics::game_graphics(const double frame_rate_, const double aspect_ratio_, const glm::vec4 &clear_color_)
+  game_graphics::game_graphics(const double frame_rate_, const double aspect_ratio_, const glm::dvec4 &clear_color_)
     : previous{frame_rate_, aspect_ratio_, clear_color_}, active{frame_rate_, aspect_ratio_, clear_color_}
   {
   }
@@ -114,15 +115,15 @@ namespace cse::help
   }
 
   void window_graphics::start_render_pass(const unsigned int width, const unsigned int height,
-                                          const glm::vec4 &previous_clear_color, const glm::vec4 &active_clear_color,
+                                          const glm::dvec4 &previous_clear_color, const glm::dvec4 &active_clear_color,
                                           const double alpha, const double aspect_ratio)
   {
     SDL_GPUColorTargetInfo color_target_info{};
     color_target_info.texture = swapchain_texture;
-    auto target_clear_color{previous_clear_color +
-                            (active_clear_color - previous_clear_color) * static_cast<float>(alpha)};
-    color_target_info.clear_color = {target_clear_color.r, target_clear_color.g, target_clear_color.b,
-                                     target_clear_color.a};
+    auto target_clear_color{previous_clear_color + (active_clear_color - previous_clear_color) * alpha};
+    color_target_info.clear_color = {static_cast<float>(target_clear_color.r), static_cast<float>(target_clear_color.g),
+                                     static_cast<float>(target_clear_color.b),
+                                     static_cast<float>(target_clear_color.a)};
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     SDL_GPUDepthStencilTargetInfo depth_stencil_target_info{};
@@ -367,7 +368,7 @@ namespace cse::help
   }
 
   object_graphics::object_graphics(const std::pair<vertex, fragment> &shader_,
-                                   const std::tuple<image, group, animation, flip, glm::vec4, double> &texture_,
+                                   const std::tuple<image, group, animation, flip, glm::dvec4, double> &texture_,
                                    const std::tuple<int> &property_)
     : previous{{std::get<0>(shader_), std::get<1>(shader_)},
                {std::get<0>(texture_), std::get<1>(texture_), std::get<2>(texture_), std::get<3>(texture_),
@@ -457,8 +458,9 @@ namespace cse::help
     auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     auto vertex{reinterpret_cast<struct vertex_data *>(start)};
     if (!vertex) throw sdl_exception("Could not map vertex data for object");
-    const auto color{previous.texture.color.value +
-                     (active.texture.color.value - previous.texture.color.value) * static_cast<float>(alpha)};
+    const auto precise_color{previous.texture.color.value +
+                             (active.texture.color.value - previous.texture.color.value) * alpha};
+    const glm::vec4 color{precise_color};
     auto &frame{active.texture.animation.frame};
     auto size{active.texture.group.frames.size()};
     if (frame >= size) frame = size - 1;
@@ -673,7 +675,7 @@ namespace cse::help
     texture_transfer_buffer = nullptr;
   }
 
-  void object_graphics::update_animation(const float poll_rate)
+  void object_graphics::update_animation(const double poll_rate)
   {
     auto &group{active.texture.group};
     auto &animation{active.texture.animation};
@@ -685,7 +687,7 @@ namespace cse::help
       animation.frame = frame_count - 1;
     if (animation.speed.value > 0.0 && !no_frames)
     {
-      animation.elapsed += static_cast<double>(poll_rate) * animation.speed.value;
+      animation.elapsed += poll_rate * animation.speed.value;
       while (true)
       {
         auto duration = group.frames[animation.frame].duration;
@@ -709,7 +711,7 @@ namespace cse::help
     }
     else if (animation.speed.value < 0.0 && !no_frames)
     {
-      animation.elapsed += static_cast<double>(poll_rate) * animation.speed.value;
+      animation.elapsed += poll_rate * animation.speed.value;
       while (animation.elapsed < 0)
         if (animation.frame > 0)
         {

@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "glm/ext/vector_float4.hpp"
+#include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
@@ -48,8 +48,8 @@ namespace cse
     void previous();
     void event();
     void input();
-    void simulate(const float poll_rate);
-    bool pre_render(const glm::vec4 &previous_clear_color, const glm::vec4 &active_clear_color, const double alpha,
+    void simulate(const double poll_rate);
+    bool pre_render(const glm::dvec4 &previous_clear_color, const glm::dvec4 &active_clear_color, const double alpha,
                     const double aspect_ratio);
     void post_render(const double alpha);
     void destroy();

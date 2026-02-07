@@ -66,7 +66,7 @@ namespace cse
     void sync(SDL_Window *instance, SDL_GPUDevice *gpu);
     void event(const SDL_Event &event);
     void input(const bool *input);
-    void simulate(const float poll_rate);
+    void simulate(const double poll_rate);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const double alpha, const double aspect_ratio);
     void destroy(SDL_GPUDevice *gpu);

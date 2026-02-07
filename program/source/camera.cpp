@@ -51,11 +51,11 @@ namespace cse
     hooks.call<void(const bool *)>(hook::INPUT, input);
   }
 
-  void camera::simulate(const float poll_rate)
+  void camera::simulate(const double poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before simulation");
     timers.update(poll_rate);
-    hooks.call<void(const float)>(hook::SIMULATE, poll_rate);
+    hooks.call<void(const double)>(hook::SIMULATE, poll_rate);
   }
 
   std::pair<glm::dmat4, glm::dmat4> camera::render(const double alpha, const double aspect_ratio)

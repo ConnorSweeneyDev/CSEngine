@@ -12,7 +12,7 @@
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
-#include "glm/ext/vector_float4.hpp"
+#include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
@@ -30,18 +30,18 @@ namespace cse::help
     {
       double frame_rate{};
       double aspect_ratio{};
-      temporal<glm::vec4> clear_color{};
+      temporal<glm::dvec4> clear_color{};
     };
     struct active
     {
       double frame_rate{};
       double aspect_ratio{};
-      temporal<glm::vec4> clear_color{};
+      temporal<glm::dvec4> clear_color{};
     };
 
   public:
     game_graphics() = default;
-    game_graphics(const double frame_rate_, const double aspect_ratio_, const glm::vec4 &clear_color_);
+    game_graphics(const double frame_rate_, const double aspect_ratio_, const glm::dvec4 &clear_color_);
     ~game_graphics() = default;
     game_graphics(const game_graphics &) = delete;
     game_graphics &operator=(const game_graphics &) = delete;
@@ -93,8 +93,8 @@ namespace cse::help
     void create_window(const unsigned int width, const unsigned int height, int &left, int &top,
                        SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
-    void start_render_pass(const unsigned int width, const unsigned int height, const glm::vec4 &previous_clear_color,
-                           const glm::vec4 &active_clear_color, const double alpha, const double aspect_ratio);
+    void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec4 &previous_clear_color,
+                           const glm::dvec4 &active_clear_color, const double alpha, const double aspect_ratio);
     void end_render_pass();
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
@@ -210,7 +210,7 @@ namespace cse::help
       struct group group{};
       struct animation animation{};
       struct flip flip{};
-      temporal<glm::vec4> color{};
+      temporal<glm::dvec4> color{};
       temporal<double> transparency{};
     };
     struct property
@@ -234,7 +234,7 @@ namespace cse::help
   public:
     object_graphics() = default;
     object_graphics(const std::pair<vertex, fragment> &shader_,
-                    const std::tuple<image, group, animation, flip, glm::vec4, double> &texture_,
+                    const std::tuple<image, group, animation, flip, glm::dvec4, double> &texture_,
                     const std::tuple<int> &property_);
     ~object_graphics() = default;
     object_graphics(const object_graphics &) = delete;
@@ -250,7 +250,7 @@ namespace cse::help
     void upload_dynamic_buffers(SDL_GPUDevice *gpu, const double alpha);
     void generate_pipeline();
     void generate_and_upload_texture();
-    void update_animation(const float poll_rate);
+    void update_animation(const double poll_rate);
     void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass, const double alpha);
     void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const std::array<glm::dmat4, 3> &matrices,
                            const double alpha);
