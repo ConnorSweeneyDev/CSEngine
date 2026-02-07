@@ -426,10 +426,10 @@ namespace cse::help
     auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     auto vertex{reinterpret_cast<struct vertex_data *>(start)};
     if (!vertex) throw sdl_exception("Could not map vertex data for object");
-    quad_vertices = std::array<struct vertex_data, 4>{{{1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 1.0f},
-                                                       {1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 1.0f, 0.0f},
-                                                       {-1.0f, 1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 1.0f},
-                                                       {-1.0f, -1.0f, 0.0f, 0, 0, 0, 0, 0.0f, 0.0f}}};
+    quad_vertices = std::array<struct vertex_data, 4>{{{1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f},
+                                                       {1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f},
+                                                       {-1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f},
+                                                       {-1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex);
     auto index{reinterpret_cast<Uint16 *>(start + sizeof(quad_vertices))};
     if (!index) throw sdl_exception("Could not map index data for object");
