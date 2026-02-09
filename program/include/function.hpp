@@ -36,7 +36,7 @@ namespace cse::trait
   template <typename signature> struct first_parameter;
   template <typename returned, typename first, typename... rest> struct first_parameter<returned(first, rest...)>
   {
-    using type = first_parameter;
+    using type = first;
   };
   template <typename type>
   concept is_callable =
