@@ -6,11 +6,11 @@
 #include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
+#include "enumeration.hpp"
 #include "graphics.hpp"
 #include "hooks.hpp"
 #include "state.hpp"
 #include "timers.hpp"
-#include "wrapper.hpp"
 
 namespace cse
 {

@@ -17,8 +17,9 @@
 
 #include "declaration.hpp"
 #include "name.hpp"
+#include "property.hpp"
 #include "resource.hpp"
-#include "wrapper.hpp"
+#include "temporal.hpp"
 
 namespace cse::help
 {

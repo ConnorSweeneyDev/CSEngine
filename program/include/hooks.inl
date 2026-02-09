@@ -9,9 +9,9 @@
 #include <typeindex>
 #include <variant>
 
+#include "enumeration.hpp"
 #include "exception.hpp"
 #include "traits.hpp"
-#include "wrapper.hpp"
 
 namespace cse::help
 {

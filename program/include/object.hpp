@@ -11,12 +11,12 @@
 #include "glm/ext/vector_int3.hpp"
 
 #include "declaration.hpp"
+#include "enumeration.hpp"
 #include "graphics.hpp"
 #include "hooks.hpp"
 #include "resource.hpp"
 #include "state.hpp"
 #include "timers.hpp"
-#include "wrapper.hpp"
 
 namespace cse
 {

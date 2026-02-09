@@ -6,13 +6,13 @@
 #include "glm/ext/vector_double4.hpp"
 
 #include "declaration.hpp"
+#include "enumeration.hpp"
 #include "graphics.hpp"
 #include "hooks.hpp"
 #include "name.hpp"
 #include "state.hpp"
 #include "timers.hpp"
 #include "traits.hpp"
-#include "wrapper.hpp"
 
 namespace cse
 {

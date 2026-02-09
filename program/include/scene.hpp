@@ -7,13 +7,13 @@
 #include "SDL3/SDL_video.h"
 
 #include "declaration.hpp"
+#include "enumeration.hpp"
 #include "graphics.hpp"
 #include "hooks.hpp"
 #include "name.hpp"
 #include "state.hpp"
 #include "timers.hpp"
 #include "traits.hpp"
-#include "wrapper.hpp"
 
 namespace cse
 {
