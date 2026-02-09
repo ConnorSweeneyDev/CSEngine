@@ -28,18 +28,18 @@ namespace cse::trait
   };
   template <typename type>
   concept is_smart = is_unique<type>::value || is_shared<type>::value || is_weak<type>::value;
-  template <typename type> struct smart_inner_type;
-  template <typename type> struct smart_inner_type<std::shared_ptr<type>>
+  template <typename inner> struct smart_inner;
+  template <typename inner> struct smart_inner<std::shared_ptr<inner>>
   {
-    using extracted_type = type;
+    using type = inner;
   };
-  template <typename type> struct smart_inner_type<std::unique_ptr<type>>
+  template <typename inner> struct smart_inner<std::unique_ptr<inner>>
   {
-    using extracted_type = type;
+    using type = inner;
   };
-  template <typename type> struct smart_inner_type<std::weak_ptr<type>>
+  template <typename inner> struct smart_inner<std::weak_ptr<inner>>
   {
-    using extracted_type = type;
+    using type = inner;
   };
 }
 

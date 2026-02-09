@@ -32,22 +32,22 @@ namespace cse::help
 
   template <typename callable, enumeration_value key> void hooks::set(const key name, callable &&function)
   {
-    using deduced_signature = typename trait::callable_traits<std::decay_t<callable>>::signature;
-    set<deduced_signature>(name, std::function<deduced_signature>(std::forward<callable>(function)));
+    using signature = typename trait::callable<std::decay_t<callable>>::signature;
+    set<signature>(name, std::function<signature>(std::forward<callable>(function)));
   }
 
   template <typename signature, enumeration_value key, typename... call_arguments>
   auto hooks::call(const key name, call_arguments &&...arguments) const
   {
-    using extracted_return_type = typename trait::function_traits<signature>::extracted_return_type;
+    using return_type = typename trait::function<signature>::return_type;
     auto iterator{entries.find(name)};
     if (iterator == entries.end())
     {
-      if constexpr (std::is_void_v<extracted_return_type>) return;
-      return extracted_return_type{};
+      if constexpr (std::is_void_v<return_type>) return;
+      return return_type{};
     }
     const auto &function{get_function<signature>(iterator->second)};
-    if constexpr (std::is_void_v<extracted_return_type>)
+    if constexpr (std::is_void_v<return_type>)
       function(std::forward<call_arguments>(arguments)...);
     else
       return function(std::forward<call_arguments>(arguments)...);
@@ -56,7 +56,7 @@ namespace cse::help
   template <typename signature, enumeration_value key, typename... call_arguments>
   auto hooks::try_call(const key name, call_arguments &&...arguments) const
   {
-    using return_type = typename trait::function_traits<signature>::extracted_return_type;
+    using return_type = typename trait::function<signature>::return_type;
     using optional_type = std::conditional_t<std::is_void_v<return_type>, std::monostate, return_type>;
     auto iterator{entries.find(name)};
     if (iterator == entries.end()) return std::optional<optional_type>{std::nullopt};

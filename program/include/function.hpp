@@ -7,48 +7,44 @@
 
 namespace cse::trait
 {
-  template <typename type> struct function_traits;
-  template <typename return_type, typename... arguments> struct function_traits<return_type(arguments...)>
+  template <typename type> struct function;
+  template <typename returned, typename... arguments> struct function<returned(arguments...)>
   {
-    using extracted_return_type = return_type;
+    using return_type = returned;
   };
 
-  template <typename type> struct callable_traits : callable_traits<decltype(&type::operator())>
+  template <typename type> struct callable : callable<decltype(&type::operator())>
   {
   };
-  template <typename class_type, typename return_type, typename... arguments>
-  struct callable_traits<return_type (class_type::*)(arguments...) const>
+  template <typename type, typename returned, typename... arguments>
+  struct callable<returned (type::*)(arguments...) const>
   {
-    using signature = return_type(arguments...);
+    using signature = returned(arguments...);
   };
-  template <typename class_type, typename return_type, typename... arguments>
-  struct callable_traits<return_type (class_type::*)(arguments...)>
+  template <typename type, typename returned, typename... arguments> struct callable<returned (type::*)(arguments...)>
   {
-    using signature = return_type(arguments...);
+    using signature = returned(arguments...);
   };
-  template <typename return_type, typename... arguments> struct callable_traits<return_type (*)(arguments...)>
+  template <typename returned, typename... arguments> struct callable<returned (*)(arguments...)>
   {
-    using signature = return_type(arguments...);
+    using signature = returned(arguments...);
   };
-  template <typename return_type, typename... arguments>
-  struct callable_traits<std::function<return_type(arguments...)>>
+  template <typename returned, typename... arguments> struct callable<std::function<returned(arguments...)>>
   {
-    using signature = return_type(arguments...);
+    using signature = returned(arguments...);
   };
-  template <typename signature> struct first_parameter_type;
-  template <typename return_type, typename first_parameter, typename... rest_parameters>
-  struct first_parameter_type<return_type(first_parameter, rest_parameters...)>
+  template <typename signature> struct first_parameter;
+  template <typename returned, typename first, typename... rest> struct first_parameter<returned(first, rest...)>
   {
     using type = first_parameter;
   };
   template <typename type>
   concept is_callable =
     std::is_function_v<std::remove_pointer_t<std::decay_t<type>>> || requires { &std::decay_t<type>::operator(); };
-  template <is_callable callable> struct type_from_callable
+  template <is_callable instance> struct callable_smart_inner
   {
-    using signature = typename callable_traits<std::decay_t<callable>>::signature;
-    using first = typename first_parameter_type<signature>::type;
-    using clean = std::remove_const_t<std::remove_reference_t<first>>;
-    using extracted_type = typename smart_inner_type<clean>::extracted_type;
+    using signature = typename callable<std::decay_t<instance>>::signature;
+    using first = typename first_parameter<signature>::type;
+    using type = typename smart_inner<std::remove_cvref_t<first>>::type;
   };
 }
