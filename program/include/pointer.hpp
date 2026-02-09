@@ -8,26 +8,26 @@
 
 namespace cse::trait
 {
-  template <typename type> struct is_shared : std::false_type
+  template <typename inner> struct is_shared : std::false_type
   {
   };
-  template <typename type> struct is_shared<std::shared_ptr<type>> : std::true_type
+  template <typename inner> struct is_shared<std::shared_ptr<inner>> : std::true_type
   {
   };
-  template <typename type> struct is_unique : std::false_type
+  template <typename inner> struct is_unique : std::false_type
   {
   };
-  template <typename type> struct is_unique<std::unique_ptr<type>> : std::true_type
+  template <typename inner> struct is_unique<std::unique_ptr<inner>> : std::true_type
   {
   };
-  template <typename type> struct is_weak : std::false_type
+  template <typename inner> struct is_weak : std::false_type
   {
   };
-  template <typename type> struct is_weak<std::weak_ptr<type>> : std::true_type
+  template <typename inner> struct is_weak<std::weak_ptr<inner>> : std::true_type
   {
   };
-  template <typename type>
-  concept is_smart = is_unique<type>::value || is_shared<type>::value || is_weak<type>::value;
+  template <typename inner>
+  concept is_smart = is_unique<inner>::value || is_shared<inner>::value || is_weak<inner>::value;
   template <typename inner> struct smart_inner;
   template <typename inner> struct smart_inner<std::shared_ptr<inner>>
   {
