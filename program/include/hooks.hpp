@@ -5,6 +5,8 @@
 #include <typeindex>
 #include <unordered_map>
 
+#include "wrapper.hpp"
+
 namespace cse::help
 {
   class hooks
@@ -17,18 +19,19 @@ namespace cse::help
     };
 
   public:
-    bool has(const int key) const;
-    template <typename signature> bool has(const int key) const;
-    template <typename signature> void set(const int key, const std::function<signature> &function);
-    template <typename callable> void set(const int key, callable &&function);
-    void remove(const int key);
+    template <enumeration_value key> bool has(const key name) const;
+    template <typename signature, enumeration_value key> bool has(const key name) const;
+    template <typename signature, enumeration_value key>
+    void set(const key name, const std::function<signature> &function);
+    template <typename callable, enumeration_value key> void set(const key name, callable &&function);
+    template <enumeration_value key> void remove(const key name);
     void reset() noexcept;
-    template <typename signature, typename... call_arguments>
-    auto call(const int key, call_arguments &&...arguments) const;
-    template <typename signature, typename... call_arguments>
-    auto try_call(const int key, call_arguments &&...arguments) const;
-    template <typename signature, typename... call_arguments>
-    auto throw_call(const int key, call_arguments &&...arguments) const;
+    template <typename signature, enumeration_value key, typename... call_arguments>
+    auto call(const key name, call_arguments &&...arguments) const;
+    template <typename signature, enumeration_value key, typename... call_arguments>
+    auto try_call(const key name, call_arguments &&...arguments) const;
+    template <typename signature, enumeration_value key, typename... call_arguments>
+    auto throw_call(const key name, call_arguments &&...arguments) const;
 
   private:
     template <typename signature> const std::function<signature> &get_function(const entry &entry) const;

@@ -88,6 +88,9 @@ namespace cse
     class value
     {
     public:
+      using is_enumeration_value = void;
+
+    public:
       value();
       explicit value(int count_);
 
@@ -103,6 +106,9 @@ namespace cse
   protected:
     static int next(std::optional<int> count = {});
   };
+
+  template <typename T>
+  concept enumeration_value = requires { typename T::is_enumeration_value; };
 }
 
 #include "wrapper.inl" // IWYU pragma: keep
