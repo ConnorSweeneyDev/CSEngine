@@ -47,8 +47,8 @@ namespace cse::trait
   template <is_callable callable> struct type_from_callable
   {
     using signature = typename callable_traits<std::decay_t<callable>>::signature;
-    using first_param = typename first_parameter_type<signature>::type;
-    using clean_param = std::remove_const_t<std::remove_reference_t<first_param>>;
-    using extracted_type = typename smart_inner_type<clean_param>::extracted_type;
+    using first = typename first_parameter_type<signature>::type;
+    using clean = std::remove_const_t<std::remove_reference_t<first>>;
+    using extracted_type = typename smart_inner_type<clean>::extracted_type;
   };
 }
