@@ -12,11 +12,11 @@
 
 #include "exception.hpp"
 #include "name.hpp"
+#include "numeric.hpp"
 #include "print.hpp"
 #include "scene.hpp"
 #include "state.hpp"
 #include "system.hpp"
-#include "utility.hpp"
 #include "window.hpp"
 
 namespace cse

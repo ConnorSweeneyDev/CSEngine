@@ -28,10 +28,10 @@
 #include "declaration.hpp"
 #include "exception.hpp"
 #include "name.hpp"
+#include "numeric.hpp"
 #include "object.hpp"
 #include "resource.hpp"
 #include "system.hpp"
-#include "utility.hpp"
 
 namespace cse::help
 {
