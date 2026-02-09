@@ -11,8 +11,8 @@
 #include <variant>
 
 #include "exception.hpp"
+#include "function.hpp"
 #include "name.hpp"
-#include "traits.hpp"
 
 namespace cse::help
 {
@@ -31,14 +31,14 @@ namespace cse::help
 
   template <typename callable> void timers::set(const name name, const double target, callable &&callback)
   {
-    using deduced_signature = typename callable_traits<std::decay_t<callable>>::signature;
+    using deduced_signature = typename trait::callable_traits<std::decay_t<callable>>::signature;
     set<deduced_signature>(name, target, std::function<deduced_signature>(std::forward<callable>(callback)));
   }
 
   template <typename signature, typename... call_arguments>
   auto timers::call(const name name, call_arguments &&...arguments)
   {
-    using extracted_return_type = typename function_traits<signature>::extracted_return_type;
+    using extracted_return_type = typename trait::function_traits<signature>::extracted_return_type;
     auto iterator{entries.find(name)};
     if (iterator == entries.end())
     {
@@ -68,7 +68,7 @@ namespace cse::help
   template <typename signature, typename... call_arguments>
   auto timers::try_call(const name name, call_arguments &&...arguments)
   {
-    using return_type = typename function_traits<signature>::extracted_return_type;
+    using return_type = typename trait::function_traits<signature>::extracted_return_type;
     using optional_type = std::conditional_t<std::is_void_v<return_type>, std::monostate, return_type>;
     auto iterator{entries.find(name)};
     if (iterator == entries.end()) return std::optional<optional_type>{std::nullopt};
@@ -97,7 +97,7 @@ namespace cse::help
     auto &target{iterator->second};
     if (target.time.elapsed < target.time.target) throw exception("Attempted to call timer before ready");
     const auto &function{get_function<signature>(target)};
-    using extracted_return_type = typename function_traits<signature>::extracted_return_type;
+    using extracted_return_type = typename trait::function_traits<signature>::extracted_return_type;
     if constexpr (std::is_void_v<extracted_return_type>)
     {
       function(std::forward<call_arguments>(arguments)...);

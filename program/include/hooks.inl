@@ -11,7 +11,7 @@
 
 #include "enumeration.hpp"
 #include "exception.hpp"
-#include "traits.hpp"
+#include "function.hpp"
 
 namespace cse::help
 {
@@ -32,14 +32,14 @@ namespace cse::help
 
   template <typename callable, enumeration_value key> void hooks::set(const key name, callable &&function)
   {
-    using deduced_signature = typename callable_traits<std::decay_t<callable>>::signature;
+    using deduced_signature = typename trait::callable_traits<std::decay_t<callable>>::signature;
     set<deduced_signature>(name, std::function<deduced_signature>(std::forward<callable>(function)));
   }
 
   template <typename signature, enumeration_value key, typename... call_arguments>
   auto hooks::call(const key name, call_arguments &&...arguments) const
   {
-    using extracted_return_type = typename function_traits<signature>::extracted_return_type;
+    using extracted_return_type = typename trait::function_traits<signature>::extracted_return_type;
     auto iterator{entries.find(name)};
     if (iterator == entries.end())
     {
@@ -56,7 +56,7 @@ namespace cse::help
   template <typename signature, enumeration_value key, typename... call_arguments>
   auto hooks::try_call(const key name, call_arguments &&...arguments) const
   {
-    using return_type = typename function_traits<signature>::extracted_return_type;
+    using return_type = typename trait::function_traits<signature>::extracted_return_type;
     using optional_type = std::conditional_t<std::is_void_v<return_type>, std::monostate, return_type>;
     auto iterator{entries.find(name)};
     if (iterator == entries.end()) return std::optional<optional_type>{std::nullopt};

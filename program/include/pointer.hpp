@@ -1,9 +1,47 @@
 #pragma once
 
 #include <memory>
+#include <type_traits>
 #include <typeinfo>
 
 #include "exception.hpp"
+
+namespace cse::trait
+{
+  template <typename type> struct is_shared : std::false_type
+  {
+  };
+  template <typename type> struct is_shared<std::shared_ptr<type>> : std::true_type
+  {
+  };
+  template <typename type> struct is_unique : std::false_type
+  {
+  };
+  template <typename type> struct is_unique<std::unique_ptr<type>> : std::true_type
+  {
+  };
+  template <typename type> struct is_weak : std::false_type
+  {
+  };
+  template <typename type> struct is_weak<std::weak_ptr<type>> : std::true_type
+  {
+  };
+  template <typename type>
+  concept is_smart = is_unique<type>::value || is_shared<type>::value || is_weak<type>::value;
+  template <typename type> struct smart_inner_type;
+  template <typename type> struct smart_inner_type<std::shared_ptr<type>>
+  {
+    using extracted_type = type;
+  };
+  template <typename type> struct smart_inner_type<std::unique_ptr<type>>
+  {
+    using extracted_type = type;
+  };
+  template <typename type> struct smart_inner_type<std::weak_ptr<type>>
+  {
+    using extracted_type = type;
+  };
+}
 
 template <typename... derived, typename base> bool is(const std::shared_ptr<base> &pointer) noexcept
 {

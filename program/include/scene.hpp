@@ -13,7 +13,6 @@
 #include "name.hpp"
 #include "state.hpp"
 #include "timers.hpp"
-#include "traits.hpp"
 
 namespace cse
 {
@@ -51,8 +50,8 @@ namespace cse
     scene(scene &&) = delete;
     scene &operator=(scene &&) = delete;
 
-    template <help::is_camera camera_type, typename... camera_arguments> scene &set(camera_arguments &&...arguments);
-    template <help::is_object object_type, typename... object_arguments>
+    template <trait::is_camera camera_type, typename... camera_arguments> scene &set(camera_arguments &&...arguments);
+    template <trait::is_object object_type, typename... object_arguments>
     scene &set(const name name, object_arguments &&...arguments);
     scene &remove(const name name);
 

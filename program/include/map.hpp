@@ -1,22 +1,22 @@
 #pragma once
 
-#include <concepts>
 #include <iterator>
 #include <memory>
 
 #include "exception.hpp"
 #include "name.hpp"
+#include "pointer.hpp"
 
-template <typename map, typename value>
+template <typename map>
 concept pointer_map = requires(const map &container, cse::name identifier) {
   { container.find(identifier) } -> std::input_iterator;
   { container.end() } -> std::sentinel_for<decltype(container.find(identifier))>;
-  { container.find(identifier)->second } -> std::convertible_to<std::shared_ptr<value>>;
   { container.begin() } -> std::input_iterator;
+  typename map::mapped_type;
+  requires cse::trait::is_smart<typename map::mapped_type>;
 };
 
-template <typename value, pointer_map<value> map>
-cse::name try_name(const map &container, const std::shared_ptr<value> &pointer) noexcept
+template <pointer_map map> cse::name try_name(const map &container, const typename map::mapped_type &pointer) noexcept
 {
   if (!pointer) return cse::name{};
   for (const auto &[name, entry] : container)
@@ -24,8 +24,8 @@ cse::name try_name(const map &container, const std::shared_ptr<value> &pointer) 
   return cse::name{};
 }
 
-template <typename value, pointer_map<value> map>
-cse::name try_name(const map &container, const std::weak_ptr<value> &pointer) noexcept
+template <pointer_map map>
+cse::name try_name(const map &container, const std::weak_ptr<typename map::mapped_type::element_type> &pointer) noexcept
 {
   auto locked{pointer.lock()};
   if (!locked) return cse::name{};
@@ -34,8 +34,7 @@ cse::name try_name(const map &container, const std::weak_ptr<value> &pointer) no
   return cse::name{};
 }
 
-template <typename value, pointer_map<value> map>
-cse::name throw_name(const map &container, const std::shared_ptr<value> &pointer)
+template <pointer_map map> cse::name throw_name(const map &container, const typename map::mapped_type &pointer)
 {
   if (!pointer) throw cse::exception("Pointer is null");
   for (const auto &[name, entry] : container)
@@ -43,8 +42,8 @@ cse::name throw_name(const map &container, const std::shared_ptr<value> &pointer
   throw cse::exception("Key lookup failed");
 }
 
-template <typename value, pointer_map<value> map>
-cse::name throw_name(const map &container, const std::weak_ptr<value> &pointer)
+template <pointer_map map>
+cse::name throw_name(const map &container, const std::weak_ptr<typename map::mapped_type::element_type> &pointer)
 {
   auto locked{pointer.lock()};
   if (!locked) throw cse::exception("Weak pointer lock failed");
@@ -53,16 +52,14 @@ cse::name throw_name(const map &container, const std::weak_ptr<value> &pointer)
   throw cse::exception("Key lookup failed");
 }
 
-template <typename value, pointer_map<value> map>
-std::shared_ptr<value> try_find(const map &container, const cse::name identifier) noexcept
+template <pointer_map map> typename map::mapped_type try_find(const map &container, const cse::name identifier) noexcept
 {
   auto iterator{container.find(identifier)};
   if (iterator == container.end()) return nullptr;
   return iterator->second;
 }
 
-template <typename value, pointer_map<value> map>
-std::shared_ptr<value> throw_find(const map &container, const cse::name identifier)
+template <pointer_map map> typename map::mapped_type throw_find(const map &container, const cse::name identifier)
 {
   auto iterator{container.find(identifier)};
   if (iterator == container.end()) throw cse::exception("Map lookup failed");

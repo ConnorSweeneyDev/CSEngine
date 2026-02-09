@@ -5,14 +5,14 @@
 #include <memory>
 
 #include "camera.hpp"
+#include "declaration.hpp"
 #include "name.hpp"
 #include "object.hpp"
 #include "state.hpp"
-#include "traits.hpp"
 
 namespace cse
 {
-  template <help::is_camera camera_type, typename... camera_arguments>
+  template <trait::is_camera camera_type, typename... camera_arguments>
   scene &scene::set(camera_arguments &&...arguments)
   {
     auto camera{std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...)};
@@ -33,7 +33,7 @@ namespace cse
     return *this;
   }
 
-  template <help::is_object object_type, typename... object_arguments>
+  template <trait::is_object object_type, typename... object_arguments>
   scene &scene::set(const name name, object_arguments &&...arguments)
   {
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
