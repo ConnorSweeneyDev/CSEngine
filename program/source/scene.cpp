@@ -15,7 +15,7 @@
 
 namespace cse
 {
-  scene &scene::remove(const help::name name)
+  scene &scene::remove(const name name)
   {
     if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
     {

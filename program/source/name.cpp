@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace cse::help
+namespace cse
 {
   name::name(const std::string &string_) : hash{hash_runtime(string_)} {}
 

@@ -27,7 +27,7 @@ namespace cse
   {
   }
 
-  game &game::current(const help::name name)
+  game &game::current(const name name)
   {
     if (auto iterator{state.active.scenes.find(name)}; iterator == state.active.scenes.end())
       throw exception("Tried to set current scene to null");
@@ -41,7 +41,7 @@ namespace cse
     return *this;
   }
 
-  game &game::remove(const help::name name)
+  game &game::remove(const name name)
   {
     if (auto iterator{state.active.scenes.find(name)}; iterator != state.active.scenes.end())
     {

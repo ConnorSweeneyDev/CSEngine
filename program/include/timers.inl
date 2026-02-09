@@ -16,7 +16,7 @@
 
 namespace cse::help
 {
-  template <typename signature> bool timers::has(const help::name name) const
+  template <typename signature> bool timers::has(const name name) const
   {
     auto iterator{entries.find(name)};
     if (iterator == entries.end()) return false;
@@ -24,19 +24,19 @@ namespace cse::help
   }
 
   template <typename signature>
-  void timers::set(const help::name name, const double target, const std::function<signature> &callback)
+  void timers::set(const name name, const double target, const std::function<signature> &callback)
   {
     entries.insert_or_assign(name, entry{callback, std::type_index(typeid(signature)), {0.0, target}});
   }
 
-  template <typename callable> void timers::set(const help::name name, const double target, callable &&callback)
+  template <typename callable> void timers::set(const name name, const double target, callable &&callback)
   {
     using deduced_signature = typename callable_traits<std::decay_t<callable>>::signature;
     set<deduced_signature>(name, target, std::function<deduced_signature>(std::forward<callable>(callback)));
   }
 
   template <typename signature, typename... call_arguments>
-  auto timers::call(const help::name name, call_arguments &&...arguments)
+  auto timers::call(const name name, call_arguments &&...arguments)
   {
     using extracted_return_type = typename function_traits<signature>::extracted_return_type;
     auto iterator{entries.find(name)};
@@ -66,7 +66,7 @@ namespace cse::help
   }
 
   template <typename signature, typename... call_arguments>
-  auto timers::try_call(const help::name name, call_arguments &&...arguments)
+  auto timers::try_call(const name name, call_arguments &&...arguments)
   {
     using return_type = typename function_traits<signature>::extracted_return_type;
     using optional_type = std::conditional_t<std::is_void_v<return_type>, std::monostate, return_type>;
@@ -90,7 +90,7 @@ namespace cse::help
   }
 
   template <typename signature, typename... call_arguments>
-  auto timers::throw_call(const help::name name, call_arguments &&...arguments)
+  auto timers::throw_call(const name name, call_arguments &&...arguments)
   {
     auto iterator{entries.find(name)};
     if (iterator == entries.end()) throw exception("Attempted to call non-existent timer");

@@ -324,7 +324,7 @@ namespace cse::help
 
   std::vector<std::shared_ptr<object>>
   scene_graphics::generate_render_order(const std::shared_ptr<camera> camera,
-                                        const std::unordered_map<help::name, std::shared_ptr<object>> &objects,
+                                        const std::unordered_map<name, std::shared_ptr<object>> &objects,
                                         const double alpha)
   {
     std::vector<std::shared_ptr<object>> render_order{};

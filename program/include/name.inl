@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace cse::help
+namespace cse
 {
   constexpr name::name(const char *string_) : hash{hash_compiletime(string_)} {}
 
@@ -19,7 +19,7 @@ namespace cse::help
   }
 }
 
-inline std::size_t std::hash<cse::help::name>::operator()(const cse::help::name &id) const
+inline std::size_t std::hash<cse::name>::operator()(const cse::name &id) const
 {
   return static_cast<std::size_t>(id.get_hash());
 }

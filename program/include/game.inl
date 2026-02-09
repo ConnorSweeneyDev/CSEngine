@@ -49,7 +49,7 @@ namespace cse
   }
 
   template <help::is_scene scene_type, typename... scene_arguments>
-  game &game::set(const help::name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+  game &game::set(const name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                   scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
@@ -74,7 +74,7 @@ namespace cse
   }
 
   template <help::is_callable callable, typename... scene_arguments>
-  game &game::set(const help::name name, callable &&config, scene_arguments &&...arguments)
+  game &game::set(const name name, callable &&config, scene_arguments &&...arguments)
   {
     using scene_type = typename help::type_from_callable<callable>::extracted_type;
     return set<scene_type, scene_arguments...>(
@@ -83,7 +83,7 @@ namespace cse
   }
 
   template <help::is_scene scene_type, typename... scene_arguments>
-  game &game::current(const help::name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+  game &game::current(const name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                       scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
@@ -101,7 +101,7 @@ namespace cse
   }
 
   template <help::is_callable callable, typename... scene_arguments>
-  game &game::current(const help::name name, callable &&config, scene_arguments &&...arguments)
+  game &game::current(const name name, callable &&config, scene_arguments &&...arguments)
   {
     using scene_type = typename help::type_from_callable<callable>::extracted_type;
     return current<scene_type, scene_arguments...>(

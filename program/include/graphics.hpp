@@ -143,7 +143,7 @@ namespace cse::help
   private:
     std::vector<std::shared_ptr<object>>
     generate_render_order(const std::shared_ptr<camera> camera,
-                          const std::unordered_map<help::name, std::shared_ptr<object>> &objects, const double alpha);
+                          const std::unordered_map<name, std::shared_ptr<object>> &objects, const double alpha);
   };
 
   struct camera_graphics

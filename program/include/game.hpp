@@ -54,17 +54,17 @@ namespace cse
     static std::shared_ptr<game> create(callable &&config, game_arguments &&...arguments);
     template <help::is_window window_type, typename... window_arguments> game &set(window_arguments &&...arguments);
     template <help::is_scene scene_type, typename... scene_arguments>
-    game &set(const help::name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+    game &set(const name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
               scene_arguments &&...arguments);
     template <help::is_callable callable, typename... scene_arguments>
-    game &set(const help::name name, callable &&config, scene_arguments &&...arguments);
+    game &set(const name name, callable &&config, scene_arguments &&...arguments);
     template <help::is_scene scene_type, typename... scene_arguments>
-    game &current(const help::name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+    game &current(const name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
                   scene_arguments &&...arguments);
     template <help::is_callable callable, typename... scene_arguments>
-    game &current(const help::name name, callable &&config, scene_arguments &&...arguments);
-    game &current(const help::name name);
-    game &remove(const help::name name);
+    game &current(const name name, callable &&config, scene_arguments &&...arguments);
+    game &current(const name name);
+    game &remove(const name name);
 
     void run();
 

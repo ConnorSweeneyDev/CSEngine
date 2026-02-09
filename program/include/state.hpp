@@ -42,7 +42,7 @@ namespace cse::help
     {
       enum phase phase = {};
       std::shared_ptr<class window> window{};
-      std::unordered_set<help::name> scene_names{};
+      std::unordered_set<name> scene_names{};
       struct scene_reference scene{};
       double poll_rate{};
     };
@@ -51,7 +51,7 @@ namespace cse::help
       enum phase phase = {};
       std::weak_ptr<class game> parent{};
       std::shared_ptr<class window> window{};
-      std::unordered_map<help::name, std::shared_ptr<class scene>> scenes{};
+      std::unordered_map<name, std::shared_ptr<class scene>> scenes{};
       struct scene_reference scene{};
       double poll_rate{};
     };
@@ -148,14 +148,14 @@ namespace cse::help
     {
       enum phase phase = {};
       std::shared_ptr<class camera> camera{};
-      std::unordered_set<help::name> object_names{};
+      std::unordered_set<name> object_names{};
     };
     struct active
     {
       enum phase phase = {};
       std::weak_ptr<class game> parent{};
       std::shared_ptr<class camera> camera{};
-      std::unordered_map<help::name, std::shared_ptr<class object>> objects{};
+      std::unordered_map<name, std::shared_ptr<class object>> objects{};
     };
     struct next
     {
@@ -179,8 +179,8 @@ namespace cse::help
     struct next next{};
 
   private:
-    std::unordered_set<help::name> removals{};
-    std::unordered_map<help::name, std::shared_ptr<object>> additions{};
+    std::unordered_set<name> removals{};
+    std::unordered_map<name, std::shared_ptr<object>> additions{};
   };
 
   struct camera_state

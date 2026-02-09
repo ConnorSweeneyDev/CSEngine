@@ -53,8 +53,8 @@ namespace cse
 
     template <help::is_camera camera_type, typename... camera_arguments> scene &set(camera_arguments &&...arguments);
     template <help::is_object object_type, typename... object_arguments>
-    scene &set(const help::name name, object_arguments &&...arguments);
-    scene &remove(const help::name name);
+    scene &set(const name name, object_arguments &&...arguments);
+    scene &remove(const name name);
 
   protected:
     scene() = default;

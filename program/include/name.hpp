@@ -5,7 +5,7 @@
 #include <functional>
 #include <string>
 
-namespace cse::help
+namespace cse
 {
   class name
   {
@@ -27,9 +27,9 @@ namespace cse::help
   };
 }
 
-template <> struct std::hash<cse::help::name>
+template <> struct std::hash<cse::name>
 {
-  std::size_t operator()(const cse::help::name &id) const;
+  std::size_t operator()(const cse::name &id) const;
 };
 
 #include "name.inl" // IWYU pragma: keep
