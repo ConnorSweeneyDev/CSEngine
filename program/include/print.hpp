@@ -7,7 +7,7 @@
 
 #include "exception.hpp"
 
-enum print_stream
+enum output_stream
 {
   COUT,
   CERR,
@@ -18,7 +18,7 @@ namespace cse
 {
   inline std::mutex print_mutex{};
 
-  template <print_stream stream, typename... message_arguments>
+  template <output_stream stream, typename... message_arguments>
   void print(std::format_string<message_arguments...> message, message_arguments &&...arguments)
   {
     std::lock_guard<std::mutex> lock(print_mutex);
