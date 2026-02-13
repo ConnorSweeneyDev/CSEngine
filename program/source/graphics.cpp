@@ -133,23 +133,23 @@ namespace cse::help
     depth_stencil_target_info.store_op = SDL_GPU_STOREOP_STORE;
     render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, &depth_stencil_target_info);
     if (!render_pass) throw sdl_exception("Could not begin GPU render pass");
-    float viewport_x{}, viewport_y{}, viewport_width{}, viewport_height{};
+    float viewport_left{}, viewport_top{}, viewport_width{}, viewport_height{};
     if ((static_cast<float>(width) / static_cast<float>(height)) > aspect_ratio)
     {
       viewport_height = static_cast<float>(height);
       viewport_width = viewport_height * static_cast<float>(aspect_ratio);
-      viewport_y = 0.0f;
-      viewport_x = (static_cast<float>(width) - viewport_width) / 2.0f;
+      viewport_top = 0.0f;
+      viewport_left = (static_cast<float>(width) - viewport_width) / 2.0f;
     }
     else
     {
       viewport_width = static_cast<float>(width);
       viewport_height = viewport_width / static_cast<float>(aspect_ratio);
-      viewport_x = 0.0f;
-      viewport_y = (static_cast<float>(height) - viewport_height) / 2.0f;
+      viewport_left = 0.0f;
+      viewport_top = (static_cast<float>(height) - viewport_height) / 2.0f;
     }
-    SDL_GPUViewport viewport{.x = viewport_x,
-                             .y = viewport_y,
+    SDL_GPUViewport viewport{.x = viewport_left,
+                             .y = viewport_top,
                              .w = viewport_width,
                              .h = viewport_height,
                              .min_depth = 0.0f,
@@ -287,9 +287,9 @@ namespace cse::help
       if (!SDL_SetWindowSize(instance, display_bounds.w, display_bounds.h))
         throw sdl_exception("Could not set window size to {}, {} on display {}", display_bounds.w, display_bounds.h,
                             display_index);
-      auto position{calculate_display_center(display_index, static_cast<unsigned int>(display_bounds.w),
-                                             static_cast<unsigned int>(display_bounds.h))};
-      if (!SDL_SetWindowPosition(instance, static_cast<int>(position.x), static_cast<int>(position.y)))
+      if (auto position{calculate_display_center(display_index, static_cast<unsigned int>(display_bounds.w),
+                                                 static_cast<unsigned int>(display_bounds.h))};
+          !SDL_SetWindowPosition(instance, static_cast<int>(position.x), static_cast<int>(position.y)))
         throw sdl_exception("Could not set window position centered on display {}", display_index);
       return;
     }
@@ -328,8 +328,7 @@ namespace cse::help
                                         const double alpha)
   {
     std::vector<std::shared_ptr<object>> render_order{};
-    render_order.reserve(objects.size());
-    for (const auto &[name, object] : objects) render_order.emplace_back(object);
+    for (render_order.reserve(objects.size()); const auto &[name, object] : objects) render_order.emplace_back(object);
     auto camera_translation =
       camera->state.previous.translation.value +
       (camera->state.active.translation.value - camera->state.previous.translation.value) * alpha;

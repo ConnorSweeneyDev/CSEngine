@@ -19,8 +19,7 @@ namespace cse
   sdl_exception::sdl_exception(const std::string &message_, message_arguments &&...arguments_)
     : exception{message_, std::forward<const message_arguments>(arguments_)...}
   {
-    const std::string sdl_error{SDL_GetError()};
-    if (sdl_error.empty())
+    if (const std::string sdl_error{SDL_GetError()}; sdl_error.empty())
       message = std::format("{}: Unknown SDL error", message);
     else
       message = std::format("{}: {}", message, sdl_error);

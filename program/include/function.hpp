@@ -16,6 +16,11 @@ namespace cse::trait
   template <typename type> struct callable : callable<decltype(&type::operator())>
   {
   };
+  template <typename type>
+    requires std::is_reference_v<type>
+  struct callable<type> : callable<std::decay_t<type>>
+  {
+  };
   template <typename type, typename returned, typename... arguments>
   struct callable<returned (type::*)(arguments...) const>
   {
@@ -43,7 +48,7 @@ namespace cse::trait
     std::is_function_v<std::remove_pointer_t<std::decay_t<type>>> || requires { &std::decay_t<type>::operator(); };
   template <is_callable instance> struct callable_smart_inner
   {
-    using signature = typename callable<std::decay_t<instance>>::signature;
+    using signature = typename callable<instance>::signature;
     using first = typename first_parameter<signature>::type;
     using type = typename smart_inner<std::remove_cvref_t<first>>::type;
   };

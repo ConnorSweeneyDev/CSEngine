@@ -19,8 +19,7 @@ namespace cse
   {
     if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
     {
-      auto &object{iterator->second};
-      if (state.active.phase == help::phase::CREATED)
+      if (auto &object{iterator->second}; state.active.phase == help::phase::CREATED)
         state.removals.insert(name);
       else
       {

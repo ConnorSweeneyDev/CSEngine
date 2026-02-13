@@ -32,7 +32,7 @@ namespace cse::help
 
   template <typename callable, enumeration_value key> void hooks::set(const key name, callable &&function)
   {
-    using signature = typename trait::callable<std::decay_t<callable>>::signature;
+    using signature = typename trait::callable<callable>::signature;
     set<signature>(name, std::function<signature>(std::forward<callable>(function)));
   }
 
