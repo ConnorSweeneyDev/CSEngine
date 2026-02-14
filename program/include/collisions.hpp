@@ -18,14 +18,14 @@ namespace cse
   {
     struct self
     {
-      name name{};
-      hitbox hitbox{};
+      class name name{};
+      cse::hitbox hitbox{};
       rectangle bounds{};
     } self;
     struct target
     {
-      name name{};
-      hitbox hitbox{};
+      class name name{};
+      cse::hitbox hitbox{};
       rectangle bounds{};
     } target;
 

@@ -123,7 +123,7 @@ namespace cse::help
     for (const auto &[target, target_pointer] : objects)
     {
       if (self == target) continue;
-      if (std::floor(target_pointer->state.active.translation.value.z + 0.5) != self_z) continue;
+      if (!(equal(std::floor(target_pointer->state.active.translation.value.z + 0.5), self_z))) continue;
       auto target_hitboxes{current_hitboxes(target_pointer)};
       if (target_hitboxes.empty()) continue;
       for (const auto &[self_hitbox, self_hitbox_object] : self_hitboxes)

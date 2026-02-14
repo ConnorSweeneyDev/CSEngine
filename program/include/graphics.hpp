@@ -211,8 +211,8 @@ namespace cse::help
       struct animation animation{};
       struct playback playback{};
       struct flip flip{};
-      temporal<color> color{};
-      temporal<transparency> transparency{};
+      temporal<cse::color> color{};
+      temporal<cse::transparency> transparency{};
     };
     struct property
     {

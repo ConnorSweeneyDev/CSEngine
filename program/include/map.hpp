@@ -7,16 +7,20 @@
 #include "name.hpp"
 #include "pointer.hpp"
 
-template <typename map>
-concept pointer_map = requires(const map &container, cse::name identifier) {
-  { container.find(identifier) } -> std::input_iterator;
-  { container.end() } -> std::sentinel_for<decltype(container.find(identifier))>;
-  { container.begin() } -> std::input_iterator;
-  typename map::mapped_type;
-  requires cse::trait::is_smart<typename map::mapped_type>;
-};
+namespace cse::trait
+{
+  template <typename map>
+  concept pointer_map = requires(const map &container, cse::name identifier) {
+    { container.find(identifier) } -> std::input_iterator;
+    { container.end() } -> std::sentinel_for<decltype(container.find(identifier))>;
+    { container.begin() } -> std::input_iterator;
+    typename map::mapped_type;
+    requires is_smart<typename map::mapped_type>;
+  };
+}
 
-template <pointer_map map> cse::name try_name(const map &container, const typename map::mapped_type &pointer) noexcept
+template <cse::trait::pointer_map map>
+cse::name try_name(const map &container, const typename map::mapped_type &pointer) noexcept
 {
   if (!pointer) return cse::name{};
   for (const auto &[name, entry] : container)
@@ -24,7 +28,7 @@ template <pointer_map map> cse::name try_name(const map &container, const typena
   return cse::name{};
 }
 
-template <pointer_map map>
+template <cse::trait::pointer_map map>
 cse::name try_name(const map &container, const std::weak_ptr<typename map::mapped_type::element_type> &pointer) noexcept
 {
   auto locked{pointer.lock()};
@@ -34,7 +38,8 @@ cse::name try_name(const map &container, const std::weak_ptr<typename map::mappe
   return cse::name{};
 }
 
-template <pointer_map map> cse::name throw_name(const map &container, const typename map::mapped_type &pointer)
+template <cse::trait::pointer_map map>
+cse::name throw_name(const map &container, const typename map::mapped_type &pointer)
 {
   if (!pointer) throw cse::exception("Pointer is null");
   for (const auto &[name, entry] : container)
@@ -42,7 +47,7 @@ template <pointer_map map> cse::name throw_name(const map &container, const type
   throw cse::exception("Key lookup failed");
 }
 
-template <pointer_map map>
+template <cse::trait::pointer_map map>
 cse::name throw_name(const map &container, const std::weak_ptr<typename map::mapped_type::element_type> &pointer)
 {
   auto locked{pointer.lock()};
@@ -52,14 +57,16 @@ cse::name throw_name(const map &container, const std::weak_ptr<typename map::map
   throw cse::exception("Key lookup failed");
 }
 
-template <pointer_map map> typename map::mapped_type try_find(const map &container, const cse::name identifier) noexcept
+template <cse::trait::pointer_map map>
+typename map::mapped_type try_find(const map &container, const cse::name identifier) noexcept
 {
   auto iterator{container.find(identifier)};
   if (iterator == container.end()) return nullptr;
   return iterator->second;
 }
 
-template <pointer_map map> typename map::mapped_type throw_find(const map &container, const cse::name identifier)
+template <cse::trait::pointer_map map>
+typename map::mapped_type throw_find(const map &container, const cse::name identifier)
 {
   auto iterator{container.find(identifier)};
   if (iterator == container.end()) throw cse::exception("Map lookup failed");
