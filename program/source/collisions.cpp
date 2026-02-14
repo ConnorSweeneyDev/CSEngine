@@ -69,27 +69,24 @@ namespace
                                   const cse::hitbox theirs, const cse::rectangle &self_bounds,
                                   const cse::rectangle &target_bounds)
   {
-    constexpr double epsilon{1e-9};
-
     glm::dvec2 overlap{
       std::min(self_bounds.right, target_bounds.right) - std::max(self_bounds.left, target_bounds.left),
       std::min(self_bounds.top, target_bounds.top) - std::max(self_bounds.bottom, target_bounds.bottom)};
-
     glm::dvec2 self_center{(self_bounds.left + self_bounds.right) * 0.5, (self_bounds.top + self_bounds.bottom) * 0.5};
     glm::dvec2 target_center{(target_bounds.left + target_bounds.right) * 0.5,
                              (target_bounds.top + target_bounds.bottom) * 0.5};
     glm::dvec2 center_delta{target_center.x - self_center.x, target_center.y - self_center.y};
 
+    constexpr double epsilon{1e-9};
     cse::axis minimum_axis{};
     if (overlap.x + epsilon < overlap.y)
       minimum_axis = cse::axis::X;
     else if (overlap.y + epsilon < overlap.x)
       minimum_axis = cse::axis::Y;
-    else if (std::fabs(center_delta.x) >= std::fabs(center_delta.y))
+    else if (std::abs(center_delta.x) >= std::abs(center_delta.y))
       minimum_axis = cse::axis::X;
     else
       minimum_axis = cse::axis::Y;
-
     glm::dvec2 normal{};
     glm::dvec2 penetration{};
     if (minimum_axis == cse::axis::X)
