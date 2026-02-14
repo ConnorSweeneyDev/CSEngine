@@ -9,6 +9,7 @@
 
 #include "glm/ext/vector_double2.hpp"
 
+#include "hitbox.hpp"
 #include "name.hpp"
 #include "object.hpp"
 #include "resource.hpp"

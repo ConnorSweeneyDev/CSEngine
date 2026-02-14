@@ -6,7 +6,7 @@
 
 #include "glm/ext/vector_double4.hpp"
 
-#include "name.hpp"
+#include "hitbox.hpp"
 #include "temporal.hpp"
 
 namespace cse
@@ -62,7 +62,7 @@ namespace cse
     {
       const rectangle coordinates{};
       const double duration{};
-      std::span<const std::pair<name, rectangle>> hitboxes{};
+      std::span<const std::pair<hitbox, rectangle>> hitboxes{};
     };
     std::span<const frame> frames{};
     std::size_t start{};

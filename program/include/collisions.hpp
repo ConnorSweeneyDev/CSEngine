@@ -7,13 +7,12 @@
 #include "glm/ext/vector_double2.hpp"
 
 #include "declaration.hpp"
+#include "hitbox.hpp"
 #include "name.hpp"
 #include "resource.hpp"
 
 namespace cse
 {
-  using hitbox = name;
-
   struct contact
   {
     enum class axis

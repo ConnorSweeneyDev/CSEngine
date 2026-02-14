@@ -2,6 +2,7 @@
 
 #include "collisions.hpp"
 
+#include "hitbox.hpp"
 #include "name.hpp"
 
 namespace cse::help
