@@ -58,11 +58,13 @@ namespace cse
     hooks.call<void(const double)>(hook::SIMULATE, poll_rate);
   }
 
-  std::pair<glm::dmat4, glm::dmat4> camera::render(const double alpha, const double aspect_ratio)
+  std::pair<glm::dmat4, glm::dmat4> camera::render(const double alpha, const double previous_aspect_ratio,
+                                                   const double active_aspect_ratio)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before rendering");
     hooks.call<void(const double)>(hook::RENDER, alpha);
-    return {graphics.calculate_projection_matrix(alpha, aspect_ratio), state.calculate_view_matrix(alpha)};
+    return {graphics.calculate_projection_matrix(alpha, previous_aspect_ratio, active_aspect_ratio),
+            state.calculate_view_matrix(alpha)};
   }
 
   void camera::destroy()

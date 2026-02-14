@@ -88,12 +88,12 @@ namespace cse
   }
 
   bool window::pre_render(const glm::dvec4 &previous_clear_color, const glm::dvec4 &active_clear_color,
-                          const double alpha, const double aspect_ratio)
+                          const double alpha, const double previous_aspect_ratio, const double active_aspect_ratio)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
     if (!graphics.acquire_swapchain_texture()) return false;
     graphics.start_render_pass(state.active.width, state.active.height, previous_clear_color, active_clear_color, alpha,
-                               aspect_ratio);
+                               previous_aspect_ratio, active_aspect_ratio);
     hooks.call<void(const double)>(hook::PRE_RENDER, alpha);
     return true;
   }

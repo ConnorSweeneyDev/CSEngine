@@ -203,11 +203,12 @@ namespace cse
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before rendering");
     hooks.call<void(const double)>(hook::PRE_RENDER, state.alpha);
     if (!state.active.window->pre_render(graphics.previous.clear_color.value, graphics.active.clear_color.value,
-                                         state.alpha, graphics.active.aspect_ratio))
+                                         state.alpha, graphics.previous.aspect_ratio.value,
+                                         graphics.active.aspect_ratio.value))
       return;
     state.active.scene.pointer->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
                                        state.active.window->graphics.render_pass, state.alpha,
-                                       graphics.active.aspect_ratio);
+                                       graphics.previous.aspect_ratio.value, graphics.active.aspect_ratio.value);
     state.active.window->post_render(state.alpha);
     hooks.call<void(const double)>(hook::POST_RENDER, state.alpha);
   }

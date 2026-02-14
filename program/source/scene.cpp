@@ -129,11 +129,11 @@ namespace cse
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     const double alpha, const double aspect_ratio)
+                     const double alpha, const double previous_aspect_ratio, const double active_aspect_ratio)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before rendering");
     hooks.call<void(const double)>(hook::PRE_RENDER, alpha);
-    auto matrices = state.active.camera->render(alpha, aspect_ratio);
+    auto matrices = state.active.camera->render(alpha, previous_aspect_ratio, active_aspect_ratio);
     for (const auto &object : graphics.generate_render_order(state.active.camera, state.active.objects, alpha))
       object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha);
     hooks.call<void(const double)>(hook::POST_RENDER, alpha);

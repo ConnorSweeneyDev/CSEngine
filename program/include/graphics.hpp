@@ -30,13 +30,13 @@ namespace cse::help
     struct previous
     {
       double frame_rate{};
-      double aspect_ratio{};
+      temporal<double> aspect_ratio{};
       temporal<glm::dvec4> clear_color{};
     };
     struct active
     {
       double frame_rate{};
-      double aspect_ratio{};
+      temporal<double> aspect_ratio{};
       temporal<glm::dvec4> clear_color{};
     };
 
@@ -95,7 +95,8 @@ namespace cse::help
                        SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
     void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec4 &previous_clear_color,
-                           const glm::dvec4 &active_clear_color, const double alpha, const double aspect_ratio);
+                           const glm::dvec4 &active_clear_color, const double alpha, const double previous_aspect_ratio,
+                           const double active_aspect_ratio);
     void end_render_pass();
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
@@ -172,7 +173,8 @@ namespace cse::help
   private:
     void update_previous();
 
-    glm::dmat4 calculate_projection_matrix(const double alpha, const double aspect_ratio);
+    glm::dmat4 calculate_projection_matrix(const double alpha, const double previous_aspect_ratio,
+                                           const double active_aspect_ratio);
 
   public:
     struct previous previous{};

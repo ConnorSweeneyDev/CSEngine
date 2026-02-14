@@ -67,7 +67,7 @@ namespace cse
     void input(const bool *input);
     void simulate(const double poll_rate);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const double alpha, const double aspect_ratio);
+                const double alpha, const double previous_aspect_ratio, const double active_aspect_ratio);
     void destroy(SDL_GPUDevice *gpu);
     void clean();
 

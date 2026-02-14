@@ -116,7 +116,8 @@ namespace cse::help
 
   void window_graphics::start_render_pass(const unsigned int width, const unsigned int height,
                                           const glm::dvec4 &previous_clear_color, const glm::dvec4 &active_clear_color,
-                                          const double alpha, const double aspect_ratio)
+                                          const double alpha, const double previous_aspect_ratio,
+                                          const double active_aspect_ratio)
   {
     SDL_GPUColorTargetInfo color_target_info{};
     color_target_info.texture = swapchain_texture;
@@ -134,17 +135,19 @@ namespace cse::help
     render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, &depth_stencil_target_info);
     if (!render_pass) throw sdl_exception("Could not begin GPU render pass");
     float viewport_left{}, viewport_top{}, viewport_width{}, viewport_height{};
-    if ((static_cast<float>(width) / static_cast<float>(height)) > aspect_ratio)
+    auto target_aspect_ratio{
+      static_cast<float>(previous_aspect_ratio + (active_aspect_ratio - previous_aspect_ratio) * alpha)};
+    if ((static_cast<float>(width) / static_cast<float>(height)) > target_aspect_ratio)
     {
       viewport_height = static_cast<float>(height);
-      viewport_width = viewport_height * static_cast<float>(aspect_ratio);
+      viewport_width = viewport_height * target_aspect_ratio;
       viewport_top = 0.0f;
       viewport_left = (static_cast<float>(width) - viewport_width) / 2.0f;
     }
     else
     {
       viewport_width = static_cast<float>(width);
-      viewport_height = viewport_width / static_cast<float>(aspect_ratio);
+      viewport_height = viewport_width / target_aspect_ratio;
       viewport_left = 0.0f;
       viewport_top = (static_cast<float>(height) - viewport_height) / 2.0f;
     }
@@ -360,10 +363,12 @@ namespace cse::help
 
   void camera_graphics::update_previous() { previous.fov = active.fov; }
 
-  glm::dmat4 camera_graphics::calculate_projection_matrix(const double alpha, const double aspect_ratio)
+  glm::dmat4 camera_graphics::calculate_projection_matrix(const double alpha, const double previous_aspect_ratio,
+                                                          const double active_aspect_ratio)
   {
     return glm::perspective(glm::radians(previous.fov.value + (active.fov.value - previous.fov.value) * alpha),
-                            aspect_ratio, near_clip, far_clip);
+                            previous_aspect_ratio + (active_aspect_ratio - previous_aspect_ratio) * alpha, near_clip,
+                            far_clip);
   }
 
   object_graphics::object_graphics(const std::pair<vertex, fragment> &shader_,

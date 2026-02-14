@@ -50,7 +50,7 @@ namespace cse
     void input();
     void simulate(const double poll_rate);
     bool pre_render(const glm::dvec4 &previous_clear_color, const glm::dvec4 &active_clear_color, const double alpha,
-                    const double aspect_ratio);
+                    const double previous_aspect_ratio, const double active_aspect_ratio);
     void post_render(const double alpha);
     void destroy();
     void clean();
