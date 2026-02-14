@@ -11,6 +11,7 @@
 
 #include "hitbox.hpp"
 #include "name.hpp"
+#include "numeric.hpp"
 #include "object.hpp"
 #include "resource.hpp"
 
@@ -79,32 +80,32 @@ namespace
                              (target_bounds.top + target_bounds.bottom) * 0.5};
     glm::dvec2 center_delta{target_center.x - self_center.x, target_center.y - self_center.y};
 
-    cse::contact::axis minimum_axis{cse::contact::axis::none};
+    cse::axis minimum_axis{};
     if (overlap.x + epsilon < overlap.y)
-      minimum_axis = cse::contact::axis::x;
+      minimum_axis = cse::axis::X;
     else if (overlap.y + epsilon < overlap.x)
-      minimum_axis = cse::contact::axis::y;
+      minimum_axis = cse::axis::Y;
     else if (std::fabs(center_delta.x) >= std::fabs(center_delta.y))
-      minimum_axis = cse::contact::axis::x;
+      minimum_axis = cse::axis::X;
     else
-      minimum_axis = cse::contact::axis::y;
+      minimum_axis = cse::axis::Y;
 
     glm::dvec2 normal{};
     glm::dvec2 penetration{};
-    if (minimum_axis == cse::contact::axis::x)
+    if (minimum_axis == cse::axis::X)
     {
       normal.x = center_delta.x >= 0.0 ? 1.0 : -1.0;
       penetration.x = normal.x * overlap.x;
     }
-    else if (minimum_axis == cse::contact::axis::y)
+    else if (minimum_axis == cse::axis::Y)
     {
       normal.y = center_delta.y >= 0.0 ? 1.0 : -1.0;
       penetration.y = normal.y * overlap.y;
     }
 
-    return {.minimum_axis = minimum_axis,
-            .self = {self, own, self_bounds},
+    return {.self = {self, own, self_bounds},
             .target = {target, theirs, target_bounds},
+            .minimum_axis = minimum_axis,
             .overlap = overlap,
             .normal = normal,
             .penetration = penetration};

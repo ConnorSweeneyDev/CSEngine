@@ -3,6 +3,16 @@
 #include <algorithm>
 #include <cmath>
 
+namespace cse
+{
+  enum class axis
+  {
+    X,
+    Y,
+    Z
+  };
+}
+
 template <typename number>
   requires std::is_integral_v<number>
 inline bool between(const number value, const number minimum, const number maximum)

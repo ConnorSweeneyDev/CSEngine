@@ -9,19 +9,13 @@
 #include "declaration.hpp"
 #include "hitbox.hpp"
 #include "name.hpp"
+#include "numeric.hpp"
 #include "resource.hpp"
 
 namespace cse
 {
   struct contact
   {
-    enum struct axis
-    {
-      none,
-      x,
-      y
-    } minimum_axis{};
-
     struct self
     {
       name name{};
@@ -35,6 +29,7 @@ namespace cse
       rectangle bounds{};
     } target;
 
+    axis minimum_axis{axis::Z};
     glm::dvec2 overlap{};
     glm::dvec2 normal{};
     glm::dvec2 penetration{};
