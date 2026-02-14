@@ -11,7 +11,7 @@
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_int3.hpp"
 
-#include "collision.hpp"
+#include "collisions.hpp"
 #include "exception.hpp"
 #include "graphics.hpp"
 #include "name.hpp"
