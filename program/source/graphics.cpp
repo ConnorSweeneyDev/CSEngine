@@ -367,7 +367,7 @@ namespace cse::help
   }
 
   object_graphics::object_graphics(const std::pair<vertex, fragment> &shader_,
-                                   const std::tuple<image, group, animation, flip, glm::dvec4, double> &texture_,
+                                   const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
                                    const std::tuple<int> &property_)
     : previous{{std::get<0>(shader_), std::get<1>(shader_)},
                {std::get<0>(texture_), std::get<1>(texture_), std::get<2>(texture_), std::get<3>(texture_),
@@ -388,8 +388,8 @@ namespace cse::help
     previous.shader.vertex = active.shader.vertex;
     previous.shader.fragment = active.shader.fragment;
     previous.texture.image = active.texture.image;
-    previous.texture.group = active.texture.group;
     previous.texture.animation = active.texture.animation;
+    previous.texture.playback = active.texture.playback;
     previous.texture.flip = active.texture.flip;
     previous.texture.color = active.texture.color;
     previous.texture.transparency = active.texture.transparency;
@@ -460,14 +460,15 @@ namespace cse::help
     const auto precise_color{previous.texture.color.value +
                              (active.texture.color.value - previous.texture.color.value) * alpha};
     const glm::vec4 color{precise_color};
-    auto &frame{active.texture.animation.frame};
-    auto size{active.texture.group.frames.size()};
+    auto &frame{active.texture.playback.frame};
+    auto size{active.texture.animation.frames.size()};
     if (frame >= size) frame = size - 1;
-    const auto &frame_coords{active.texture.group.frames[frame].coords};
-    const auto left{active.texture.flip.horizontal ? frame_coords.right : frame_coords.left},
-      right{active.texture.flip.horizontal ? frame_coords.left : frame_coords.right},
-      top{active.texture.flip.vertical ? frame_coords.bottom : frame_coords.top},
-      bottom{active.texture.flip.vertical ? frame_coords.top : frame_coords.bottom};
+    const auto &frame_coordinates{active.texture.animation.frames[frame].coordinates};
+    const float left{
+      static_cast<float>(active.texture.flip.horizontal ? frame_coordinates.right : frame_coordinates.left)},
+      right{static_cast<float>(active.texture.flip.horizontal ? frame_coordinates.left : frame_coordinates.right)},
+      top{static_cast<float>(active.texture.flip.vertical ? frame_coordinates.bottom : frame_coordinates.top)},
+      bottom{static_cast<float>(active.texture.flip.vertical ? frame_coordinates.top : frame_coordinates.bottom)};
     quad_vertices =
       std::array<struct vertex_data, 4>{{{1.0f, 1.0f, 0.0f, color.r, color.g, color.b, color.a, right, top},
                                          {1.0f, -1.0f, 0.0f, color.r, color.g, color.b, color.a, right, bottom},
@@ -674,56 +675,56 @@ namespace cse::help
     texture_transfer_buffer = nullptr;
   }
 
-  void object_graphics::update_animation(const double poll_rate)
+  void object_graphics::animate(const double poll_rate)
   {
-    auto &group{active.texture.group};
     auto &animation{active.texture.animation};
-    auto no_frames{group.frames.empty()};
-    auto frame_count{group.frames.size()};
+    auto &playback{active.texture.playback};
+    auto no_frames{animation.frames.empty()};
+    auto frame_count{animation.frames.size()};
     if (no_frames)
-      animation.frame = 0;
-    else if (animation.frame >= frame_count)
-      animation.frame = frame_count - 1;
-    if (animation.speed.value > 0.0 && !no_frames)
+      playback.frame = 0;
+    else if (playback.frame >= frame_count)
+      playback.frame = frame_count - 1;
+    if (playback.speed.value > 0.0 && !no_frames)
     {
-      animation.elapsed += poll_rate * animation.speed.value;
+      playback.elapsed += poll_rate * playback.speed.value;
       while (true)
       {
-        auto duration = group.frames[animation.frame].duration;
-        if (duration > 0 && animation.elapsed < duration) break;
-        if (animation.frame < frame_count - 1)
+        auto duration = animation.frames[playback.frame].duration;
+        if (duration > 0 && playback.elapsed < duration) break;
+        if (playback.frame < frame_count - 1)
         {
-          if (duration > 0) animation.elapsed -= duration;
-          animation.frame++;
+          if (duration > 0) playback.elapsed -= duration;
+          playback.frame++;
         }
-        else if (animation.loop)
+        else if (playback.loop)
         {
           if (duration > 0)
-            animation.elapsed -= duration;
+            playback.elapsed -= duration;
           else
             break;
-          animation.frame = 0;
+          playback.frame = 0;
         }
         else
           break;
       }
     }
-    else if (animation.speed.value < 0.0 && !no_frames)
+    else if (playback.speed.value < 0.0 && !no_frames)
     {
-      animation.elapsed += poll_rate * animation.speed.value;
-      while (animation.elapsed < 0)
-        if (animation.frame > 0)
+      playback.elapsed += poll_rate * playback.speed.value;
+      while (playback.elapsed < 0)
+        if (playback.frame > 0)
         {
-          animation.frame--;
-          auto duration = group.frames[animation.frame].duration;
-          if (duration > 0) animation.elapsed += duration;
+          playback.frame--;
+          auto duration = animation.frames[playback.frame].duration;
+          if (duration > 0) playback.elapsed += duration;
         }
-        else if (animation.loop)
+        else if (playback.loop)
         {
-          if (group.frames[0].duration <= 0) break;
-          animation.frame = frame_count - 1;
-          auto duration = group.frames[animation.frame].duration;
-          if (duration > 0) animation.elapsed += duration;
+          if (animation.frames[0].duration <= 0) break;
+          playback.frame = frame_count - 1;
+          auto duration = animation.frames[playback.frame].duration;
+          if (duration > 0) playback.elapsed += duration;
         }
         else
           break;

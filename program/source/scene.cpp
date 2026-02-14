@@ -124,6 +124,7 @@ namespace cse
     timers.update(poll_rate);
     state.active.camera->simulate(poll_rate);
     for (const auto &[name, object] : state.active.objects) object->simulate(poll_rate);
+    for (const auto &[name, object] : state.active.objects) object->collide(poll_rate, name, state.active.objects);
     hooks.call<void(const double)>(hook::POST_SIMULATE, poll_rate);
   }
 

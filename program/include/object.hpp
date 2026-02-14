@@ -1,19 +1,22 @@
 #pragma once
 
+#include <memory>
 #include <tuple>
+#include <unordered_map>
 #include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
-#include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_int3.hpp"
 
+#include "collision.hpp"
 #include "declaration.hpp"
 #include "enumeration.hpp"
 #include "graphics.hpp"
 #include "hooks.hpp"
+#include "name.hpp"
 #include "resource.hpp"
 #include "state.hpp"
 #include "timers.hpp"
@@ -32,6 +35,7 @@ namespace cse
       static inline const value EVENT{};
       static inline const value INPUT{};
       static inline const value SIMULATE{};
+      static inline const value COLLIDE{};
       static inline const value RENDER{};
       static inline const value DESTROY{};
       static inline const value CLEAN{};
@@ -46,7 +50,7 @@ namespace cse
 
   protected:
     object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const std::pair<vertex, fragment> &shader_,
-           const std::tuple<image, group, animation, flip, glm::dvec4, double> &texture_,
+           const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
            const std::tuple<int> &property_);
 
   private:
@@ -56,6 +60,8 @@ namespace cse
     void event(const SDL_Event &event);
     void input(const bool *input);
     void simulate(const double poll_rate);
+    void collide(const double poll_rate, const name self,
+                 const std::unordered_map<name, std::shared_ptr<object>> &objects);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const glm::dmat4 &projection_matrix, const glm::dmat4 &view_matrix, const double alpha);
     void destroy(SDL_GPUDevice *gpu);
@@ -66,5 +72,6 @@ namespace cse
     help::object_graphics graphics{};
     help::hooks hooks{};
     help::timers timers{};
+    help::collisions collisions{};
   };
 }

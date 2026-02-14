@@ -1,17 +1,20 @@
 #include "object.hpp"
 
+#include <memory>
 #include <tuple>
+#include <unordered_map>
 #include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
-#include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_int3.hpp"
 
+#include "collision.hpp"
 #include "exception.hpp"
 #include "graphics.hpp"
+#include "name.hpp"
 #include "resource.hpp"
 #include "state.hpp"
 
@@ -19,7 +22,7 @@ namespace cse
 {
   object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_,
                  const std::pair<vertex, fragment> &shader_,
-                 const std::tuple<image, group, animation, flip, glm::dvec4, double> &texture_,
+                 const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
                  const std::tuple<int> &property_)
     : state{transform_}, graphics{shader_, texture_, property_}
   {
@@ -66,8 +69,17 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
     timers.update(poll_rate);
-    graphics.update_animation(poll_rate);
+    graphics.animate(poll_rate);
     hooks.call<void(const double)>(hook::SIMULATE, poll_rate);
+  }
+
+  void object::collide(const double poll_rate, const name self,
+                       const std::unordered_map<name, std::shared_ptr<object>> &objects)
+  {
+    if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
+    collisions.update(self, objects);
+    hooks.call<void(const double)>(hook::COLLIDE, poll_rate);
+    collisions.clear();
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,

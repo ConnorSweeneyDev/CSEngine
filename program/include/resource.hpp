@@ -2,7 +2,11 @@
 
 #include <cstddef>
 #include <span>
+#include <utility>
 
+#include "glm/ext/vector_double4.hpp"
+
+#include "name.hpp"
 #include "temporal.hpp"
 
 namespace cse
@@ -40,30 +44,31 @@ namespace cse
     unsigned int frame_height{};
     unsigned int channels{};
   };
-  struct group
+  struct hitbox
   {
-    bool operator==(const group &other) const
+    double left{};
+    double top{};
+    double right{};
+    double bottom{};
+  };
+  struct animation
+  {
+    bool operator==(const animation &other) const
     {
       return frames.data() == other.frames.data() && frames.size() == other.frames.size();
     }
 
     struct frame
     {
-      struct rect
-      {
-        float top{};
-        float left{};
-        float bottom{};
-        float right{};
-      };
-      const rect coords{};
+      const hitbox coordinates{};
       const double duration{};
+      std::span<const std::pair<name, hitbox>> hitboxes{};
     };
     std::span<const frame> frames{};
     std::size_t start{};
     std::size_t end{};
   };
-  struct animation
+  struct playback
   {
     std::size_t frame{};
     temporal<double> speed{};
@@ -75,4 +80,6 @@ namespace cse
     bool horizontal{};
     bool vertical{};
   };
+  using color = glm::dvec4;
+  using transparency = double;
 }

@@ -208,11 +208,11 @@ namespace cse::help
     struct texture
     {
       cse::property<struct image> image{};
-      struct group group{};
       struct animation animation{};
+      struct playback playback{};
       struct flip flip{};
-      temporal<glm::dvec4> color{};
-      temporal<double> transparency{};
+      temporal<color> color{};
+      temporal<transparency> transparency{};
     };
     struct property
     {
@@ -235,7 +235,7 @@ namespace cse::help
   public:
     object_graphics() = default;
     object_graphics(const std::pair<vertex, fragment> &shader_,
-                    const std::tuple<image, group, animation, flip, glm::dvec4, double> &texture_,
+                    const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
                     const std::tuple<int> &property_);
     ~object_graphics() = default;
     object_graphics(const object_graphics &) = delete;
@@ -251,7 +251,7 @@ namespace cse::help
     void upload_dynamic_buffers(SDL_GPUDevice *gpu, const double alpha);
     void generate_pipeline();
     void generate_and_upload_texture();
-    void update_animation(const double poll_rate);
+    void animate(const double poll_rate);
     void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass, const double alpha);
     void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const std::array<glm::dmat4, 3> &matrices,
                            const double alpha);
