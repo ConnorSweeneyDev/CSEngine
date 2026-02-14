@@ -15,20 +15,26 @@ namespace cse
 {
   struct contact
   {
-    enum class axis
+    enum struct axis
     {
-      NONE,
-      X,
-      Y
+      none,
+      x,
+      y
     } minimum_axis{};
 
-    name self{};
-    name target{};
-    hitbox own{};
-    hitbox theirs{};
+    struct self
+    {
+      name name{};
+      hitbox hitbox{};
+      rectangle bounds{};
+    } self;
+    struct target
+    {
+      name name{};
+      hitbox hitbox{};
+      rectangle bounds{};
+    } target;
 
-    rectangle self_bounds{};
-    rectangle target_bounds{};
     glm::dvec2 overlap{};
     glm::dvec2 normal{};
     glm::dvec2 penetration{};

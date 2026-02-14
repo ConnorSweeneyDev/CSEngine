@@ -103,12 +103,8 @@ namespace
     }
 
     return {.minimum_axis = minimum_axis,
-            .self = self,
-            .target = target,
-            .own = own,
-            .theirs = theirs,
-            .self_bounds = self_bounds,
-            .target_bounds = target_bounds,
+            .self = {self, own, self_bounds},
+            .target = {target, theirs, target_bounds},
             .overlap = overlap,
             .normal = normal,
             .penetration = penetration};

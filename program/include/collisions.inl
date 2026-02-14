@@ -23,7 +23,7 @@ namespace cse::help
   {
     if (auto iterator{contacts.find(target)}; iterator != contacts.end())
       for (const auto &entry : iterator->second)
-        if (entry.own == own) config(entry);
+        if (entry.self.hitbox == own) config(entry);
   }
 
   template <typename callable>
@@ -31,6 +31,6 @@ namespace cse::help
   {
     if (auto iterator{contacts.find(target)}; iterator != contacts.end())
       for (const auto &entry : iterator->second)
-        if (entry.own == own && entry.theirs == theirs) config(entry);
+        if (entry.self.hitbox == own && entry.target.hitbox == theirs) config(entry);
   }
 }
