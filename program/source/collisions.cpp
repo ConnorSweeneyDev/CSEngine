@@ -79,24 +79,24 @@ namespace
                              (target_bounds.top + target_bounds.bottom) * 0.5};
     glm::dvec2 center_delta{target_center.x - self_center.x, target_center.y - self_center.y};
 
-    cse::contact::axis minimum_axis{cse::contact::axis::NONE};
+    cse::contact::axis minimum_axis{cse::contact::axis::none};
     if (overlap.x + epsilon < overlap.y)
-      minimum_axis = cse::contact::axis::X;
+      minimum_axis = cse::contact::axis::x;
     else if (overlap.y + epsilon < overlap.x)
-      minimum_axis = cse::contact::axis::Y;
+      minimum_axis = cse::contact::axis::y;
     else if (std::fabs(center_delta.x) >= std::fabs(center_delta.y))
-      minimum_axis = cse::contact::axis::X;
+      minimum_axis = cse::contact::axis::x;
     else
-      minimum_axis = cse::contact::axis::Y;
+      minimum_axis = cse::contact::axis::y;
 
     glm::dvec2 normal{};
     glm::dvec2 penetration{};
-    if (minimum_axis == cse::contact::axis::X)
+    if (minimum_axis == cse::contact::axis::x)
     {
       normal.x = center_delta.x >= 0.0 ? 1.0 : -1.0;
       penetration.x = normal.x * overlap.x;
     }
-    else if (minimum_axis == cse::contact::axis::Y)
+    else if (minimum_axis == cse::contact::axis::y)
     {
       normal.y = center_delta.y >= 0.0 ? 1.0 : -1.0;
       penetration.y = normal.y * overlap.y;
