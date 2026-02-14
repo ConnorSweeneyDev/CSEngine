@@ -6,9 +6,30 @@
 
 namespace cse::help
 {
-  template <typename callable> void collisions::check(const name target, callable &&config) const
+  template <typename callable> void collisions::handle(callable &&config) const
   {
-    if (auto iterator{entries.find(target)}; iterator != entries.end())
-      for (const auto &[mine, theirs] : iterator->second) config(mine, theirs);
+    for (const auto &[target, entries] : contacts)
+      for (const auto &entry : entries) config(entry);
+  }
+
+  template <typename callable> void collisions::handle(const name target, callable &&config) const
+  {
+    if (auto iterator{contacts.find(target)}; iterator != contacts.end())
+      for (const auto &entry : iterator->second) config(entry);
+  }
+
+  template <typename callable> void collisions::handle(const name target, const hitbox own, callable &&config) const
+  {
+    if (auto iterator{contacts.find(target)}; iterator != contacts.end())
+      for (const auto &entry : iterator->second)
+        if (entry.own == own) config(entry);
+  }
+
+  template <typename callable>
+  void collisions::handle(const name target, const hitbox own, const hitbox theirs, callable &&config) const
+  {
+    if (auto iterator{contacts.find(target)}; iterator != contacts.end())
+      for (const auto &entry : iterator->second)
+        if (entry.own == own && entry.theirs == theirs) config(entry);
   }
 }

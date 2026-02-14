@@ -44,7 +44,7 @@ namespace cse
     unsigned int frame_height{};
     unsigned int channels{};
   };
-  struct hitbox
+  struct rectangle
   {
     double left{};
     double top{};
@@ -60,9 +60,9 @@ namespace cse
 
     struct frame
     {
-      const hitbox coordinates{};
+      const rectangle coordinates{};
       const double duration{};
-      std::span<const std::pair<name, hitbox>> hitboxes{};
+      std::span<const std::pair<name, rectangle>> hitboxes{};
     };
     std::span<const frame> frames{};
     std::size_t start{};

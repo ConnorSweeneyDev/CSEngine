@@ -1,10 +1,13 @@
 #include "collision.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <span>
 #include <unordered_map>
 #include <utility>
+
+#include "glm/ext/vector_double2.hpp"
 
 #include "name.hpp"
 #include "object.hpp"
@@ -12,7 +15,7 @@
 
 namespace
 {
-  std::span<const std::pair<cse::name, cse::hitbox>> current_hitboxes(const std::shared_ptr<cse::object> &object)
+  std::span<const std::pair<cse::hitbox, cse::rectangle>> current_hitboxes(const std::shared_ptr<cse::object> &object)
   {
     const auto &animation{object->graphics.active.texture.animation};
     auto frame{object->graphics.active.texture.playback.frame};
@@ -20,7 +23,7 @@ namespace
     return animation.frames[frame].hitboxes;
   }
 
-  cse::hitbox world_bounds(const std::shared_ptr<cse::object> &object, const cse::hitbox &hitbox)
+  cse::rectangle world_bounds(const std::shared_ptr<cse::object> &object, const cse::rectangle &hitbox)
   {
     auto width{static_cast<double>(object->graphics.active.texture.image->frame_width)};
     auto height{static_cast<double>(object->graphics.active.texture.image->frame_height)};
@@ -28,12 +31,11 @@ namespace
     auto scale{object->state.active.scale.value};
     auto flip{object->graphics.active.texture.flip};
 
-    double center_x{width / 2.0};
-    double center_y{height / 2.0};
-    double local_left{hitbox.left - 1.0 - center_x};
-    double local_right{hitbox.right - center_x};
-    double local_top{center_y - (hitbox.top - 1.0)};
-    double local_bottom{center_y - hitbox.bottom};
+    glm::dvec2 center{width / 2.0, height / 2.0};
+    double local_left{hitbox.left - 1.0 - center.x};
+    double local_right{hitbox.right - center.x};
+    double local_top{center.y - (hitbox.top - 1.0)};
+    double local_bottom{center.y - hitbox.bottom};
     if (flip.horizontal)
     {
       auto temporary{-local_left};
@@ -47,31 +49,74 @@ namespace
       local_bottom = temporary;
     }
 
-    double scale_x{std::floor(scale.x)};
-    double scale_y{std::floor(scale.y)};
-    double pixel_x{std::floor(position.x + 0.5) - (static_cast<unsigned int>(width) % 2 == 1 ? 0.5 : 0.0)};
-    double pixel_y{std::floor(position.y + 0.5) - (static_cast<unsigned int>(height) % 2 == 1 ? 0.5 : 0.0)};
-    return {std::floor(pixel_x + local_left * scale_x + 0.5), std::floor(pixel_y + local_top * scale_y + 0.5),
-            std::floor(pixel_x + local_right * scale_x + 0.5), std::floor(pixel_y + local_bottom * scale_y + 0.5)};
+    glm::dvec2 floored_scale{std::floor(scale.x), std::floor(scale.y)};
+    glm::dvec2 pixel{std::floor(position.x + 0.5) - (static_cast<unsigned int>(width) % 2 == 1 ? 0.5 : 0.0),
+                     std::floor(position.y + 0.5) - (static_cast<unsigned int>(height) % 2 == 1 ? 0.5 : 0.0)};
+    return {std::floor(pixel.x + local_left * floored_scale.x + 0.5),
+            std::floor(pixel.y + local_top * floored_scale.y + 0.5),
+            std::floor(pixel.x + local_right * floored_scale.x + 0.5),
+            std::floor(pixel.y + local_bottom * floored_scale.y + 0.5)};
   }
 
-  bool overlaps(const cse::hitbox &left, const cse::hitbox &right)
+  bool overlaps(const cse::rectangle &left, const cse::rectangle &right)
   {
     return left.left < right.right && left.right > right.left && left.bottom < right.top && left.top > right.bottom;
+  }
+
+  cse::contact describe_collision(const cse::name self, const cse::name target, const cse::hitbox own,
+                                  const cse::hitbox theirs, const cse::rectangle &self_bounds,
+                                  const cse::rectangle &target_bounds)
+  {
+    constexpr double epsilon{1e-9};
+
+    glm::dvec2 overlap{
+      std::min(self_bounds.right, target_bounds.right) - std::max(self_bounds.left, target_bounds.left),
+      std::min(self_bounds.top, target_bounds.top) - std::max(self_bounds.bottom, target_bounds.bottom)};
+
+    glm::dvec2 self_center{(self_bounds.left + self_bounds.right) * 0.5, (self_bounds.top + self_bounds.bottom) * 0.5};
+    glm::dvec2 target_center{(target_bounds.left + target_bounds.right) * 0.5,
+                             (target_bounds.top + target_bounds.bottom) * 0.5};
+    glm::dvec2 center_delta{target_center.x - self_center.x, target_center.y - self_center.y};
+
+    cse::contact::axis minimum_axis{cse::contact::axis::NONE};
+    if (overlap.x + epsilon < overlap.y)
+      minimum_axis = cse::contact::axis::X;
+    else if (overlap.y + epsilon < overlap.x)
+      minimum_axis = cse::contact::axis::Y;
+    else if (std::fabs(center_delta.x) >= std::fabs(center_delta.y))
+      minimum_axis = cse::contact::axis::X;
+    else
+      minimum_axis = cse::contact::axis::Y;
+
+    glm::dvec2 normal{};
+    glm::dvec2 penetration{};
+    if (minimum_axis == cse::contact::axis::X)
+    {
+      normal.x = center_delta.x >= 0.0 ? 1.0 : -1.0;
+      penetration.x = normal.x * overlap.x;
+    }
+    else if (minimum_axis == cse::contact::axis::Y)
+    {
+      normal.y = center_delta.y >= 0.0 ? 1.0 : -1.0;
+      penetration.y = normal.y * overlap.y;
+    }
+
+    return {.minimum_axis = minimum_axis,
+            .self = self,
+            .target = target,
+            .own = own,
+            .theirs = theirs,
+            .self_bounds = self_bounds,
+            .target_bounds = target_bounds,
+            .overlap = overlap,
+            .normal = normal,
+            .penetration = penetration};
   }
 }
 
 namespace cse::help
 {
-  bool collisions::hit(const name target, const name own, const name theirs) const
-  {
-    if (auto iterator{entries.find(target)}; iterator != entries.end())
-      for (const auto &[left, right] : iterator->second)
-        if (left == own && right == theirs) return true;
-    return false;
-  }
-
-  void collisions::update(const name self, const std::unordered_map<name, std::shared_ptr<object>> &objects)
+  void collisions::update(const name self, const std::unordered_map<hitbox, std::shared_ptr<object>> &objects)
   {
     auto iterator{objects.find(self)};
     if (iterator == objects.end()) return;
@@ -92,11 +137,13 @@ namespace cse::help
         for (const auto &[target_hitbox, target_hitbox_object] : target_hitboxes)
         {
           auto other_bounds{world_bounds(target_pointer, target_hitbox_object)};
-          if (overlaps(self_bounds, other_bounds)) entries[target].push_back({self_hitbox, target_hitbox});
+          if (overlaps(self_bounds, other_bounds))
+            contacts[target].push_back(
+              describe_collision(self, target, self_hitbox, target_hitbox, self_bounds, other_bounds));
         }
       }
     }
   }
 
-  void collisions::clear() { entries.clear(); }
+  void collisions::clear() { contacts.clear(); }
 }

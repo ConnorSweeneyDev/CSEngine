@@ -2,11 +2,39 @@
 
 #include <memory>
 #include <unordered_map>
-#include <utility>
 #include <vector>
+
+#include "glm/ext/vector_double2.hpp"
 
 #include "declaration.hpp"
 #include "name.hpp"
+#include "resource.hpp"
+
+namespace cse
+{
+  using hitbox = name;
+
+  struct contact
+  {
+    enum class axis
+    {
+      NONE,
+      X,
+      Y
+    } minimum_axis{};
+
+    name self{};
+    name target{};
+    hitbox own{};
+    hitbox theirs{};
+
+    rectangle self_bounds{};
+    rectangle target_bounds{};
+    glm::dvec2 overlap{};
+    glm::dvec2 normal{};
+    glm::dvec2 penetration{};
+  };
+};
 
 namespace cse::help
 {
@@ -15,15 +43,18 @@ namespace cse::help
     friend class cse::object;
 
   public:
-    template <typename callable> void check(const name other, callable &&config) const;
-    bool hit(const name target, const name own, const name theirs) const;
+    template <typename callable> void handle(callable &&config) const;
+    template <typename callable> void handle(const name target, callable &&config) const;
+    template <typename callable> void handle(const name target, const hitbox own, callable &&config) const;
+    template <typename callable>
+    void handle(const name target, const hitbox own, const hitbox theirs, callable &&config) const;
 
   private:
-    void update(const name self, const std::unordered_map<name, std::shared_ptr<object>> &objects);
+    void update(const name self, const std::unordered_map<hitbox, std::shared_ptr<object>> &objects);
     void clear();
 
   private:
-    std::unordered_map<name, std::vector<std::pair<name, name>>> entries{};
+    std::unordered_map<hitbox, std::vector<contact>> contacts{};
   };
 }
 
