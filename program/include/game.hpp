@@ -3,13 +3,12 @@
 #include <functional>
 #include <memory>
 
+#include "SDL3/SDL_events.h"
 #include "glm/ext/vector_double4.hpp"
 
 #include "declaration.hpp"
-#include "enumeration.hpp"
 #include "function.hpp"
 #include "graphics.hpp"
-#include "hooks.hpp"
 #include "name.hpp"
 #include "state.hpp"
 
@@ -17,29 +16,6 @@ namespace cse
 {
   class game : public std::enable_shared_from_this<game>
   {
-  protected:
-    struct hook : public enumeration<hook>
-    {
-      static inline const value PRE_PREPARE{};
-      static inline const value POST_PREPARE{};
-      static inline const value PRE_CREATE{};
-      static inline const value POST_CREATE{};
-      static inline const value PRE_SYNC{};
-      static inline const value POST_SYNC{};
-      static inline const value PRE_EVENT{};
-      static inline const value POST_EVENT{};
-      static inline const value PRE_INPUT{};
-      static inline const value POST_INPUT{};
-      static inline const value PRE_SIMULATE{};
-      static inline const value POST_SIMULATE{};
-      static inline const value PRE_RENDER{};
-      static inline const value POST_RENDER{};
-      static inline const value PRE_DESTROY{};
-      static inline const value POST_DESTROY{};
-      static inline const value PRE_CLEAN{};
-      static inline const value POST_CLEAN{};
-    };
-
   public:
     virtual ~game() = default;
     game(const game &) = delete;
@@ -69,6 +45,26 @@ namespace cse
 
   protected:
     game(const double poll_rate_, const double frame_rate_, const double aspect_ratio_, const glm::dvec4 &clear_color_);
+    virtual void pre_prepare() {}
+    virtual void post_prepare() {}
+    virtual void pre_create() {}
+    virtual void post_create() {}
+    virtual void pre_previous() {}
+    virtual void post_previous() {}
+    virtual void pre_sync() {}
+    virtual void post_sync() {}
+    virtual void pre_event(const SDL_Event &) {}
+    virtual void post_event(const SDL_Event &) {}
+    virtual void pre_input(const bool *) {}
+    virtual void post_input(const bool *) {}
+    virtual void pre_simulate(const double) {}
+    virtual void post_simulate(const double) {}
+    virtual void pre_render(const double) {}
+    virtual void post_render(const double) {}
+    virtual void pre_destroy() {}
+    virtual void post_destroy() {}
+    virtual void pre_clean() {}
+    virtual void post_clean() {}
 
   private:
     void prepare();
@@ -91,7 +87,6 @@ namespace cse
   public:
     help::game_state state{};
     help::game_graphics graphics{};
-    help::hooks hooks{};
 
   private:
     static inline std::weak_ptr<game> instance{};

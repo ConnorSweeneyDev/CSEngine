@@ -33,37 +33,39 @@ namespace cse
   void scene::prepare()
   {
     if (state.active.phase != help::phase::CLEANED) throw exception("Scene must be cleaned before preparation");
-    hooks.call<void()>(hook::PRE_PREPARE);
+    pre_prepare();
     if (!state.active.camera) throw exception("Scene must have a camera to be prepared");
     state.active.camera->prepare();
     for (const auto &[name, object] : state.active.objects) object->prepare();
     state.active.phase = help::phase::PREPARED;
-    hooks.call<void()>(hook::POST_PREPARE);
+    post_prepare();
   }
 
   void scene::create(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Scene must be prepared before creation");
-    hooks.call<void()>(hook::PRE_CREATE);
+    pre_create();
     state.active.camera->create();
     for (const auto &[name, object] : state.active.objects) object->create(instance, gpu);
     state.active.phase = help::phase::CREATED;
-    hooks.call<void()>(hook::POST_CREATE);
+    post_create();
   }
 
   void scene::previous()
   {
     if (state.active.phase != help::phase::CREATED)
       throw exception("Scene must be created before updating previous state");
+    pre_previous();
     state.update_previous();
     state.active.camera->previous();
     for (const auto &[name, object] : state.active.objects) object->previous();
+    post_previous();
   }
 
   void scene::sync(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before syncing");
-    hooks.call<void()>(hook::PRE_SYNC);
+    pre_sync();
     if (state.next.camera.has_value())
     {
       auto &new_camera{state.next.camera.value()};
@@ -96,66 +98,66 @@ namespace cse
       }
       state.additions.clear();
     }
-    hooks.call<void()>(hook::POST_SYNC);
+    post_sync();
   }
 
   void scene::event(const SDL_Event &event)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before processing events");
-    hooks.call<void(const SDL_Event &)>(hook::PRE_EVENT, event);
+    pre_event(event);
     state.active.camera->event(event);
     for (const auto &[name, object] : state.active.objects) object->event(event);
-    hooks.call<void(const SDL_Event &)>(hook::POST_EVENT, event);
+    post_event(event);
   }
 
   void scene::input(const bool *input)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before processing input");
-    hooks.call<void(const bool *)>(hook::PRE_INPUT, input);
+    pre_input(input);
     state.active.camera->input(input);
     for (const auto &[name, object] : state.active.objects) object->input(input);
-    hooks.call<void(const bool *)>(hook::POST_INPUT, input);
+    post_input(input);
   }
 
   void scene::simulate(const double poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before simulation");
-    hooks.call<void(const double)>(hook::PRE_SIMULATE, poll_rate);
+    pre_simulate(poll_rate);
     state.active.timer.update(poll_rate);
     state.active.camera->simulate(poll_rate);
     for (const auto &[name, object] : state.active.objects) object->simulate(poll_rate);
     for (const auto &[name, object] : state.active.objects) object->collide(poll_rate, name, state.active.objects);
-    hooks.call<void(const double)>(hook::POST_SIMULATE, poll_rate);
+    post_simulate(poll_rate);
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                      const double alpha, const double previous_aspect_ratio, const double active_aspect_ratio)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before rendering");
-    hooks.call<void(const double)>(hook::PRE_RENDER, alpha);
+    pre_render(alpha);
     auto matrices = state.active.camera->render(alpha, previous_aspect_ratio, active_aspect_ratio);
     for (const auto &object : graphics.generate_render_order(state.active.camera, state.active.objects, alpha))
       object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha);
-    hooks.call<void(const double)>(hook::POST_RENDER, alpha);
+    post_render(alpha);
   }
 
   void scene::destroy(SDL_GPUDevice *gpu)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before destruction");
-    hooks.call<void()>(hook::PRE_DESTROY);
+    pre_destroy();
     for (const auto &[name, object] : state.active.objects) object->destroy(gpu);
     state.active.camera->destroy();
     state.active.phase = help::phase::PREPARED;
-    hooks.call<void()>(hook::POST_DESTROY);
+    post_destroy();
   }
 
   void scene::clean()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Scene must be prepared before cleaning");
-    hooks.call<void()>(hook::PRE_CLEAN);
+    pre_clean();
     for (const auto &[name, object] : state.active.objects) object->clean();
     state.active.camera->clean();
     state.active.phase = help::phase::CLEANED;
-    hooks.call<void()>(hook::POST_CLEAN);
+    post_clean();
   }
 }

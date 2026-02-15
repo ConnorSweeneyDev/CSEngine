@@ -12,9 +12,7 @@
 #include "glm/ext/vector_int3.hpp"
 
 #include "declaration.hpp"
-#include "enumeration.hpp"
 #include "graphics.hpp"
-#include "hooks.hpp"
 #include "name.hpp"
 #include "resource.hpp"
 #include "state.hpp"
@@ -24,20 +22,6 @@ namespace cse
   class object
   {
     friend class scene;
-
-  protected:
-    struct hook : public enumeration<hook>
-    {
-      static inline const value PREPARE{};
-      static inline const value CREATE{};
-      static inline const value EVENT{};
-      static inline const value INPUT{};
-      static inline const value SIMULATE{};
-      static inline const value COLLIDE{};
-      static inline const value RENDER{};
-      static inline const value DESTROY{};
-      static inline const value CLEAN{};
-    };
 
   public:
     virtual ~object() = default;
@@ -50,6 +34,16 @@ namespace cse
     object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const std::pair<vertex, fragment> &shader_,
            const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
            const std::tuple<int> &property_);
+    virtual void on_prepare() {};
+    virtual void on_create() {};
+    virtual void on_previous() {};
+    virtual void on_event(const SDL_Event &) {};
+    virtual void on_input(const bool *) {};
+    virtual void on_simulate(const double) {};
+    virtual void on_collide(const double) {};
+    virtual void on_render(const double) {};
+    virtual void on_destroy() {};
+    virtual void on_clean() {};
 
   private:
     void prepare();
@@ -68,6 +62,5 @@ namespace cse
   public:
     help::object_state state{};
     help::object_graphics graphics{};
-    help::hooks hooks{};
   };
 }

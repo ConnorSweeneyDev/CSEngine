@@ -7,9 +7,7 @@
 #include "SDL3/SDL_video.h"
 
 #include "declaration.hpp"
-#include "enumeration.hpp"
 #include "graphics.hpp"
-#include "hooks.hpp"
 #include "name.hpp"
 #include "state.hpp"
 
@@ -18,29 +16,6 @@ namespace cse
   class scene : public std::enable_shared_from_this<scene>
   {
     friend class game;
-
-  protected:
-    struct hook : public enumeration<hook>
-    {
-      static inline const value PRE_PREPARE{};
-      static inline const value POST_PREPARE{};
-      static inline const value PRE_CREATE{};
-      static inline const value POST_CREATE{};
-      static inline const value PRE_SYNC{};
-      static inline const value POST_SYNC{};
-      static inline const value PRE_EVENT{};
-      static inline const value POST_EVENT{};
-      static inline const value PRE_INPUT{};
-      static inline const value POST_INPUT{};
-      static inline const value PRE_SIMULATE{};
-      static inline const value POST_SIMULATE{};
-      static inline const value PRE_RENDER{};
-      static inline const value POST_RENDER{};
-      static inline const value PRE_DESTROY{};
-      static inline const value POST_DESTROY{};
-      static inline const value PRE_CLEAN{};
-      static inline const value POST_CLEAN{};
-    };
 
   public:
     virtual ~scene() = default;
@@ -56,6 +31,26 @@ namespace cse
 
   protected:
     scene() = default;
+    virtual void pre_prepare() {}
+    virtual void post_prepare() {}
+    virtual void pre_create() {}
+    virtual void post_create() {}
+    virtual void pre_previous() {}
+    virtual void post_previous() {}
+    virtual void pre_sync() {}
+    virtual void post_sync() {}
+    virtual void pre_event(const SDL_Event &) {}
+    virtual void post_event(const SDL_Event &) {}
+    virtual void pre_input(const bool *) {}
+    virtual void post_input(const bool *) {}
+    virtual void pre_simulate(const double) {}
+    virtual void post_simulate(const double) {}
+    virtual void pre_render(const double) {}
+    virtual void post_render(const double) {}
+    virtual void pre_destroy() {}
+    virtual void post_destroy() {}
+    virtual void pre_clean() {}
+    virtual void post_clean() {}
 
   private:
     void prepare();
@@ -73,7 +68,6 @@ namespace cse
   public:
     help::scene_state state{};
     help::scene_graphics graphics{};
-    help::hooks hooks{};
   };
 }
 

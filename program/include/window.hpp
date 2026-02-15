@@ -2,13 +2,12 @@
 
 #include <string>
 
+#include "SDL3/SDL_events.h"
 #include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
-#include "enumeration.hpp"
 #include "graphics.hpp"
-#include "hooks.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -16,20 +15,6 @@ namespace cse
   class window
   {
     friend class game;
-
-  protected:
-    struct hook : public enumeration<hook>
-    {
-      static inline const value PREPARE{};
-      static inline const value CREATE{};
-      static inline const value EVENT{};
-      static inline const value INPUT{};
-      static inline const value SIMULATE{};
-      static inline const value PRE_RENDER{};
-      static inline const value POST_RENDER{};
-      static inline const value DESTROY{};
-      static inline const value CLEAN{};
-    };
 
   public:
     virtual ~window() = default;
@@ -40,6 +25,16 @@ namespace cse
 
   protected:
     window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_);
+    virtual void on_prepare() {};
+    virtual void on_create() {};
+    virtual void on_previous() {};
+    virtual void on_event(const SDL_Event &) {};
+    virtual void on_input(const bool *) {};
+    virtual void on_simulate(const double) {};
+    virtual void pre_render(const double) {};
+    virtual void post_render(const double) {};
+    virtual void on_destroy() {};
+    virtual void on_clean() {};
 
   private:
     void prepare();
@@ -48,15 +43,14 @@ namespace cse
     void event();
     void input();
     void simulate(const double poll_rate);
-    bool pre_render(const glm::dvec4 &previous_clear_color, const glm::dvec4 &active_clear_color, const double alpha,
-                    const double previous_aspect_ratio, const double active_aspect_ratio);
-    void post_render(const double alpha);
+    bool start_render(const glm::dvec4 &previous_clear_color, const glm::dvec4 &active_clear_color, const double alpha,
+                      const double previous_aspect_ratio, const double active_aspect_ratio);
+    void end_render(const double alpha);
     void destroy();
     void clean();
 
   public:
     help::window_state state{};
     help::window_graphics graphics{};
-    help::hooks hooks{};
   };
 }

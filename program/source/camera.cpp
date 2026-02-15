@@ -21,14 +21,14 @@ namespace cse
   {
     if (state.active.phase != help::phase::CLEANED) throw exception("Camera must be cleaned before preparation");
     state.active.phase = help::phase::PREPARED;
-    hooks.call<void()>(hook::PREPARE);
+    on_prepare();
   }
 
   void camera::create()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Camera must be prepared before creation");
     state.active.phase = help::phase::CREATED;
-    hooks.call<void()>(hook::CREATE);
+    on_create();
   }
 
   void camera::previous()
@@ -37,32 +37,33 @@ namespace cse
       throw exception("Camera must be created before updating previous state");
     state.update_previous();
     graphics.update_previous();
+    on_previous();
   }
 
   void camera::event(const SDL_Event &event)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before processing events");
-    hooks.call<void(const SDL_Event &)>(hook::EVENT, event);
+    on_event(event);
   }
 
   void camera::input(const bool *input)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before processing input");
-    hooks.call<void(const bool *)>(hook::INPUT, input);
+    on_input(input);
   }
 
   void camera::simulate(const double poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before simulation");
     state.active.timer.update(poll_rate);
-    hooks.call<void(const double)>(hook::SIMULATE, poll_rate);
+    on_simulate(poll_rate);
   }
 
   std::pair<glm::dmat4, glm::dmat4> camera::render(const double alpha, const double previous_aspect_ratio,
                                                    const double active_aspect_ratio)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before rendering");
-    hooks.call<void(const double)>(hook::RENDER, alpha);
+    on_render(alpha);
     return {graphics.calculate_projection_matrix(alpha, previous_aspect_ratio, active_aspect_ratio),
             state.calculate_view_matrix(alpha)};
   }
@@ -71,13 +72,13 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before destruction");
     state.active.phase = help::phase::PREPARED;
-    hooks.call<void()>(hook::DESTROY);
+    on_destroy();
   }
 
   void camera::clean()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Camera must be prepared before cleaning");
     state.active.phase = help::phase::CLEANED;
-    hooks.call<void()>(hook::CLEAN);
+    on_clean();
   }
 }

@@ -8,9 +8,7 @@
 #include "glm/ext/vector_double3.hpp"
 
 #include "declaration.hpp"
-#include "enumeration.hpp"
 #include "graphics.hpp"
-#include "hooks.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -18,19 +16,6 @@ namespace cse
   class camera
   {
     friend class scene;
-
-  protected:
-    struct hook : public enumeration<hook>
-    {
-      static inline const value PREPARE{};
-      static inline const value CREATE{};
-      static inline const value EVENT{};
-      static inline const value INPUT{};
-      static inline const value SIMULATE{};
-      static inline const value RENDER{};
-      static inline const value DESTROY{};
-      static inline const value CLEAN{};
-    };
 
   public:
     virtual ~camera() = default;
@@ -41,6 +26,15 @@ namespace cse
 
   protected:
     camera(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_, const double fov_);
+    virtual void on_prepare() {};
+    virtual void on_create() {};
+    virtual void on_previous() {};
+    virtual void on_event(const SDL_Event &) {};
+    virtual void on_input(const bool *) {};
+    virtual void on_simulate(const double) {};
+    virtual void on_render(const double) {};
+    virtual void on_destroy() {};
+    virtual void on_clean() {};
 
   private:
     void prepare();
@@ -57,6 +51,5 @@ namespace cse
   public:
     help::camera_state state{};
     help::camera_graphics graphics{};
-    help::hooks hooks{};
   };
 }
