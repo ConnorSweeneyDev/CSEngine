@@ -15,15 +15,15 @@ namespace cse::help
   game_state::game_state(const double poll_rate_)
     : previous{[&]()
                {
-                 struct previous temp{};
-                 temp.poll_rate = poll_rate_;
-                 return temp;
+                 struct previous temporary{};
+                 temporary.poll_rate = poll_rate_;
+                 return temporary;
                }()},
       active{[&]()
              {
-               struct active temp{};
-               temp.poll_rate = poll_rate_;
-               return temp;
+               struct active temporary{};
+               temporary.poll_rate = poll_rate_;
+               return temporary;
              }()}
   {
   }
@@ -43,21 +43,21 @@ namespace cse::help
   window_state::window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
     : previous{[&]()
                {
-                 struct previous temp{};
-                 temp.width = dimensions_.x;
-                 temp.height = dimensions_.y;
-                 temp.fullscreen = fullscreen_;
-                 temp.vsync = vsync_;
-                 return temp;
+                 struct previous temporary{};
+                 temporary.width = dimensions_.x;
+                 temporary.height = dimensions_.y;
+                 temporary.fullscreen = fullscreen_;
+                 temporary.vsync = vsync_;
+                 return temporary;
                }()},
       active{[&]()
              {
-               struct active temp{};
-               temp.width = dimensions_.x;
-               temp.height = dimensions_.y;
-               temp.fullscreen = fullscreen_;
-               temp.vsync = vsync_;
-               return temp;
+               struct active temporary{};
+               temporary.width = dimensions_.x;
+               temporary.height = dimensions_.y;
+               temporary.fullscreen = fullscreen_;
+               temporary.vsync = vsync_;
+               return temporary;
              }()}
   {
   }

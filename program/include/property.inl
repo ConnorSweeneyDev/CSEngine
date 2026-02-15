@@ -147,10 +147,10 @@ namespace cse
 
   template <typename type> property<type> property<type>::operator++(int)
   {
-    property<type> temp{*this};
+    property<type> temporary{*this};
     value++;
     if (change) change();
-    return temp;
+    return temporary;
   }
 
   template <typename type> property<type> &property<type>::operator--()
@@ -162,17 +162,17 @@ namespace cse
 
   template <typename type> property<type> property<type>::operator--(int)
   {
-    property<type> temp{*this};
+    property<type> temporary{*this};
     value--;
     if (change) change();
-    return temp;
+    return temporary;
   }
 
   template <typename type> std::istream &operator>>(std::istream &stream_, property<type> &destination_)
   {
-    type temp{};
-    stream_ >> temp;
-    if (stream_) destination_ = temp;
+    type temporary{};
+    stream_ >> temporary;
+    if (stream_) destination_ = temporary;
     return stream_;
   }
 }
