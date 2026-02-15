@@ -7,6 +7,7 @@
 #include "glm/ext/vector_double4.hpp"
 
 #include "hitbox.hpp"
+#include "numeric.hpp"
 #include "temporal.hpp"
 
 namespace cse
@@ -43,13 +44,6 @@ namespace cse
     unsigned int frame_width{};
     unsigned int frame_height{};
     unsigned int channels{};
-  };
-  struct rectangle
-  {
-    double left{};
-    double top{};
-    double right{};
-    double bottom{};
   };
   struct animation
   {

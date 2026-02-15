@@ -9,7 +9,9 @@
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
+#include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
+#include "glm/ext/vector_int2.hpp"
 #include "glm/ext/vector_int3.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
@@ -244,8 +246,8 @@ namespace cse::help
     {
       enum phase phase = {};
       temporal<glm::dvec3> translation{};
-      temporal<glm::dvec3> rotation{};
-      temporal<glm::dvec3> scale{};
+      temporal<double> rotation{};
+      temporal<glm::dvec2> scale{};
       bool collidable{};
       help::timer timer{};
       help::collision collision{};
@@ -255,8 +257,8 @@ namespace cse::help
       enum phase phase = {};
       std::weak_ptr<class scene> parent{};
       temporal<glm::dvec3> translation{};
-      temporal<glm::dvec3> rotation{};
-      temporal<glm::dvec3> scale{};
+      temporal<double> rotation{};
+      temporal<glm::dvec2> scale{};
       bool collidable{};
       help::timer timer{};
       help::collision collision{};
@@ -264,7 +266,7 @@ namespace cse::help
 
   public:
     object_state() = default;
-    object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const bool collidable_);
+    object_state(const std::tuple<glm::ivec3, int, glm::ivec2> &transform_, const bool collidable_);
     ~object_state() = default;
     object_state(const object_state &) = delete;
     object_state &operator=(const object_state &) = delete;

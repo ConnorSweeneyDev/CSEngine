@@ -9,6 +9,7 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
+#include "glm/ext/vector_int2.hpp"
 #include "glm/ext/vector_int3.hpp"
 
 #include "declaration.hpp"
@@ -31,7 +32,7 @@ namespace cse
     object &operator=(object &&) = delete;
 
   protected:
-    object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const bool collidable_,
+    object(const std::tuple<glm::ivec3, int, glm::ivec2> &transform_, const bool collidable_,
            const std::pair<vertex, fragment> &shader_,
            const std::tuple<image, animation, playback, flip, color, transparency> &texture_, const int priority_);
     virtual void on_prepare() {};

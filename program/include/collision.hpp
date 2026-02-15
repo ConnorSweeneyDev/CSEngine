@@ -10,7 +10,6 @@
 #include "hitbox.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
-#include "resource.hpp"
 
 namespace cse
 {

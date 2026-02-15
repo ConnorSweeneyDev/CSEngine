@@ -12,6 +12,13 @@ namespace cse
     Y,
     Z
   };
+  struct rectangle
+  {
+    double left{};
+    double top{};
+    double right{};
+    double bottom{};
+  };
 }
 
 template <typename number>
