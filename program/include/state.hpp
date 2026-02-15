@@ -42,7 +42,7 @@ namespace cse::help
     {
       enum phase phase = {};
       std::shared_ptr<class window> window{};
-      std::unordered_set<name> scene_names{};
+      std::unordered_set<name> scenes{};
       struct scene_reference scene{};
       double poll_rate{};
     };
@@ -148,7 +148,7 @@ namespace cse::help
     {
       enum phase phase = {};
       std::shared_ptr<class camera> camera{};
-      std::unordered_set<name> object_names{};
+      std::unordered_set<name> objects{};
     };
     struct active
     {

@@ -32,9 +32,9 @@ namespace cse::help
   {
     previous.phase = active.phase;
     previous.window = active.window;
-    previous.scene_names.clear();
-    previous.scene_names.reserve(active.scenes.size());
-    for (const auto &[name, scene] : active.scenes) previous.scene_names.insert(name);
+    previous.scenes.clear();
+    previous.scenes.reserve(active.scenes.size());
+    for (const auto &[name, scene] : active.scenes) previous.scenes.insert(name);
     previous.scene = active.scene;
     previous.poll_rate = active.poll_rate;
   }
@@ -78,9 +78,9 @@ namespace cse::help
   {
     previous.phase = active.phase;
     previous.camera = active.camera;
-    previous.object_names.clear();
-    previous.object_names.reserve(active.objects.size());
-    for (const auto &[name, object] : active.objects) previous.object_names.insert(name);
+    previous.objects.clear();
+    previous.objects.reserve(active.objects.size());
+    for (const auto &[name, object] : active.objects) previous.objects.insert(name);
   }
 
   camera_state::camera_state(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_)
