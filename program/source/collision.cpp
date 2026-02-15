@@ -1,4 +1,4 @@
-#include "collisions.hpp"
+#include "collision.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -17,6 +17,11 @@
 
 namespace
 {
+  bool overlaps(const cse::rectangle &left, const cse::rectangle &right)
+  {
+    return left.left < right.right && left.right > right.left && left.bottom < right.top && left.top > right.bottom;
+  }
+
   std::span<const std::pair<cse::hitbox, cse::rectangle>> current_hitboxes(const std::shared_ptr<cse::object> &object)
   {
     const auto &animation{object->graphics.active.texture.animation};
@@ -58,11 +63,6 @@ namespace
             std::floor(pixel.y + local_top * floored_scale.y + 0.5),
             std::floor(pixel.x + local_right * floored_scale.x + 0.5),
             std::floor(pixel.y + local_bottom * floored_scale.y + 0.5)};
-  }
-
-  bool overlaps(const cse::rectangle &left, const cse::rectangle &right)
-  {
-    return left.left < right.right && left.right > right.left && left.bottom < right.top && left.top > right.bottom;
   }
 
   cse::contact describe_collision(const cse::name self, const cse::name target, const cse::hitbox own,
@@ -111,7 +111,7 @@ namespace
 
 namespace cse::help
 {
-  void collisions::update(const name self, const std::unordered_map<hitbox, std::shared_ptr<object>> &objects)
+  void collision::update(const name self, const std::unordered_map<hitbox, std::shared_ptr<object>> &objects)
   {
     auto iterator{objects.find(self)};
     if (iterator == objects.end()) return;
@@ -140,5 +140,5 @@ namespace cse::help
     }
   }
 
-  void collisions::clear() { contacts.clear(); }
+  void collision::clear() { contacts.clear(); }
 }

@@ -192,7 +192,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before simulation");
     hooks.call<void(const double)>(hook::PRE_SIMULATE, state.actual_poll_rate);
-    timers.update(state.actual_poll_rate);
+    state.active.timer.update(state.actual_poll_rate);
     state.active.window->simulate(state.actual_poll_rate);
     state.active.scene.pointer->simulate(state.actual_poll_rate);
     hooks.call<void(const double)>(hook::POST_SIMULATE, state.actual_poll_rate);

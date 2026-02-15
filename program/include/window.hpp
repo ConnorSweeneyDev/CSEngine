@@ -10,7 +10,6 @@
 #include "graphics.hpp"
 #include "hooks.hpp"
 #include "state.hpp"
-#include "timers.hpp"
 
 namespace cse
 {
@@ -59,6 +58,5 @@ namespace cse
     help::window_state state{};
     help::window_graphics graphics{};
     help::hooks hooks{};
-    help::timers timers{};
   };
 }

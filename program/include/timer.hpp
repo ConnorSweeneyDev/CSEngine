@@ -11,7 +11,7 @@
 
 namespace cse::help
 {
-  class timers
+  class timer
   {
     friend class cse::game;
     friend class cse::window;
@@ -59,4 +59,4 @@ namespace cse::help
   };
 }
 
-#include "timers.inl" // IWYU pragma: keep
+#include "timer.inl" // IWYU pragma: keep

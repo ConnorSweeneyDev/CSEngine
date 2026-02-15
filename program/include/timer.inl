@@ -1,6 +1,6 @@
 #pragma once
 
-#include "timers.hpp"
+#include "timer.hpp"
 
 #include <any>
 #include <functional>
@@ -16,7 +16,7 @@
 
 namespace cse::help
 {
-  template <typename signature> bool timers::has(const name name) const
+  template <typename signature> bool timer::has(const name name) const
   {
     auto iterator{entries.find(name)};
     if (iterator == entries.end()) return false;
@@ -24,19 +24,19 @@ namespace cse::help
   }
 
   template <typename signature>
-  void timers::set(const name name, const double target, const std::function<signature> &callback)
+  void timer::set(const name name, const double target, const std::function<signature> &callback)
   {
     entries.insert_or_assign(name, entry{callback, std::type_index(typeid(signature)), {0.0, target}});
   }
 
-  template <typename callable> void timers::set(const name name, const double target, callable &&callback)
+  template <typename callable> void timer::set(const name name, const double target, callable &&callback)
   {
     using signature = typename trait::callable<callable>::signature;
     set<signature>(name, target, std::function<signature>(std::forward<callable>(callback)));
   }
 
   template <typename signature, typename... call_arguments>
-  auto timers::call(const name name, call_arguments &&...arguments)
+  auto timer::call(const name name, call_arguments &&...arguments)
   {
     using return_type = typename trait::function<signature>::return_type;
     auto iterator{entries.find(name)};
@@ -65,7 +65,7 @@ namespace cse::help
   }
 
   template <typename signature, typename... call_arguments>
-  auto timers::try_call(const name name, call_arguments &&...arguments)
+  auto timer::try_call(const name name, call_arguments &&...arguments)
   {
     using return_type = typename trait::function<signature>::return_type;
     using optional_type = std::conditional_t<std::is_void_v<return_type>, std::monostate, return_type>;
@@ -86,7 +86,7 @@ namespace cse::help
   }
 
   template <typename signature, typename... call_arguments>
-  auto timers::throw_call(const name name, call_arguments &&...arguments)
+  auto timer::throw_call(const name name, call_arguments &&...arguments)
   {
     using return_type = typename trait::function<signature>::return_type;
     auto iterator{entries.find(name)};
@@ -106,7 +106,7 @@ namespace cse::help
     }
   }
 
-  template <typename signature> const std::function<signature> &timers::get_function(const entry &target) const
+  template <typename signature> const std::function<signature> &timer::get_function(const entry &target) const
   {
     try
     {

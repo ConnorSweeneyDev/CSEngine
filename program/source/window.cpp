@@ -83,7 +83,7 @@ namespace cse
   void window::simulate(const double poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before simulation");
-    timers.update(poll_rate);
+    state.active.timer.update(poll_rate);
     hooks.call<void(const double)>(hook::SIMULATE, poll_rate);
   }
 

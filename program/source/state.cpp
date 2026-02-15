@@ -37,6 +37,7 @@ namespace cse::help
     for (const auto &[name, scene] : active.scenes) previous.scenes.insert(name);
     previous.scene = active.scene;
     previous.poll_rate = active.poll_rate;
+    previous.timer = active.timer;
   }
 
   window_state::window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
@@ -72,6 +73,7 @@ namespace cse::help
     previous.display_index = active.display_index;
     previous.fullscreen = active.fullscreen;
     previous.vsync = active.vsync;
+    previous.timer = active.timer;
   }
 
   void scene_state::update_previous()
@@ -81,6 +83,7 @@ namespace cse::help
     previous.objects.clear();
     previous.objects.reserve(active.objects.size());
     for (const auto &[name, object] : active.objects) previous.objects.insert(name);
+    previous.timer = active.timer;
   }
 
   camera_state::camera_state(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_)
@@ -89,20 +92,21 @@ namespace cse::help
   {
   }
 
-  glm::dmat4 camera_state::calculate_view_matrix(const double alpha) const
-  {
-    auto translation = previous.translation.value + (active.translation.value - previous.translation.value) * alpha;
-    auto forward = previous.forward.value + (active.forward.value - previous.forward.value) * alpha;
-    auto up = previous.up.value + (active.up.value - previous.up.value) * alpha;
-    return glm::lookAt(translation, translation + forward, up);
-  }
-
   void camera_state::update_previous()
   {
     previous.phase = active.phase;
     previous.translation = active.translation;
     previous.forward = active.forward;
     previous.up = active.up;
+    previous.timer = active.timer;
+  }
+
+  glm::dmat4 camera_state::calculate_view_matrix(const double alpha) const
+  {
+    auto translation = previous.translation.value + (active.translation.value - previous.translation.value) * alpha;
+    auto forward = previous.forward.value + (active.forward.value - previous.forward.value) * alpha;
+    auto up = previous.up.value + (active.up.value - previous.up.value) * alpha;
+    return glm::lookAt(translation, translation + forward, up);
   }
 
   object_state::object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_)
@@ -116,6 +120,16 @@ namespace cse::help
              glm::dvec3{std::get<1>(transform_)},
              glm::dvec3{std::get<2>(transform_)}}
   {
+  }
+
+  void object_state::update_previous()
+  {
+    previous.phase = active.phase;
+    previous.translation = active.translation;
+    previous.rotation = active.rotation;
+    previous.scale = active.scale;
+    previous.timer = active.timer;
+    previous.collision = active.collision;
   }
 
   glm::dmat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
@@ -135,13 +149,5 @@ namespace cse::help
       glm::scale(model_matrix, {std::floor(scale.x) * static_cast<double>(frame_width) / 2.0,
                                 std::floor(scale.y) * static_cast<double>(frame_height) / 2.0, std::floor(scale.z)});
     return model_matrix;
-  }
-
-  void object_state::update_previous()
-  {
-    previous.phase = active.phase;
-    previous.translation = active.translation;
-    previous.rotation = active.rotation;
-    previous.scale = active.scale;
   }
 }

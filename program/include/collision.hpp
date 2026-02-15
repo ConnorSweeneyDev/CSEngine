@@ -38,7 +38,7 @@ namespace cse
 
 namespace cse::help
 {
-  class collisions
+  class collision
   {
     friend class cse::object;
 
@@ -58,4 +58,4 @@ namespace cse::help
   };
 }
 
-#include "collisions.inl" // IWYU pragma: keep
+#include "collision.inl" // IWYU pragma: keep

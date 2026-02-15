@@ -11,7 +11,6 @@
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_int3.hpp"
 
-#include "collisions.hpp"
 #include "declaration.hpp"
 #include "enumeration.hpp"
 #include "graphics.hpp"
@@ -19,7 +18,6 @@
 #include "name.hpp"
 #include "resource.hpp"
 #include "state.hpp"
-#include "timers.hpp"
 
 namespace cse
 {
@@ -71,7 +69,5 @@ namespace cse
     help::object_state state{};
     help::object_graphics graphics{};
     help::hooks hooks{};
-    help::timers timers{};
-    help::collisions collisions{};
   };
 }

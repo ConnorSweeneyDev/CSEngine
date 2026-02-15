@@ -121,7 +121,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before simulation");
     hooks.call<void(const double)>(hook::PRE_SIMULATE, poll_rate);
-    timers.update(poll_rate);
+    state.active.timer.update(poll_rate);
     state.active.camera->simulate(poll_rate);
     for (const auto &[name, object] : state.active.objects) object->simulate(poll_rate);
     for (const auto &[name, object] : state.active.objects) object->collide(poll_rate, name, state.active.objects);

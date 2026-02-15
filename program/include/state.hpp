@@ -13,10 +13,12 @@
 #include "glm/ext/vector_int3.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
+#include "collision.hpp"
 #include "declaration.hpp"
 #include "name.hpp"
 #include "property.hpp"
 #include "temporal.hpp"
+#include "timer.hpp"
 
 namespace cse::help
 {
@@ -45,6 +47,7 @@ namespace cse::help
       std::unordered_set<name> scenes{};
       struct scene_reference scene{};
       double poll_rate{};
+      help::timer timer{};
     };
     struct active
     {
@@ -54,6 +57,7 @@ namespace cse::help
       std::unordered_map<name, std::shared_ptr<class scene>> scenes{};
       struct scene_reference scene{};
       double poll_rate{};
+      help::timer timer{};
     };
     struct next
     {
@@ -102,6 +106,7 @@ namespace cse::help
       SDL_DisplayID display_index{};
       bool fullscreen{};
       bool vsync{};
+      help::timer timer{};
     };
     struct active
     {
@@ -115,6 +120,7 @@ namespace cse::help
       property<SDL_DisplayID> display_index{};
       property<bool> fullscreen{};
       property<bool> vsync{};
+      help::timer timer{};
     };
 
   public:
@@ -149,6 +155,7 @@ namespace cse::help
       enum phase phase = {};
       std::shared_ptr<class camera> camera{};
       std::unordered_set<name> objects{};
+      help::timer timer{};
     };
     struct active
     {
@@ -156,6 +163,7 @@ namespace cse::help
       std::weak_ptr<class game> parent{};
       std::shared_ptr<class camera> camera{};
       std::unordered_map<name, std::shared_ptr<class object>> objects{};
+      help::timer timer{};
     };
     struct next
     {
@@ -195,6 +203,7 @@ namespace cse::help
       temporal<glm::dvec3> translation{};
       temporal<glm::dvec3> forward{};
       temporal<glm::dvec3> up{};
+      help::timer timer{};
     };
     struct active
     {
@@ -203,6 +212,7 @@ namespace cse::help
       temporal<glm::dvec3> translation{};
       temporal<glm::dvec3> forward{};
       temporal<glm::dvec3> up{};
+      help::timer timer{};
     };
 
   public:
@@ -236,6 +246,8 @@ namespace cse::help
       temporal<glm::dvec3> translation{};
       temporal<glm::dvec3> rotation{};
       temporal<glm::dvec3> scale{};
+      help::timer timer{};
+      help::collision collision{};
     };
     struct active
     {
@@ -244,6 +256,8 @@ namespace cse::help
       temporal<glm::dvec3> translation{};
       temporal<glm::dvec3> rotation{};
       temporal<glm::dvec3> scale{};
+      help::timer timer{};
+      help::collision collision{};
     };
 
   public:

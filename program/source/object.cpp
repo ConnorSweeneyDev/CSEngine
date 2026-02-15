@@ -11,7 +11,7 @@
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_int3.hpp"
 
-#include "collisions.hpp"
+#include "collision.hpp"
 #include "exception.hpp"
 #include "graphics.hpp"
 #include "name.hpp"
@@ -68,7 +68,7 @@ namespace cse
   void object::simulate(const double poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
-    timers.update(poll_rate);
+    state.active.timer.update(poll_rate);
     graphics.animate(poll_rate);
     hooks.call<void(const double)>(hook::SIMULATE, poll_rate);
   }
@@ -77,9 +77,8 @@ namespace cse
                        const std::unordered_map<name, std::shared_ptr<object>> &objects)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
-    collisions.update(self, objects);
+    state.active.collision.update(self, objects);
     hooks.call<void(const double)>(hook::COLLIDE, poll_rate);
-    collisions.clear();
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,

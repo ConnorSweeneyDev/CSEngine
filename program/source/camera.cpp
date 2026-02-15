@@ -54,7 +54,7 @@ namespace cse
   void camera::simulate(const double poll_rate)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before simulation");
-    timers.update(poll_rate);
+    state.active.timer.update(poll_rate);
     hooks.call<void(const double)>(hook::SIMULATE, poll_rate);
   }
 
