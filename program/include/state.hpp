@@ -11,8 +11,6 @@
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
-#include "glm/ext/vector_int2.hpp"
-#include "glm/ext/vector_int3.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
 #include "collision.hpp"
@@ -266,7 +264,7 @@ namespace cse::help
 
   public:
     object_state() = default;
-    object_state(const std::tuple<glm::ivec3, int, glm::ivec2> &transform_, const bool collidable_);
+    object_state(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_);
     ~object_state() = default;
     object_state(const object_state &) = delete;
     object_state &operator=(const object_state &) = delete;

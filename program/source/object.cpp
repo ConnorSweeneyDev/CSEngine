@@ -9,8 +9,8 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
-#include "glm/ext/vector_int2.hpp"
-#include "glm/ext/vector_int3.hpp"
+#include "glm/ext/vector_double2.hpp"
+#include "glm/ext/vector_double3.hpp"
 
 #include "collision.hpp"
 #include "exception.hpp"
@@ -21,7 +21,7 @@
 
 namespace cse
 {
-  object::object(const std::tuple<glm::ivec3, int, glm::ivec2> &transform_, const bool collidable_,
+  object::object(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_,
                  const std::pair<vertex, fragment> &shader_,
                  const std::tuple<image, animation, playback, flip, color, transparency> &texture_, const int priority_)
     : state{transform_, collidable_}, graphics{shader_, texture_, priority_}

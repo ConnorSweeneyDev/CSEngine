@@ -7,8 +7,6 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
-#include "glm/ext/vector_int2.hpp"
-#include "glm/ext/vector_int3.hpp"
 #include "glm/ext/vector_uint2.hpp"
 #include "glm/trigonometric.hpp"
 
@@ -111,18 +109,9 @@ namespace cse::help
     return glm::lookAt(translation, translation + forward, up);
   }
 
-  object_state::object_state(const std::tuple<glm::ivec3, int, glm::ivec2> &transform_, const bool collidable_)
-    : previous{{},
-               glm::dvec3{std::get<0>(transform_)},
-               static_cast<double>(std::get<1>(transform_)),
-               glm::dvec2{std::get<2>(transform_)},
-               collidable_},
-      active{{},
-             {},
-             glm::dvec3{std::get<0>(transform_)},
-             static_cast<double>(std::get<1>(transform_)),
-             glm::dvec2{std::get<2>(transform_)},
-             collidable_}
+  object_state::object_state(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_)
+    : previous{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_},
+      active{{}, {}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_}
   {
   }
 
