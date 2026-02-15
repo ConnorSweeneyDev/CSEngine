@@ -36,14 +36,15 @@ namespace
     auto width{static_cast<double>(object->graphics.active.texture.image->frame_width)};
     auto height{static_cast<double>(object->graphics.active.texture.image->frame_height)};
     auto position{object->state.active.translation.value};
+    auto rotation{static_cast<int>(std::floor(object->state.active.rotation.value + 0.5))};
     auto scale{object->state.active.scale.value};
     auto flip{object->graphics.active.texture.flip};
-
     glm::dvec2 center{width / 2.0, height / 2.0};
     double local_left{hitbox.left - 1.0 - center.x};
     double local_right{hitbox.right - center.x};
     double local_top{center.y - (hitbox.top - 1.0)};
     double local_bottom{center.y - hitbox.bottom};
+
     if (flip.horizontal)
     {
       auto temporary{-local_left};
@@ -56,14 +57,42 @@ namespace
       local_top = -local_bottom;
       local_bottom = temporary;
     }
+    int steps{((rotation % 4) + 4) % 4};
+    if (steps != 0)
+    {
+      double left{local_left}, right{local_right}, top{local_top}, bottom{local_bottom};
+      switch (steps)
+      {
+        case 1:
+          local_left = -top;
+          local_right = -bottom;
+          local_bottom = left;
+          local_top = right;
+          break;
+        case 2:
+          local_left = -right;
+          local_right = -left;
+          local_bottom = -top;
+          local_top = -bottom;
+          break;
+        case 3:
+          local_left = bottom;
+          local_right = top;
+          local_bottom = -right;
+          local_top = -left;
+          break;
+      }
+      if (local_left > local_right) std::swap(local_left, local_right);
+      if (local_bottom > local_top) std::swap(local_bottom, local_top);
+    }
 
-    glm::dvec2 floored_scale{std::floor(scale.x), std::floor(scale.y)};
+    glm::dvec2 actual_scale{std::floor(scale.x + 0.5), std::floor(scale.y + 0.5)};
     glm::dvec2 pixel{std::floor(position.x + 0.5) - (static_cast<unsigned int>(width) % 2 == 1 ? 0.5 : 0.0),
                      std::floor(position.y + 0.5) - (static_cast<unsigned int>(height) % 2 == 1 ? 0.5 : 0.0)};
-    return {std::floor(pixel.x + local_left * floored_scale.x + 0.5),
-            std::floor(pixel.y + local_top * floored_scale.y + 0.5),
-            std::floor(pixel.x + local_right * floored_scale.x + 0.5),
-            std::floor(pixel.y + local_bottom * floored_scale.y + 0.5)};
+    return {std::floor(pixel.x + local_left * actual_scale.x + 0.5),
+            std::floor(pixel.y + local_top * actual_scale.y + 0.5),
+            std::floor(pixel.x + local_right * actual_scale.x + 0.5),
+            std::floor(pixel.y + local_bottom * actual_scale.y + 0.5)};
   }
 
   cse::contact describe_collision(const cse::name self, const cse::name target, const cse::hitbox own,
