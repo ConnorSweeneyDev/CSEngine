@@ -113,6 +113,8 @@ namespace cse::help
 {
   void collision::update(const name self, const std::unordered_map<hitbox, std::shared_ptr<object>> &objects)
   {
+    contacts.clear();
+
     auto iterator{objects.find(self)};
     if (iterator == objects.end()) return;
     auto &self_pointer{iterator->second};
