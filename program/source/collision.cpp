@@ -24,6 +24,7 @@ namespace
 
   std::span<const std::pair<cse::hitbox, cse::rectangle>> current_hitboxes(const std::shared_ptr<cse::object> &object)
   {
+    if (!object->state.active.collidable) return {};
     const auto &animation{object->graphics.active.texture.animation};
     auto frame{object->graphics.active.texture.playback.frame};
     if (frame >= animation.frames.size()) return {};

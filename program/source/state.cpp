@@ -109,16 +109,18 @@ namespace cse::help
     return glm::lookAt(translation, translation + forward, up);
   }
 
-  object_state::object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_)
+  object_state::object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const bool collidable_)
     : previous{{},
                glm::dvec3{std::get<0>(transform_)},
                glm::dvec3{std::get<1>(transform_)},
-               glm::dvec3{std::get<2>(transform_)}},
+               glm::dvec3{std::get<2>(transform_)},
+               collidable_},
       active{{},
              {},
              glm::dvec3{std::get<0>(transform_)},
              glm::dvec3{std::get<1>(transform_)},
-             glm::dvec3{std::get<2>(transform_)}}
+             glm::dvec3{std::get<2>(transform_)},
+             collidable_}
   {
   }
 
@@ -128,6 +130,7 @@ namespace cse::help
     previous.translation = active.translation;
     previous.rotation = active.rotation;
     previous.scale = active.scale;
+    previous.collidable = active.collidable;
     previous.timer = active.timer;
     previous.collision = active.collision;
   }

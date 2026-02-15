@@ -246,6 +246,7 @@ namespace cse::help
       temporal<glm::dvec3> translation{};
       temporal<glm::dvec3> rotation{};
       temporal<glm::dvec3> scale{};
+      bool collidable{};
       help::timer timer{};
       help::collision collision{};
     };
@@ -256,13 +257,14 @@ namespace cse::help
       temporal<glm::dvec3> translation{};
       temporal<glm::dvec3> rotation{};
       temporal<glm::dvec3> scale{};
+      bool collidable{};
       help::timer timer{};
       help::collision collision{};
     };
 
   public:
     object_state() = default;
-    object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_);
+    object_state(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const bool collidable_);
     ~object_state() = default;
     object_state(const object_state &) = delete;
     object_state &operator=(const object_state &) = delete;

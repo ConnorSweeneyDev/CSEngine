@@ -225,20 +225,20 @@ namespace cse::help
     {
       struct shader shader{};
       struct texture texture{};
-      struct property property{};
+      int priority{};
     };
     struct active
     {
       struct shader shader{};
       struct texture texture{};
-      struct property property{};
+      int priority{};
     };
 
   public:
     object_graphics() = default;
     object_graphics(const std::pair<vertex, fragment> &shader_,
                     const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
-                    const std::tuple<int> &property_);
+                    const int priority_);
     ~object_graphics() = default;
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;

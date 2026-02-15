@@ -20,11 +20,10 @@
 
 namespace cse
 {
-  object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_,
+  object::object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const bool collidable_,
                  const std::pair<vertex, fragment> &shader_,
-                 const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
-                 const std::tuple<int> &property_)
-    : state{transform_}, graphics{shader_, texture_, property_}
+                 const std::tuple<image, animation, playback, flip, color, transparency> &texture_, const int priority_)
+    : state{transform_, collidable_}, graphics{shader_, texture_, priority_}
   {
   }
 

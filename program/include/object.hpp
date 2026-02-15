@@ -31,9 +31,9 @@ namespace cse
     object &operator=(object &&) = delete;
 
   protected:
-    object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const std::pair<vertex, fragment> &shader_,
-           const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
-           const std::tuple<int> &property_);
+    object(const std::tuple<glm::ivec3, glm::ivec3, glm::ivec3> &transform_, const bool collidable_,
+           const std::pair<vertex, fragment> &shader_,
+           const std::tuple<image, animation, playback, flip, color, transparency> &texture_, const int priority_);
     virtual void on_prepare() {};
     virtual void on_create() {};
     virtual void on_previous() {};

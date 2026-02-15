@@ -352,7 +352,7 @@ namespace cse::help
                              camera_translation,
                            camera_forward);
                 if (!equal(left_depth, right_depth, 1e-4)) return left_depth > right_depth;
-                return left->graphics.active.property.priority < right->graphics.active.property.priority;
+                return left->graphics.active.priority < right->graphics.active.priority;
               });
     return render_order;
   }
@@ -373,15 +373,15 @@ namespace cse::help
 
   object_graphics::object_graphics(const std::pair<vertex, fragment> &shader_,
                                    const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
-                                   const std::tuple<int> &property_)
+                                   const int priority_)
     : previous{{std::get<0>(shader_), std::get<1>(shader_)},
                {std::get<0>(texture_), std::get<1>(texture_), std::get<2>(texture_), std::get<3>(texture_),
                 std::get<4>(texture_), std::get<5>(texture_)},
-               {std::get<0>(property_)}},
+               priority_},
       active{{std::get<0>(shader_), std::get<1>(shader_)},
              {std::get<0>(texture_), std::get<1>(texture_), std::get<2>(texture_), std::get<3>(texture_),
               std::get<4>(texture_), std::get<5>(texture_)},
-             {std::get<0>(property_)}}
+             priority_}
   {
     active.shader.vertex.change = [this]() { generate_pipeline(); };
     active.shader.fragment.change = [this]() { generate_pipeline(); };
@@ -398,7 +398,7 @@ namespace cse::help
     previous.texture.flip = active.texture.flip;
     previous.texture.color = active.texture.color;
     previous.texture.transparency = active.texture.transparency;
-    previous.property.priority = active.property.priority;
+    previous.priority = active.priority;
   }
 
   void object_graphics::create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu)
