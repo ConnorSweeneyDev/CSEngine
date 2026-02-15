@@ -29,7 +29,7 @@ namespace cse
       rectangle bounds{};
     } target;
 
-    axis minimum_axis{axis::Z};
+    axis minimum_axis{};
     glm::dvec2 overlap{};
     glm::dvec2 normal{};
     glm::dvec2 penetration{};

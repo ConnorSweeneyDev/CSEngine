@@ -7,6 +7,7 @@ namespace cse
 {
   enum class axis
   {
+    NONE,
     X,
     Y,
     Z
