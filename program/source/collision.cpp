@@ -17,9 +17,10 @@
 
 namespace
 {
-  bool overlaps(const cse::rectangle &left, const cse::rectangle &right)
+  bool overlaps(const cse::rectangle &first, const cse::rectangle &second)
   {
-    return left.left < right.right && left.right > right.left && left.bottom < right.top && left.top > right.bottom;
+    return first.left < second.right && first.right > second.left && first.bottom < second.top &&
+           first.top > second.bottom;
   }
 
   std::span<const std::pair<cse::hitbox, cse::rectangle>> current_hitboxes(const std::shared_ptr<cse::object> &object)
@@ -141,7 +142,7 @@ namespace
 
 namespace cse::help
 {
-  void collision::update(const name self, const std::unordered_map<hitbox, std::shared_ptr<object>> &objects)
+  void collision::update(const name self, const std::unordered_map<name, std::shared_ptr<object>> &objects)
   {
     contacts.clear();
 
@@ -165,8 +166,7 @@ namespace cse::help
         {
           auto other_bounds{world_bounds(target_pointer, target_hitbox_object)};
           if (overlaps(self_bounds, other_bounds))
-            contacts[target].push_back(
-              describe_collision(self, target, self_hitbox, target_hitbox, self_bounds, other_bounds));
+            contacts.push_back(describe_collision(self, target, self_hitbox, target_hitbox, self_bounds, other_bounds));
         }
       }
     }

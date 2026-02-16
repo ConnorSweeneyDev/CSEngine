@@ -43,17 +43,13 @@ namespace cse::help
 
   public:
     template <typename callable> void handle(callable &&config) const;
-    template <typename callable> void handle(const name target, callable &&config) const;
-    template <typename callable> void handle(const name target, const hitbox own, callable &&config) const;
-    template <typename callable>
-    void handle(const name target, const hitbox own, const hitbox theirs, callable &&config) const;
 
   private:
-    void update(const name self, const std::unordered_map<hitbox, std::shared_ptr<object>> &objects);
+    void update(const name self, const std::unordered_map<name, std::shared_ptr<object>> &objects);
     void clear();
 
   private:
-    std::unordered_map<hitbox, std::vector<contact>> contacts{};
+    std::vector<contact> contacts{};
   };
 }
 
