@@ -66,20 +66,20 @@ namespace cse
     on_input(input);
   }
 
-  void object::simulate(const double poll_rate)
+  void object::simulate(const double tick)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
-    state.active.timer.update(poll_rate);
-    graphics.animate(poll_rate);
-    on_simulate(poll_rate);
+    state.active.timer.update(tick);
+    graphics.animate(tick);
+    on_simulate(tick);
   }
 
-  void object::collide(const double poll_rate, const name self,
+  void object::collide(const double tick, const name self,
                        const std::unordered_map<name, std::shared_ptr<object>> &objects)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
     state.active.collision.update(self, objects);
-    on_collide(poll_rate);
+    on_collide(tick);
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,

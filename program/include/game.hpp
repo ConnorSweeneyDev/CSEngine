@@ -44,7 +44,7 @@ namespace cse
     void run();
 
   protected:
-    game(const double poll_rate_, const double frame_rate_, const double aspect_ratio_, const glm::dvec4 &clear_color_);
+    game(const double tick_, const double frame_, const double aspect_, const glm::dvec4 &clear_);
     virtual void pre_prepare() {}
     virtual void post_prepare() {}
     virtual void pre_create() {}

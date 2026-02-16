@@ -12,17 +12,17 @@
 
 namespace cse::help
 {
-  game_state::game_state(const double poll_rate_)
+  game_state::game_state(const double tick_)
     : previous{[&]()
                {
                  struct previous temporary{};
-                 temporary.poll_rate = poll_rate_;
+                 temporary.tick = tick_;
                  return temporary;
                }()},
       active{[&]()
              {
                struct active temporary{};
-               temporary.poll_rate = poll_rate_;
+               temporary.tick = tick_;
                return temporary;
              }()}
   {
@@ -36,7 +36,7 @@ namespace cse::help
     previous.scenes.reserve(active.scenes.size());
     for (const auto &[name, scene] : active.scenes) previous.scenes.insert(name);
     previous.scene = active.scene;
-    previous.poll_rate = active.poll_rate;
+    previous.tick = active.tick;
     previous.timer = active.timer;
   }
 

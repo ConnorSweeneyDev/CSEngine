@@ -46,7 +46,7 @@ namespace cse::help
       std::shared_ptr<class window> window{};
       std::unordered_set<name> scenes{};
       struct scene_reference scene{};
-      double poll_rate{};
+      double tick{};
       help::timer timer{};
     };
     struct active
@@ -56,7 +56,7 @@ namespace cse::help
       std::shared_ptr<class window> window{};
       std::unordered_map<name, std::shared_ptr<class scene>> scenes{};
       struct scene_reference scene{};
-      double poll_rate{};
+      double tick{};
       help::timer timer{};
     };
     struct next
@@ -67,7 +67,7 @@ namespace cse::help
 
   public:
     game_state() = default;
-    game_state(const double poll_rate_);
+    game_state(const double tick_);
     ~game_state() = default;
     game_state(const game_state &) = delete;
     game_state &operator=(const game_state &) = delete;
@@ -83,7 +83,7 @@ namespace cse::help
     struct next next{};
 
   private:
-    double actual_poll_rate{1.0 / active.poll_rate};
+    double actual_tick{1.0 / active.tick};
     double time{};
     double accumulator{};
     double alpha{};

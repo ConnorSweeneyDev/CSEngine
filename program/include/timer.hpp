@@ -52,7 +52,7 @@ namespace cse::help
 
   private:
     template <typename signature> const std::function<signature> &get_function(const entry &entry) const;
-    void update(const double poll_rate);
+    void update(const double tick);
 
   private:
     std::unordered_map<name, entry> entries{};

@@ -119,23 +119,23 @@ namespace cse
     post_input(input);
   }
 
-  void scene::simulate(const double poll_rate)
+  void scene::simulate(const double tick)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before simulation");
-    pre_simulate(poll_rate);
-    state.active.timer.update(poll_rate);
-    state.active.camera->simulate(poll_rate);
-    for (const auto &[name, object] : state.active.objects) object->simulate(poll_rate);
-    for (const auto &[name, object] : state.active.objects) object->collide(poll_rate, name, state.active.objects);
-    post_simulate(poll_rate);
+    pre_simulate(tick);
+    state.active.timer.update(tick);
+    state.active.camera->simulate(tick);
+    for (const auto &[name, object] : state.active.objects) object->simulate(tick);
+    for (const auto &[name, object] : state.active.objects) object->collide(tick, name, state.active.objects);
+    post_simulate(tick);
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     const double alpha, const double previous_aspect_ratio, const double active_aspect_ratio)
+                     const double previous_aspect, const double active_aspect, const double alpha)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before rendering");
     pre_render(alpha);
-    auto matrices = state.active.camera->render(alpha, previous_aspect_ratio, active_aspect_ratio);
+    auto matrices = state.active.camera->render(previous_aspect, active_aspect, alpha);
     for (const auto &object : graphics.generate_render_order(state.active.camera, state.active.objects, alpha))
       object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha);
     post_render(alpha);

@@ -52,9 +52,8 @@ namespace cse
     void previous();
     void event(const SDL_Event &event);
     void input(const bool *input);
-    void simulate(const double poll_rate);
-    void collide(const double poll_rate, const name self,
-                 const std::unordered_map<name, std::shared_ptr<object>> &objects);
+    void simulate(const double tick);
+    void collide(const double tick, const name self, const std::unordered_map<name, std::shared_ptr<object>> &objects);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const glm::dmat4 &projection_matrix, const glm::dmat4 &view_matrix, const double alpha);
     void destroy(SDL_GPUDevice *gpu);

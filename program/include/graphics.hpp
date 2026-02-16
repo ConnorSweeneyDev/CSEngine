@@ -29,20 +29,20 @@ namespace cse::help
 
     struct previous
     {
-      double frame_rate{};
-      temporal<double> aspect_ratio{};
-      temporal<glm::dvec4> clear_color{};
+      double frame{};
+      temporal<double> aspect{};
+      temporal<glm::dvec4> clear{};
     };
     struct active
     {
-      double frame_rate{};
-      temporal<double> aspect_ratio{};
-      temporal<glm::dvec4> clear_color{};
+      double frame{};
+      temporal<double> aspect{};
+      temporal<glm::dvec4> clear{};
     };
 
   public:
     game_graphics() = default;
-    game_graphics(const double frame_rate_, const double aspect_ratio_, const glm::dvec4 &clear_color_);
+    game_graphics(const double frame_, const double aspect_, const glm::dvec4 &clear_);
     ~game_graphics() = default;
     game_graphics(const game_graphics &) = delete;
     game_graphics &operator=(const game_graphics &) = delete;
@@ -60,7 +60,7 @@ namespace cse::help
     struct active active{};
 
   private:
-    double actual_frame_rate{1.0 / active.frame_rate};
+    double actual_frame{1.0 / active.frame};
   };
 
   struct window_graphics
@@ -94,9 +94,9 @@ namespace cse::help
     void create_window(const unsigned int width, const unsigned int height, int &left, int &top,
                        SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
     bool acquire_swapchain_texture();
-    void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec4 &previous_clear_color,
-                           const glm::dvec4 &active_clear_color, const double alpha, const double previous_aspect_ratio,
-                           const double active_aspect_ratio);
+    void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec4 &previous_clear,
+                           const glm::dvec4 &active_clear, const double previous_aspect, const double active_aspect,
+                           const double alpha);
     void end_render_pass();
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
@@ -173,8 +173,8 @@ namespace cse::help
   private:
     void update_previous();
 
-    glm::dmat4 calculate_projection_matrix(const double alpha, const double previous_aspect_ratio,
-                                           const double active_aspect_ratio);
+    glm::dmat4 calculate_projection_matrix(const double previous_aspect, const double active_aspect,
+                                           const double alpha);
 
   public:
     struct previous previous{};
@@ -253,7 +253,7 @@ namespace cse::help
     void upload_dynamic_buffers(SDL_GPUDevice *gpu, const double alpha);
     void generate_pipeline();
     void generate_and_upload_texture();
-    void animate(const double poll_rate);
+    void animate(const double tick);
     void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass, const double alpha);
     void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const std::array<glm::dmat4, 3> &matrices,
                            const double alpha);

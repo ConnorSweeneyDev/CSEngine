@@ -59,9 +59,9 @@ namespace cse
     void sync(SDL_Window *instance, SDL_GPUDevice *gpu);
     void event(const SDL_Event &event);
     void input(const bool *input);
-    void simulate(const double poll_rate);
+    void simulate(const double tick);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const double alpha, const double previous_aspect_ratio, const double active_aspect_ratio);
+                const double previous_aspect, const double active_aspect, const double alpha);
     void destroy(SDL_GPUDevice *gpu);
     void clean();
 

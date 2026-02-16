@@ -42,9 +42,9 @@ namespace cse
     void previous();
     void event();
     void input();
-    void simulate(const double poll_rate);
-    bool start_render(const glm::dvec4 &previous_clear_color, const glm::dvec4 &active_clear_color, const double alpha,
-                      const double previous_aspect_ratio, const double active_aspect_ratio);
+    void simulate(const double tick);
+    bool start_render(const glm::dvec4 &previous_clear, const glm::dvec4 &active_clear, const double previous_aspect,
+                      const double active_aspect, const double alpha);
     void end_render(const double alpha);
     void destroy();
     void clean();

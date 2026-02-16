@@ -81,20 +81,20 @@ namespace cse
     on_input(state.input);
   }
 
-  void window::simulate(const double poll_rate)
+  void window::simulate(const double tick)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before simulation");
-    state.active.timer.update(poll_rate);
-    on_simulate(poll_rate);
+    state.active.timer.update(tick);
+    on_simulate(tick);
   }
 
-  bool window::start_render(const glm::dvec4 &previous_clear_color, const glm::dvec4 &active_clear_color,
-                            const double alpha, const double previous_aspect_ratio, const double active_aspect_ratio)
+  bool window::start_render(const glm::dvec4 &previous_clear, const glm::dvec4 &active_clear,
+                            const double previous_aspect, const double active_aspect, const double alpha)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
     if (!graphics.acquire_swapchain_texture()) return false;
-    graphics.start_render_pass(state.active.width, state.active.height, previous_clear_color, active_clear_color, alpha,
-                               previous_aspect_ratio, active_aspect_ratio);
+    graphics.start_render_pass(state.active.width, state.active.height, previous_clear, active_clear, previous_aspect,
+                               active_aspect, alpha);
     pre_render(alpha);
     return true;
   }

@@ -26,8 +26,8 @@ namespace cse::help
 
   void timer::reset() noexcept { entries.clear(); }
 
-  void timer::update(const double poll_rate)
+  void timer::update(const double tick)
   {
-    for (auto &[name, target] : entries) target.time.elapsed += poll_rate;
+    for (auto &[name, target] : entries) target.time.elapsed += tick;
   }
 }

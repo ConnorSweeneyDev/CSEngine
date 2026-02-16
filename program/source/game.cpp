@@ -21,9 +21,8 @@
 
 namespace cse
 {
-  game::game(const double poll_rate_, const double frame_rate_, const double aspect_ratio_,
-             const glm::dvec4 &clear_color_)
-    : state{poll_rate_}, graphics{frame_rate_, aspect_ratio_, clear_color_}
+  game::game(const double tick_, const double frame_, const double aspect_, const glm::dvec4 &clear_)
+    : state{tick_}, graphics{frame_, aspect_, clear_}
   {
   }
 
@@ -193,24 +192,23 @@ namespace cse
   void game::simulate()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before simulation");
-    pre_simulate(state.actual_poll_rate);
-    state.active.timer.update(state.actual_poll_rate);
-    state.active.window->simulate(state.actual_poll_rate);
-    state.active.scene.pointer->simulate(state.actual_poll_rate);
-    post_simulate(state.actual_poll_rate);
+    pre_simulate(state.actual_tick);
+    state.active.timer.update(state.actual_tick);
+    state.active.window->simulate(state.actual_tick);
+    state.active.scene.pointer->simulate(state.actual_tick);
+    post_simulate(state.actual_tick);
   }
 
   void game::render()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before rendering");
     pre_render(state.alpha);
-    if (!state.active.window->start_render(graphics.previous.clear_color.value, graphics.active.clear_color.value,
-                                           state.alpha, graphics.previous.aspect_ratio.value,
-                                           graphics.active.aspect_ratio.value))
+    if (!state.active.window->start_render(graphics.previous.clear.value, graphics.active.clear.value,
+                                           graphics.previous.aspect.value, graphics.active.aspect.value, state.alpha))
       return;
     state.active.scene.pointer->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
-                                       state.active.window->graphics.render_pass, state.alpha,
-                                       graphics.previous.aspect_ratio.value, graphics.active.aspect_ratio.value);
+                                       state.active.window->graphics.render_pass, graphics.previous.aspect.value,
+                                       graphics.active.aspect.value, state.alpha);
     state.active.window->end_render(state.alpha);
     post_render(state.alpha);
   }
@@ -240,18 +238,16 @@ namespace cse
 
   void game::time()
   {
-    constexpr double minimum_poll_rate{10.0};
-    constexpr double minimum_frame_rate{1.0};
-    state.active.poll_rate = std::max(minimum_poll_rate, state.active.poll_rate);
-    graphics.active.frame_rate = std::max(minimum_frame_rate, graphics.active.frame_rate);
-    const double real_poll_rate = 1.0 / state.active.poll_rate;
-    const double real_frame_rate = 1.0 / graphics.active.frame_rate;
-    if (!equal(real_poll_rate, state.actual_poll_rate))
+    state.active.tick = std::max(10.0, state.active.tick);
+    graphics.active.frame = std::max(1.0, graphics.active.frame);
+    const double real_tick = 1.0 / state.active.tick;
+    const double real_frame = 1.0 / graphics.active.frame;
+    if (!equal(real_tick, state.actual_tick))
     {
-      state.accumulator = state.accumulator * (real_poll_rate / state.actual_poll_rate);
-      state.actual_poll_rate = real_poll_rate;
+      state.accumulator = state.accumulator * (real_tick / state.actual_tick);
+      state.actual_tick = real_tick;
     }
-    if (!equal(real_frame_rate, graphics.actual_frame_rate)) graphics.actual_frame_rate = real_frame_rate;
+    if (!equal(real_frame, graphics.actual_frame)) graphics.actual_frame = real_frame;
     state.time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
     static double simulation_time{};
     double delta_time{state.time - simulation_time};
@@ -262,9 +258,9 @@ namespace cse
 
   bool game::behind()
   {
-    if (state.accumulator >= state.actual_poll_rate)
+    if (state.accumulator >= state.actual_tick)
     {
-      state.accumulator -= state.actual_poll_rate;
+      state.accumulator -= state.actual_tick;
       return true;
     }
     return false;
@@ -273,10 +269,10 @@ namespace cse
   bool game::ready()
   {
     static double render_time{};
-    if (state.time - render_time >= graphics.actual_frame_rate)
+    if (state.time - render_time >= graphics.actual_frame)
     {
       render_time = state.time;
-      state.alpha = state.accumulator / state.actual_poll_rate;
+      state.alpha = state.accumulator / state.actual_tick;
       return true;
     }
     return false;

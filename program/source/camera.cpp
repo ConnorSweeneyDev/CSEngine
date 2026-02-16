@@ -52,19 +52,19 @@ namespace cse
     on_input(input);
   }
 
-  void camera::simulate(const double poll_rate)
+  void camera::simulate(const double tick)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before simulation");
-    state.active.timer.update(poll_rate);
-    on_simulate(poll_rate);
+    state.active.timer.update(tick);
+    on_simulate(tick);
   }
 
-  std::pair<glm::dmat4, glm::dmat4> camera::render(const double alpha, const double previous_aspect_ratio,
-                                                   const double active_aspect_ratio)
+  std::pair<glm::dmat4, glm::dmat4> camera::render(const double previous_aspect, const double active_aspect,
+                                                   const double alpha)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before rendering");
     on_render(alpha);
-    return {graphics.calculate_projection_matrix(alpha, previous_aspect_ratio, active_aspect_ratio),
+    return {graphics.calculate_projection_matrix(previous_aspect, active_aspect, alpha),
             state.calculate_view_matrix(alpha)};
   }
 

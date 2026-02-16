@@ -42,9 +42,9 @@ namespace cse
     void previous();
     void event(const SDL_Event &event);
     void input(const bool *input);
-    void simulate(const double poll_rate);
-    std::pair<glm::dmat4, glm::dmat4> render(const double alpha, const double previous_aspect_ratio,
-                                             const double active_aspect_ratio);
+    void simulate(const double tick);
+    std::pair<glm::dmat4, glm::dmat4> render(const double previous_aspect, const double active_aspect,
+                                             const double alpha);
     void destroy();
     void clean();
 
