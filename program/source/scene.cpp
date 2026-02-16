@@ -126,8 +126,16 @@ namespace cse
     state.active.timer.update(tick);
     state.active.camera->simulate(tick);
     for (const auto &[name, object] : state.active.objects) object->simulate(tick);
-    for (const auto &[name, object] : state.active.objects) object->collide(tick, name, state.active.objects);
     post_simulate(tick);
+  }
+
+  void scene::collide(const double tick)
+  {
+    if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before collision");
+    pre_collide(tick, state.active.contacts);
+    state.generate_contacts();
+    for (const auto &[name, object] : state.active.objects) object->collide(tick, state.active.contacts);
+    post_collide(tick, state.active.contacts);
   }
 
   void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,

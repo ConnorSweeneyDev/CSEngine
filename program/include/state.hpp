@@ -5,6 +5,7 @@
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_video.h"
@@ -155,6 +156,7 @@ namespace cse::help
       enum phase phase = {};
       std::shared_ptr<class camera> camera{};
       std::unordered_set<name> objects{};
+      std::vector<contact> contacts{};
       help::timer timer{};
     };
     struct active
@@ -163,6 +165,7 @@ namespace cse::help
       std::weak_ptr<class game> parent{};
       std::shared_ptr<class camera> camera{};
       std::unordered_map<name, std::shared_ptr<class object>> objects{};
+      std::vector<contact> contacts{};
       help::timer timer{};
     };
     struct next
@@ -180,6 +183,8 @@ namespace cse::help
 
   private:
     void update_previous();
+
+    void generate_contacts();
 
   public:
     struct previous previous{};
@@ -248,7 +253,6 @@ namespace cse::help
       temporal<glm::dvec2> scale{};
       bool collidable{};
       help::timer timer{};
-      help::collision collision{};
     };
     struct active
     {
@@ -259,7 +263,6 @@ namespace cse::help
       temporal<glm::dvec2> scale{};
       bool collidable{};
       help::timer timer{};
-      help::collision collision{};
     };
 
   public:

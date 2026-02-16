@@ -10,6 +10,10 @@
 #include "glm/ext/vector_uint2.hpp"
 #include "glm/trigonometric.hpp"
 
+#include "collision.hpp"
+#include "numeric.hpp"
+#include "object.hpp"
+
 namespace cse::help
 {
   game_state::game_state(const double tick_)
@@ -83,7 +87,47 @@ namespace cse::help
     previous.objects.clear();
     previous.objects.reserve(active.objects.size());
     for (const auto &[name, object] : active.objects) previous.objects.insert(name);
+    previous.contacts.clear();
+    previous.contacts.reserve(active.contacts.size());
+    for (const auto &contact : active.contacts) previous.contacts.emplace_back(contact);
     previous.timer = active.timer;
+  }
+
+  void scene_state::generate_contacts()
+  {
+    active.contacts.clear();
+
+    for (auto self_iterator{active.objects.begin()}; self_iterator != active.objects.end(); ++self_iterator)
+    {
+      const auto &[self, self_pointer]{*self_iterator};
+      auto self_hitboxes{current_hitboxes(self_pointer)};
+      if (self_hitboxes.empty()) continue;
+
+      auto self_z{std::floor(self_pointer->state.active.translation.value.z + 0.5)};
+      auto target_iterator{self_iterator};
+      for (++target_iterator; target_iterator != active.objects.end(); ++target_iterator)
+      {
+        const auto &[target, target_pointer]{*target_iterator};
+        if (!(equal(std::floor(target_pointer->state.active.translation.value.z + 0.5), self_z))) continue;
+        auto target_hitboxes{current_hitboxes(target_pointer)};
+        if (target_hitboxes.empty()) continue;
+        for (const auto &[self_hitbox, self_hitbox_object] : self_hitboxes)
+        {
+          auto self_bounds{world_bounds(self_pointer, self_hitbox_object)};
+          for (const auto &[target_hitbox, target_hitbox_object] : target_hitboxes)
+          {
+            auto target_bounds{world_bounds(target_pointer, target_hitbox_object)};
+            if (overlaps(self_bounds, target_bounds))
+            {
+              active.contacts.push_back(
+                describe_collision(self, target, self_hitbox, target_hitbox, self_bounds, target_bounds));
+              active.contacts.push_back(
+                describe_collision(target, self, target_hitbox, self_hitbox, target_bounds, self_bounds));
+            }
+          }
+        }
+      }
+    }
   }
 
   camera_state::camera_state(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_)
@@ -123,7 +167,6 @@ namespace cse::help
     previous.scale = active.scale;
     previous.collidable = active.collidable;
     previous.timer = active.timer;
-    previous.collision = active.collision;
   }
 
   glm::dmat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,

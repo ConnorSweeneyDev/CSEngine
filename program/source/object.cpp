@@ -1,9 +1,8 @@
 #include "object.hpp"
 
-#include <memory>
 #include <tuple>
-#include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
@@ -15,7 +14,6 @@
 #include "collision.hpp"
 #include "exception.hpp"
 #include "graphics.hpp"
-#include "name.hpp"
 #include "resource.hpp"
 #include "state.hpp"
 
@@ -74,12 +72,10 @@ namespace cse
     on_simulate(tick);
   }
 
-  void object::collide(const double tick, const name self,
-                       const std::unordered_map<name, std::shared_ptr<object>> &objects)
+  void object::collide(const double tick, const std::vector<contact> &contacts)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
-    state.active.collision.update(self, objects);
-    on_collide(tick);
+    on_collide(tick, contacts);
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,

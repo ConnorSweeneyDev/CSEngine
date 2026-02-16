@@ -1,18 +1,19 @@
 #pragma once
 
 #include <memory>
-#include <unordered_map>
-#include <vector>
+#include <span>
+#include <utility>
 
 #include "glm/ext/vector_double2.hpp"
 
 #include "declaration.hpp"
-#include "hitbox.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
 
 namespace cse
 {
+  using hitbox = name;
+
   struct contact
   {
     struct self
@@ -33,24 +34,13 @@ namespace cse
     glm::dvec2 normal{};
     glm::dvec2 penetration{};
   };
-};
+}
 
 namespace cse::help
 {
-  class collision
-  {
-    friend class cse::object;
-
-  public:
-    template <typename callable> void handle(callable &&config) const;
-
-  private:
-    void update(const name self, const std::unordered_map<name, std::shared_ptr<object>> &objects);
-    void clear();
-
-  private:
-    std::vector<contact> contacts{};
-  };
+  bool overlaps(const rectangle &first, const rectangle &second);
+  std::span<const std::pair<hitbox, rectangle>> current_hitboxes(const std::shared_ptr<object> &object);
+  rectangle world_bounds(const std::shared_ptr<object> &object, const rectangle &bounds);
+  contact describe_collision(const name self, const name target, const cse::hitbox own, const cse::hitbox theirs,
+                             const rectangle &self_bounds, const rectangle &target_bounds);
 }
-
-#include "collision.inl" // IWYU pragma: keep

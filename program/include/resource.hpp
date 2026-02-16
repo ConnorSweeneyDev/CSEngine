@@ -6,7 +6,7 @@
 
 #include "glm/ext/vector_double4.hpp"
 
-#include "hitbox.hpp"
+#include "collision.hpp"
 #include "numeric.hpp"
 #include "temporal.hpp"
 

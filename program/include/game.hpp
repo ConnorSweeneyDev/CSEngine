@@ -2,10 +2,12 @@
 
 #include <functional>
 #include <memory>
+#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "glm/ext/vector_double4.hpp"
 
+#include "collision.hpp"
 #include "declaration.hpp"
 #include "function.hpp"
 #include "graphics.hpp"
@@ -59,6 +61,8 @@ namespace cse
     virtual void post_input(const bool *) {}
     virtual void pre_simulate(const double) {}
     virtual void post_simulate(const double) {}
+    virtual void pre_collide(const double, const std::vector<contact> &) {}
+    virtual void post_collide(const double, const std::vector<contact> &) {}
     virtual void pre_render(const double) {}
     virtual void post_render(const double) {}
     virtual void pre_destroy() {}
@@ -74,6 +78,7 @@ namespace cse
     void event();
     void input();
     void simulate();
+    void collide();
     void render();
     void destroy();
     void clean();

@@ -1,11 +1,13 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 
+#include "collision.hpp"
 #include "declaration.hpp"
 #include "graphics.hpp"
 #include "name.hpp"
@@ -45,6 +47,8 @@ namespace cse
     virtual void post_input(const bool *) {}
     virtual void pre_simulate(const double) {}
     virtual void post_simulate(const double) {}
+    virtual void pre_collide(const double, const std::vector<contact> &) {}
+    virtual void post_collide(const double, const std::vector<contact> &) {}
     virtual void pre_render(const double) {}
     virtual void post_render(const double) {}
     virtual void pre_destroy() {}
@@ -60,6 +64,7 @@ namespace cse
     void event(const SDL_Event &event);
     void input(const bool *input);
     void simulate(const double tick);
+    void collide(const double tick);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const double previous_aspect, const double active_aspect, const double alpha);
     void destroy(SDL_GPUDevice *gpu);

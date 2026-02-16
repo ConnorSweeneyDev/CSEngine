@@ -1,9 +1,8 @@
 #pragma once
 
-#include <memory>
 #include <tuple>
-#include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
@@ -12,9 +11,9 @@
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
 
+#include "collision.hpp"
 #include "declaration.hpp"
 #include "graphics.hpp"
-#include "name.hpp"
 #include "resource.hpp"
 #include "state.hpp"
 
@@ -41,7 +40,7 @@ namespace cse
     virtual void on_event(const SDL_Event &) {};
     virtual void on_input(const bool *) {};
     virtual void on_simulate(const double) {};
-    virtual void on_collide(const double) {};
+    virtual void on_collide(const double, const std::vector<contact> &) {};
     virtual void on_render(const double) {};
     virtual void on_destroy() {};
     virtual void on_clean() {};
@@ -53,7 +52,7 @@ namespace cse
     void event(const SDL_Event &event);
     void input(const bool *input);
     void simulate(const double tick);
-    void collide(const double tick, const name self, const std::unordered_map<name, std::shared_ptr<object>> &objects);
+    void collide(const double tick, const std::vector<contact> &contacts);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const glm::dmat4 &projection_matrix, const glm::dmat4 &view_matrix, const double alpha);
     void destroy(SDL_GPUDevice *gpu);

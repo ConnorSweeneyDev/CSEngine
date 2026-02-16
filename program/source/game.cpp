@@ -69,6 +69,7 @@ namespace cse
         event();
         input();
         simulate();
+        collide();
         tps();
       }
       clock();
@@ -202,6 +203,14 @@ namespace cse
     state.active.window->simulate(state.actual_tick);
     state.active.scene.pointer->simulate(state.actual_tick);
     post_simulate(state.actual_tick);
+  }
+
+  void game::collide()
+  {
+    if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before collision");
+    pre_collide(state.actual_tick, state.active.scene.pointer->state.active.contacts);
+    state.active.scene.pointer->collide(state.actual_tick);
+    post_collide(state.actual_tick, state.active.scene.pointer->state.active.contacts);
   }
 
   void game::render()
