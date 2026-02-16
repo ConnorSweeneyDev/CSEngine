@@ -86,7 +86,7 @@ namespace cse::help
     previous.camera = active.camera;
     previous.objects.clear();
     previous.objects.reserve(active.objects.size());
-    for (const auto &[name, object] : active.objects) previous.objects.insert(name);
+    for (const auto &[identifier, object] : active.objects) previous.objects.insert(identifier);
     previous.contacts.clear();
     previous.contacts.reserve(active.contacts.size());
     for (const auto &contact : active.contacts) previous.contacts.emplace_back(contact);

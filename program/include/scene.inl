@@ -37,6 +37,7 @@ namespace cse
   scene &scene::set(const name name, object_arguments &&...arguments)
   {
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
+    object->state.name = name;
     object->state.active.parent = weak_from_this();
     switch (state.active.phase)
     {

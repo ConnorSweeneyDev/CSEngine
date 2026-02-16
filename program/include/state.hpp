@@ -187,13 +187,14 @@ namespace cse::help
     void generate_contacts();
 
   public:
+    class name name{};
     struct previous previous{};
     struct active active{};
     struct next next{};
 
   private:
-    std::unordered_set<name> removals{};
-    std::unordered_map<name, std::shared_ptr<object>> additions{};
+    std::unordered_set<class name> removals{};
+    std::unordered_map<class name, std::shared_ptr<object>> additions{};
   };
 
   struct camera_state
@@ -281,6 +282,7 @@ namespace cse::help
                                       const double alpha) const;
 
   public:
+    class name name{};
     struct previous previous{};
     struct active active{};
   };

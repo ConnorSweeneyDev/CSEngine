@@ -54,6 +54,7 @@ namespace cse
                   scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
+    scene->state.name = name;
     if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
     if (config) config(scene);
     if (auto iterator{state.active.scenes.find(name)};
@@ -88,6 +89,7 @@ namespace cse
                       scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
+    scene->state.name = name;
     if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
     if (config) config(scene);
     if (state.active.phase == help::phase::CREATED)
