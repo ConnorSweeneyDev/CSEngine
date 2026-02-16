@@ -81,6 +81,7 @@ namespace cse
     bool running();
     void time();
     bool behind();
+    void tps();
     bool ready();
     void fps();
 

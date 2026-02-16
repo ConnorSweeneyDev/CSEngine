@@ -67,6 +67,7 @@ namespace cse
         event();
         input();
         simulate();
+        tps();
       }
       if (ready())
       {
@@ -264,6 +265,19 @@ namespace cse
       return true;
     }
     return false;
+  }
+
+  void game::tps()
+  {
+    static double tps_time{};
+    static unsigned int tick_count{};
+    tick_count++;
+    if (state.time - tps_time >= 1.0)
+    {
+      if constexpr (debug) print<CLOG>("{} TPS\n", tick_count);
+      tps_time = state.time;
+      tick_count = 0;
+    }
   }
 
   bool game::ready()
