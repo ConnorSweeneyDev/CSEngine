@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -62,6 +63,7 @@ namespace cse
       time();
       while (behind())
       {
+        tps();
         previous();
         sync();
         event();
@@ -69,8 +71,10 @@ namespace cse
         simulate();
         tps();
       }
+      clock();
       if (ready())
       {
+        fps();
         render();
         fps();
       }
@@ -235,7 +239,7 @@ namespace cse
     post_clean();
   }
 
-  bool game::running() { return state.active.window->state.active.running; }
+  void game::clock() { state.time = static_cast<double>(SDL_GetTicksNS()) / 1e9; }
 
   void game::time()
   {
@@ -249,13 +253,15 @@ namespace cse
       state.actual_tick = real_tick;
     }
     if (!equal(real_frame, graphics.actual_frame)) graphics.actual_frame = real_frame;
-    state.time = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+    clock();
     static double simulation_time{};
     double delta_time{state.time - simulation_time};
     simulation_time = state.time;
     if (delta_time > 0.1) delta_time = 0.1;
     state.accumulator += delta_time;
   }
+
+  bool game::running() { return state.active.window->state.active.running; }
 
   bool game::behind()
   {
@@ -267,41 +273,76 @@ namespace cse
     return false;
   }
 
-  void game::tps()
-  {
-    static double tps_time{};
-    static unsigned int tick_count{};
-    tick_count++;
-    if (state.time - tps_time >= 1.0)
-    {
-      if constexpr (debug) print<CLOG>("{} TPS\n", tick_count);
-      tps_time = state.time;
-      tick_count = 0;
-    }
-  }
-
   bool game::ready()
   {
-    static double render_time{};
-    if (state.time - render_time >= graphics.actual_frame)
+    static double deadline{};
+    if (state.time - deadline >= graphics.actual_frame)
     {
-      render_time = state.time;
+      deadline += graphics.actual_frame;
+      if (state.time - deadline >= graphics.actual_frame) deadline = state.time;
       state.alpha = state.accumulator / state.actual_tick;
       return true;
     }
     return false;
   }
 
+  void game::tps()
+  {
+    static std::optional<double> start{};
+    static double deadline{};
+    static double accumulator{};
+    static unsigned int count{};
+    if (!start)
+    {
+      start = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+      return;
+    }
+
+    count++;
+    accumulator += (static_cast<double>(SDL_GetTicksNS()) / 1e9) - start.value();
+    if (state.time - deadline >= 1.0)
+    {
+      if constexpr (debug)
+      {
+        const double average = (accumulator / count) * 1000.0;
+        const double target = state.actual_tick * 1000.0;
+        const double usage = (average / target) * 100.0;
+        print<CLOG>("TPS: {} | {:.3f}ms / {:.3f}ms ({:.2f}%)\n", count, average, target, usage);
+      }
+      deadline = state.time;
+      accumulator = 0.0;
+      count = 0;
+    }
+    start.reset();
+  }
+
   void game::fps()
   {
-    static double fps_time{};
-    static unsigned int frame_count{};
-    frame_count++;
-    if (state.time - fps_time >= 1.0)
+    static std::optional<double> start{};
+    static double deadline{};
+    static double accumulator{};
+    static unsigned int count{};
+    if (!start)
     {
-      if constexpr (debug) print<CLOG>("{} FPS\n", frame_count);
-      fps_time = state.time;
-      frame_count = 0;
+      start = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+      return;
     }
+
+    count++;
+    accumulator += (static_cast<double>(SDL_GetTicksNS()) / 1e9) - start.value();
+    if (state.time - deadline >= 1.0)
+    {
+      if constexpr (debug)
+      {
+        const double average = (accumulator / count) * 1000.0;
+        const double target = graphics.actual_frame * 1000.0;
+        const double usage = (average / target) * 100.0;
+        print<CLOG>("FPS: {} | {:.3f}ms / {:.3f}ms ({:.2f}%)\n", count, average, target, usage);
+      }
+      deadline = state.time;
+      accumulator = 0.0;
+      count = 0;
+    }
+    start.reset();
   }
 }

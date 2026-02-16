@@ -78,11 +78,14 @@ namespace cse
     void destroy();
     void clean();
 
-    bool running();
+    void clock();
     void time();
+
+    bool running();
     bool behind();
-    void tps();
     bool ready();
+
+    void tps();
     void fps();
 
   public:
