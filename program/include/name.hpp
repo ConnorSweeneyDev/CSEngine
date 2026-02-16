@@ -11,12 +11,16 @@ namespace cse
   {
   public:
     name() = default;
-    constexpr name(const char *string_);
+#if defined(NDEBUG)
+    constexpr
+#endif
+      name(const char *string_);
     name(const std::string &string_);
 
     bool operator==(const name &other) const;
 
-    constexpr std::uint64_t get_hash() const;
+    constexpr std::uint64_t identifier() const;
+    std::string string() const;
 
   private:
     static constexpr std::uint64_t hash_compiletime(const char *string, std::uint64_t hash = 14695981039346656037ULL);
@@ -24,6 +28,9 @@ namespace cse
 
   private:
     std::uint64_t hash{};
+#if defined(_DEBUG)
+    std::string label{};
+#endif
   };
 }
 

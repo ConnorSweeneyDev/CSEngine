@@ -5,7 +5,27 @@
 
 namespace cse
 {
-  name::name(const std::string &string_) : hash{hash_runtime(string_)} {}
+#if defined(_DEBUG)
+  name::name(const char *string_) : hash{hash_compiletime(string_)}, label{string_} {}
+#endif
+
+  name::name(const std::string &string_)
+    : hash{hash_runtime(string_)}
+#if defined(_DEBUG)
+      ,
+      label{string_}
+#endif
+  {
+  }
+
+  std::string name::string() const
+  {
+#if defined(_DEBUG)
+    return label;
+#else
+    return std::to_string(hash);
+#endif
+  }
 
   bool name::operator==(const name &other) const { return hash == other.hash; }
 

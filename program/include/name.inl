@@ -8,9 +8,11 @@
 
 namespace cse
 {
+#if defined(NDEBUG)
   constexpr name::name(const char *string_) : hash{hash_compiletime(string_)} {}
+#endif
 
-  constexpr std::uint64_t name::get_hash() const { return hash; }
+  constexpr std::uint64_t name::identifier() const { return hash; }
 
   constexpr std::uint64_t name::hash_compiletime(const char *string, std::uint64_t hash)
   {
@@ -19,7 +21,7 @@ namespace cse
   }
 }
 
-inline std::size_t std::hash<cse::name>::operator()(const cse::name &id) const
+inline std::size_t std::hash<cse::name>::operator()(const cse::name &name) const
 {
-  return static_cast<std::size_t>(id.get_hash());
+  return static_cast<std::size_t>(name.identifier());
 }
