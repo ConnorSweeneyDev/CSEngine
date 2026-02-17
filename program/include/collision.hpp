@@ -6,7 +6,7 @@
 
 #include "glm/ext/vector_double2.hpp"
 
-#include "declaration.hpp"
+#include "core.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
 

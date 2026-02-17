@@ -24,7 +24,7 @@
 #include "glm/trigonometric.hpp"
 
 #include "camera.hpp"
-#include "declaration.hpp"
+#include "core.hpp"
 #include "exception.hpp"
 #include "name.hpp"
 #include "numeric.hpp"

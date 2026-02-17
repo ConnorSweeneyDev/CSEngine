@@ -8,7 +8,7 @@
 #include "glm/ext/vector_double4.hpp"
 
 #include "collision.hpp"
-#include "declaration.hpp"
+#include "core.hpp"
 #include "function.hpp"
 #include "graphics.hpp"
 #include "name.hpp"

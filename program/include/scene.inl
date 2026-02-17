@@ -6,7 +6,7 @@
 
 #include "camera.hpp"
 #include "container.hpp"
-#include "declaration.hpp"
+#include "core.hpp"
 #include "name.hpp"
 #include "object.hpp"
 #include "state.hpp"

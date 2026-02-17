@@ -6,7 +6,7 @@
 #include <typeindex>
 #include <unordered_map>
 
-#include "declaration.hpp"
+#include "core.hpp"
 #include "name.hpp"
 
 namespace cse::help

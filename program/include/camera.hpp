@@ -7,7 +7,7 @@
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double3.hpp"
 
-#include "declaration.hpp"
+#include "core.hpp"
 #include "graphics.hpp"
 #include "state.hpp"
 

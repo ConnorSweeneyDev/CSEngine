@@ -8,7 +8,7 @@
 #include "SDL3/SDL_video.h"
 
 #include "collision.hpp"
-#include "declaration.hpp"
+#include "core.hpp"
 #include "graphics.hpp"
 #include "name.hpp"
 #include "state.hpp"

@@ -8,7 +8,7 @@
 #include <utility>
 
 #include "container.hpp"
-#include "declaration.hpp"
+#include "core.hpp"
 #include "exception.hpp"
 #include "function.hpp"
 #include "name.hpp"

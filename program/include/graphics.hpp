@@ -14,7 +14,7 @@
 #include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_uint2.hpp"
 
-#include "declaration.hpp"
+#include "core.hpp"
 #include "name.hpp"
 #include "property.hpp"
 #include "resource.hpp"

@@ -12,7 +12,7 @@
 #include "glm/ext/vector_double3.hpp"
 
 #include "collision.hpp"
-#include "declaration.hpp"
+#include "core.hpp"
 #include "graphics.hpp"
 #include "resource.hpp"
 #include "state.hpp"
