@@ -15,6 +15,7 @@
 #include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
+#include "name.hpp"
 #include "property.hpp"
 #include "resource.hpp"
 #include "temporal.hpp"
@@ -246,9 +247,9 @@ namespace cse::help
   private:
     void update_previous();
 
-    void create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu);
-    void upload_static_buffers(SDL_GPUDevice *gpu);
-    void upload_dynamic_buffers(SDL_GPUDevice *gpu, const double alpha);
+    void create_pipeline_and_buffers(const name &name, SDL_Window *instance, SDL_GPUDevice *gpu);
+    void upload_static_buffers(const name &name, SDL_GPUDevice *gpu);
+    void upload_dynamic_buffers(const name &name, SDL_GPUDevice *gpu, const double alpha);
     void generate_pipeline();
     void generate_and_upload_texture();
     void animate(const double tick);

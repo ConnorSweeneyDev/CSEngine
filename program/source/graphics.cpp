@@ -26,6 +26,7 @@
 #include "camera.hpp"
 #include "declaration.hpp"
 #include "exception.hpp"
+#include "name.hpp"
 #include "numeric.hpp"
 #include "object.hpp"
 #include "resource.hpp"
@@ -394,7 +395,7 @@ namespace cse::help
     previous.priority = active.priority;
   }
 
-  void object_graphics::create_pipeline_and_buffers(SDL_Window *instance, SDL_GPUDevice *gpu)
+  void object_graphics::create_pipeline_and_buffers(const name &name, SDL_Window *instance, SDL_GPUDevice *gpu)
   {
     cached_instance = instance;
     cached_gpu = gpu;
@@ -402,11 +403,11 @@ namespace cse::help
     SDL_GPUBufferCreateInfo vertex_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_VERTEX, .size = sizeof(quad_vertices), .props = 0};
     vertex_buffer = SDL_CreateGPUBuffer(gpu, &vertex_buffer_info);
-    if (!vertex_buffer) throw sdl_exception("Could not create vertex buffer for object");
+    if (!vertex_buffer) throw sdl_exception("Could not create vertex buffer for object '{}'", name.string());
     SDL_GPUBufferCreateInfo index_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_INDEX, .size = sizeof(quad_indices), .props = 0};
     index_buffer = SDL_CreateGPUBuffer(gpu, &index_buffer_info);
-    if (!index_buffer) throw sdl_exception("Could not create index buffer for object");
+    if (!index_buffer) throw sdl_exception("Could not create index buffer for object '{}'", name.string());
     SDL_GPUSamplerCreateInfo sampler_info{};
     sampler_info.min_filter = SDL_GPU_FILTER_NEAREST;
     sampler_info.mag_filter = SDL_GPU_FILTER_NEAREST;
@@ -415,33 +416,34 @@ namespace cse::help
     sampler_info.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_buffer = SDL_CreateGPUSampler(gpu, &sampler_info);
-    if (!sampler_buffer) throw sdl_exception("Could not create sampler for object");
+    if (!sampler_buffer) throw sdl_exception("Could not create sampler for object '{}'", name.string());
     SDL_GPUTransferBufferCreateInfo vertex_transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = sizeof(quad_vertices) + sizeof(quad_indices), .props = 0};
     vertex_transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &vertex_transfer_buffer_info);
-    if (!vertex_transfer_buffer) throw sdl_exception("Could not create transfer buffer for buffer object");
+    if (!vertex_transfer_buffer)
+      throw sdl_exception("Could not create transfer buffer for buffer object '{}'", name.string());
     auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     auto vertex{reinterpret_cast<struct vertex_data *>(start)};
-    if (!vertex) throw sdl_exception("Could not map vertex data for object");
+    if (!vertex) throw sdl_exception("Could not map vertex data for object '{}'", name.string());
     quad_vertices = std::array<struct vertex_data, 4>{{{1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f},
                                                        {1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f},
                                                        {-1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f},
                                                        {-1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}}};
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex);
     auto index{reinterpret_cast<Uint16 *>(start + sizeof(quad_vertices))};
-    if (!index) throw sdl_exception("Could not map index data for object");
+    if (!index) throw sdl_exception("Could not map index data for object '{}'", name.string());
     quad_indices = std::array<Uint16, 6>({3, 1, 0, 3, 0, 2});
     std::copy(quad_indices.begin(), quad_indices.end(), index);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
     generate_and_upload_texture();
   }
 
-  void object_graphics::upload_static_buffers(SDL_GPUDevice *gpu)
+  void object_graphics::upload_static_buffers(const name &name, SDL_GPUDevice *gpu)
   {
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(gpu)};
-    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for object");
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for object '{}'", name.string());
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
-    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for object");
+    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for object '{}'", name.string());
     SDL_GPUTransferBufferLocation index_transfer_buffer_location{.transfer_buffer = vertex_transfer_buffer,
                                                                  .offset = sizeof(quad_vertices)};
     SDL_GPUBufferRegion index_buffer_region{.buffer = index_buffer, .offset = 0, .size = sizeof(quad_indices)};
@@ -450,11 +452,11 @@ namespace cse::help
     SDL_SubmitGPUCommandBuffer(command_buffer);
   }
 
-  void object_graphics::upload_dynamic_buffers(SDL_GPUDevice *gpu, const double alpha)
+  void object_graphics::upload_dynamic_buffers(const name &name, SDL_GPUDevice *gpu, const double alpha)
   {
     auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     auto vertex{reinterpret_cast<struct vertex_data *>(start)};
-    if (!vertex) throw sdl_exception("Could not map vertex data for object");
+    if (!vertex) throw sdl_exception("Could not map vertex data for object '{}'", name.string());
     const auto precise_color{previous.texture.color.value +
                              (active.texture.color.value - previous.texture.color.value) * alpha};
     const glm::vec4 color{precise_color};
@@ -475,9 +477,9 @@ namespace cse::help
     std::copy(quad_vertices.begin(), quad_vertices.end(), vertex);
     SDL_UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer);
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(gpu)};
-    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for object");
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for object '{}'", name.string());
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
-    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for object");
+    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for object '{}'", name.string());
     SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = vertex_transfer_buffer, .offset = 0};
     SDL_GPUBufferRegion buffer_region{.buffer = vertex_buffer, .offset = 0, .size = sizeof(quad_vertices)};
     SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, false);

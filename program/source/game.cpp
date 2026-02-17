@@ -46,7 +46,7 @@ namespace cse
     {
       const auto &scene{*iterator};
       if (state.active.scene == scene || scene->state.active.phase == help::phase::CREATED)
-        throw exception("Tried to remove current or created scene");
+        throw exception("Tried to remove current or created scene '{}'", name.string());
       scene->clean();
       state.active.scenes.erase(iterator);
     }

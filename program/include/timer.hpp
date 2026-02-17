@@ -51,7 +51,7 @@ namespace cse::help
     auto throw_call(const name name, call_arguments &&...arguments);
 
   private:
-    template <typename signature> const std::function<signature> &get_function(const entry &entry) const;
+    template <typename signature> const std::function<signature> &deduce(const name &name, const entry &target) const;
     void update(const double tick);
 
   private:

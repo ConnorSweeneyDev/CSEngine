@@ -28,17 +28,19 @@ namespace cse
 
   void object::prepare()
   {
-    if (state.active.phase != help::phase::CLEANED) throw exception("Object must be cleaned before preparation");
+    if (state.active.phase != help::phase::CLEANED)
+      throw exception("Object '{}' must be cleaned before preparation", state.name.string());
     state.active.phase = help::phase::PREPARED;
     on_prepare();
   }
 
   void object::create(SDL_Window *instance, SDL_GPUDevice *gpu)
   {
-    if (state.active.phase != help::phase::PREPARED) throw exception("Object must be prepared before creation");
-    graphics.create_pipeline_and_buffers(instance, gpu);
-    graphics.upload_static_buffers(gpu);
-    graphics.upload_dynamic_buffers(gpu, 1.0);
+    if (state.active.phase != help::phase::PREPARED)
+      throw exception("Object '{}' must be prepared before creation", state.name.string());
+    graphics.create_pipeline_and_buffers(state.name, instance, gpu);
+    graphics.upload_static_buffers(state.name, gpu);
+    graphics.upload_dynamic_buffers(state.name, gpu, 1.0);
     state.active.phase = help::phase::CREATED;
     on_create();
   }
@@ -46,7 +48,7 @@ namespace cse
   void object::previous()
   {
     if (state.active.phase != help::phase::CREATED)
-      throw exception("Object must be created before updating previous state");
+      throw exception("Object '{}' must be created before updating previous state", state.name.string());
     state.update_previous();
     graphics.update_previous();
     on_previous();
@@ -54,19 +56,22 @@ namespace cse
 
   void object::event(const SDL_Event &event)
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before processing events");
+    if (state.active.phase != help::phase::CREATED)
+      throw exception("Object '{}' must be created before processing events", state.name.string());
     on_event(event);
   }
 
   void object::input(const bool *input)
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before processing input");
+    if (state.active.phase != help::phase::CREATED)
+      throw exception("Object '{}' must be created before processing input", state.name.string());
     on_input(input);
   }
 
   void object::simulate(const double tick)
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
+    if (state.active.phase != help::phase::CREATED)
+      throw exception("Object '{}' must be created before simulation", state.name.string());
     state.active.timer.update(tick);
     graphics.animate(tick);
     on_simulate(tick);
@@ -74,15 +79,17 @@ namespace cse
 
   void object::collide(const double tick, const std::vector<contact> &contacts)
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before simulation");
+    if (state.active.phase != help::phase::CREATED)
+      throw exception("Object '{}' must be created before simulation", state.name.string());
     on_collide(tick, contacts);
   }
 
   void object::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                       const glm::dmat4 &projection_matrix, const glm::dmat4 &view_matrix, const double alpha)
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before rendering");
-    graphics.upload_dynamic_buffers(gpu, alpha);
+    if (state.active.phase != help::phase::CREATED)
+      throw exception("Object '{}' must be created before rendering", state.name.string());
+    graphics.upload_dynamic_buffers(state.name, gpu, alpha);
     graphics.bind_pipeline_and_buffers(render_pass, alpha);
     graphics.push_uniform_data(command_buffer,
                                {projection_matrix, view_matrix,
@@ -95,7 +102,8 @@ namespace cse
 
   void object::destroy(SDL_GPUDevice *gpu)
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Object must be created before destruction");
+    if (state.active.phase != help::phase::CREATED)
+      throw exception("Object '{}' must be created before destruction", state.name.string());
     graphics.destroy_resources(gpu);
     state.active.phase = help::phase::PREPARED;
     on_destroy();
@@ -103,7 +111,8 @@ namespace cse
 
   void object::clean()
   {
-    if (state.active.phase != help::phase::PREPARED) throw exception("Object must be prepared before cleaning");
+    if (state.active.phase != help::phase::PREPARED)
+      throw exception("Object '{}' must be prepared before cleaning", state.name.string());
     state.active.phase = help::phase::CLEANED;
     on_clean();
   }

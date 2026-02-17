@@ -147,18 +147,18 @@ try_name(const vector &container, const std::weak_ptr<typename vector::value_typ
 template <cse::trait::pointer_vector vector>
 cse::name throw_name(const vector &container, const typename vector::value_type &pointer)
 {
-  if (!pointer) throw cse::exception("Pointer is null");
+  if (!pointer) throw cse::exception("Pointer is null in vector name lookup");
   for (const auto &element : container)
     if (element == pointer) return element->state.name;
-  throw cse::exception("Name lookup failed");
+  throw cse::exception("Vector name lookup failed");
 }
 
 template <cse::trait::pointer_vector vector>
 cse::name throw_name(const vector &container, const std::weak_ptr<typename vector::value_type::element_type> &pointer)
 {
   auto locked{pointer.lock()};
-  if (!locked) throw cse::exception("Weak pointer lock failed");
+  if (!locked) throw cse::exception("Weak pointer lock in vector name lookup failed");
   for (const auto &element : container)
     if (element == locked) return element->state.name;
-  throw cse::exception("Name lookup failed");
+  throw cse::exception("Vector name lookup failed");
 }
