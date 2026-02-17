@@ -3,7 +3,6 @@
 #include <memory>
 #include <optional>
 #include <tuple>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -35,7 +34,7 @@ namespace cse::help
     friend class cse::game;
 
   private:
-    struct scene_reference
+    struct next_scene
     {
       class name name{};
       std::shared_ptr<class scene> pointer{};
@@ -46,7 +45,7 @@ namespace cse::help
       enum phase phase = {};
       std::shared_ptr<class window> window{};
       std::unordered_set<name> scenes{};
-      struct scene_reference scene{};
+      std::shared_ptr<class scene> scene{};
       double tick{};
       help::timer timer{};
     };
@@ -55,15 +54,15 @@ namespace cse::help
       enum phase phase = {};
       std::weak_ptr<class game> parent{};
       std::shared_ptr<class window> window{};
-      std::unordered_map<name, std::shared_ptr<class scene>> scenes{};
-      struct scene_reference scene{};
+      std::vector<std::shared_ptr<class scene>> scenes{};
+      std::shared_ptr<class scene> scene{};
       double tick{};
       help::timer timer{};
     };
     struct next
     {
       std::optional<std::shared_ptr<class window>> window{};
-      std::optional<struct scene_reference> scene{};
+      std::optional<next_scene> scene{};
     };
 
   public:
@@ -164,7 +163,7 @@ namespace cse::help
       enum phase phase = {};
       std::weak_ptr<class game> parent{};
       std::shared_ptr<class camera> camera{};
-      std::unordered_map<name, std::shared_ptr<class object>> objects{};
+      std::vector<std::shared_ptr<class object>> objects{};
       std::vector<contact> contacts{};
       help::timer timer{};
     };
@@ -194,7 +193,7 @@ namespace cse::help
 
   private:
     std::unordered_set<class name> removals{};
-    std::unordered_map<class name, std::shared_ptr<object>> additions{};
+    std::vector<std::shared_ptr<object>> additions{};
   };
 
   struct camera_state

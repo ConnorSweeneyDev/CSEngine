@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "camera.hpp"
+#include "container.hpp"
 #include "declaration.hpp"
 #include "name.hpp"
 #include "object.hpp"
@@ -41,16 +42,16 @@ namespace cse
     object->state.active.parent = weak_from_this();
     switch (state.active.phase)
     {
-      case help::phase::CLEANED: state.active.objects.insert_or_assign(name, object); break;
+      case help::phase::CLEANED: set_or_add(state.active.objects, object); break;
       case help::phase::PREPARED:
-        if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
-          if (iterator->second->state.active.phase == help::phase::PREPARED) iterator->second->clean();
-        state.active.objects.insert_or_assign(name, object);
+        if (auto existing{try_find(state.active.objects, name)})
+          if (existing->state.active.phase == help::phase::PREPARED) existing->clean();
+        set_or_add(state.active.objects, object);
         object->prepare();
         break;
       case help::phase::CREATED:
-        if (state.active.objects.contains(name)) state.removals.insert(name);
-        state.additions.insert_or_assign(name, object);
+        if (try_contains(state.active.objects, name)) state.removals.insert(name);
+        set_or_add(state.additions, object);
         break;
     }
     return *this;

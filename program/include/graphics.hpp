@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 #include <tuple>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -16,7 +15,6 @@
 #include "glm/ext/vector_uint2.hpp"
 
 #include "declaration.hpp"
-#include "name.hpp"
 #include "property.hpp"
 #include "resource.hpp"
 #include "temporal.hpp"
@@ -142,9 +140,9 @@ namespace cse::help
     scene_graphics &operator=(scene_graphics &&) = delete;
 
   private:
-    std::vector<std::shared_ptr<object>>
-    generate_render_order(const std::shared_ptr<camera> camera,
-                          const std::unordered_map<name, std::shared_ptr<object>> &objects, const double alpha);
+    std::vector<std::shared_ptr<object>> generate_render_order(const std::shared_ptr<camera> camera,
+                                                               const std::vector<std::shared_ptr<object>> &objects,
+                                                               const double alpha);
   };
 
   struct camera_graphics

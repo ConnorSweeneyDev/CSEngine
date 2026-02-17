@@ -5,7 +5,6 @@
 #include <memory>
 #include <string>
 #include <tuple>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -27,7 +26,6 @@
 #include "camera.hpp"
 #include "declaration.hpp"
 #include "exception.hpp"
-#include "name.hpp"
 #include "numeric.hpp"
 #include "object.hpp"
 #include "resource.hpp"
@@ -324,11 +322,10 @@ namespace cse::help
 
   std::vector<std::shared_ptr<object>>
   scene_graphics::generate_render_order(const std::shared_ptr<camera> camera,
-                                        const std::unordered_map<name, std::shared_ptr<object>> &objects,
-                                        const double alpha)
+                                        const std::vector<std::shared_ptr<object>> &objects, const double alpha)
   {
     std::vector<std::shared_ptr<object>> render_order{};
-    for (render_order.reserve(objects.size()); const auto &[name, object] : objects) render_order.emplace_back(object);
+    for (render_order.reserve(objects.size()); const auto &object : objects) render_order.emplace_back(object);
     auto camera_translation =
       camera->state.previous.translation.value +
       (camera->state.active.translation.value - camera->state.previous.translation.value) * alpha;

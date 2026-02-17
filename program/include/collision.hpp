@@ -34,13 +34,13 @@ namespace cse
     glm::dvec2 normal{};
     glm::dvec2 penetration{};
   };
-}
 
-namespace cse::help
-{
-  bool overlaps(const rectangle &first, const rectangle &second);
-  std::span<const std::pair<hitbox, rectangle>> current_hitboxes(const std::shared_ptr<object> &object);
-  rectangle world_bounds(const std::shared_ptr<object> &object, const rectangle &bounds);
-  contact describe_collision(const name self, const name target, const cse::hitbox own, const cse::hitbox theirs,
-                             const rectangle &self_bounds, const rectangle &target_bounds);
+  namespace help
+  {
+    bool overlaps(const rectangle &first, const rectangle &second);
+    std::span<const std::pair<hitbox, rectangle>> current_hitboxes(const std::shared_ptr<object> &object);
+    rectangle world_bounds(const std::shared_ptr<object> &object, const rectangle &bounds);
+    contact describe_collision(const name self, const name target, const cse::hitbox own, const cse::hitbox theirs,
+                               const rectangle &self_bounds, const rectangle &target_bounds);
+  }
 }

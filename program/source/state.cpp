@@ -13,6 +13,7 @@
 #include "collision.hpp"
 #include "numeric.hpp"
 #include "object.hpp"
+#include "scene.hpp"
 
 namespace cse::help
 {
@@ -38,7 +39,7 @@ namespace cse::help
     previous.window = active.window;
     previous.scenes.clear();
     previous.scenes.reserve(active.scenes.size());
-    for (const auto &[name, scene] : active.scenes) previous.scenes.insert(name);
+    for (const auto &scene : active.scenes) previous.scenes.insert(scene->state.name);
     previous.scene = active.scene;
     previous.tick = active.tick;
     previous.timer = active.timer;
@@ -86,7 +87,7 @@ namespace cse::help
     previous.camera = active.camera;
     previous.objects.clear();
     previous.objects.reserve(active.objects.size());
-    for (const auto &[identifier, object] : active.objects) previous.objects.insert(identifier);
+    for (const auto &object : active.objects) previous.objects.insert(object->state.name);
     previous.contacts.clear();
     previous.contacts.reserve(active.contacts.size());
     for (const auto &contact : active.contacts) previous.contacts.emplace_back(contact);
@@ -99,7 +100,8 @@ namespace cse::help
 
     for (auto self_iterator{active.objects.begin()}; self_iterator != active.objects.end(); ++self_iterator)
     {
-      const auto &[self, self_pointer]{*self_iterator};
+      const auto &self_pointer{*self_iterator};
+      const auto &self{self_pointer->state.name};
       auto self_hitboxes{current_hitboxes(self_pointer)};
       if (self_hitboxes.empty()) continue;
 
@@ -107,7 +109,8 @@ namespace cse::help
       auto target_iterator{self_iterator};
       for (++target_iterator; target_iterator != active.objects.end(); ++target_iterator)
       {
-        const auto &[target, target_pointer]{*target_iterator};
+        const auto &target_pointer{*target_iterator};
+        const auto &target{target_pointer->state.name};
         if (!(equal(std::floor(target_pointer->state.active.translation.value.z + 0.5), self_z))) continue;
         auto target_hitboxes{current_hitboxes(target_pointer)};
         if (target_hitboxes.empty()) continue;

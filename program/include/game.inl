@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 
+#include "container.hpp"
 #include "declaration.hpp"
 #include "exception.hpp"
 #include "function.hpp"
@@ -57,11 +58,9 @@ namespace cse
     scene->state.name = name;
     if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
     if (config) config(scene);
-    if (auto iterator{state.active.scenes.find(name)};
-        state.active.phase == help::phase::CREATED && iterator != state.active.scenes.end())
+    if (auto target{try_find(state.active.scenes, name)}; state.active.phase == help::phase::CREATED && target)
     {
-      auto target{iterator->second};
-      if (state.active.scene.pointer == target)
+      if (state.active.scene == target)
       {
         state.next.scene = {name, scene};
         return *this;
@@ -69,7 +68,7 @@ namespace cse
       else
         target->clean();
     }
-    state.active.scenes.insert_or_assign(name, scene);
+    set_or_add(state.active.scenes, scene);
     if (state.active.phase == help::phase::CREATED && scene->state.active.phase == help::phase::CLEANED)
       scene->prepare();
     return *this;
@@ -96,9 +95,9 @@ namespace cse
       state.next.scene = {name, scene};
     else
     {
-      state.active.scenes.insert_or_assign(name, scene);
-      state.active.scene = {name, scene};
-      state.previous.scene = {name, scene};
+      set_or_add(state.active.scenes, scene);
+      state.active.scene = scene;
+      state.previous.scene = scene;
     }
     return *this;
   }

@@ -4,13 +4,13 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_timer.h"
 #include "glm/ext/vector_double4.hpp"
 
+#include "container.hpp"
 #include "exception.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
@@ -29,24 +29,23 @@ namespace cse
 
   game &game::current(const name name)
   {
-    if (auto iterator{state.active.scenes.find(name)}; iterator == state.active.scenes.end())
-      throw exception("Tried to set current scene to null");
-    else if (state.active.phase == help::phase::CREATED)
+    auto scene{throw_find(state.active.scenes, name)};
+    if (state.active.phase == help::phase::CREATED)
       state.next.scene = {name, {}};
     else
     {
-      state.active.scene = {name, iterator->second};
-      state.previous.scene = {name, iterator->second};
+      state.active.scene = scene;
+      state.previous.scene = scene;
     }
     return *this;
   }
 
   game &game::remove(const name name)
   {
-    if (auto iterator{state.active.scenes.find(name)}; iterator != state.active.scenes.end())
+    if (auto iterator{try_iterate(state.active.scenes, name)}; iterator != state.active.scenes.end())
     {
-      const auto &scene{iterator->second};
-      if (state.active.scene.pointer == scene || scene->state.active.phase == help::phase::CREATED)
+      const auto &scene{*iterator};
+      if (state.active.scene == scene || scene->state.active.phase == help::phase::CREATED)
         throw exception("Tried to remove current or created scene");
       scene->clean();
       state.active.scenes.erase(iterator);
@@ -89,13 +88,13 @@ namespace cse
     if (state.active.phase != help::phase::CLEANED) throw exception("Game must be cleaned before preparation");
     if (!state.active.window) throw exception("No window has been set for the game");
     if (state.active.window->state.active.parent.expired()) state.active.window->state.active.parent = weak_from_this();
-    for (const auto &[name, scene] : state.active.scenes)
+    for (const auto &scene : state.active.scenes)
       if (scene->state.active.parent.expired()) scene->state.active.parent = weak_from_this();
     pre_prepare();
     state.active.window->prepare();
     if (state.active.scenes.empty()) throw exception("No scenes have been added to the game");
-    if (!state.active.scene.pointer) throw exception("No current scene has been set for the game");
-    state.active.scene.pointer->prepare();
+    if (!state.active.scene) throw exception("No current scene has been set for the game");
+    state.active.scene->prepare();
     state.active.phase = help::phase::PREPARED;
     post_prepare();
   }
@@ -106,7 +105,7 @@ namespace cse
     pre_create();
     graphics.create_app();
     state.active.window->create();
-    state.active.scene.pointer->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+    state.active.scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
     state.active.phase = help::phase::CREATED;
     post_create();
   }
@@ -119,7 +118,7 @@ namespace cse
     state.update_previous();
     graphics.update_previous();
     state.active.window->previous();
-    state.active.scene.pointer->previous();
+    state.active.scene->previous();
     post_previous();
   }
 
@@ -131,13 +130,13 @@ namespace cse
     {
       if (auto &window{state.next.window.value()})
       {
-        state.active.scene.pointer->destroy(state.active.window->graphics.gpu);
+        state.active.scene->destroy(state.active.window->graphics.gpu);
         state.active.window->destroy();
         state.active.window->clean();
         state.active.window = window;
         window->prepare();
         window->create();
-        state.active.scene.pointer->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+        state.active.scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
       }
       else
         throw exception("Tried to set window to null");
@@ -147,29 +146,27 @@ namespace cse
     {
       if (auto &[name, scene]{state.next.scene.value()}; scene)
       {
-        state.active.scene.pointer->destroy(state.active.window->graphics.gpu);
-        if (name == state.active.scene.name) state.active.scene.pointer->clean();
-        state.active.scenes.insert_or_assign(name, scene);
-        state.active.scene = {name, scene};
+        state.active.scene->destroy(state.active.window->graphics.gpu);
+        if (name == state.active.scene->state.name) state.active.scene->clean();
+        set_or_add(state.active.scenes, scene);
+        state.active.scene = scene;
         scene->prepare();
         scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
       }
       else
       {
-        if (auto iterator{state.active.scenes.find(name)}; iterator == state.active.scenes.end())
-          throw exception("Tried to set current scene to null");
-        else if (name != state.active.scene.name)
+        auto next_scene{throw_find(state.active.scenes, name)};
+        if (name != state.active.scene->state.name)
         {
-          const auto &next_scene{iterator->second};
-          state.active.scene.pointer->destroy(state.active.window->graphics.gpu);
-          state.active.scene = {name, next_scene};
+          state.active.scene->destroy(state.active.window->graphics.gpu);
+          state.active.scene = next_scene;
           if (next_scene->state.active.phase == help::phase::CLEANED) next_scene->prepare();
           next_scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
         }
       }
       state.next.scene.reset();
     }
-    state.active.scene.pointer->sync(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+    state.active.scene->sync(state.active.window->graphics.instance, state.active.window->graphics.gpu);
     post_sync();
   }
 
@@ -180,7 +177,7 @@ namespace cse
     {
       pre_event(state.active.window->state.event);
       state.active.window->event();
-      state.active.scene.pointer->event(state.active.window->state.event);
+      state.active.scene->event(state.active.window->state.event);
       post_event(state.active.window->state.event);
     }
   }
@@ -191,7 +188,7 @@ namespace cse
     state.active.window->state.input = SDL_GetKeyboardState(nullptr);
     pre_input(state.active.window->state.input);
     state.active.window->input();
-    state.active.scene.pointer->input(state.active.window->state.input);
+    state.active.scene->input(state.active.window->state.input);
     post_input(state.active.window->state.input);
   }
 
@@ -201,16 +198,16 @@ namespace cse
     pre_simulate(state.actual_tick);
     state.active.timer.update(state.actual_tick);
     state.active.window->simulate(state.actual_tick);
-    state.active.scene.pointer->simulate(state.actual_tick);
+    state.active.scene->simulate(state.actual_tick);
     post_simulate(state.actual_tick);
   }
 
   void game::collide()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before collision");
-    pre_collide(state.actual_tick, state.active.scene.pointer->state.active.contacts);
-    state.active.scene.pointer->collide(state.actual_tick);
-    post_collide(state.actual_tick, state.active.scene.pointer->state.active.contacts);
+    pre_collide(state.actual_tick, state.active.scene->state.active.contacts);
+    state.active.scene->collide(state.actual_tick);
+    post_collide(state.actual_tick, state.active.scene->state.active.contacts);
   }
 
   void game::render()
@@ -220,9 +217,9 @@ namespace cse
     if (!state.active.window->start_render(graphics.previous.clear.value, graphics.active.clear.value,
                                            graphics.previous.aspect.value, graphics.active.aspect.value, state.alpha))
       return;
-    state.active.scene.pointer->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
-                                       state.active.window->graphics.render_pass, graphics.previous.aspect.value,
-                                       graphics.active.aspect.value, state.alpha);
+    state.active.scene->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
+                               state.active.window->graphics.render_pass, graphics.previous.aspect.value,
+                               graphics.active.aspect.value, state.alpha);
     state.active.window->end_render(state.alpha);
     post_render(state.alpha);
   }
@@ -231,7 +228,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before destruction");
     pre_destroy();
-    state.active.scene.pointer->destroy(state.active.window->graphics.gpu);
+    state.active.scene->destroy(state.active.window->graphics.gpu);
     state.active.window->destroy();
     graphics.destroy_app();
     state.active.phase = help::phase::PREPARED;
@@ -242,7 +239,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Game must be prepared before cleaning");
     pre_clean();
-    state.active.scene.pointer->clean();
+    state.active.scene->clean();
     state.active.window->clean();
     state.active.phase = help::phase::CLEANED;
     post_clean();

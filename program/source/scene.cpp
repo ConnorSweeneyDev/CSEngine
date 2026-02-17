@@ -8,6 +8,7 @@
 #include "SDL3/SDL_video.h"
 
 #include "camera.hpp"
+#include "container.hpp"
 #include "exception.hpp"
 #include "name.hpp"
 #include "object.hpp"
@@ -17,9 +18,9 @@ namespace cse
 {
   scene &scene::remove(const name name)
   {
-    if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
+    if (auto iterator{try_iterate(state.active.objects, name)}; iterator != state.active.objects.end())
     {
-      if (auto &object{iterator->second}; state.active.phase == help::phase::CREATED)
+      if (auto &object{*iterator}; state.active.phase == help::phase::CREATED)
         state.removals.insert(name);
       else
       {
@@ -36,7 +37,7 @@ namespace cse
     pre_prepare();
     if (!state.active.camera) throw exception("Scene must have a camera to be prepared");
     state.active.camera->prepare();
-    for (const auto &[name, object] : state.active.objects) object->prepare();
+    for (const auto &object : state.active.objects) object->prepare();
     state.active.phase = help::phase::PREPARED;
     post_prepare();
   }
@@ -46,7 +47,7 @@ namespace cse
     if (state.active.phase != help::phase::PREPARED) throw exception("Scene must be prepared before creation");
     pre_create();
     state.active.camera->create();
-    for (const auto &[name, object] : state.active.objects) object->create(instance, gpu);
+    for (const auto &object : state.active.objects) object->create(instance, gpu);
     state.active.phase = help::phase::CREATED;
     post_create();
   }
@@ -58,7 +59,7 @@ namespace cse
     pre_previous();
     state.update_previous();
     state.active.camera->previous();
-    for (const auto &[name, object] : state.active.objects) object->previous();
+    for (const auto &object : state.active.objects) object->previous();
     post_previous();
   }
 
@@ -79,9 +80,9 @@ namespace cse
     if (!state.removals.empty())
     {
       for (const auto &name : state.removals)
-        if (auto iterator{state.active.objects.find(name)}; iterator != state.active.objects.end())
+        if (auto iterator{try_iterate(state.active.objects, name)}; iterator != state.active.objects.end())
         {
-          const auto &object{iterator->second};
+          const auto &object{*iterator};
           if (object->state.active.phase == help::phase::CREATED) object->destroy(gpu);
           object->clean();
           state.active.objects.erase(iterator);
@@ -90,9 +91,9 @@ namespace cse
     }
     if (!state.additions.empty())
     {
-      for (auto &[name, object] : state.additions)
+      for (auto &object : state.additions)
       {
-        state.active.objects.insert_or_assign(name, object);
+        set_or_add(state.active.objects, object);
         object->prepare();
         object->create(instance, gpu);
       }
@@ -106,7 +107,7 @@ namespace cse
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before processing events");
     pre_event(event);
     state.active.camera->event(event);
-    for (const auto &[name, object] : state.active.objects) object->event(event);
+    for (const auto &object : state.active.objects) object->event(event);
     post_event(event);
   }
 
@@ -115,7 +116,7 @@ namespace cse
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before processing input");
     pre_input(input);
     state.active.camera->input(input);
-    for (const auto &[name, object] : state.active.objects) object->input(input);
+    for (const auto &object : state.active.objects) object->input(input);
     post_input(input);
   }
 
@@ -125,7 +126,7 @@ namespace cse
     pre_simulate(tick);
     state.active.timer.update(tick);
     state.active.camera->simulate(tick);
-    for (const auto &[name, object] : state.active.objects) object->simulate(tick);
+    for (const auto &object : state.active.objects) object->simulate(tick);
     post_simulate(tick);
   }
 
@@ -134,7 +135,7 @@ namespace cse
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before collision");
     pre_collide(tick, state.active.contacts);
     state.generate_contacts();
-    for (const auto &[name, object] : state.active.objects) object->collide(tick, state.active.contacts);
+    for (const auto &object : state.active.objects) object->collide(tick, state.active.contacts);
     post_collide(tick, state.active.contacts);
   }
 
@@ -153,7 +154,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Scene must be created before destruction");
     pre_destroy();
-    for (const auto &[name, object] : state.active.objects) object->destroy(gpu);
+    for (const auto &object : state.active.objects) object->destroy(gpu);
     state.active.camera->destroy();
     state.active.phase = help::phase::PREPARED;
     post_destroy();
@@ -163,7 +164,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Scene must be prepared before cleaning");
     pre_clean();
-    for (const auto &[name, object] : state.active.objects) object->clean();
+    for (const auto &object : state.active.objects) object->clean();
     state.active.camera->clean();
     state.active.phase = help::phase::CLEANED;
     post_clean();
