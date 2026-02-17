@@ -154,7 +154,7 @@ namespace cse::help
     {
       enum phase phase = {};
       std::shared_ptr<class camera> camera{};
-      std::unordered_set<name> objects{};
+      std::unordered_set<class name> objects{};
       std::vector<contact> contacts{};
       help::timer timer{};
     };
