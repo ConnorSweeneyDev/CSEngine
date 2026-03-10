@@ -32,8 +32,9 @@ namespace cse
 
   protected:
     object(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_,
-           const std::pair<vertex, fragment> &shader_,
-           const std::tuple<image, animation, playback, flip, color, transparency> &texture_, const int priority_);
+           const int state_priority_, const std::pair<vertex, fragment> &shader_,
+           const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
+           const int graphics_priority_);
     virtual void on_prepare() {};
     virtual void on_create() {};
     virtual void on_previous() {};

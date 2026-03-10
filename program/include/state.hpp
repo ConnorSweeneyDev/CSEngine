@@ -183,6 +183,7 @@ namespace cse::help
   private:
     void update_previous();
 
+    void generate_order(std::vector<std::shared_ptr<object>> &objects);
     void generate_contacts();
 
   public:
@@ -194,6 +195,7 @@ namespace cse::help
   private:
     std::unordered_set<class name> removals{};
     std::vector<std::shared_ptr<object>> additions{};
+    std::vector<std::shared_ptr<object>> order{};
   };
 
   struct camera_state
@@ -252,6 +254,7 @@ namespace cse::help
       temporal<double> rotation{};
       temporal<glm::dvec2> scale{};
       bool collidable{};
+      int priority{};
       help::timer timer{};
     };
     struct active
@@ -262,12 +265,14 @@ namespace cse::help
       temporal<double> rotation{};
       temporal<glm::dvec2> scale{};
       bool collidable{};
+      int priority{};
       help::timer timer{};
     };
 
   public:
     object_state() = default;
-    object_state(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_);
+    object_state(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_,
+                 const int priority_);
     ~object_state() = default;
     object_state(const object_state &) = delete;
     object_state &operator=(const object_state &) = delete;

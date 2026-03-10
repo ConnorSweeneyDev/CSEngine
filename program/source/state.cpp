@@ -1,7 +1,10 @@
 #include "state.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <memory>
 #include <tuple>
+#include <vector>
 
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
@@ -94,17 +97,28 @@ namespace cse::help
     previous.timer = active.timer;
   }
 
+  void scene_state::generate_order(std::vector<std::shared_ptr<object>> &objects)
+  {
+    order.clear();
+    for (order.reserve(objects.size()); const auto &object : objects) order.emplace_back(object);
+    std::sort(order.begin(), order.end(),
+              [](const std::shared_ptr<object> &first, const std::shared_ptr<object> &second)
+              {
+                if (first->state.active.priority != second->state.active.priority)
+                  return first->state.active.priority < second->state.active.priority;
+                return true;
+              });
+  }
+
   void scene_state::generate_contacts()
   {
     active.contacts.clear();
-
     for (auto self_iterator{active.objects.begin()}; self_iterator != active.objects.end(); ++self_iterator)
     {
       const auto &self_pointer{*self_iterator};
       const auto &self{self_pointer->state.name};
       auto self_hitboxes{current_hitboxes(self_pointer)};
       if (self_hitboxes.empty()) continue;
-
       auto self_z{std::floor(self_pointer->state.active.translation.value.z + 0.5)};
       auto target_iterator{self_iterator};
       for (++target_iterator; target_iterator != active.objects.end(); ++target_iterator)
@@ -115,20 +129,16 @@ namespace cse::help
         auto target_hitboxes{current_hitboxes(target_pointer)};
         if (target_hitboxes.empty()) continue;
         for (const auto &[self_hitbox, self_hitbox_object] : self_hitboxes)
-        {
-          auto self_bounds{world_bounds(self_pointer, self_hitbox_object)};
-          for (const auto &[target_hitbox, target_hitbox_object] : target_hitboxes)
-          {
-            auto target_bounds{world_bounds(target_pointer, target_hitbox_object)};
-            if (overlaps(self_bounds, target_bounds))
+          for (auto self_bounds{world_bounds(self_pointer, self_hitbox_object)};
+               const auto &[target_hitbox, target_hitbox_object] : target_hitboxes)
+            if (auto target_bounds{world_bounds(target_pointer, target_hitbox_object)};
+                overlaps(self_bounds, target_bounds))
             {
               active.contacts.push_back(
                 describe_collision(self, target, self_hitbox, target_hitbox, self_bounds, target_bounds));
               active.contacts.push_back(
                 describe_collision(target, self, target_hitbox, self_hitbox, target_bounds, self_bounds));
             }
-          }
-        }
       }
     }
   }
@@ -156,9 +166,10 @@ namespace cse::help
     return glm::lookAt(translation, translation + forward, up);
   }
 
-  object_state::object_state(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_)
-    : previous{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_},
-      active{{}, {}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_}
+  object_state::object_state(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_,
+                             const int priority_)
+    : previous{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_, priority_},
+      active{{}, {}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_, priority_}
   {
   }
 
@@ -169,6 +180,7 @@ namespace cse::help
     previous.rotation = active.rotation;
     previous.scale = active.scale;
     previous.collidable = active.collidable;
+    previous.priority = active.priority;
     previous.timer = active.timer;
   }
 

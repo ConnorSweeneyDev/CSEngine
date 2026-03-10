@@ -141,9 +141,11 @@ namespace cse::help
     scene_graphics &operator=(scene_graphics &&) = delete;
 
   private:
-    std::vector<std::shared_ptr<object>> generate_render_order(const std::shared_ptr<camera> camera,
-                                                               const std::vector<std::shared_ptr<object>> &objects,
-                                                               const double alpha);
+    void generate_order(const std::shared_ptr<camera> camera, const std::vector<std::shared_ptr<object>> &objects,
+                        const double alpha);
+
+  private:
+    std::vector<std::shared_ptr<object>> order{};
   };
 
   struct camera_graphics
@@ -214,10 +216,6 @@ namespace cse::help
       struct flip flip{};
       temporal<cse::color> color{};
       temporal<cse::transparency> transparency{};
-    };
-    struct property
-    {
-      int priority{};
     };
 
     struct previous

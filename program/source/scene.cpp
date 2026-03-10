@@ -102,6 +102,7 @@ namespace cse
       }
       state.additions.clear();
     }
+    state.generate_order(state.active.objects);
     post_sync();
   }
 
@@ -111,7 +112,7 @@ namespace cse
       throw exception("Scene '{}' must be created before processing events", state.name.string());
     pre_event(event);
     state.active.camera->event(event);
-    for (const auto &object : state.active.objects) object->event(event);
+    for (const auto &object : state.order) object->event(event);
     post_event(event);
   }
 
@@ -121,7 +122,7 @@ namespace cse
       throw exception("Scene '{}' must be created before processing input", state.name.string());
     pre_input(input);
     state.active.camera->input(input);
-    for (const auto &object : state.active.objects) object->input(input);
+    for (const auto &object : state.order) object->input(input);
     post_input(input);
   }
 
@@ -132,7 +133,7 @@ namespace cse
     pre_simulate(tick);
     state.active.timer.update(tick);
     state.active.camera->simulate(tick);
-    for (const auto &object : state.active.objects) object->simulate(tick);
+    for (const auto &object : state.order) object->simulate(tick);
     post_simulate(tick);
   }
 
@@ -142,7 +143,7 @@ namespace cse
       throw exception("Scene '{}' must be created before collision", state.name.string());
     pre_collide(tick, state.active.contacts);
     state.generate_contacts();
-    for (const auto &object : state.active.objects) object->collide(tick, state.active.contacts);
+    for (const auto &object : state.order) object->collide(tick, state.active.contacts);
     post_collide(tick, state.active.contacts);
   }
 
@@ -153,7 +154,7 @@ namespace cse
       throw exception("Scene '{}' must be created before rendering", state.name.string());
     pre_render(alpha);
     auto matrices = state.active.camera->render(previous_aspect, active_aspect, alpha);
-    for (const auto &object : graphics.generate_render_order(state.active.camera, state.active.objects, alpha))
+    for (graphics.generate_order(state.active.camera, state.active.objects, alpha); const auto &object : graphics.order)
       object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha);
     post_render(alpha);
   }

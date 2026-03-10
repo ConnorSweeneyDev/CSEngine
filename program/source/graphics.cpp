@@ -321,19 +321,18 @@ namespace cse::help
     SDL_DestroyWindow(instance);
   }
 
-  std::vector<std::shared_ptr<object>>
-  scene_graphics::generate_render_order(const std::shared_ptr<camera> camera,
-                                        const std::vector<std::shared_ptr<object>> &objects, const double alpha)
+  void scene_graphics::generate_order(const std::shared_ptr<camera> camera,
+                                      const std::vector<std::shared_ptr<object>> &objects, const double alpha)
   {
-    std::vector<std::shared_ptr<object>> render_order{};
-    for (render_order.reserve(objects.size()); const auto &object : objects) render_order.emplace_back(object);
+    order.clear();
+    for (order.reserve(objects.size()); const auto &object : objects) order.emplace_back(object);
     auto camera_translation =
       camera->state.previous.translation.value +
       (camera->state.active.translation.value - camera->state.previous.translation.value) * alpha;
     auto camera_forward =
       glm::normalize(camera->state.previous.forward.value +
                      (camera->state.active.forward.value - camera->state.previous.forward.value) * alpha);
-    std::sort(render_order.begin(), render_order.end(),
+    std::sort(order.begin(), order.end(),
               [alpha, &camera_translation, &camera_forward](const auto &left, const auto &right)
               {
                 double left_depth =
@@ -349,7 +348,6 @@ namespace cse::help
                 if (!equal(left_depth, right_depth, 1e-4)) return left_depth > right_depth;
                 return left->graphics.active.priority < right->graphics.active.priority;
               });
-    return render_order;
   }
 
   camera_graphics::camera_graphics(const double fov_) : previous{fov_}, active{fov_}, near_clip{0.01}, far_clip{100.0}
