@@ -106,7 +106,7 @@ namespace cse::help
               {
                 if (first->state.active.priority != second->state.active.priority)
                   return first->state.active.priority < second->state.active.priority;
-                return true;
+                return first->state.name.string() < second->state.name.string();
               });
   }
 
