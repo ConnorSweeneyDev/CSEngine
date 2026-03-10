@@ -102,11 +102,11 @@ namespace cse::help
     order.clear();
     for (order.reserve(objects.size()); const auto &object : objects) order.emplace_back(object);
     std::sort(order.begin(), order.end(),
-              [](const std::shared_ptr<object> &first, const std::shared_ptr<object> &second)
+              [](const std::shared_ptr<object> &left, const std::shared_ptr<object> &right)
               {
-                if (first->state.active.priority != second->state.active.priority)
-                  return first->state.active.priority < second->state.active.priority;
-                return first->state.name.string() < second->state.name.string();
+                if (left->state.active.priority != right->state.active.priority)
+                  return left->state.active.priority > right->state.active.priority;
+                return left->state.name.string() < right->state.name.string();
               });
   }
 

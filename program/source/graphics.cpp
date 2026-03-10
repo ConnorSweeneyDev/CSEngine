@@ -346,7 +346,9 @@ namespace cse::help
                              camera_translation,
                            camera_forward);
                 if (!equal(left_depth, right_depth, 1e-4)) return left_depth > right_depth;
-                return left->graphics.active.priority < right->graphics.active.priority;
+                if (left->graphics.active.priority != right->graphics.active.priority)
+                  return left->graphics.active.priority < right->graphics.active.priority;
+                return left->state.name.string() < right->state.name.string();
               });
   }
 
