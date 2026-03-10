@@ -78,7 +78,7 @@ namespace cse
     on_simulate(tick);
   }
 
-  void object::collide(const double tick, const std::vector<contact> &contacts)
+  void object::collide(const std::vector<contact> &contacts, const double tick)
   {
     if (state.active.phase != help::phase::CREATED)
       throw exception("Object '{}' must be created before simulation", state.name.string());

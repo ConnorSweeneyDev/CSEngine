@@ -142,8 +142,7 @@ namespace cse
     if (state.active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before collision", state.name.string());
     pre_collide(tick, state.active.contacts);
-    state.generate_contacts();
-    for (const auto &object : state.order) object->collide(tick, state.active.contacts);
+    for (state.generate_contacts(); const auto &object : state.order) object->collide(state.active.contacts, tick);
     post_collide(tick, state.active.contacts);
   }
 
