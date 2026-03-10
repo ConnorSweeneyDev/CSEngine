@@ -83,8 +83,8 @@ namespace cse
     void destroy();
     void clean();
 
-    void clock();
     void time();
+    void tick();
 
     bool running();
     bool behind();
