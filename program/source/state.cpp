@@ -115,29 +115,26 @@ namespace cse::help
     active.contacts.clear();
     for (auto self_iterator{active.objects.begin()}; self_iterator != active.objects.end(); ++self_iterator)
     {
-      const auto &self_pointer{*self_iterator};
-      const auto &self{self_pointer->state.name};
-      auto self_hitboxes{current_hitboxes(self_pointer)};
+      const auto &self{*self_iterator};
+      auto self_hitboxes{current_hitboxes(self)};
       if (self_hitboxes.empty()) continue;
-      auto self_z{std::floor(self_pointer->state.active.translation.value.z + 0.5)};
+      auto self_z{std::floor(self->state.active.translation.value.z + 0.5)};
       auto target_iterator{self_iterator};
       for (++target_iterator; target_iterator != active.objects.end(); ++target_iterator)
       {
-        const auto &target_pointer{*target_iterator};
-        const auto &target{target_pointer->state.name};
-        if (!(equal(std::floor(target_pointer->state.active.translation.value.z + 0.5), self_z))) continue;
-        auto target_hitboxes{current_hitboxes(target_pointer)};
+        const auto &target{*target_iterator};
+        if (!(equal(std::floor(target->state.active.translation.value.z + 0.5), self_z))) continue;
+        auto target_hitboxes{current_hitboxes(target)};
         if (target_hitboxes.empty()) continue;
         for (const auto &[self_hitbox, self_hitbox_object] : self_hitboxes)
-          for (auto self_bounds{world_bounds(self_pointer, self_hitbox_object)};
+          for (auto self_bounds{world_bounds(self, self_hitbox_object)};
                const auto &[target_hitbox, target_hitbox_object] : target_hitboxes)
-            if (auto target_bounds{world_bounds(target_pointer, target_hitbox_object)};
-                overlaps(self_bounds, target_bounds))
+            if (auto target_bounds{world_bounds(target, target_hitbox_object)}; overlaps(self_bounds, target_bounds))
             {
               active.contacts.push_back(
-                describe_collision(self, target, self_hitbox, target_hitbox, self_bounds, target_bounds));
+                describe_collision(target, self_hitbox, target_hitbox, self_bounds, target_bounds));
               active.contacts.push_back(
-                describe_collision(target, self, target_hitbox, self_hitbox, target_bounds, self_bounds));
+                describe_collision(self, target_hitbox, self_hitbox, target_bounds, self_bounds));
             }
       }
     }

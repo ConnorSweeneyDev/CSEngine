@@ -18,13 +18,12 @@ namespace cse
   {
     struct self
     {
-      class name name{};
       cse::hitbox hitbox{};
       rectangle bounds{};
     } self;
     struct target
     {
-      class name name{};
+      std::shared_ptr<object> pointer{};
       cse::hitbox hitbox{};
       rectangle bounds{};
     } target;
@@ -40,7 +39,7 @@ namespace cse
     bool overlaps(const rectangle &first, const rectangle &second);
     std::span<const std::pair<hitbox, rectangle>> current_hitboxes(const std::shared_ptr<object> &object);
     rectangle world_bounds(const std::shared_ptr<object> &object, const rectangle &bounds);
-    contact describe_collision(const name self, const name target, const cse::hitbox own, const cse::hitbox theirs,
+    contact describe_collision(const std::shared_ptr<object> target, const hitbox own, const hitbox theirs,
                                const rectangle &self_bounds, const rectangle &target_bounds);
   }
 }

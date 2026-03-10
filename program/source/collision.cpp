@@ -8,7 +8,6 @@
 
 #include "glm/ext/vector_double2.hpp"
 
-#include "name.hpp"
 #include "numeric.hpp"
 #include "object.hpp"
 #include "resource.hpp"
@@ -94,7 +93,7 @@ namespace cse::help
             std::floor(pixel.y + local_bottom * actual_scale.y + 0.5)};
   }
 
-  contact describe_collision(const name self, const name target, const hitbox own, const hitbox theirs,
+  contact describe_collision(const std::shared_ptr<object> target, const hitbox own, const hitbox theirs,
                              const rectangle &self_bounds, const rectangle &target_bounds)
   {
     glm::dvec2 overlap{
@@ -128,7 +127,7 @@ namespace cse::help
       penetration.y = normal.y * overlap.y;
     }
 
-    return {.self = {self, own, self_bounds},
+    return {.self = {own, self_bounds},
             .target = {target, theirs, target_bounds},
             .minimum_axis = minimum_axis,
             .overlap = overlap,
