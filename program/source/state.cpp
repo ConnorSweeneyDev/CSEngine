@@ -132,9 +132,9 @@ namespace cse::help
             if (auto target_bounds{world_bounds(target, target_hitbox_object)}; overlaps(self_bounds, target_bounds))
             {
               active.contacts.push_back(
-                describe_collision(target, self_hitbox, target_hitbox, self_bounds, target_bounds));
+                describe_collision(self->state.name, target, self_hitbox, target_hitbox, self_bounds, target_bounds));
               active.contacts.push_back(
-                describe_collision(self, target_hitbox, self_hitbox, target_bounds, self_bounds));
+                describe_collision(target->state.name, self, target_hitbox, self_hitbox, target_bounds, self_bounds));
             }
       }
     }
