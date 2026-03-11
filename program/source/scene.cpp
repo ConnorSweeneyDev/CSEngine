@@ -171,7 +171,8 @@ namespace cse
       throw exception("Scene '{}' must be created before rendering", name.string());
     pre_render(alpha);
     auto matrices = state.active.camera->render(previous_aspect, active_aspect, alpha);
-    for (graphics.generate_order(state.active.camera, state.active.objects, alpha); const auto &object : graphics.order)
+    for (graphics.generate_order(state.active.camera.get(), state.active.objects, alpha);
+         const auto &object : graphics.order)
       object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha);
     post_render(alpha);
   }

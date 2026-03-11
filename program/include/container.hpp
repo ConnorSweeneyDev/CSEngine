@@ -38,9 +38,7 @@ template <cse::trait::pointer_vector vector> auto try_iterate(const vector &cont
 }
 
 template <cse::trait::name_set set> auto try_iterate(const set &container, const cse::name name) noexcept
-{
-  return container.find(name);
-}
+{ return container.find(name); }
 
 template <cse::trait::pointer_vector vector> auto throw_iterate(const vector &container, const cse::name name)
 {
@@ -92,9 +90,7 @@ template <cse::trait::pointer_vector vector> bool try_contains(const vector &con
 }
 
 template <cse::trait::name_set set> bool try_contains(const set &container, const cse::name name) noexcept
-{
-  return container.find(name) != container.end();
-}
+{ return container.find(name) != container.end(); }
 
 template <cse::trait::pointer_vector vector> bool throw_contains(const vector &container, const cse::name name)
 {
@@ -120,9 +116,7 @@ void set_or_add(vector &container, const typename vector::value_type &element)
 }
 
 template <cse::trait::name_set set> void set_or_add(set &container, const cse::name &element)
-{
-  container.insert(element);
-}
+{ container.insert(element); }
 
 template <cse::trait::pointer_vector vector>
 cse::name try_name(const vector &container, const typename vector::value_type &pointer) noexcept
@@ -144,6 +138,15 @@ try_name(const vector &container, const std::weak_ptr<typename vector::value_typ
 }
 
 template <cse::trait::pointer_vector vector>
+cse::name try_name(const vector &container, const typename vector::value_type::element_type *pointer) noexcept
+{
+  if (!pointer) return cse::name{};
+  for (const auto &element : container)
+    if (element.get() == pointer) return element->name;
+  return cse::name{};
+}
+
+template <cse::trait::pointer_vector vector>
 cse::name throw_name(const vector &container, const typename vector::value_type &pointer)
 {
   if (!pointer) throw cse::exception("Pointer is null in vector name lookup");
@@ -159,5 +162,14 @@ cse::name throw_name(const vector &container, const std::weak_ptr<typename vecto
   if (!locked) throw cse::exception("Weak pointer lock in vector name lookup failed");
   for (const auto &element : container)
     if (element == locked) return element->name;
+  throw cse::exception("Vector name lookup failed");
+}
+
+template <cse::trait::pointer_vector vector>
+cse::name throw_name(const vector &container, const typename vector::value_type::element_type *pointer)
+{
+  if (!pointer) throw cse::exception("Pointer is null in vector name lookup");
+  for (const auto &element : container)
+    if (element.get() == pointer) return element->name;
   throw cse::exception("Vector name lookup failed");
 }

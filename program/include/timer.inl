@@ -25,9 +25,7 @@ namespace cse::help
 
   template <typename signature>
   void timer::set(const name name, const double target, const std::function<signature> &callback)
-  {
-    entries.insert_or_assign(name, entry{callback, std::type_index(typeid(signature)), {0.0, target}});
-  }
+  { entries.insert_or_assign(name, entry{callback, std::type_index(typeid(signature)), {0.0, target}}); }
 
   template <typename callable> void timer::set(const name name, const double target, callable &&callback)
   {

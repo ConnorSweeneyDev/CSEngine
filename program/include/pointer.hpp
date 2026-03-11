@@ -94,14 +94,10 @@ template <typename... derived, typename base> bool is_a(const std::weak_ptr<base
 }
 
 template <typename derived, typename base> std::shared_ptr<derived> as(const std::shared_ptr<base> &pointer) noexcept
-{
-  return std::static_pointer_cast<derived>(pointer);
-}
+{ return std::static_pointer_cast<derived>(pointer); }
 
 template <typename derived, typename base> std::shared_ptr<derived> as(const std::weak_ptr<base> &pointer) noexcept
-{
-  return std::static_pointer_cast<derived>(pointer.lock());
-}
+{ return std::static_pointer_cast<derived>(pointer.lock()); }
 
 template <typename derived, typename base>
 std::shared_ptr<derived> try_as(const std::shared_ptr<base> &pointer) noexcept
@@ -133,9 +129,7 @@ template <typename derived, typename base> std::shared_ptr<derived> throw_as(con
 
 template <typename derived, typename base>
 std::shared_ptr<derived> try_as_a(const std::shared_ptr<base> &pointer) noexcept
-{
-  return std::dynamic_pointer_cast<derived>(pointer);
-}
+{ return std::dynamic_pointer_cast<derived>(pointer); }
 
 template <typename derived, typename base>
 std::shared_ptr<derived> try_as_a(const std::weak_ptr<base> &pointer) noexcept

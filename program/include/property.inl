@@ -39,27 +39,19 @@ namespace cse
 
   template <typename type> bool property<type>::operator==(const property &other_) const
     noexcept(noexcept(std::declval<type>() == std::declval<type>()))
-  {
-    return value == other_.value;
-  }
+  { return value == other_.value; }
 
   template <typename type> auto property<type>::operator<=>(const property &other_) const
     noexcept(noexcept(std::declval<type>() <=> std::declval<type>()))
-  {
-    return value <=> other_.value;
-  }
+  { return value <=> other_.value; }
 
   template <typename type> bool property<type>::operator==(const type &value_) const
     noexcept(noexcept(std::declval<type>() == std::declval<type>()))
-  {
-    return value == value_;
-  }
+  { return value == value_; }
 
   template <typename type> auto property<type>::operator<=>(const type &value_) const
     noexcept(noexcept(std::declval<type>() <=> std::declval<type>()))
-  {
-    return value <=> value_;
-  }
+  { return value <=> value_; }
 
   template <typename type> property<type> &property<type>::operator=(const type &value_)
   {
@@ -179,13 +171,9 @@ namespace cse
 
 template <typename type>
 auto std::formatter<cse::property<type>>::format(const cse::property<type> &property, auto &context) const
-{
-  return std::formatter<type>::format(static_cast<type>(property), context);
-}
+{ return std::formatter<type>::format(static_cast<type>(property), context); }
 
 template <typename type>
 std::size_t std::hash<cse::property<type>>::operator()(const cse::property<type> &property) const
   noexcept(noexcept(std::hash<type>{}(std::declval<type>())))
-{
-  return std::hash<type>{}(static_cast<type>(property));
-}
+{ return std::hash<type>{}(static_cast<type>(property)); }

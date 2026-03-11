@@ -21,7 +21,7 @@ namespace cse::help
            first.top > second.bottom;
   }
 
-  std::span<const std::pair<hitbox, rectangle>> current_hitboxes(const std::shared_ptr<object> &object)
+  std::span<const std::pair<hitbox, rectangle>> current_hitboxes(const object *object)
   {
     if (!object->state.active.collidable) return {};
     const auto &animation{object->graphics.active.texture.animation};
@@ -30,7 +30,7 @@ namespace cse::help
     return animation.frames[frame].hitboxes;
   }
 
-  rectangle world_bounds(const std::shared_ptr<object> &object, const rectangle &bounds)
+  rectangle world_bounds(const object *object, const rectangle &bounds)
   {
     auto width{static_cast<double>(object->graphics.active.texture.image->frame_width)};
     auto height{static_cast<double>(object->graphics.active.texture.image->frame_height)};

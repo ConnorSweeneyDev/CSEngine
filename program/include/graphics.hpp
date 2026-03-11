@@ -141,11 +141,10 @@ namespace cse::help
     scene_graphics &operator=(scene_graphics &&) = delete;
 
   private:
-    void generate_order(const std::shared_ptr<camera> camera, const std::vector<std::shared_ptr<object>> &objects,
-                        const double alpha);
+    void generate_order(const camera *camera, const std::vector<std::shared_ptr<object>> &objects, const double alpha);
 
   private:
-    std::vector<std::shared_ptr<object>> order{};
+    std::vector<object *> order{};
   };
 
   struct camera_graphics

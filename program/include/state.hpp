@@ -191,7 +191,7 @@ namespace cse::help
   private:
     std::unordered_set<class name> removals{};
     std::vector<std::shared_ptr<object>> additions{};
-    std::vector<std::shared_ptr<object>> order{};
+    std::vector<object *> order{};
   };
 
   struct camera_state

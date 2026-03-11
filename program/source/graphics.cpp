@@ -321,11 +321,11 @@ namespace cse::help
     SDL_DestroyWindow(instance);
   }
 
-  void scene_graphics::generate_order(const std::shared_ptr<camera> camera,
-                                      const std::vector<std::shared_ptr<object>> &objects, const double alpha)
+  void scene_graphics::generate_order(const camera *camera, const std::vector<std::shared_ptr<object>> &objects,
+                                      const double alpha)
   {
     order.clear();
-    for (order.reserve(objects.size()); const auto &object : objects) order.emplace_back(object);
+    for (order.reserve(objects.size()); const auto &object : objects) order.emplace_back(object.get());
     auto camera_translation =
       camera->state.previous.translation.value +
       (camera->state.active.translation.value - camera->state.previous.translation.value) * alpha;
@@ -759,9 +759,7 @@ namespace cse::help
   }
 
   void object_graphics::draw_primitives(SDL_GPURenderPass *render_pass)
-  {
-    SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0);
-  }
+  { SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0); }
 
   void object_graphics::destroy_resources(SDL_GPUDevice *gpu)
   {

@@ -22,6 +22,4 @@ namespace cse
 }
 
 inline std::size_t std::hash<cse::name>::operator()(const cse::name &name) const
-{
-  return static_cast<std::size_t>(name.identifier());
-}
+{ return static_cast<std::size_t>(name.identifier()); }

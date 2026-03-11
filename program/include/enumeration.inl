@@ -13,14 +13,10 @@ namespace cse
   template <typename derived> enumeration<derived>::value::operator int() const noexcept { return count; }
 
   template <typename derived> bool enumeration<derived>::value::operator==(const value &other_) const noexcept
-  {
-    return count == other_.count;
-  }
+  { return count == other_.count; }
 
   template <typename derived> auto enumeration<derived>::value::operator<=>(const value &other_) const noexcept
-  {
-    return count <=> other_.count;
-  }
+  { return count <=> other_.count; }
 
   template <typename derived> int enumeration<derived>::next(std::optional<int> count)
   {

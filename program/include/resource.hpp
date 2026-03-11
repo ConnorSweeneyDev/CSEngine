@@ -15,18 +15,14 @@ namespace cse
   struct vertex
   {
     bool operator==(const vertex &other) const
-    {
-      return source.data() == other.source.data() && source.size() == other.source.size();
-    }
+    { return source.data() == other.source.data() && source.size() == other.source.size(); }
 
     std::span<const unsigned char> source{};
   };
   struct fragment
   {
     bool operator==(const fragment &other) const
-    {
-      return source.data() == other.source.data() && source.size() == other.source.size();
-    }
+    { return source.data() == other.source.data() && source.size() == other.source.size(); }
 
     std::span<const unsigned char> source{};
   };
@@ -34,9 +30,7 @@ namespace cse
   struct image
   {
     bool operator==(const image &other) const
-    {
-      return data.data() == other.data.data() && data.size() == other.data.size();
-    }
+    { return data.data() == other.data.data() && data.size() == other.data.size(); }
 
     std::span<const unsigned char> data{};
     unsigned int width{};
@@ -48,9 +42,7 @@ namespace cse
   struct animation
   {
     bool operator==(const animation &other) const
-    {
-      return frames.data() == other.frames.data() && frames.size() == other.frames.size();
-    }
+    { return frames.data() == other.frames.data() && frames.size() == other.frames.size(); }
 
     struct frame
     {

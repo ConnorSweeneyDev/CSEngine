@@ -100,9 +100,9 @@ namespace cse::help
   void scene_state::generate_order(std::vector<std::shared_ptr<object>> &objects)
   {
     order.clear();
-    for (order.reserve(objects.size()); const auto &object : objects) order.emplace_back(object);
+    for (order.reserve(objects.size()); const auto &object : objects) order.emplace_back(object.get());
     std::sort(order.begin(), order.end(),
-              [](const std::shared_ptr<object> &left, const std::shared_ptr<object> &right)
+              [](const object *left, const object *right)
               {
                 if (left->state.active.priority != right->state.active.priority)
                   return left->state.active.priority > right->state.active.priority;
@@ -116,7 +116,7 @@ namespace cse::help
     for (auto self_iterator{active.objects.begin()}; self_iterator != active.objects.end(); ++self_iterator)
     {
       const auto &self{*self_iterator};
-      auto self_hitboxes{current_hitboxes(self)};
+      auto self_hitboxes{current_hitboxes(self.get())};
       if (self_hitboxes.empty()) continue;
       auto self_z{std::floor(self->state.active.translation.value.z + 0.5)};
       auto target_iterator{self_iterator};
@@ -124,12 +124,13 @@ namespace cse::help
       {
         const auto &target{*target_iterator};
         if (!(equal(std::floor(target->state.active.translation.value.z + 0.5), self_z))) continue;
-        auto target_hitboxes{current_hitboxes(target)};
+        auto target_hitboxes{current_hitboxes(target.get())};
         if (target_hitboxes.empty()) continue;
         for (const auto &[self_hitbox, self_hitbox_object] : self_hitboxes)
-          for (auto self_bounds{world_bounds(self, self_hitbox_object)};
+          for (auto self_bounds{world_bounds(self.get(), self_hitbox_object)};
                const auto &[target_hitbox, target_hitbox_object] : target_hitboxes)
-            if (auto target_bounds{world_bounds(target, target_hitbox_object)}; overlaps(self_bounds, target_bounds))
+            if (auto target_bounds{world_bounds(target.get(), target_hitbox_object)};
+                overlaps(self_bounds, target_bounds))
             {
               active.contacts.push_back(
                 describe_collision(self->name, target, self_hitbox, target_hitbox, self_bounds, target_bounds));
