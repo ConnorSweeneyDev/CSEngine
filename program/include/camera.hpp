@@ -26,15 +26,15 @@ namespace cse
 
   protected:
     camera(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_, const double fov_);
-    virtual void on_prepare() {};
-    virtual void on_create() {};
-    virtual void on_previous() {};
-    virtual void on_event(const SDL_Event &) {};
-    virtual void on_input(const bool *) {};
-    virtual void on_simulate(const double) {};
-    virtual void on_render(const double) {};
-    virtual void on_destroy() {};
-    virtual void on_clean() {};
+    virtual void on_prepare();
+    virtual void on_create();
+    virtual void on_previous();
+    virtual void on_event(const SDL_Event &event);
+    virtual void on_input(const bool *keys);
+    virtual void on_simulate(const double tick);
+    virtual void on_render(const double alpha);
+    virtual void on_destroy();
+    virtual void on_clean();
 
   private:
     void prepare();
@@ -49,6 +49,7 @@ namespace cse
     void clean();
 
   public:
+    class scene *scene{};
     help::camera_state state{};
     help::camera_graphics graphics{};
   };

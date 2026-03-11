@@ -83,13 +83,15 @@ namespace cse
     clean();
   }
 
+  void game::pre_prepare() {}
+  void game::post_prepare() {}
   void game::prepare()
   {
     if (state.active.phase != help::phase::CLEANED) throw exception("Game must be cleaned before preparation");
     if (!state.active.window) throw exception("No window has been set for the game");
-    if (state.active.window->state.active.parent.expired()) state.active.window->state.active.parent = weak_from_this();
+    if (!state.active.window->game) state.active.window->game = this;
     for (const auto &scene : state.active.scenes)
-      if (scene->state.active.parent.expired()) scene->state.active.parent = weak_from_this();
+      if (!scene->game) scene->game = this;
     pre_prepare();
     state.active.window->prepare();
     if (state.active.scenes.empty()) throw exception("No scenes have been added to the game");
@@ -99,6 +101,8 @@ namespace cse
     post_prepare();
   }
 
+  void game::pre_create() {}
+  void game::post_create() {}
   void game::create()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Game must be prepared before creation");
@@ -110,6 +114,8 @@ namespace cse
     post_create();
   }
 
+  void game::pre_previous() {}
+  void game::post_previous() {}
   void game::previous()
   {
     if (state.active.phase != help::phase::CREATED)
@@ -122,6 +128,8 @@ namespace cse
     post_previous();
   }
 
+  void game::pre_sync() {}
+  void game::post_sync() {}
   void game::sync()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before synchronization");
@@ -147,7 +155,7 @@ namespace cse
       if (auto &[name, scene]{state.next.scene.value()}; scene)
       {
         state.active.scene->destroy(state.active.window->graphics.gpu);
-        if (name == state.active.scene->state.name) state.active.scene->clean();
+        if (name == state.active.scene->name) state.active.scene->clean();
         set_or_add(state.active.scenes, scene);
         state.active.scene = scene;
         scene->prepare();
@@ -156,7 +164,7 @@ namespace cse
       else
       {
         auto next_scene{throw_find(state.active.scenes, name)};
-        if (name != state.active.scene->state.name)
+        if (name != state.active.scene->name)
         {
           state.active.scene->destroy(state.active.window->graphics.gpu);
           state.active.scene = next_scene;
@@ -170,6 +178,8 @@ namespace cse
     post_sync();
   }
 
+  void game::pre_event(const SDL_Event &) {}
+  void game::post_event(const SDL_Event &) {}
   void game::event()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing events");
@@ -182,6 +192,8 @@ namespace cse
     }
   }
 
+  void game::pre_input(const bool *) {}
+  void game::post_input(const bool *) {}
   void game::input()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing input");
@@ -192,6 +204,8 @@ namespace cse
     post_input(state.active.window->state.input);
   }
 
+  void game::pre_simulate(const double) {}
+  void game::post_simulate(const double) {}
   void game::simulate()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before simulation");
@@ -202,14 +216,18 @@ namespace cse
     post_simulate(state.actual_tick);
   }
 
+  void game::pre_collide(const double) {}
+  void game::post_collide(const double) {}
   void game::collide()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before collision");
-    pre_collide(state.actual_tick, state.active.scene->state.active.contacts);
+    pre_collide(state.actual_tick);
     state.active.scene->collide(state.actual_tick);
-    post_collide(state.actual_tick, state.active.scene->state.active.contacts);
+    post_collide(state.actual_tick);
   }
 
+  void game::pre_render(const double) {}
+  void game::post_render(const double) {}
   void game::render()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before rendering");
@@ -224,6 +242,8 @@ namespace cse
     post_render(state.alpha);
   }
 
+  void game::pre_destroy() {}
+  void game::post_destroy() {}
   void game::destroy()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before destruction");
@@ -235,6 +255,8 @@ namespace cse
     post_destroy();
   }
 
+  void game::pre_clean() {}
+  void game::post_clean() {}
   void game::clean()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Game must be prepared before cleaning");

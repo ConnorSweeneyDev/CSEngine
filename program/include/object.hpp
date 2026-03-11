@@ -2,7 +2,6 @@
 
 #include <tuple>
 #include <utility>
-#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
@@ -11,9 +10,9 @@
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
 
-#include "collision.hpp"
 #include "core.hpp"
 #include "graphics.hpp"
+#include "name.hpp"
 #include "resource.hpp"
 #include "state.hpp"
 
@@ -35,16 +34,16 @@ namespace cse
            const int state_priority_, const std::pair<vertex, fragment> &shader_,
            const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
            const int graphics_priority_);
-    virtual void on_prepare() {};
-    virtual void on_create() {};
-    virtual void on_previous() {};
-    virtual void on_event(const SDL_Event &) {};
-    virtual void on_input(const bool *) {};
-    virtual void on_simulate(const double) {};
-    virtual void on_collide(const double, const std::vector<contact> &) {};
-    virtual void on_render(const double) {};
-    virtual void on_destroy() {};
-    virtual void on_clean() {};
+    virtual void on_prepare();
+    virtual void on_create();
+    virtual void on_previous();
+    virtual void on_event(const SDL_Event &event);
+    virtual void on_input(const bool *keys);
+    virtual void on_simulate(const double tick);
+    virtual void on_collide(const double tick);
+    virtual void on_render(const double alpha);
+    virtual void on_destroy();
+    virtual void on_clean();
 
   private:
     void prepare();
@@ -53,13 +52,15 @@ namespace cse
     void event(const SDL_Event &event);
     void input(const bool *input);
     void simulate(const double tick);
-    void collide(const std::vector<contact> &contacts, const double tick);
+    void collide(const double tick);
     void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const glm::dmat4 &projection_matrix, const glm::dmat4 &view_matrix, const double alpha);
     void destroy(SDL_GPUDevice *gpu);
     void clean();
 
   public:
+    class scene *scene{};
+    class name name{};
     help::object_state state{};
     help::object_graphics graphics{};
   };

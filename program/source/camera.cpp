@@ -17,6 +17,7 @@ namespace cse
   {
   }
 
+  void camera::on_prepare() {}
   void camera::prepare()
   {
     if (state.active.phase != help::phase::CLEANED) throw exception("Camera must be cleaned before preparation");
@@ -24,6 +25,7 @@ namespace cse
     on_prepare();
   }
 
+  void camera::on_create() {}
   void camera::create()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Camera must be prepared before creation");
@@ -31,6 +33,7 @@ namespace cse
     on_create();
   }
 
+  void camera::on_previous() {}
   void camera::previous()
   {
     if (state.active.phase != help::phase::CREATED)
@@ -40,18 +43,21 @@ namespace cse
     on_previous();
   }
 
+  void camera::on_event(const SDL_Event &) {}
   void camera::event(const SDL_Event &event)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before processing events");
     on_event(event);
   }
 
+  void camera::on_input(const bool *) {}
   void camera::input(const bool *input)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before processing input");
     on_input(input);
   }
 
+  void camera::on_simulate(const double) {}
   void camera::simulate(const double tick)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before simulation");
@@ -59,6 +65,7 @@ namespace cse
     on_simulate(tick);
   }
 
+  void camera::on_render(const double) {}
   std::pair<glm::dmat4, glm::dmat4> camera::render(const double previous_aspect, const double active_aspect,
                                                    const double alpha)
   {
@@ -68,6 +75,7 @@ namespace cse
             state.calculate_view_matrix(alpha)};
   }
 
+  void camera::on_destroy() {}
   void camera::destroy()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before destruction");
@@ -75,6 +83,7 @@ namespace cse
     on_destroy();
   }
 
+  void camera::on_clean() {}
   void camera::clean()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Camera must be prepared before cleaning");

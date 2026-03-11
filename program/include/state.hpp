@@ -52,7 +52,6 @@ namespace cse::help
     struct active
     {
       enum phase phase = {};
-      std::weak_ptr<class game> parent{};
       std::shared_ptr<class window> window{};
       std::vector<std::shared_ptr<class scene>> scenes{};
       std::shared_ptr<class scene> scene{};
@@ -111,7 +110,6 @@ namespace cse::help
     struct active
     {
       enum phase phase = {};
-      std::weak_ptr<class game> parent{};
       bool running{};
       property<unsigned int> width{};
       property<unsigned int> height{};
@@ -161,7 +159,6 @@ namespace cse::help
     struct active
     {
       enum phase phase = {};
-      std::weak_ptr<class game> parent{};
       std::shared_ptr<class camera> camera{};
       std::vector<std::shared_ptr<class object>> objects{};
       std::vector<contact> contacts{};
@@ -187,7 +184,6 @@ namespace cse::help
     void generate_contacts();
 
   public:
-    class name name{};
     struct previous previous{};
     struct active active{};
     struct next next{};
@@ -215,7 +211,6 @@ namespace cse::help
     struct active
     {
       enum phase phase = {};
-      std::weak_ptr<class scene> parent{};
       temporal<glm::dvec3> translation{};
       temporal<glm::dvec3> forward{};
       temporal<glm::dvec3> up{};
@@ -260,7 +255,6 @@ namespace cse::help
     struct active
     {
       enum phase phase = {};
-      std::weak_ptr<class scene> parent{};
       temporal<glm::dvec3> translation{};
       temporal<double> rotation{};
       temporal<glm::dvec2> scale{};
@@ -286,7 +280,6 @@ namespace cse::help
                                       const double alpha) const;
 
   public:
-    class name name{};
     struct previous previous{};
     struct active active{};
   };

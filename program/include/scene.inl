@@ -17,7 +17,7 @@ namespace cse
   scene &scene::set(camera_arguments &&...arguments)
   {
     auto camera{std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...)};
-    camera->state.active.parent = weak_from_this();
+    camera->scene = this;
     switch (state.active.phase)
     {
       case help::phase::CLEANED:
@@ -35,22 +35,22 @@ namespace cse
   }
 
   template <trait::is_object object_type, typename... object_arguments>
-  scene &scene::set(const name name, object_arguments &&...arguments)
+  scene &scene::set(const class name object_name, object_arguments &&...arguments)
   {
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
-    object->state.name = name;
-    object->state.active.parent = weak_from_this();
+    object->name = object_name;
+    object->scene = this;
     switch (state.active.phase)
     {
       case help::phase::CLEANED: set_or_add(state.active.objects, object); break;
       case help::phase::PREPARED:
-        if (auto existing{try_find(state.active.objects, name)})
+        if (auto existing{try_find(state.active.objects, object_name)})
           if (existing->state.active.phase == help::phase::PREPARED) existing->clean();
         set_or_add(state.active.objects, object);
         object->prepare();
         break;
       case help::phase::CREATED:
-        if (try_contains(state.active.objects, name)) state.removals.insert(name);
+        if (try_contains(state.active.objects, object_name)) state.removals.insert(object_name);
         set_or_add(state.additions, object);
         break;
     }

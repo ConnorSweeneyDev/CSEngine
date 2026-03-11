@@ -39,7 +39,7 @@ namespace cse
   template <trait::is_window window_type, typename... window_arguments> game &game::set(window_arguments &&...arguments)
   {
     auto window{std::make_shared<window_type>(std::forward<window_arguments>(arguments)...)};
-    if (auto parent{weak_from_this()}; !parent.expired()) window->state.active.parent = parent;
+    window->game = this;
     if (state.active.phase == help::phase::CREATED)
       state.next.window = window;
     else
@@ -55,8 +55,8 @@ namespace cse
                   scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
-    scene->state.name = name;
-    if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
+    scene->name = name;
+    scene->game = this;
     if (config) config(scene);
     if (auto target{try_find(state.active.scenes, name)}; state.active.phase == help::phase::CREATED && target)
     {
@@ -88,8 +88,8 @@ namespace cse
                       scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
-    scene->state.name = name;
-    if (auto parent{weak_from_this()}; !parent.expired()) scene->state.active.parent = parent;
+    scene->name = name;
+    scene->game = this;
     if (config) config(scene);
     if (state.active.phase == help::phase::CREATED)
       state.next.scene = {name, scene};

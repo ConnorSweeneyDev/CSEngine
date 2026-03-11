@@ -32,6 +32,7 @@ namespace cse
     state.active.vsync.change = [this]() { graphics.handle_vsync(state.active.vsync); };
   }
 
+  void window::on_prepare() {}
   void window::prepare()
   {
     if (state.active.phase != help::phase::CLEANED) throw exception("Window must be cleaned before preparation");
@@ -40,6 +41,7 @@ namespace cse
     on_prepare();
   }
 
+  void window::on_create() {}
   void window::create()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Window must be prepared before creation");
@@ -49,6 +51,7 @@ namespace cse
     on_create();
   }
 
+  void window::on_previous() {}
   void window::previous()
   {
     if (state.active.phase != help::phase::CREATED)
@@ -58,6 +61,7 @@ namespace cse
     on_previous();
   }
 
+  void window::on_event(const SDL_Event &) {}
   void window::event()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before processing events");
@@ -75,12 +79,14 @@ namespace cse
     }
   }
 
+  void window::on_input(const bool *) {}
   void window::input()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before processing input");
     on_input(state.input);
   }
 
+  void window::on_simulate(const double) {}
   void window::simulate(const double tick)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before simulation");
@@ -88,6 +94,7 @@ namespace cse
     on_simulate(tick);
   }
 
+  void window::pre_render(const double) {}
   bool window::start_render(const glm::dvec4 &previous_clear, const glm::dvec4 &active_clear,
                             const double previous_aspect, const double active_aspect, const double alpha)
   {
@@ -99,6 +106,7 @@ namespace cse
     return true;
   }
 
+  void window::post_render(const double) {}
   void window::end_render(const double alpha)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before post-rendering");
@@ -106,6 +114,7 @@ namespace cse
     post_render(alpha);
   }
 
+  void window::on_destroy() {}
   void window::destroy()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before destruction");
@@ -116,6 +125,7 @@ namespace cse
     on_destroy();
   }
 
+  void window::on_clean() {}
   void window::clean()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Window must be prepared before cleaning");

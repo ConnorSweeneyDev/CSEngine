@@ -19,7 +19,7 @@ namespace cse::trait
     typename vector::value_type;
     requires is_shared<typename vector::value_type>::value;
     requires requires(const typename vector::value_type &element) {
-      { element->state.name } -> std::convertible_to<cse::name>;
+      { element->name } -> std::convertible_to<cse::name>;
     };
   };
 
@@ -34,7 +34,7 @@ namespace cse::trait
 
 template <cse::trait::pointer_vector vector> auto try_iterate(const vector &container, const cse::name name) noexcept
 {
-  return std::ranges::find_if(container, [&](const auto &element) { return element->state.name == name; });
+  return std::ranges::find_if(container, [&](const auto &element) { return element->name == name; });
 }
 
 template <cse::trait::name_set set> auto try_iterate(const set &container, const cse::name name) noexcept
@@ -44,7 +44,7 @@ template <cse::trait::name_set set> auto try_iterate(const set &container, const
 
 template <cse::trait::pointer_vector vector> auto throw_iterate(const vector &container, const cse::name name)
 {
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->state.name == name; })};
+  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
   if (iterator == container.end()) throw cse::exception("Vector lookup for name '{}' failed", name.string());
   return iterator;
 }
@@ -59,7 +59,7 @@ template <cse::trait::name_set set> auto throw_iterate(const set &container, con
 template <cse::trait::pointer_vector vector>
 typename vector::value_type try_find(const vector &container, const cse::name name) noexcept
 {
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->state.name == name; })};
+  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
   if (iterator == container.end()) return nullptr;
   return *iterator;
 }
@@ -74,7 +74,7 @@ template <cse::trait::name_set set> cse::name try_find(const set &container, con
 template <cse::trait::pointer_vector vector>
 typename vector::value_type throw_find(const vector &container, const cse::name name)
 {
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->state.name == name; })};
+  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
   if (iterator == container.end()) throw cse::exception("Vector lookup for name '{}' failed", name.string());
   return *iterator;
 }
@@ -88,7 +88,7 @@ template <cse::trait::name_set set> cse::name throw_find(const set &container, c
 
 template <cse::trait::pointer_vector vector> bool try_contains(const vector &container, const cse::name name) noexcept
 {
-  return std::ranges::any_of(container, [&](const auto &element) { return element->state.name == name; });
+  return std::ranges::any_of(container, [&](const auto &element) { return element->name == name; });
 }
 
 template <cse::trait::name_set set> bool try_contains(const set &container, const cse::name name) noexcept
@@ -98,7 +98,7 @@ template <cse::trait::name_set set> bool try_contains(const set &container, cons
 
 template <cse::trait::pointer_vector vector> bool throw_contains(const vector &container, const cse::name name)
 {
-  if (!std::ranges::any_of(container, [&](const auto &element) { return element->state.name == name; }))
+  if (!std::ranges::any_of(container, [&](const auto &element) { return element->name == name; }))
     throw cse::exception("Vector lookup for name '{}' failed", name.string());
   return true;
 }
@@ -112,8 +112,7 @@ template <cse::trait::name_set set> bool throw_contains(const set &container, co
 template <cse::trait::pointer_vector vector>
 void set_or_add(vector &container, const typename vector::value_type &element)
 {
-  auto iterator{
-    std::ranges::find_if(container, [&](const auto &existing) { return existing->state.name == element->state.name; })};
+  auto iterator{std::ranges::find_if(container, [&](const auto &existing) { return existing->name == element->name; })};
   if (iterator != container.end())
     *iterator = element;
   else
@@ -130,7 +129,7 @@ cse::name try_name(const vector &container, const typename vector::value_type &p
 {
   if (!pointer) return cse::name{};
   for (const auto &element : container)
-    if (element == pointer) return element->state.name;
+    if (element == pointer) return element->name;
   return cse::name{};
 }
 
@@ -140,7 +139,7 @@ try_name(const vector &container, const std::weak_ptr<typename vector::value_typ
   auto locked{pointer.lock()};
   if (!locked) return cse::name{};
   for (const auto &element : container)
-    if (element == locked) return element->state.name;
+    if (element == locked) return element->name;
   return cse::name{};
 }
 
@@ -149,7 +148,7 @@ cse::name throw_name(const vector &container, const typename vector::value_type 
 {
   if (!pointer) throw cse::exception("Pointer is null in vector name lookup");
   for (const auto &element : container)
-    if (element == pointer) return element->state.name;
+    if (element == pointer) return element->name;
   throw cse::exception("Vector name lookup failed");
 }
 
@@ -159,6 +158,6 @@ cse::name throw_name(const vector &container, const std::weak_ptr<typename vecto
   auto locked{pointer.lock()};
   if (!locked) throw cse::exception("Weak pointer lock in vector name lookup failed");
   for (const auto &element : container)
-    if (element == locked) return element->state.name;
+    if (element == locked) return element->name;
   throw cse::exception("Vector name lookup failed");
 }

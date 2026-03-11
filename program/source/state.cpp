@@ -42,7 +42,7 @@ namespace cse::help
     previous.window = active.window;
     previous.scenes.clear();
     previous.scenes.reserve(active.scenes.size());
-    for (const auto &scene : active.scenes) previous.scenes.insert(scene->state.name);
+    for (const auto &scene : active.scenes) previous.scenes.insert(scene->name);
     previous.scene = active.scene;
     previous.tick = active.tick;
     previous.timer = active.timer;
@@ -90,7 +90,7 @@ namespace cse::help
     previous.camera = active.camera;
     previous.objects.clear();
     previous.objects.reserve(active.objects.size());
-    for (const auto &object : active.objects) previous.objects.insert(object->state.name);
+    for (const auto &object : active.objects) previous.objects.insert(object->name);
     previous.contacts.clear();
     previous.contacts.reserve(active.contacts.size());
     for (const auto &contact : active.contacts) previous.contacts.emplace_back(contact);
@@ -106,7 +106,7 @@ namespace cse::help
               {
                 if (left->state.active.priority != right->state.active.priority)
                   return left->state.active.priority > right->state.active.priority;
-                return left->state.name.string() < right->state.name.string();
+                return left->name.string() < right->name.string();
               });
   }
 
@@ -132,9 +132,9 @@ namespace cse::help
             if (auto target_bounds{world_bounds(target, target_hitbox_object)}; overlaps(self_bounds, target_bounds))
             {
               active.contacts.push_back(
-                describe_collision(self->state.name, target, self_hitbox, target_hitbox, self_bounds, target_bounds));
+                describe_collision(self->name, target, self_hitbox, target_hitbox, self_bounds, target_bounds));
               active.contacts.push_back(
-                describe_collision(target->state.name, self, target_hitbox, self_hitbox, target_bounds, self_bounds));
+                describe_collision(target->name, self, target_hitbox, self_hitbox, target_bounds, self_bounds));
             }
       }
     }
@@ -142,7 +142,7 @@ namespace cse::help
 
   camera_state::camera_state(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_)
     : previous{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)},
-      active{{}, {}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)}
+      active{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)}
   {
   }
 
@@ -166,7 +166,7 @@ namespace cse::help
   object_state::object_state(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_,
                              const int priority_)
     : previous{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_, priority_},
-      active{{}, {}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_, priority_}
+      active{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_, priority_}
   {
   }
 

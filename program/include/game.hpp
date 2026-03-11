@@ -2,12 +2,10 @@
 
 #include <functional>
 #include <memory>
-#include <vector>
 
 #include "SDL3/SDL_events.h"
 #include "glm/ext/vector_double4.hpp"
 
-#include "collision.hpp"
 #include "core.hpp"
 #include "function.hpp"
 #include "graphics.hpp"
@@ -16,7 +14,7 @@
 
 namespace cse
 {
-  class game : public std::enable_shared_from_this<game>
+  class game
   {
   public:
     virtual ~game() = default;
@@ -47,28 +45,28 @@ namespace cse
 
   protected:
     game(const double tick_, const double frame_, const double aspect_, const glm::dvec4 &clear_);
-    virtual void pre_prepare() {}
-    virtual void post_prepare() {}
-    virtual void pre_create() {}
-    virtual void post_create() {}
-    virtual void pre_previous() {}
-    virtual void post_previous() {}
-    virtual void pre_sync() {}
-    virtual void post_sync() {}
-    virtual void pre_event(const SDL_Event &) {}
-    virtual void post_event(const SDL_Event &) {}
-    virtual void pre_input(const bool *) {}
-    virtual void post_input(const bool *) {}
-    virtual void pre_simulate(const double) {}
-    virtual void post_simulate(const double) {}
-    virtual void pre_collide(const double, const std::vector<contact> &) {}
-    virtual void post_collide(const double, const std::vector<contact> &) {}
-    virtual void pre_render(const double) {}
-    virtual void post_render(const double) {}
-    virtual void pre_destroy() {}
-    virtual void post_destroy() {}
-    virtual void pre_clean() {}
-    virtual void post_clean() {}
+    virtual void pre_prepare();
+    virtual void post_prepare();
+    virtual void pre_create();
+    virtual void post_create();
+    virtual void pre_previous();
+    virtual void post_previous();
+    virtual void pre_sync();
+    virtual void post_sync();
+    virtual void pre_event(const SDL_Event &event);
+    virtual void post_event(const SDL_Event &event);
+    virtual void pre_input(const bool *keys);
+    virtual void post_input(const bool *keys);
+    virtual void pre_simulate(const double tick);
+    virtual void post_simulate(const double tick);
+    virtual void pre_collide(const double tick);
+    virtual void post_collide(const double tick);
+    virtual void pre_render(const double alpha);
+    virtual void post_render(const double alpha);
+    virtual void pre_destroy();
+    virtual void post_destroy();
+    virtual void pre_clean();
+    virtual void post_clean();
 
   private:
     void prepare();
