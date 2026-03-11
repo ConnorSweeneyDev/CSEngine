@@ -106,23 +106,23 @@ namespace cse::help
     glm::dvec2 center_delta{target_center.x - self_center.x, target_center.y - self_center.y};
 
     constexpr double epsilon{1e-9};
-    axis minimum_axis{};
+    auto axis{axis::NONE};
     if (overlap.x + epsilon < overlap.y)
-      minimum_axis = axis::X;
+      axis = axis::X;
     else if (overlap.y + epsilon < overlap.x)
-      minimum_axis = axis::Y;
+      axis = axis::Y;
     else if (std::abs(center_delta.x) >= std::abs(center_delta.y))
-      minimum_axis = axis::X;
+      axis = axis::X;
     else
-      minimum_axis = axis::Y;
+      axis = axis::Y;
     glm::dvec2 normal{};
     glm::dvec2 penetration{};
-    if (minimum_axis == axis::X)
+    if (axis == axis::X)
     {
       normal.x = center_delta.x >= 0.0 ? 1.0 : -1.0;
       penetration.x = normal.x * overlap.x;
     }
-    else if (minimum_axis == axis::Y)
+    else if (axis == axis::Y)
     {
       normal.y = center_delta.y >= 0.0 ? 1.0 : -1.0;
       penetration.y = normal.y * overlap.y;
@@ -130,7 +130,7 @@ namespace cse::help
 
     return {.self = {self_name, own, self_bounds},
             .target = {target, theirs, target_bounds},
-            .minimum_axis = minimum_axis,
+            .axis = axis,
             .overlap = overlap,
             .normal = normal,
             .penetration = penetration};
