@@ -49,7 +49,7 @@ namespace cse
     void clean();
 
   public:
-    class scene *scene{};
+    cse::scene *scene{};
     help::camera_state state{};
     help::camera_graphics graphics{};
   };

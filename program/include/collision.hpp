@@ -18,7 +18,7 @@ namespace cse
   {
     struct self
     {
-      class name name{};
+      cse::name name{};
       cse::hitbox hitbox{};
       rectangle bounds{};
     } self;

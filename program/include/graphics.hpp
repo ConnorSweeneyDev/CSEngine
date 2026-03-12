@@ -55,8 +55,8 @@ namespace cse::help
     void destroy_app();
 
   public:
-    struct previous previous{};
-    struct active active{};
+    game_graphics::previous previous{};
+    game_graphics::active active{};
 
   private:
     double actual_frame{1.0 / active.frame};
@@ -112,8 +112,8 @@ namespace cse::help
     void destroy_window();
 
   public:
-    struct previous previous{};
-    struct active active{};
+    window_graphics::previous previous{};
+    window_graphics::active active{};
 
   private:
     unsigned int windowed_width{};
@@ -177,8 +177,8 @@ namespace cse::help
                                            const double alpha);
 
   public:
-    struct previous previous{};
-    struct active active{};
+    camera_graphics::previous previous{};
+    camera_graphics::active active{};
 
   private:
     double near_clip{};
@@ -204,29 +204,29 @@ namespace cse::help
 
     struct shader
     {
-      cse::property<struct vertex> vertex{};
-      cse::property<struct fragment> fragment{};
+      cse::property<cse::vertex> vertex{};
+      cse::property<cse::fragment> fragment{};
     };
     struct texture
     {
-      cse::property<struct image> image{};
-      struct animation animation{};
-      struct playback playback{};
-      struct flip flip{};
+      cse::property<cse::image> image{};
+      cse::animation animation{};
+      cse::playback playback{};
+      cse::flip flip{};
       temporal<cse::color> color{};
       temporal<cse::transparency> transparency{};
     };
 
     struct previous
     {
-      struct shader shader{};
-      struct texture texture{};
+      object_graphics::shader shader{};
+      object_graphics::texture texture{};
       int priority{};
     };
     struct active
     {
-      struct shader shader{};
-      struct texture texture{};
+      object_graphics::shader shader{};
+      object_graphics::texture texture{};
       int priority{};
     };
 
@@ -257,13 +257,13 @@ namespace cse::help
     void destroy_resources(SDL_GPUDevice *gpu);
 
   public:
-    struct previous previous{};
-    struct active active{};
+    object_graphics::previous previous{};
+    object_graphics::active active{};
 
   private:
     SDL_Window *cached_instance{};
     SDL_GPUDevice *cached_gpu{};
-    struct pipelines pipelines{};
+    object_graphics::pipelines pipelines{};
     SDL_GPUBuffer *vertex_buffer{};
     SDL_GPUBuffer *index_buffer{};
     SDL_GPUTexture *texture_buffer{};

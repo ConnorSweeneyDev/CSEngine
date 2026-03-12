@@ -31,7 +31,7 @@ namespace cse::help
     {
       std::any callback{};
       std::type_index type{typeid(void)};
-      struct time time{};
+      timer::time time{};
     };
 
   public:

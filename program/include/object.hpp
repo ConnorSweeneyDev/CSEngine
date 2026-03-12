@@ -59,8 +59,8 @@ namespace cse
     void clean();
 
   public:
-    class scene *scene{};
-    class name name{};
+    cse::scene *scene{};
+    cse::name name{};
     help::object_state state{};
     help::object_graphics graphics{};
   };

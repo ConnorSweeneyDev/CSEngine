@@ -36,31 +36,31 @@ namespace cse::help
   private:
     struct next_scene
     {
-      class name name{};
-      std::shared_ptr<class scene> pointer{};
+      cse::name name{};
+      std::shared_ptr<cse::scene> pointer{};
     };
 
     struct previous
     {
-      enum phase phase = {};
-      std::shared_ptr<class window> window{};
-      std::unordered_set<name> scenes{};
-      std::shared_ptr<class scene> scene{};
       double tick{};
+      std::shared_ptr<cse::window> window{};
+      std::unordered_set<name> scenes{};
+      std::shared_ptr<cse::scene> scene{};
       help::timer timer{};
+      help::phase phase{};
     };
     struct active
     {
-      enum phase phase = {};
-      std::shared_ptr<class window> window{};
-      std::vector<std::shared_ptr<class scene>> scenes{};
-      std::shared_ptr<class scene> scene{};
       double tick{};
+      std::shared_ptr<cse::window> window{};
+      std::vector<std::shared_ptr<cse::scene>> scenes{};
+      std::shared_ptr<cse::scene> scene{};
       help::timer timer{};
+      help::phase phase{};
     };
     struct next
     {
-      std::optional<std::shared_ptr<class window>> window{};
+      std::optional<std::shared_ptr<cse::window>> window{};
       std::optional<next_scene> scene{};
     };
 
@@ -77,9 +77,9 @@ namespace cse::help
     void update_previous();
 
   public:
-    struct previous previous{};
-    struct active active{};
-    struct next next{};
+    game_state::previous previous{};
+    game_state::active active{};
+    game_state::next next{};
 
   private:
     double actual_tick{1.0 / active.tick};
@@ -96,29 +96,29 @@ namespace cse::help
   private:
     struct previous
     {
-      enum phase phase = {};
-      bool running{};
       unsigned int width{};
       unsigned int height{};
+      bool fullscreen{};
+      bool vsync{};
       int left{};
       int top{};
       SDL_DisplayID display_index{};
-      bool fullscreen{};
-      bool vsync{};
+      bool running{};
       help::timer timer{};
+      help::phase phase{};
     };
     struct active
     {
-      enum phase phase = {};
-      bool running{};
       property<unsigned int> width{};
       property<unsigned int> height{};
+      property<bool> fullscreen{};
+      property<bool> vsync{};
       property<int> left{};
       property<int> top{};
       property<SDL_DisplayID> display_index{};
-      property<bool> fullscreen{};
-      property<bool> vsync{};
+      bool running{};
       help::timer timer{};
+      help::phase phase{};
     };
 
   public:
@@ -134,8 +134,8 @@ namespace cse::help
     void update_previous();
 
   public:
-    struct previous previous{};
-    struct active active{};
+    window_state::previous previous{};
+    window_state::active active{};
 
   private:
     SDL_Event event{};
@@ -150,23 +150,23 @@ namespace cse::help
   private:
     struct previous
     {
-      enum phase phase = {};
-      std::shared_ptr<class camera> camera{};
-      std::unordered_set<class name> objects{};
+      std::shared_ptr<cse::camera> camera{};
+      std::unordered_set<cse::name> objects{};
       std::vector<contact> contacts{};
       help::timer timer{};
+      help::phase phase{};
     };
     struct active
     {
-      enum phase phase = {};
-      std::shared_ptr<class camera> camera{};
-      std::vector<std::shared_ptr<class object>> objects{};
+      std::shared_ptr<cse::camera> camera{};
+      std::vector<std::shared_ptr<cse::object>> objects{};
       std::vector<contact> contacts{};
       help::timer timer{};
+      help::phase phase{};
     };
     struct next
     {
-      std::optional<std::shared_ptr<class camera>> camera{};
+      std::optional<std::shared_ptr<cse::camera>> camera{};
     };
 
   public:
@@ -184,12 +184,12 @@ namespace cse::help
     void generate_contacts();
 
   public:
-    struct previous previous{};
-    struct active active{};
-    struct next next{};
+    scene_state::previous previous{};
+    scene_state::active active{};
+    scene_state::next next{};
 
   private:
-    std::unordered_set<class name> removals{};
+    std::unordered_set<cse::name> removals{};
     std::vector<std::shared_ptr<object>> additions{};
     std::vector<object *> order{};
   };
@@ -202,19 +202,19 @@ namespace cse::help
   private:
     struct previous
     {
-      enum phase phase = {};
       temporal<glm::dvec3> translation{};
       temporal<glm::dvec3> forward{};
       temporal<glm::dvec3> up{};
       help::timer timer{};
+      help::phase phase{};
     };
     struct active
     {
-      enum phase phase = {};
       temporal<glm::dvec3> translation{};
       temporal<glm::dvec3> forward{};
       temporal<glm::dvec3> up{};
       help::timer timer{};
+      help::phase phase{};
     };
 
   public:
@@ -232,8 +232,8 @@ namespace cse::help
     glm::dmat4 calculate_view_matrix(const double alpha) const;
 
   public:
-    struct previous previous{};
-    struct active active{};
+    camera_state::previous previous{};
+    camera_state::active active{};
   };
 
   struct object_state
@@ -244,23 +244,23 @@ namespace cse::help
   private:
     struct previous
     {
-      enum phase phase = {};
       temporal<glm::dvec3> translation{};
       temporal<double> rotation{};
       temporal<glm::dvec2> scale{};
       bool collidable{};
       int priority{};
       help::timer timer{};
+      help::phase phase{};
     };
     struct active
     {
-      enum phase phase = {};
       temporal<glm::dvec3> translation{};
       temporal<double> rotation{};
       temporal<glm::dvec2> scale{};
       bool collidable{};
       int priority{};
       help::timer timer{};
+      help::phase phase{};
     };
 
   public:
@@ -280,7 +280,7 @@ namespace cse::help
                                       const double alpha) const;
 
   public:
-    struct previous previous{};
-    struct active active{};
+    object_state::previous previous{};
+    object_state::active active{};
   };
 }

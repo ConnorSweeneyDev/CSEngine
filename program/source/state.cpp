@@ -20,73 +20,42 @@
 
 namespace cse::help
 {
-  game_state::game_state(const double tick_)
-    : previous{[&]()
-               {
-                 struct previous temporary{};
-                 temporary.tick = tick_;
-                 return temporary;
-               }()},
-      active{[&]()
-             {
-               struct active temporary{};
-               temporary.tick = tick_;
-               return temporary;
-             }()}
-  {
-  }
+  game_state::game_state(const double tick_) : previous{tick_}, active{tick_} {}
 
   void game_state::update_previous()
   {
-    previous.phase = active.phase;
+    previous.tick = active.tick;
     previous.window = active.window;
     previous.scenes.clear();
     previous.scenes.reserve(active.scenes.size());
     for (const auto &scene : active.scenes) previous.scenes.insert(scene->name);
     previous.scene = active.scene;
-    previous.tick = active.tick;
     previous.timer = active.timer;
+    previous.phase = active.phase;
   }
 
   window_state::window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
-    : previous{[&]()
-               {
-                 struct previous temporary{};
-                 temporary.width = dimensions_.x;
-                 temporary.height = dimensions_.y;
-                 temporary.fullscreen = fullscreen_;
-                 temporary.vsync = vsync_;
-                 return temporary;
-               }()},
-      active{[&]()
-             {
-               struct active temporary{};
-               temporary.width = dimensions_.x;
-               temporary.height = dimensions_.y;
-               temporary.fullscreen = fullscreen_;
-               temporary.vsync = vsync_;
-               return temporary;
-             }()}
+    : previous{dimensions_.x, dimensions_.y, fullscreen_, vsync_},
+      active{dimensions_.x, dimensions_.y, fullscreen_, vsync_}
   {
   }
 
   void window_state::update_previous()
   {
-    previous.phase = active.phase;
-    previous.running = active.running;
     previous.width = active.width;
     previous.height = active.height;
+    previous.fullscreen = active.fullscreen;
+    previous.vsync = active.vsync;
     previous.left = active.left;
     previous.top = active.top;
     previous.display_index = active.display_index;
-    previous.fullscreen = active.fullscreen;
-    previous.vsync = active.vsync;
+    previous.running = active.running;
     previous.timer = active.timer;
+    previous.phase = active.phase;
   }
 
   void scene_state::update_previous()
   {
-    previous.phase = active.phase;
     previous.camera = active.camera;
     previous.objects.clear();
     previous.objects.reserve(active.objects.size());
@@ -95,6 +64,7 @@ namespace cse::help
     previous.contacts.reserve(active.contacts.size());
     for (const auto &contact : active.contacts) previous.contacts.emplace_back(contact);
     previous.timer = active.timer;
+    previous.phase = active.phase;
   }
 
   void scene_state::generate_order(const std::vector<std::shared_ptr<object>> &objects)
@@ -142,18 +112,18 @@ namespace cse::help
   }
 
   camera_state::camera_state(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_)
-    : previous{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)},
-      active{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)}
+    : previous{std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)},
+      active{std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)}
   {
   }
 
   void camera_state::update_previous()
   {
-    previous.phase = active.phase;
     previous.translation = active.translation;
     previous.forward = active.forward;
     previous.up = active.up;
     previous.timer = active.timer;
+    previous.phase = active.phase;
   }
 
   glm::dmat4 camera_state::calculate_view_matrix(const double alpha) const
@@ -166,20 +136,20 @@ namespace cse::help
 
   object_state::object_state(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_,
                              const int priority_)
-    : previous{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_, priority_},
-      active{{}, std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_, priority_}
+    : previous{std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_, priority_},
+      active{std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_, priority_}
   {
   }
 
   void object_state::update_previous()
   {
-    previous.phase = active.phase;
     previous.translation = active.translation;
     previous.rotation = active.rotation;
     previous.scale = active.scale;
     previous.collidable = active.collidable;
     previous.priority = active.priority;
     previous.timer = active.timer;
+    previous.phase = active.phase;
   }
 
   glm::dmat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,

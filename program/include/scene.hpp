@@ -24,8 +24,8 @@ namespace cse
 
     template <trait::is_camera camera_type, typename... camera_arguments> scene &set(camera_arguments &&...arguments);
     template <trait::is_object object_type, typename... object_arguments>
-    scene &set(const class name object_name, object_arguments &&...arguments);
-    scene &remove(const class name object_name);
+    scene &set(const cse::name object_name, object_arguments &&...arguments);
+    scene &remove(const cse::name object_name);
 
   protected:
     scene() = default;
@@ -67,8 +67,8 @@ namespace cse
     void clean();
 
   public:
-    class game *game{};
-    class name name{};
+    cse::game *game{};
+    cse::name name{};
     help::scene_state state{};
     help::scene_graphics graphics{};
   };

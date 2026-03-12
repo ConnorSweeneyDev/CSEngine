@@ -35,7 +35,7 @@ namespace cse
   }
 
   template <trait::is_object object_type, typename... object_arguments>
-  scene &scene::set(const class name object_name, object_arguments &&...arguments)
+  scene &scene::set(const cse::name object_name, object_arguments &&...arguments)
   {
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
     object->name = object_name;

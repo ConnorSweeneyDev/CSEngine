@@ -50,7 +50,7 @@ namespace cse
     void clean();
 
   public:
-    class game *game{};
+    cse::game *game{};
     help::window_state state{};
     help::window_graphics graphics{};
   };
