@@ -69,8 +69,7 @@ namespace cse
         target->clean();
     }
     set_or_add(state.active.scenes, scene);
-    if (state.active.phase == help::phase::CREATED && scene->state.active.phase == help::phase::CLEANED)
-      scene->prepare();
+    if (state.active.phase == help::phase::CREATED) scene->prepare();
     return *this;
   }
 

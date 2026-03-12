@@ -96,7 +96,7 @@ namespace cse
     state.active.window->prepare();
     if (state.active.scenes.empty()) throw exception("No scenes have been added to the game");
     if (!state.active.scene) throw exception("No current scene has been set for the game");
-    state.active.scene->prepare();
+    for (const auto &scene : state.active.scenes) scene->prepare();
     state.active.phase = help::phase::PREPARED;
     post_prepare();
   }
@@ -168,7 +168,6 @@ namespace cse
         {
           state.active.scene->destroy(state.active.window->graphics.gpu);
           state.active.scene = next_scene;
-          if (next_scene->state.active.phase == help::phase::CLEANED) next_scene->prepare();
           next_scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
         }
       }
@@ -261,7 +260,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Game must be prepared before cleaning");
     pre_clean();
-    state.active.scene->clean();
+    for (const auto &scene : state.active.scenes) scene->clean();
     state.active.window->clean();
     state.active.phase = help::phase::CLEANED;
     post_clean();

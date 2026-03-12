@@ -44,8 +44,7 @@ namespace cse
     {
       case help::phase::CLEANED: set_or_add(state.active.objects, object); break;
       case help::phase::PREPARED:
-        if (auto existing{try_find(state.active.objects, object_name)})
-          if (existing->state.active.phase == help::phase::PREPARED) existing->clean();
+        if (auto existing{try_find(state.active.objects, object_name)}) existing->clean();
         set_or_add(state.active.objects, object);
         object->prepare();
         break;
