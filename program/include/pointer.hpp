@@ -52,6 +52,13 @@ template <typename type> std::shared_ptr<type> throw_lock(const std::weak_ptr<ty
   return locked;
 }
 
+template <typename... derived, typename base> bool is(const base *pointer) noexcept
+{
+  if (!pointer) return false;
+  const std::type_info &typeid_base{typeid(*pointer)};
+  return (... || (typeid_base == typeid(derived)));
+}
+
 template <typename... derived, typename base> bool is(const std::unique_ptr<base> &pointer) noexcept
 {
   if (!pointer) return false;
@@ -74,6 +81,12 @@ template <typename... derived, typename base> bool is(const std::weak_ptr<base> 
   return (... || (typeid_base == typeid(derived)));
 }
 
+template <typename... derived, typename base> bool is_a(const base *pointer) noexcept
+{
+  if (!pointer) return false;
+  return (... || (dynamic_cast<derived *>(pointer) != nullptr));
+}
+
 template <typename... derived, typename base> bool is_a(const std::unique_ptr<base> &pointer) noexcept
 {
   if (!pointer) return false;
@@ -93,11 +106,35 @@ template <typename... derived, typename base> bool is_a(const std::weak_ptr<base
   return (... || (dynamic_cast<derived *>(locked.get()) != nullptr));
 }
 
+template <typename derived, typename base> derived *as(base *pointer) noexcept
+{
+  if (!pointer) return nullptr;
+  return static_cast<derived *>(pointer);
+}
+
+template <typename derived, typename base> const derived *as(const base *pointer) noexcept
+{
+  if (!pointer) return nullptr;
+  return static_cast<const derived *>(pointer);
+}
+
 template <typename derived, typename base> std::shared_ptr<derived> as(const std::shared_ptr<base> &pointer) noexcept
 { return std::static_pointer_cast<derived>(pointer); }
 
 template <typename derived, typename base> std::shared_ptr<derived> as(const std::weak_ptr<base> &pointer) noexcept
 { return std::static_pointer_cast<derived>(pointer.lock()); }
+
+template <typename derived, typename base> derived *try_as(base *pointer) noexcept
+{
+  if (!is<derived>(pointer)) return nullptr;
+  return static_cast<derived *>(pointer);
+}
+
+template <typename derived, typename base> const derived *try_as(const base *pointer) noexcept
+{
+  if (!is<derived>(pointer)) return nullptr;
+  return static_cast<const derived *>(pointer);
+}
 
 template <typename derived, typename base>
 std::shared_ptr<derived> try_as(const std::shared_ptr<base> &pointer) noexcept
@@ -114,6 +151,18 @@ template <typename derived, typename base> std::shared_ptr<derived> try_as(const
   return std::static_pointer_cast<derived>(locked);
 }
 
+template <typename derived, typename base> derived *throw_as(base *pointer)
+{
+  if (!is<derived>(pointer)) throw cse::exception("Invalid static cast from base to derived type");
+  return static_cast<derived *>(pointer);
+}
+
+template <typename derived, typename base> const derived *throw_as(const base *pointer)
+{
+  if (!is<derived>(pointer)) throw cse::exception("Invalid static cast from base to derived type");
+  return static_cast<const derived *>(pointer);
+}
+
 template <typename derived, typename base> std::shared_ptr<derived> throw_as(const std::shared_ptr<base> &pointer)
 {
   if (!is<derived>(pointer)) throw cse::exception("Invalid static cast from base to derived type");
@@ -127,6 +176,18 @@ template <typename derived, typename base> std::shared_ptr<derived> throw_as(con
   return std::static_pointer_cast<derived>(locked);
 }
 
+template <typename derived, typename base> derived *try_as_a(base *pointer) noexcept
+{
+  if (!is_a<derived>(pointer)) return nullptr;
+  return static_cast<derived *>(pointer);
+}
+
+template <typename derived, typename base> const derived *try_as_a(const base *pointer) noexcept
+{
+  if (!is_a<derived>(pointer)) return nullptr;
+  return static_cast<const derived *>(pointer);
+}
+
 template <typename derived, typename base>
 std::shared_ptr<derived> try_as_a(const std::shared_ptr<base> &pointer) noexcept
 { return std::dynamic_pointer_cast<derived>(pointer); }
@@ -137,6 +198,18 @@ std::shared_ptr<derived> try_as_a(const std::weak_ptr<base> &pointer) noexcept
   auto locked{try_lock(pointer)};
   if (!locked) return nullptr;
   return std::dynamic_pointer_cast<derived>(locked);
+}
+
+template <typename derived, typename base> derived *throw_as_a(base *pointer)
+{
+  if (!is_a<derived>(pointer)) throw cse::exception("Invalid dynamic cast from base to derived type");
+  return static_cast<derived *>(pointer);
+}
+
+template <typename derived, typename base> const derived *throw_as_a(const base *pointer)
+{
+  if (!is_a<derived>(pointer)) throw cse::exception("Invalid dynamic cast from base to derived type");
+  return static_cast<const derived *>(pointer);
 }
 
 template <typename derived, typename base> std::shared_ptr<derived> throw_as_a(const std::shared_ptr<base> &pointer)
