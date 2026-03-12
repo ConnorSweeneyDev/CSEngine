@@ -94,7 +94,7 @@ namespace cse::help
             std::floor(pixel.y + local_bottom * actual_scale.y + 0.5)};
   }
 
-  contact describe_collision(const name self_name, const std::shared_ptr<object> target, const hitbox own,
+  contact describe_collision(const name self_name, const std::shared_ptr<object> &target, const hitbox own,
                              const hitbox theirs, const rectangle &self_bounds, const rectangle &target_bounds)
   {
     glm::dvec2 overlap{

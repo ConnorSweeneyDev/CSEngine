@@ -97,7 +97,7 @@ namespace cse::help
     previous.timer = active.timer;
   }
 
-  void scene_state::generate_order(std::vector<std::shared_ptr<object>> &objects)
+  void scene_state::generate_order(const std::vector<std::shared_ptr<object>> &objects)
   {
     order.clear();
     for (order.reserve(objects.size()); const auto &object : objects) order.emplace_back(object.get());

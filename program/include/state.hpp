@@ -180,7 +180,7 @@ namespace cse::help
   private:
     void update_previous();
 
-    void generate_order(std::vector<std::shared_ptr<object>> &objects);
+    void generate_order(const std::vector<std::shared_ptr<object>> &objects);
     void generate_contacts();
 
   public:
