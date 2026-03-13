@@ -2,8 +2,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <execution>
 #include <memory>
 #include <tuple>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "glm/ext/matrix_double4x4.hpp"
@@ -14,7 +20,6 @@
 #include "glm/trigonometric.hpp"
 
 #include "collision.hpp"
-#include "numeric.hpp"
 #include "object.hpp"
 #include "scene.hpp"
 
@@ -83,30 +88,80 @@ namespace cse::help
   void scene_state::generate_contacts()
   {
     active.contacts.clear();
-    for (auto self_iterator{active.objects.begin()}; self_iterator != active.objects.end(); ++self_iterator)
+    auto &objects{active.objects};
+    if (objects.empty()) return;
+
+    collision::collection hitboxes(objects.size());
+    std::vector<std::size_t> indices(objects.size());
+    for (std::size_t index{}; index < indices.size(); ++index) indices[index] = index;
+    std::for_each(std::execution::par, indices.begin(), indices.end(),
+                  [&](std::size_t current)
+                  {
+                    const auto &object{objects[current]};
+                    auto object_hitboxes{collision::hitboxes(object.get())};
+                    if (object_hitboxes.empty()) return;
+                    auto &[index, z, bounds]{hitboxes[current]};
+                    index = current;
+                    z = static_cast<std::int64_t>(std::floor(object->state.active.translation.value.z + 0.5));
+                    bounds.reserve(object_hitboxes.size());
+                    for (const auto &[hitbox, rectangle] : object_hitboxes)
+                      bounds.emplace_back(hitbox, collision::bounds(object.get(), rectangle));
+                  });
+
+    std::unordered_map<std::int64_t, std::vector<double>> z_dimensions{};
+    for (const auto &[index, z, bounds] : hitboxes)
     {
-      const auto &self{*self_iterator};
-      auto self_hitboxes{current_hitboxes(self.get())};
-      if (self_hitboxes.empty()) continue;
-      auto self_z{std::floor(self->state.active.translation.value.z + 0.5)};
-      auto target_iterator{self_iterator};
-      for (++target_iterator; target_iterator != active.objects.end(); ++target_iterator)
+      if (bounds.empty()) continue;
+      for (const auto &[hitbox, rectangle] : bounds)
       {
-        const auto &target{*target_iterator};
-        if (!(equal(std::floor(target->state.active.translation.value.z + 0.5), self_z))) continue;
-        auto target_hitboxes{current_hitboxes(target.get())};
-        if (target_hitboxes.empty()) continue;
-        for (const auto &[self_hitbox, self_hitbox_object] : self_hitboxes)
-          for (auto self_bounds{world_bounds(self.get(), self_hitbox_object)};
-               const auto &[target_hitbox, target_hitbox_object] : target_hitboxes)
-            if (auto target_bounds{world_bounds(target.get(), target_hitbox_object)};
-                overlaps(self_bounds, target_bounds))
-            {
-              active.contacts.push_back(
-                describe_collision(self->name, target, self_hitbox, target_hitbox, self_bounds, target_bounds));
-              active.contacts.push_back(
-                describe_collision(target->name, self, target_hitbox, self_hitbox, target_bounds, self_bounds));
-            }
+        auto width{rectangle.right - rectangle.left};
+        auto height{rectangle.top - rectangle.bottom};
+        z_dimensions[z].push_back(std::max(width, height));
+      }
+    }
+    std::unordered_map<std::int64_t, double> z_cell_sizes{};
+    for (auto &[z, dimensions] : z_dimensions)
+    {
+      std::sort(dimensions.begin(), dimensions.end());
+      auto median{dimensions[dimensions.size() / 2]};
+      z_cell_sizes[z] = std::max(collision::cell_size_minimum, median * 2.0);
+    }
+    collision::grid grid{};
+    for (const auto &[index, z, bounds] : hitboxes)
+    {
+      if (bounds.empty()) continue;
+      const auto cell_size{z_cell_sizes[z]};
+      for (const auto &[hitbox, rectangle] : bounds)
+      {
+        auto min_x{static_cast<std::int64_t>(std::floor(rectangle.left / cell_size))};
+        auto max_x{static_cast<std::int64_t>(std::floor(rectangle.right / cell_size))};
+        auto min_y{static_cast<std::int64_t>(std::floor(rectangle.bottom / cell_size))};
+        auto max_y{static_cast<std::int64_t>(std::floor(rectangle.top / cell_size))};
+        for (auto cx{min_x}; cx <= max_x; ++cx)
+          for (auto cy{min_y}; cy <= max_y; ++cy) grid[{cx, cy, z}].push_back({index, hitbox, rectangle});
+      }
+    }
+
+    collision::seen pairs{};
+    for (auto &[cell, entries] : grid)
+    {
+      for (std::size_t first{}; first < entries.size(); ++first)
+      {
+        const auto &a{entries[first]};
+        for (std::size_t second{first + 1}; second < entries.size(); ++second)
+        {
+          const auto &b{entries[second]};
+          if (a.index == b.index) continue;
+          if (!collision::overlaps(a.bounds, b.bounds)) continue;
+          auto low{std::min(a.index, b.index)}, high{std::max(a.index, b.index)};
+          auto low_hitbox{low == a.index ? a.hitbox.identifier() : b.hitbox.identifier()},
+            high_hitbox{low == a.index ? b.hitbox.identifier() : a.hitbox.identifier()};
+          if (!pairs.emplace(low, low_hitbox, high, high_hitbox).second) continue;
+          active.contacts.push_back(
+            collision::describe(objects[a.index]->name, objects[b.index], a.hitbox, b.hitbox, a.bounds, b.bounds));
+          active.contacts.push_back(
+            collision::describe(objects[b.index]->name, objects[a.index], b.hitbox, a.hitbox, b.bounds, a.bounds));
+        }
       }
     }
   }

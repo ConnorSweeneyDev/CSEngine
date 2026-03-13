@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <span>
 #include <utility>
@@ -13,15 +16,34 @@
 #include "object.hpp"
 #include "resource.hpp"
 
-namespace cse::help
+namespace cse::help::collision
 {
+  std::size_t pair::hash::operator()(const pair &key) const
+  {
+    auto h{std::hash<std::size_t>{}(key.a_index)};
+    h ^= std::hash<std::uint64_t>{}(key.a_hitbox) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+    h ^= std::hash<std::size_t>{}(key.b_index) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+    h ^= std::hash<std::uint64_t>{}(key.b_hitbox) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+    return h;
+  }
+
+  std::size_t cell::hash::operator()(const cell &key) const
+  {
+    auto h1{std::hash<std::int64_t>{}(key.x)};
+    auto h2{std::hash<std::int64_t>{}(key.y)};
+    auto h3{std::hash<std::int64_t>{}(key.z)};
+    h1 ^= h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2);
+    h1 ^= h3 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2);
+    return h1;
+  }
+
   bool overlaps(const rectangle &first, const rectangle &second)
   {
     return first.left < second.right && first.right > second.left && first.bottom < second.top &&
            first.top > second.bottom;
   }
 
-  std::span<const std::pair<hitbox, rectangle>> current_hitboxes(const object *object)
+  std::span<const std::pair<hitbox, rectangle>> hitboxes(const object *object)
   {
     if (!object->state.active.collidable) return {};
     const auto &animation{object->graphics.active.texture.animation};
@@ -30,7 +52,7 @@ namespace cse::help
     return animation.frames[frame].hitboxes;
   }
 
-  rectangle world_bounds(const object *object, const rectangle &bounds)
+  rectangle bounds(const object *object, const rectangle &bounds)
   {
     auto width{static_cast<double>(object->graphics.active.texture.image->frame_width)};
     auto height{static_cast<double>(object->graphics.active.texture.image->frame_height)};
@@ -94,8 +116,8 @@ namespace cse::help
             std::floor(pixel.y + local_bottom * actual_scale.y + 0.5)};
   }
 
-  contact describe_collision(const name self_name, const std::shared_ptr<object> &target, const hitbox own,
-                             const hitbox theirs, const rectangle &self_bounds, const rectangle &target_bounds)
+  contact describe(const name self_name, const std::shared_ptr<object> &target, const hitbox own, const hitbox theirs,
+                   const rectangle &self_bounds, const rectangle &target_bounds)
   {
     glm::dvec2 overlap{
       std::min(self_bounds.right, target_bounds.right) - std::max(self_bounds.left, target_bounds.left),
