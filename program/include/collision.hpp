@@ -68,6 +68,7 @@ namespace cse
       std::int64_t x{};
       std::int64_t y{};
       std::int64_t z{};
+      static constexpr double minimum_size{16.0};
     };
     struct entry
     {
@@ -85,7 +86,5 @@ namespace cse
     rectangle bounds(const object *object, const rectangle &bounds);
     contact describe(const name self_name, object *target, const hitbox own, const hitbox theirs,
                      const rectangle &self_bounds, const rectangle &target_bounds);
-
-    inline constexpr double cell_size_minimum{16.0};
   }
 }

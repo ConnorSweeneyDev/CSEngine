@@ -8,7 +8,6 @@
 #include <memory>
 #include <tuple>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -21,7 +20,6 @@
 
 #include "collision.hpp"
 #include "object.hpp"
-#include "scene.hpp"
 
 namespace cse::help
 {
@@ -31,9 +29,7 @@ namespace cse::help
   {
     previous.tick = active.tick;
     previous.window = active.window;
-    previous.scenes.clear();
-    previous.scenes.reserve(active.scenes.size());
-    for (const auto &scene : active.scenes) previous.scenes.insert(scene->name);
+    previous.scenes = active.scenes;
     previous.scene = active.scene;
     previous.timer = active.timer;
     previous.phase = active.phase;
@@ -62,12 +58,8 @@ namespace cse::help
   void scene_state::update_previous()
   {
     previous.camera = active.camera;
-    previous.objects.clear();
-    previous.objects.reserve(active.objects.size());
-    for (const auto &object : active.objects) previous.objects.insert(object->name);
-    previous.contacts.clear();
-    previous.contacts.reserve(active.contacts.size());
-    for (const auto &contact : active.contacts) previous.contacts.emplace_back(contact);
+    previous.objects = active.objects;
+    previous.contacts = active.contacts;
     previous.timer = active.timer;
     previous.phase = active.phase;
   }
@@ -124,7 +116,7 @@ namespace cse::help
     {
       std::sort(dimensions.begin(), dimensions.end());
       auto median{dimensions[dimensions.size() / 2]};
-      z_cell_sizes[z] = std::max(collision::cell_size_minimum, median * 2.0);
+      z_cell_sizes[z] = std::max(collision::cell::minimum_size, median * 2.0);
     }
     collision::grid grid{};
     for (const auto &[index, z, bounds] : hitboxes)

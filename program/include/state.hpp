@@ -44,7 +44,7 @@ namespace cse::help
     {
       double tick{};
       std::shared_ptr<cse::window> window{};
-      std::unordered_set<name> scenes{};
+      std::vector<std::shared_ptr<cse::scene>> scenes{};
       std::shared_ptr<cse::scene> scene{};
       help::timer timer{};
       help::phase phase{};
@@ -151,7 +151,7 @@ namespace cse::help
     struct previous
     {
       std::shared_ptr<cse::camera> camera{};
-      std::unordered_set<cse::name> objects{};
+      std::vector<std::shared_ptr<cse::object>> objects{};
       std::vector<contact> contacts{};
       help::timer timer{};
       help::phase phase{};
