@@ -59,7 +59,7 @@ namespace cse
     create();
     while (running())
     {
-      tick();
+      step();
       while (behind())
       {
         tps();
@@ -71,7 +71,6 @@ namespace cse
         collide();
         tps();
       }
-      time();
       if (ready())
       {
         fps();
@@ -268,7 +267,7 @@ namespace cse
 
   void game::time() { state.time = static_cast<double>(SDL_GetTicksNS()) / 1e9; }
 
-  void game::tick()
+  void game::step()
   {
     state.active.tick = std::max(10.0, state.active.tick);
     graphics.active.frame = std::max(1.0, graphics.active.frame);
@@ -280,6 +279,7 @@ namespace cse
       state.actual_tick = real_tick;
     }
     if (!equal(real_frame, graphics.actual_frame)) graphics.actual_frame = real_frame;
+
     time();
     static double simulation_time{};
     double delta_time{state.time - simulation_time};
@@ -302,6 +302,7 @@ namespace cse
 
   bool game::ready()
   {
+    time();
     static double deadline{};
     if (state.time - deadline >= graphics.actual_frame)
     {

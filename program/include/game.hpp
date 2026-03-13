@@ -82,7 +82,7 @@ namespace cse
     void clean();
 
     void time();
-    void tick();
+    void step();
 
     bool running();
     bool behind();
