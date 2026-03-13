@@ -18,7 +18,7 @@
 namespace cse
 {
   template <trait::is_game game_type, typename... game_arguments> std::shared_ptr<game_type>
-  game::create(const std::function<void(const std::shared_ptr<game_type>)> &config, game_arguments &&...arguments)
+  game::create(const std::function<void(const std::shared_ptr<game_type> &)> &config, game_arguments &&...arguments)
   {
     if (!instance.expired()) throw exception("Tried to create a second game instance");
     auto new_instance{std::shared_ptr<game_type>{new game_type{std::forward<game_arguments>(arguments)...}}};
@@ -51,7 +51,7 @@ namespace cse
   }
 
   template <trait::is_scene scene_type, typename... scene_arguments>
-  game &game::set(const name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+  game &game::set(const name name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
                   scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
@@ -83,7 +83,7 @@ namespace cse
   }
 
   template <trait::is_scene scene_type, typename... scene_arguments>
-  game &game::current(const name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+  game &game::current(const name name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
                       scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};

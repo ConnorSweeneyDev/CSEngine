@@ -24,17 +24,17 @@ namespace cse
     game &operator=(game &&) = delete;
 
     template <trait::is_game game_type, typename... game_arguments> static std::shared_ptr<game_type>
-    create(const std::function<void(const std::shared_ptr<game_type>)> &config, game_arguments &&...arguments);
+    create(const std::function<void(const std::shared_ptr<game_type> &)> &config, game_arguments &&...arguments);
     template <trait::is_callable callable, typename... game_arguments>
     static std::shared_ptr<game> create(callable &&config, game_arguments &&...arguments);
     template <trait::is_window window_type, typename... window_arguments> game &set(window_arguments &&...arguments);
     template <trait::is_scene scene_type, typename... scene_arguments>
-    game &set(const name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+    game &set(const name name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
               scene_arguments &&...arguments);
     template <trait::is_callable callable, typename... scene_arguments>
     game &set(const name name, callable &&config, scene_arguments &&...arguments);
     template <trait::is_scene scene_type, typename... scene_arguments>
-    game &current(const name name, const std::function<void(const std::shared_ptr<scene_type>)> &config,
+    game &current(const name name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
                   scene_arguments &&...arguments);
     template <trait::is_callable callable, typename... scene_arguments>
     game &current(const name name, callable &&config, scene_arguments &&...arguments);
