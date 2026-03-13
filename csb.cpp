@@ -1,6 +1,7 @@
 #include "csb.hpp"
 
 #include <format>
+#include <string>
 
 void csb::configure()
 {
@@ -22,7 +23,28 @@ int csb::clean()
 
 int csb::build()
 {
-  if (!csb::is_subproject) csb::clang_format("22.1.0");
+  if (!csb::is_subproject)
+    csb::clang_format("22.1.0", {{"BasedOnStyle", "LLVM"},
+                                 {"ColumnLimit", "120"},
+                                 {"IndentWidth", "2"},
+                                 {"ConstructorInitializerIndentWidth", "2"},
+                                 {"ContinuationIndentWidth", "2"},
+                                 {"Language", "Cpp"},
+                                 {"BreakBeforeBraces", "Allman"},
+                                 {"AllowShortBlocksOnASingleLine", "true"},
+                                 {"AllowShortIfStatementsOnASingleLine", "true"},
+                                 {"AllowShortCaseLabelsOnASingleLine", "true"},
+                                 {"AllowShortLoopsOnASingleLine", "true"},
+                                 {"AllowShortFunctionsOnASingleLine", "true"},
+                                 {"AllowShortLambdasOnASingleLine", "true"},
+                                 {"AllowShortEnumsOnASingleLine", "true"},
+                                 {"AllowShortNamespacesOnASingleLine", "true"},
+                                 {"BreakTemplateDeclarations", "No"},
+                                 {"IndentPPDirectives", "BeforeHash"},
+                                 {"IndentCaseLabels", "true"},
+                                 {"NamespaceIndentation", "All"},
+                                 {"FixNamespaceComments", "false"}});
+  csb::write_file<std::string>(".clangd", "Diagnostics:\n  UnusedIncludes: Strict\n  MissingIncludes: Strict\n");
 
   csb::vcpkg_install("2025.12.12", {{"builtin-baseline", "84bab45d415d22042bd0b9081aea57f362da3f35"},
                                     {"dependencies",
