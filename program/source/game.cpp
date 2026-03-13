@@ -17,7 +17,6 @@
 #include "print.hpp"
 #include "scene.hpp"
 #include "state.hpp"
-#include "system.hpp"
 #include "window.hpp"
 
 namespace cse
@@ -330,13 +329,10 @@ namespace cse
     accumulator += (static_cast<double>(SDL_GetTicksNS()) / 1e9) - start.value();
     if (state.time - deadline >= 1.0)
     {
-      if constexpr (debug)
-      {
-        const double average = (accumulator / count) * 1000.0;
-        const double target = state.actual_tick * 1000.0;
-        const double usage = (average / target) * 100.0;
-        print<CLOG>("TPS: {} | {:.3f}ms / {:.3f}ms ({:.2f}%)\n", count, average, target, usage);
-      }
+      const double average = (accumulator / count) * 1000.0;
+      const double target = state.actual_tick * 1000.0;
+      const double usage = (average / target) * 100.0;
+      print<CLOG>("TPS: {} | {:.3f}ms / {:.3f}ms ({:.2f}%)\n", count, average, target, usage);
       deadline = state.time;
       accumulator = 0.0;
       count = 0;
@@ -360,13 +356,10 @@ namespace cse
     accumulator += (static_cast<double>(SDL_GetTicksNS()) / 1e9) - start.value();
     if (state.time - deadline >= 1.0)
     {
-      if constexpr (debug)
-      {
-        const double average = (accumulator / count) * 1000.0;
-        const double target = graphics.actual_frame * 1000.0;
-        const double usage = (average / target) * 100.0;
-        print<CLOG>("FPS: {} | {:.3f}ms / {:.3f}ms ({:.2f}%)\n", count, average, target, usage);
-      }
+      const double average = (accumulator / count) * 1000.0;
+      const double target = graphics.actual_frame * 1000.0;
+      const double usage = (average / target) * 100.0;
+      print<CLOG>("FPS: {} | {:.3f}ms / {:.3f}ms ({:.2f}%)\n", count, average, target, usage);
       deadline = state.time;
       accumulator = 0.0;
       count = 0;
