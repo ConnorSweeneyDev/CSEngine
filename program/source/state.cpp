@@ -4,11 +4,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <execution>
 #include <memory>
 #include <tuple>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "glm/ext/matrix_double4x4.hpp"
@@ -83,78 +80,82 @@ namespace cse::help
     auto &objects{active.objects};
     if (objects.empty()) return;
 
-    collision::collection hitboxes(objects.size());
-    std::vector<std::size_t> indices(objects.size());
-    for (std::size_t index{}; index < indices.size(); ++index) indices[index] = index;
-    std::for_each(std::execution::par, indices.begin(), indices.end(),
-                  [&](std::size_t current)
-                  {
-                    const auto &object{objects[current]};
-                    auto object_hitboxes{collision::hitboxes(object.get())};
-                    if (object_hitboxes.empty()) return;
-                    auto &[index, z, bounds]{hitboxes[current]};
-                    index = current;
-                    z = static_cast<std::int64_t>(std::floor(object->state.active.translation.value.z + 0.5));
-                    bounds.reserve(object_hitboxes.size());
-                    for (const auto &[hitbox, rectangle] : object_hitboxes)
-                      bounds.emplace_back(hitbox, collision::bounds(object.get(), rectangle));
-                  });
+    static std::vector<collision::entry> entries{};
+    entries.clear();
+    entries.reserve(objects.size() * 4);
+    for (std::size_t index{}; index < objects.size(); ++index)
+    {
+      const auto &object{objects[index]};
+      auto object_hitboxes{collision::hitboxes(object.get())};
+      if (object_hitboxes.empty()) continue;
+      auto z{static_cast<std::int64_t>(std::floor(object->state.active.translation.value.z + 0.5))};
+      for (const auto &[hitbox, rectangle] : object_hitboxes)
+        entries.push_back({index, z, hitbox, collision::bounds(object.get(), rectangle)});
+    }
+    if (entries.empty()) return;
 
-    std::unordered_map<std::int64_t, std::vector<double>> z_dimensions{};
-    for (const auto &[index, z, bounds] : hitboxes)
-    {
-      if (bounds.empty()) continue;
-      for (const auto &[hitbox, rectangle] : bounds)
+    auto comparator{[](const collision::entry &a, const collision::entry &b)
+                    {
+                      if (a.z != b.z) return a.z < b.z;
+                      return a.bounds.left < b.bounds.left;
+                    }};
+    bool large_disorder{};
+    for (std::size_t index{1}; index < entries.size(); ++index)
+      if (comparator(entries[index], entries[index - 1]))
       {
-        auto width{rectangle.right - rectangle.left};
-        auto height{rectangle.top - rectangle.bottom};
-        z_dimensions[z].push_back(std::max(width, height));
+        large_disorder = true;
+        break;
       }
-    }
-    std::unordered_map<std::int64_t, double> z_cell_sizes{};
-    for (auto &[z, dimensions] : z_dimensions)
-    {
-      std::sort(dimensions.begin(), dimensions.end());
-      auto median{dimensions[dimensions.size() / 2]};
-      z_cell_sizes[z] = std::max(collision::cell::minimum_size, median * 2.0);
-    }
-    collision::grid grid{};
-    for (const auto &[index, z, bounds] : hitboxes)
-    {
-      if (bounds.empty()) continue;
-      const auto cell_size{z_cell_sizes[z]};
-      for (const auto &[hitbox, rectangle] : bounds)
-      {
-        auto min_x{static_cast<std::int64_t>(std::floor(rectangle.left / cell_size))};
-        auto max_x{static_cast<std::int64_t>(std::floor(rectangle.right / cell_size))};
-        auto min_y{static_cast<std::int64_t>(std::floor(rectangle.bottom / cell_size))};
-        auto max_y{static_cast<std::int64_t>(std::floor(rectangle.top / cell_size))};
-        for (auto cx{min_x}; cx <= max_x; ++cx)
-          for (auto cy{min_y}; cy <= max_y; ++cy) grid[{cx, cy, z}].push_back({index, hitbox, rectangle});
-      }
-    }
 
-    collision::seen pairs{};
-    for (auto &[cell, entries] : grid)
-    {
-      for (std::size_t first{}; first < entries.size(); ++first)
+    if (large_disorder) { std::sort(entries.begin(), entries.end(), comparator); }
+    else
+      for (std::size_t first{1}; first < entries.size(); ++first)
       {
-        const auto &a{entries[first]};
-        for (std::size_t second{first + 1}; second < entries.size(); ++second)
+        auto key{entries[first]};
+        std::size_t second{first};
+        while (second > 0 && comparator(key, entries[second - 1]))
         {
-          const auto &b{entries[second]};
-          if (a.index == b.index) continue;
-          if (!collision::overlaps(a.bounds, b.bounds)) continue;
-          auto low{std::min(a.index, b.index)}, high{std::max(a.index, b.index)};
-          auto low_hitbox{low == a.index ? a.hitbox.identifier() : b.hitbox.identifier()},
-            high_hitbox{low == a.index ? b.hitbox.identifier() : a.hitbox.identifier()};
-          if (!pairs.emplace(low, low_hitbox, high, high_hitbox).second) continue;
-          active.contacts.push_back(collision::describe(objects[a.index]->name, objects[b.index].get(), a.hitbox,
-                                                        b.hitbox, a.bounds, b.bounds));
-          active.contacts.push_back(collision::describe(objects[b.index]->name, objects[a.index].get(), b.hitbox,
-                                                        a.hitbox, b.bounds, a.bounds));
+          entries[second] = entries[second - 1];
+          --second;
         }
+        entries[second] = key;
       }
+
+    static std::vector<std::size_t> active_list{};
+    active_list.clear();
+    active_list.reserve(std::min(entries.size(), 64ULL));
+    std::size_t start{0};
+    while (start < entries.size())
+    {
+      auto z{entries[start].z};
+      std::size_t end{start + 1};
+      while (end < entries.size() && entries[end].z == z) ++end;
+
+      active_list.clear();
+      for (std::size_t first{start}; first < end; ++first)
+      {
+        const auto &current{entries[first]};
+        for (std::size_t second{}; second < active_list.size();)
+        {
+          const auto &other{entries[active_list[second]]};
+          if (other.bounds.right < current.bounds.left)
+          {
+            active_list[second] = active_list.back();
+            active_list.pop_back();
+            continue;
+          }
+          if (current.index != other.index && collision::overlaps(current.bounds, other.bounds))
+          {
+            active.contacts.push_back(collision::describe(objects[current.index]->name, objects[other.index].get(),
+                                                          current.hitbox, other.hitbox, current.bounds, other.bounds));
+            active.contacts.push_back(collision::describe(objects[other.index]->name, objects[current.index].get(),
+                                                          other.hitbox, current.hitbox, other.bounds, current.bounds));
+          }
+          ++second;
+        }
+        active_list.push_back(first);
+      }
+      start = end;
     }
   }
 

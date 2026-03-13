@@ -2,9 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstddef>
-#include <cstdint>
-#include <functional>
 #include <span>
 #include <utility>
 
@@ -17,25 +14,6 @@
 
 namespace cse::help::collision
 {
-  std::size_t pair::hash::operator()(const pair &key) const
-  {
-    auto h{std::hash<std::size_t>{}(key.a_index)};
-    h ^= std::hash<std::uint64_t>{}(key.a_hitbox) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
-    h ^= std::hash<std::size_t>{}(key.b_index) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
-    h ^= std::hash<std::uint64_t>{}(key.b_hitbox) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
-    return h;
-  }
-
-  std::size_t cell::hash::operator()(const cell &key) const
-  {
-    auto h1{std::hash<std::int64_t>{}(key.x)};
-    auto h2{std::hash<std::int64_t>{}(key.y)};
-    auto h3{std::hash<std::int64_t>{}(key.z)};
-    h1 ^= h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2);
-    h1 ^= h3 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2);
-    return h1;
-  }
-
   bool overlaps(const rectangle &first, const rectangle &second)
   {
     return first.left < second.right && first.right > second.left && first.bottom < second.top &&

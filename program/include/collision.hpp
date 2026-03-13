@@ -3,11 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <tuple>
-#include <unordered_map>
-#include <unordered_set>
 #include <utility>
-#include <vector>
 
 #include "glm/ext/vector_double2.hpp"
 
@@ -42,44 +38,13 @@ namespace cse
 
   namespace help::collision
   {
-    struct pair
-    {
-      struct hash
-      {
-        std::size_t operator()(const pair &key) const;
-      };
-
-      bool operator==(const pair &other) const = default;
-
-      std::size_t a_index;
-      std::uint64_t a_hitbox;
-      std::size_t b_index;
-      std::uint64_t b_hitbox;
-    };
-    struct cell
-    {
-      struct hash
-      {
-        std::size_t operator()(const cell &key) const;
-      };
-
-      bool operator==(const cell &other) const = default;
-
-      std::int64_t x{};
-      std::int64_t y{};
-      std::int64_t z{};
-      static constexpr double minimum_size{16.0};
-    };
     struct entry
     {
       std::size_t index{};
+      std::int64_t z{};
       cse::hitbox hitbox{};
       rectangle bounds{};
     };
-    using collection = std::vector<std::tuple<std::size_t, std::int64_t, std::vector<std::pair<hitbox, rectangle>>>>;
-    using grid = std::unordered_map<cell, std::vector<entry>, cell::hash>;
-    using cells = std::vector<std::pair<cell, std::vector<entry>>>;
-    using seen = std::unordered_set<pair, pair::hash>;
 
     bool overlaps(const rectangle &first, const rectangle &second);
     std::span<const std::pair<hitbox, rectangle>> hitboxes(const object *object);
