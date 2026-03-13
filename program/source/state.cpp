@@ -157,10 +157,10 @@ namespace cse::help
           auto low_hitbox{low == a.index ? a.hitbox.identifier() : b.hitbox.identifier()},
             high_hitbox{low == a.index ? b.hitbox.identifier() : a.hitbox.identifier()};
           if (!pairs.emplace(low, low_hitbox, high, high_hitbox).second) continue;
-          active.contacts.push_back(
-            collision::describe(objects[a.index]->name, objects[b.index], a.hitbox, b.hitbox, a.bounds, b.bounds));
-          active.contacts.push_back(
-            collision::describe(objects[b.index]->name, objects[a.index], b.hitbox, a.hitbox, b.bounds, a.bounds));
+          active.contacts.push_back(collision::describe(objects[a.index]->name, objects[b.index].get(), a.hitbox,
+                                                        b.hitbox, a.bounds, b.bounds));
+          active.contacts.push_back(collision::describe(objects[b.index]->name, objects[a.index].get(), b.hitbox,
+                                                        a.hitbox, b.bounds, a.bounds));
         }
       }
     }

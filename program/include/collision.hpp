@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <span>
 #include <tuple>
 #include <unordered_map>
@@ -30,7 +29,7 @@ namespace cse
     } self;
     struct target
     {
-      std::shared_ptr<object> pointer{};
+      object *pointer{};
       cse::hitbox hitbox{};
       rectangle bounds{};
     } target;
@@ -84,7 +83,7 @@ namespace cse
     bool overlaps(const rectangle &first, const rectangle &second);
     std::span<const std::pair<hitbox, rectangle>> hitboxes(const object *object);
     rectangle bounds(const object *object, const rectangle &bounds);
-    contact describe(const name self_name, const std::shared_ptr<object> &target, const hitbox own, const hitbox theirs,
+    contact describe(const name self_name, object *target, const hitbox own, const hitbox theirs,
                      const rectangle &self_bounds, const rectangle &target_bounds);
 
     inline constexpr double cell_size_minimum{16.0};
