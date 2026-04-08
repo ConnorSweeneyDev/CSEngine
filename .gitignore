@@ -6,7 +6,6 @@
 
 # Build Output
 build/
-compile_commands.json
 .clang-format
 .clangd
 

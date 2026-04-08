@@ -44,7 +44,6 @@ int csb::build()
                                  {"IndentCaseLabels", "true"},
                                  {"NamespaceIndentation", "All"},
                                  {"FixNamespaceComments", "false"}});
-  csb::write_file<std::string>(".clangd", "Diagnostics:\n  UnusedIncludes: Strict\n  MissingIncludes: Strict\n");
 
   csb::vcpkg_install("2025.12.12", {{"builtin-baseline", "84bab45d415d22042bd0b9081aea57f362da3f35"},
                                     {"dependencies",
@@ -75,6 +74,8 @@ int csb::build()
   csb::multi_task_run(std::format("{} () []", csb::host_platform == WINDOWS ? "copy /Y" : "cp"), csb::include_files,
                       {build_include_path / "(filename)"});
 
+  csb::generate_clangd({{"CompileFlags", {{"CompilationDatabase", "build/"}}},
+                        {"Diagnostics", {{"UnusedIncludes", "Strict"}, {"MissingIncludes", "Strict"}}}});
   csb::generate_compile_commands();
   csb::compile();
   csb::link();
