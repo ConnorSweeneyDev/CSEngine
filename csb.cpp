@@ -74,8 +74,7 @@ int csb::build()
   csb::multi_task_run(std::format("{} () []", csb::host_platform == WINDOWS ? "copy /Y" : "cp"), csb::include_files,
                       {build_include_path / "(filename)"});
 
-  csb::generate_clangd({{"CompileFlags", {{"CompilationDatabase", "build/"}}},
-                        {"Diagnostics", {{"UnusedIncludes", "Strict"}, {"MissingIncludes", "Strict"}}}});
+  csb::generate_clangd({{"Diagnostics", {{"UnusedIncludes", "Strict"}, {"MissingIncludes", "Strict"}}}});
   csb::generate_compile_commands();
   csb::compile();
   csb::link();
