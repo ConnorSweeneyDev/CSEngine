@@ -123,7 +123,7 @@ namespace cse::help
 
     static std::vector<std::size_t> active_list{};
     active_list.clear();
-    active_list.reserve(std::min(entries.size(), 64ULL));
+    active_list.reserve(std::min(entries.size(), static_cast<std::size_t>(64)));
     std::size_t start{0};
     while (start < entries.size())
     {
