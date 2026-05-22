@@ -50,6 +50,7 @@ int csb::build()
                                      {
                                        {
                                          {"name", "sdl3"},
+                                         {"default-features", false},
                                          {"features", {"vulkan"}},
                                        },
                                        "glm",
