@@ -51,7 +51,12 @@ int csb::build()
                                        {
                                          {"name", "sdl3"},
                                          {"default-features", false},
-                                         {"features", {"vulkan"}},
+                                         {"features",
+                                          {
+                                            "vulkan",
+                                            {{"name", "x11"}, {"platform", "linux"}},
+                                            {{"name", "wayland"}, {"platform", "linux"}},
+                                          }},
                                        },
                                        "glm",
                                      }},
