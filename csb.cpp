@@ -24,7 +24,7 @@ int csb::clean()
 int csb::build()
 {
   if (!csb::is_subproject)
-    csb::clang_format("22.1.0", {{"BasedOnStyle", "LLVM"},
+    csb::clang_format("22.1.5", {{"BasedOnStyle", "LLVM"},
                                  {"ColumnLimit", "120"},
                                  {"IndentWidth", "2"},
                                  {"ConstructorInitializerIndentWidth", "2"},
@@ -45,7 +45,7 @@ int csb::build()
                                  {"NamespaceIndentation", "All"},
                                  {"FixNamespaceComments", "false"}});
 
-  csb::vcpkg_install("2025.12.12", {{"builtin-baseline", "84bab45d415d22042bd0b9081aea57f362da3f35"},
+  csb::vcpkg_install("2026.04.27", {{"builtin-baseline", "56bb2411609227288b70117ead2c47585ba07713"},
                                     {"dependencies",
                                      {
                                        {
@@ -58,7 +58,7 @@ int csb::build()
                                      {
                                        {
                                          {"name", "sdl3"},
-                                         {"version", "3.2.18"},
+                                         {"version", "3.4.4"},
                                        },
                                        {
                                          {"name", "glm"},
