@@ -4,7 +4,6 @@
 
 #include "SDL3/SDL_events.h"
 #include "glm/ext/vector_double4.hpp"
-#include "glm/ext/vector_uint2.hpp"
 
 #include "core.hpp"
 #include "graphics.hpp"
@@ -16,6 +15,19 @@ namespace cse
   {
     friend class game;
 
+  protected:
+    struct initial_state
+    {
+      const unsigned int width{};
+      const unsigned int height{};
+      const bool fullscreen{};
+      const bool vsync{};
+    };
+    struct initial_graphics
+    {
+      const std::string title{};
+    };
+
   public:
     virtual ~window() = default;
     window(const window &) = delete;
@@ -24,7 +36,7 @@ namespace cse
     window &operator=(window &&) = delete;
 
   protected:
-    window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_);
+    window(const initial_state &state_, const initial_graphics &graphics_);
     virtual void on_prepare();
     virtual void on_create();
     virtual void on_previous();

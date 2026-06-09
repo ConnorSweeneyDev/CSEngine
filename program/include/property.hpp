@@ -4,6 +4,7 @@
 #include <format>
 #include <functional>
 #include <istream>
+#include <type_traits>
 
 namespace cse
 {
@@ -12,6 +13,9 @@ namespace cse
   public:
     property() = default;
     property(const type &value_);
+    template <typename... arguments>
+      requires(sizeof...(arguments) != 1 || (!std::is_same_v<std::decay_t<arguments>, type> && ...))
+    property(arguments &&...arguments_);
     ~property() = default;
     property(const property &) = default;
     property &operator=(const property &other_);

@@ -4,8 +4,6 @@
 #include <array>
 #include <memory>
 #include <string>
-#include <tuple>
-#include <utility>
 #include <vector>
 
 #include "SDL3/SDL_gpu.h"
@@ -352,30 +350,26 @@ namespace cse::help
               });
   }
 
-  camera_graphics::camera_graphics(const double fov_) : previous{fov_}, active{fov_}, near_clip{0.01}, far_clip{100.0}
-  {
-  }
+  camera_graphics::camera_graphics(const double fov_, const clip &clip_) : previous{fov_, clip_}, active{fov_, clip_} {}
 
-  void camera_graphics::update_previous() { previous.fov = active.fov; }
+  void camera_graphics::update_previous()
+  {
+    previous.fov = active.fov;
+    previous.clip.near = active.clip.near;
+    previous.clip.far = active.clip.far;
+  }
 
   glm::dmat4 camera_graphics::calculate_projection_matrix(const double previous_aspect, const double active_aspect,
                                                           const double alpha)
   {
     return glm::perspective(glm::radians(previous.fov.value + (active.fov.value - previous.fov.value) * alpha),
-                            previous_aspect + (active_aspect - previous_aspect) * alpha, near_clip, far_clip);
+                            previous_aspect + (active_aspect - previous_aspect) * alpha, active.clip.near,
+                            active.clip.far);
   }
 
-  object_graphics::object_graphics(const std::pair<vertex, fragment> &shader_,
-                                   const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
+  object_graphics::object_graphics(const shader &shader_, const texture &texture_, const render &render_,
                                    const int priority_)
-    : previous{{std::get<0>(shader_), std::get<1>(shader_)},
-               {std::get<0>(texture_), std::get<1>(texture_), std::get<2>(texture_), std::get<3>(texture_),
-                std::get<4>(texture_), std::get<5>(texture_)},
-               priority_},
-      active{{std::get<0>(shader_), std::get<1>(shader_)},
-             {std::get<0>(texture_), std::get<1>(texture_), std::get<2>(texture_), std::get<3>(texture_),
-              std::get<4>(texture_), std::get<5>(texture_)},
-             priority_}
+    : previous{shader_, texture_, render_, priority_}, active{shader_, texture_, render_, priority_}
   {
     active.shader.vertex.change = [this]() { generate_pipeline(); };
     active.shader.fragment.change = [this]() { generate_pipeline(); };
@@ -388,10 +382,10 @@ namespace cse::help
     previous.shader.fragment = active.shader.fragment;
     previous.texture.image = active.texture.image;
     previous.texture.animation = active.texture.animation;
-    previous.texture.playback = active.texture.playback;
-    previous.texture.flip = active.texture.flip;
-    previous.texture.color = active.texture.color;
-    previous.texture.transparency = active.texture.transparency;
+    previous.render.playback = active.render.playback;
+    previous.render.flip = active.render.flip;
+    previous.render.color = active.render.color;
+    previous.render.transparency = active.render.transparency;
     previous.priority = active.priority;
   }
 
@@ -458,18 +452,18 @@ namespace cse::help
     auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false))};
     auto vertex{reinterpret_cast<object_graphics::vertex_data *>(start)};
     if (!vertex) throw sdl_exception("Could not map vertex data for object '{}'", name.string());
-    const auto precise_color{previous.texture.color.value +
-                             (active.texture.color.value - previous.texture.color.value) * alpha};
+    const auto precise_color{previous.render.color.value +
+                             (active.render.color.value - previous.render.color.value) * alpha};
     const glm::vec4 color{precise_color};
-    auto &frame{active.texture.playback.frame};
+    auto &frame{active.render.playback.frame};
     auto size{active.texture.animation.frames.size()};
     if (frame >= size) frame = size - 1;
     const auto &frame_coordinates{active.texture.animation.frames[frame].coordinates};
     const float left{
-      static_cast<float>(active.texture.flip.horizontal ? frame_coordinates.right : frame_coordinates.left)},
-      right{static_cast<float>(active.texture.flip.horizontal ? frame_coordinates.left : frame_coordinates.right)},
-      top{static_cast<float>(active.texture.flip.vertical ? frame_coordinates.bottom : frame_coordinates.top)},
-      bottom{static_cast<float>(active.texture.flip.vertical ? frame_coordinates.top : frame_coordinates.bottom)};
+      static_cast<float>(active.render.flip.horizontal ? frame_coordinates.right : frame_coordinates.left)},
+      right{static_cast<float>(active.render.flip.horizontal ? frame_coordinates.left : frame_coordinates.right)},
+      top{static_cast<float>(active.render.flip.vertical ? frame_coordinates.bottom : frame_coordinates.top)},
+      bottom{static_cast<float>(active.render.flip.vertical ? frame_coordinates.top : frame_coordinates.bottom)};
     quad_vertices = std::array<object_graphics::vertex_data, 4>{
       {{1.0f, 1.0f, 0.0f, color.r, color.g, color.b, color.a, right, top},
        {1.0f, -1.0f, 0.0f, color.r, color.g, color.b, color.a, right, bottom},
@@ -679,7 +673,7 @@ namespace cse::help
   void object_graphics::animate(const double tick)
   {
     auto &animation{active.texture.animation};
-    auto &playback{active.texture.playback};
+    auto &playback{active.render.playback};
     auto no_frames{animation.frames.empty()};
     auto frame_count{animation.frames.size()};
     if (no_frames)
@@ -734,11 +728,11 @@ namespace cse::help
 
   void object_graphics::bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass, const double alpha)
   {
-    SDL_BindGPUGraphicsPipeline(
-      render_pass, (previous.texture.transparency.value +
-                    (active.texture.transparency.value - previous.texture.transparency.value) * alpha) < 1.0
-                     ? pipelines.transparent
-                     : pipelines.opaque);
+    SDL_BindGPUGraphicsPipeline(render_pass,
+                                (previous.render.transparency.value +
+                                 (active.render.transparency.value - previous.render.transparency.value) * alpha) < 1.0
+                                  ? pipelines.transparent
+                                  : pipelines.opaque);
     SDL_GPUBufferBinding vertex_buffer_binding{.buffer = vertex_buffer, .offset = 0};
     SDL_BindGPUVertexBuffers(render_pass, 0, &vertex_buffer_binding, 1);
     SDL_GPUBufferBinding index_buffer_binding{.buffer = index_buffer, .offset = 0};
@@ -754,8 +748,8 @@ namespace cse::help
                                                   glm::mat4{matrices[2]}};
     SDL_PushGPUVertexUniformData(command_buffer, 0, &final_matrices, sizeof(final_matrices));
     const auto transparency{
-      static_cast<float>(previous.texture.transparency.value +
-                         (active.texture.transparency.value - previous.texture.transparency.value) * alpha)};
+      static_cast<float>(previous.render.transparency.value +
+                         (active.render.transparency.value - previous.render.transparency.value) * alpha)};
     SDL_PushGPUFragmentUniformData(command_buffer, 0, &transparency, sizeof(transparency));
   }
 

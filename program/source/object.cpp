@@ -1,14 +1,9 @@
 #include "object.hpp"
 
-#include <tuple>
-#include <utility>
-
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
-#include "glm/ext/vector_double2.hpp"
-#include "glm/ext/vector_double3.hpp"
 
 #include "exception.hpp"
 #include "graphics.hpp"
@@ -17,11 +12,9 @@
 
 namespace cse
 {
-  object::object(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_,
-                 const int state_priority_, const std::pair<vertex, fragment> &shader_,
-                 const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
-                 const int graphics_priority_)
-    : state{transform_, collidable_, state_priority_}, graphics{shader_, texture_, graphics_priority_}
+  object::object(const initial_state &state_, const initial_graphics &graphics_)
+    : state{state_.translation, state_.rotation, state_.scale, state_.collidable, state_.priority},
+      graphics{graphics_.shader, graphics_.texture, graphics_.render, graphics_.priority}
   {
   }
 

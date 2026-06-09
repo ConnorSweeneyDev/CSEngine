@@ -5,14 +5,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <tuple>
 #include <vector>
 
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
-#include "glm/ext/vector_uint2.hpp"
 #include "glm/trigonometric.hpp"
 
 #include "collision.hpp"
@@ -32,9 +30,9 @@ namespace cse::help
     previous.phase = active.phase;
   }
 
-  window_state::window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
-    : previous{dimensions_.x, dimensions_.y, fullscreen_, vsync_},
-      active{dimensions_.x, dimensions_.y, fullscreen_, vsync_}
+  window_state::window_state(const unsigned int width_, const unsigned int height_, const bool fullscreen_,
+                             const bool vsync_)
+    : previous{width_, height_, fullscreen_, vsync_}, active{width_, height_, fullscreen_, vsync_}
   {
   }
 
@@ -159,9 +157,8 @@ namespace cse::help
     }
   }
 
-  camera_state::camera_state(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_)
-    : previous{std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)},
-      active{std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_)}
+  camera_state::camera_state(const glm::dvec3 &translation_, const glm::dvec3 &forward_, const glm::dvec3 &up_)
+    : previous{translation_, forward_, up_}, active{translation_, forward_, up_}
   {
   }
 
@@ -182,10 +179,10 @@ namespace cse::help
     return glm::lookAt(translation, translation + forward, up);
   }
 
-  object_state::object_state(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_,
-                             const int priority_)
-    : previous{std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_, priority_},
-      active{std::get<0>(transform_), std::get<1>(transform_), std::get<2>(transform_), collidable_, priority_}
+  object_state::object_state(const glm::dvec3 &translation_, const double rotation_, const glm::dvec2 &scale_,
+                             const bool collidable_, const int priority_)
+    : previous{translation_, rotation_, scale_, collidable_, priority_},
+      active{translation_, rotation_, scale_, collidable_, priority_}
   {
   }
 

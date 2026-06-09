@@ -16,6 +16,18 @@ namespace cse
 {
   class game
   {
+  protected:
+    struct initial_state
+    {
+      const double tick{};
+    };
+    struct initial_graphics
+    {
+      const double frame{};
+      const double aspect{};
+      const glm::dvec4 clear{};
+    };
+
   public:
     virtual ~game() = default;
     game(const game &) = delete;
@@ -44,7 +56,7 @@ namespace cse
     void run();
 
   protected:
-    game(const double tick_, const double frame_, const double aspect_, const glm::dvec4 &clear_);
+    game(const initial_state &state_, const initial_graphics &graphics_);
     virtual void pre_prepare();
     virtual void post_prepare();
     virtual void pre_create();

@@ -1,8 +1,5 @@
 #pragma once
 
-#include <tuple>
-#include <utility>
-
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
@@ -13,7 +10,6 @@
 #include "core.hpp"
 #include "graphics.hpp"
 #include "name.hpp"
-#include "resource.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -21,6 +17,23 @@ namespace cse
   class object
   {
     friend class scene;
+
+  protected:
+    struct initial_state
+    {
+      const glm::dvec3 translation{};
+      const double rotation{};
+      const glm::dvec2 scale{};
+      const bool collidable{};
+      const int priority{};
+    };
+    struct initial_graphics
+    {
+      const help::object_graphics::shader shader{};
+      const help::object_graphics::texture texture{};
+      const help::object_graphics::render render{};
+      const int priority{};
+    };
 
   public:
     virtual ~object() = default;
@@ -30,10 +43,7 @@ namespace cse
     object &operator=(object &&) = delete;
 
   protected:
-    object(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_,
-           const int state_priority_, const std::pair<vertex, fragment> &shader_,
-           const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
-           const int graphics_priority_);
+    object(const initial_state &state_, const initial_graphics &graphics_);
     virtual void on_prepare();
     virtual void on_create();
     virtual void on_previous();

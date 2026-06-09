@@ -1,19 +1,17 @@
 #include "camera.hpp"
 
-#include <tuple>
 #include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "glm/ext/matrix_double4x4.hpp"
-#include "glm/ext/vector_double3.hpp"
 
 #include "exception.hpp"
 #include "state.hpp"
 
 namespace cse
 {
-  camera::camera(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_, const double fov_)
-    : state{transform_}, graphics{fov_}
+  camera::camera(const initial_state &state_, const initial_graphics &graphics_)
+    : state{state_.translation, state_.forward, state_.up}, graphics{graphics_.fov, graphics_.clip}
   {
   }
 

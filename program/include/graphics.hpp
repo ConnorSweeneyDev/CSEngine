@@ -3,8 +3,6 @@
 #include <array>
 #include <memory>
 #include <string>
-#include <tuple>
-#include <utility>
 #include <vector>
 
 #include "SDL3/SDL_gpu.h"
@@ -152,18 +150,26 @@ namespace cse::help
     friend class cse::camera;
 
   private:
+    struct clip
+    {
+      double near{};
+      double far{};
+    };
+
     struct previous
     {
       temporal<double> fov{};
+      camera_graphics::clip clip{};
     };
     struct active
     {
       temporal<double> fov{};
+      camera_graphics::clip clip{};
     };
 
   public:
     camera_graphics() = default;
-    camera_graphics(const double fov_);
+    camera_graphics(const double fov_, const clip &clip_);
     ~camera_graphics() = default;
     camera_graphics(const camera_graphics &) = delete;
     camera_graphics &operator=(const camera_graphics &) = delete;
@@ -179,10 +185,6 @@ namespace cse::help
   public:
     camera_graphics::previous previous{};
     camera_graphics::active active{};
-
-  private:
-    double near_clip{};
-    double far_clip{};
   };
 
   struct object_graphics
@@ -211,6 +213,9 @@ namespace cse::help
     {
       cse::property<cse::image> image{};
       cse::animation animation{};
+    };
+    struct render
+    {
       cse::playback playback{};
       cse::flip flip{};
       temporal<cse::color> color{};
@@ -221,20 +226,20 @@ namespace cse::help
     {
       object_graphics::shader shader{};
       object_graphics::texture texture{};
+      object_graphics::render render{};
       int priority{};
     };
     struct active
     {
       object_graphics::shader shader{};
       object_graphics::texture texture{};
+      object_graphics::render render{};
       int priority{};
     };
 
   public:
     object_graphics() = default;
-    object_graphics(const std::pair<vertex, fragment> &shader_,
-                    const std::tuple<image, animation, playback, flip, color, transparency> &texture_,
-                    const int priority_);
+    object_graphics(const shader &shader_, const texture &texture_, const render &render_, const int priority_);
     ~object_graphics() = default;
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;

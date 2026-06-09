@@ -8,7 +8,6 @@
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_timer.h"
-#include "glm/ext/vector_double4.hpp"
 
 #include "container.hpp"
 #include "exception.hpp"
@@ -21,8 +20,8 @@
 
 namespace cse
 {
-  game::game(const double tick_, const double frame_, const double aspect_, const glm::dvec4 &clear_)
-    : state{tick_}, graphics{frame_, aspect_, clear_}
+  game::game(const initial_state &state_, const initial_graphics &graphics_)
+    : state{state_.tick}, graphics{graphics_.frame, graphics_.aspect, graphics_.clear}
   {
   }
 

@@ -15,6 +15,14 @@ namespace cse
   {
     friend class game;
 
+  protected:
+    struct initial_state
+    {
+    };
+    struct initial_graphics
+    {
+    };
+
   public:
     virtual ~scene() = default;
     scene(const scene &) = delete;

@@ -6,10 +6,17 @@
 #include <format>
 #include <functional>
 #include <istream>
+#include <type_traits>
 
 namespace cse
 {
   template <typename type> property<type>::property(const type &value_) : value{value_} {}
+
+  template <typename type> template <typename... arguments>
+    requires(sizeof...(arguments) != 1 || (!std::is_same_v<std::decay_t<arguments>, type> && ...))
+  property<type>::property(arguments &&...arguments_) : value{std::forward<arguments>(arguments_)...}
+  {
+  }
 
   template <typename type> property<type> &property<type>::operator=(const property<type> &other_)
   {

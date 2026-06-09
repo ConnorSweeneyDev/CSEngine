@@ -4,15 +4,14 @@
 
 #include "SDL3/SDL_events.h"
 #include "glm/ext/vector_double4.hpp"
-#include "glm/ext/vector_uint2.hpp"
 
 #include "exception.hpp"
 #include "state.hpp"
 
 namespace cse
 {
-  window::window(const std::string &title_, const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_)
-    : state{dimensions_, fullscreen_, vsync_}, graphics{title_}
+  window::window(const initial_state &state_, const initial_graphics &graphics_)
+    : state{state_.width, state_.height, state_.fullscreen, state_.vsync}, graphics{graphics_.title}
   {
     state.active.width.change = [this]()
     { graphics.handle_manual_resize(state.active.width, state.active.height, state.active.fullscreen); };

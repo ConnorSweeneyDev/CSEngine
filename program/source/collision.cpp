@@ -24,7 +24,7 @@ namespace cse::help::collision
   {
     if (!object->state.active.collidable) return {};
     const auto &animation{object->graphics.active.texture.animation};
-    auto frame{object->graphics.active.texture.playback.frame};
+    auto frame{object->graphics.active.render.playback.frame};
     if (frame >= animation.frames.size()) return {};
     return animation.frames[frame].hitboxes;
   }
@@ -33,10 +33,10 @@ namespace cse::help::collision
   {
     auto width{static_cast<double>(object->graphics.active.texture.image->frame_width)};
     auto height{static_cast<double>(object->graphics.active.texture.image->frame_height)};
-    auto position{object->state.active.translation.value};
+    auto translation{object->state.active.translation.value};
     auto rotation{static_cast<int>(std::floor(object->state.active.rotation.value + 0.5))};
     auto scale{object->state.active.scale.value};
-    auto flip{object->graphics.active.texture.flip};
+    auto flip{object->graphics.active.render.flip};
     glm::dvec2 center{width / 2.0, height / 2.0};
     double local_left{bounds.left - 1.0 - center.x};
     double local_right{bounds.right - center.x};
@@ -85,8 +85,8 @@ namespace cse::help::collision
     }
 
     glm::dvec2 actual_scale{std::floor(scale.x + 0.5), std::floor(scale.y + 0.5)};
-    glm::dvec2 pixel{std::floor(position.x + 0.5) - (static_cast<unsigned int>(width) % 2 == 1 ? 0.5 : 0.0),
-                     std::floor(position.y + 0.5) - (static_cast<unsigned int>(height) % 2 == 1 ? 0.5 : 0.0)};
+    glm::dvec2 pixel{std::floor(translation.x + 0.5) - (static_cast<unsigned int>(width) % 2 == 1 ? 0.5 : 0.0),
+                     std::floor(translation.y + 0.5) - (static_cast<unsigned int>(height) % 2 == 1 ? 0.5 : 0.0)};
     return {std::floor(pixel.x + local_left * actual_scale.x + 0.5),
             std::floor(pixel.y + local_top * actual_scale.y + 0.5),
             std::floor(pixel.x + local_right * actual_scale.x + 0.5),

@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <optional>
-#include <tuple>
 #include <unordered_set>
 #include <vector>
 
@@ -11,7 +10,6 @@
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
-#include "glm/ext/vector_uint2.hpp"
 
 #include "collision.hpp"
 #include "core.hpp"
@@ -123,7 +121,7 @@ namespace cse::help
 
   public:
     window_state() = default;
-    window_state(const glm::uvec2 &dimensions_, const bool fullscreen_, const bool vsync_);
+    window_state(const unsigned int width_, const unsigned int height_, const bool fullscreen_, const bool vsync_);
     ~window_state() = default;
     window_state(const window_state &) = delete;
     window_state &operator=(const window_state &) = delete;
@@ -219,7 +217,7 @@ namespace cse::help
 
   public:
     camera_state() = default;
-    camera_state(const std::tuple<glm::dvec3, glm::dvec3, glm::dvec3> &transform_);
+    camera_state(const glm::dvec3 &translation_, const glm::dvec3 &forward_, const glm::dvec3 &up_);
     ~camera_state() = default;
     camera_state(const camera_state &) = delete;
     camera_state &operator=(const camera_state &) = delete;
@@ -265,8 +263,8 @@ namespace cse::help
 
   public:
     object_state() = default;
-    object_state(const std::tuple<glm::dvec3, double, glm::dvec2> &transform_, const bool collidable_,
-                 const int priority_);
+    object_state(const glm::dvec3 &translation_, const double rotation_, const glm::dvec2 &scale_,
+                 const bool collidable_, const int priority_);
     ~object_state() = default;
     object_state(const object_state &) = delete;
     object_state &operator=(const object_state &) = delete;
