@@ -10,7 +10,7 @@
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double4.hpp"
-#include "glm/ext/vector_uint2.hpp"
+#include "glm/ext/vector_int2.hpp"
 
 #include "core.hpp"
 #include "name.hpp"
@@ -46,7 +46,7 @@ namespace cse::help
     game_graphics(game_graphics &&) = delete;
     game_graphics &operator=(game_graphics &&) = delete;
 
-  public:
+  private:
     void update_previous();
 
     void create_app();
@@ -88,24 +88,29 @@ namespace cse::help
   private:
     void update_previous();
 
-    void create_window(const unsigned int width, const unsigned int height, int &left, int &top,
-                       SDL_DisplayID &display_index, const bool fullscreen, const bool vsync);
+    void create_window(SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
+                       const bool fullscreen, const bool vsync, const SDL_DisplayID PRIMARY, const int CENTER);
     bool acquire_swapchain_texture();
     void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec4 &previous_clear,
                            const glm::dvec4 &active_clear, const double previous_aspect, const double active_aspect,
                            const double alpha);
     void end_render_pass();
     void generate_depth_texture(const unsigned int width, const unsigned int height);
-    glm::uvec2 calculate_display_center(const SDL_DisplayID display_index, const unsigned int width,
+    glm::ivec2 calculate_display_center(const SDL_DisplayID display, const unsigned int width,
                                         const unsigned int height);
+    glm::ivec2 relative_to_absolute(const SDL_DisplayID display, const int left, const int top);
+    glm::ivec2 absolute_to_relative(const SDL_DisplayID display, const int left, const int top);
     void handle_title_change();
-    void handle_move(int &left, int &top, SDL_DisplayID &display_index, const bool fullscreen);
-    void handle_manual_move(const int left, const int top, const bool fullscreen);
-    void handle_manual_display_move(const unsigned int width, const unsigned int height, int &left, int &top,
-                                    const SDL_DisplayID display_index, const bool fullscreen);
-    void handle_resize(unsigned int &width, unsigned int &height, SDL_DisplayID &display_index, const bool fullscreen);
-    void handle_manual_resize(const unsigned int width, const unsigned int height, const bool fullscreen);
-    void handle_fullscreen(const bool fullscreen, const SDL_DisplayID display_index);
+    void handle_move(SDL_DisplayID &display, int &left, int &top, const bool fullscreen);
+    void handle_manual_move(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
+                            const unsigned int height, const bool fullscreen, const int CENTER);
+    void handle_manual_display_move(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
+                                    const unsigned int height, const bool fullscreen, const SDL_DisplayID PRIMARY);
+    void handle_resize(SDL_DisplayID &display, int &left, int &top, unsigned int &width, unsigned int &height,
+                       const bool fullscreen);
+    void handle_manual_resize(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
+                              const unsigned int height, const bool fullscreen);
+    void handle_fullscreen(const SDL_DisplayID display, const bool fullscreen);
     void handle_vsync(const bool vsync);
     void destroy_window();
 

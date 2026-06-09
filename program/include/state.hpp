@@ -94,26 +94,26 @@ namespace cse::help
   private:
     struct previous
     {
+      SDL_DisplayID display{};
+      int left{};
+      int top{};
       unsigned int width{};
       unsigned int height{};
       bool fullscreen{};
       bool vsync{};
-      int left{};
-      int top{};
-      SDL_DisplayID display_index{};
       bool running{};
       help::timer timer{};
       help::phase phase{};
     };
     struct active
     {
+      property<SDL_DisplayID> display{};
+      property<int> left{};
+      property<int> top{};
       property<unsigned int> width{};
       property<unsigned int> height{};
       property<bool> fullscreen{};
       property<bool> vsync{};
-      property<int> left{};
-      property<int> top{};
-      property<SDL_DisplayID> display_index{};
       bool running{};
       help::timer timer{};
       help::phase phase{};
@@ -121,7 +121,8 @@ namespace cse::help
 
   public:
     window_state() = default;
-    window_state(const unsigned int width_, const unsigned int height_, const bool fullscreen_, const bool vsync_);
+    window_state(const SDL_DisplayID display_, const int left_, const int top_, const unsigned int width_,
+                 const unsigned int height_, const bool fullscreen_, const bool vsync_);
     ~window_state() = default;
     window_state(const window_state &) = delete;
     window_state &operator=(const window_state &) = delete;

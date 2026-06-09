@@ -3,6 +3,7 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
+#include "SDL3/SDL_video.h"
 #include "glm/ext/vector_double4.hpp"
 
 #include "core.hpp"
@@ -18,6 +19,9 @@ namespace cse
   protected:
     struct initial_state
     {
+      const SDL_DisplayID display{};
+      const int left{};
+      const int top{};
       const unsigned int width{};
       const unsigned int height{};
       const bool fullscreen{};
@@ -65,5 +69,9 @@ namespace cse
     cse::game *game{};
     help::window_state state{};
     help::window_graphics graphics{};
+
+  protected:
+    static constexpr SDL_DisplayID PRIMARY{1000000};
+    static constexpr int CENTER{2000000};
   };
 }

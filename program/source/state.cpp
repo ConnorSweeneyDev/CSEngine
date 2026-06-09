@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 
+#include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_double2.hpp"
@@ -30,21 +31,22 @@ namespace cse::help
     previous.phase = active.phase;
   }
 
-  window_state::window_state(const unsigned int width_, const unsigned int height_, const bool fullscreen_,
-                             const bool vsync_)
-    : previous{width_, height_, fullscreen_, vsync_}, active{width_, height_, fullscreen_, vsync_}
+  window_state::window_state(const SDL_DisplayID display_, const int left_, const int top_, const unsigned int width_,
+                             const unsigned int height_, const bool fullscreen_, const bool vsync_)
+    : previous{display_, left_, top_, width_, height_, fullscreen_, vsync_},
+      active{display_, left_, top_, width_, height_, fullscreen_, vsync_}
   {
   }
 
   void window_state::update_previous()
   {
+    previous.display = active.display;
+    previous.left = active.left;
+    previous.top = active.top;
     previous.width = active.width;
     previous.height = active.height;
     previous.fullscreen = active.fullscreen;
     previous.vsync = active.vsync;
-    previous.left = active.left;
-    previous.top = active.top;
-    previous.display_index = active.display_index;
     previous.running = active.running;
     previous.timer = active.timer;
     previous.phase = active.phase;
