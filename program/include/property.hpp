@@ -51,10 +51,8 @@ namespace cse
     property operator--(int);
 
   public:
-    std::function<void()> change{};
-
-  private:
     type value{};
+    std::function<void()> change{};
   };
   template <typename type> std::istream &operator>>(std::istream &stream_, property<type> &destination_);
 }

@@ -24,12 +24,12 @@ namespace cse
       const int top{};
       const unsigned int width{};
       const unsigned int height{};
-      const bool fullscreen{};
-      const bool vsync{};
     };
     struct initial_graphics
     {
       const std::string title{};
+      const bool fullscreen{};
+      const bool vsync{};
     };
 
   public:

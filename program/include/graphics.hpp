@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -70,15 +71,19 @@ namespace cse::help
     struct previous
     {
       std::string title{};
+      bool fullscreen{};
+      bool vsync{};
     };
     struct active
     {
-      cse::property<std::string> title{};
+      property<std::string> title{};
+      property<bool> fullscreen{};
+      property<bool> vsync{};
     };
 
   public:
     window_graphics() = default;
-    window_graphics(const std::string &title_);
+    window_graphics(const std::string &title_, const bool fullscreen_, const bool vsync_);
     ~window_graphics() = default;
     window_graphics(const window_graphics &) = delete;
     window_graphics &operator=(const window_graphics &) = delete;
@@ -88,30 +93,29 @@ namespace cse::help
   private:
     void update_previous();
 
-    void create_window(SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
-                       const bool fullscreen, const bool vsync, const SDL_DisplayID PRIMARY, const int CENTER);
+    void create_window(
+      SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
+      int &windowed_left, int &windowed_top, unsigned int &windowed_width, unsigned int &windowed_height,
+      const std::function<glm::ivec2(const SDL_DisplayID display, const unsigned int width, const unsigned int height)>
+        &calculate_display_center,
+      const std::function<glm::ivec2(const SDL_DisplayID display, const int left, const int top)> &relative_to_absolute,
+      const std::function<glm::ivec2(const SDL_DisplayID display, const int left, const int top)> &absolute_to_relative,
+      const SDL_DisplayID PRIMARY, const int CENTER);
+    static void generate_depth_texture(const unsigned int width, const unsigned int height, SDL_GPUDevice *gpu,
+                                       SDL_GPUTexture *&depth_texture);
     bool acquire_swapchain_texture();
     void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec4 &previous_clear,
                            const glm::dvec4 &active_clear, const double previous_aspect, const double active_aspect,
                            const double alpha);
     void end_render_pass();
-    void generate_depth_texture(const unsigned int width, const unsigned int height);
-    glm::ivec2 calculate_display_center(const SDL_DisplayID display, const unsigned int width,
-                                        const unsigned int height);
-    glm::ivec2 relative_to_absolute(const SDL_DisplayID display, const int left, const int top);
-    glm::ivec2 absolute_to_relative(const SDL_DisplayID display, const int left, const int top);
     void handle_title_change();
-    void handle_move(SDL_DisplayID &display, int &left, int &top, const bool fullscreen);
-    void handle_manual_move(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
-                            const unsigned int height, const bool fullscreen, const int CENTER);
-    void handle_manual_display_move(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
-                                    const unsigned int height, const bool fullscreen, const SDL_DisplayID PRIMARY);
-    void handle_resize(SDL_DisplayID &display, int &left, int &top, unsigned int &width, unsigned int &height,
-                       const bool fullscreen);
-    void handle_manual_resize(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
-                              const unsigned int height, const bool fullscreen);
-    void handle_fullscreen(const SDL_DisplayID display, const bool fullscreen);
-    void handle_vsync(const bool vsync);
+    void handle_fullscreen(const SDL_DisplayID display, const int windowed_left, const int windowed_top,
+                           const unsigned int windowed_width, const unsigned int windowed_height,
+                           const std::function<glm::ivec2(const SDL_DisplayID display, const unsigned int width,
+                                                          const unsigned int height)> &calculate_display_center,
+                           const std::function<glm::ivec2(const SDL_DisplayID display, const int left, const int top)>
+                             &relative_to_absolute);
+    void handle_vsync();
     void destroy_window();
 
   public:
@@ -119,10 +123,6 @@ namespace cse::help
     window_graphics::active active{};
 
   private:
-    unsigned int windowed_width{};
-    unsigned int windowed_height{};
-    int windowed_left{};
-    int windowed_top{};
     SDL_Window *instance{};
     SDL_GPUDevice *gpu{};
     SDL_GPUCommandBuffer *command_buffer{};

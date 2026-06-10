@@ -1,15 +1,18 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <unordered_set>
 #include <vector>
 
 #include "SDL3/SDL_events.h"
+#include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
+#include "glm/ext/vector_int2.hpp"
 
 #include "collision.hpp"
 #include "core.hpp"
@@ -99,8 +102,6 @@ namespace cse::help
       int top{};
       unsigned int width{};
       unsigned int height{};
-      bool fullscreen{};
-      bool vsync{};
       bool running{};
       help::timer timer{};
       help::phase phase{};
@@ -112,8 +113,6 @@ namespace cse::help
       property<int> top{};
       property<unsigned int> width{};
       property<unsigned int> height{};
-      property<bool> fullscreen{};
-      property<bool> vsync{};
       bool running{};
       help::timer timer{};
       help::phase phase{};
@@ -122,7 +121,7 @@ namespace cse::help
   public:
     window_state() = default;
     window_state(const SDL_DisplayID display_, const int left_, const int top_, const unsigned int width_,
-                 const unsigned int height_, const bool fullscreen_, const bool vsync_);
+                 const unsigned int height_);
     ~window_state() = default;
     window_state(const window_state &) = delete;
     window_state &operator=(const window_state &) = delete;
@@ -132,6 +131,22 @@ namespace cse::help
   private:
     void update_previous();
 
+    void handle_move(const bool fullscreen, SDL_Window *instance);
+    void handle_manual_move(const bool fullscreen, SDL_Window *instance, const int CENTER);
+    void handle_manual_display_move(const bool fullscreen, SDL_Window *instance, const SDL_DisplayID PRIMARY);
+    void handle_resize(const bool fullscreen, SDL_Window *instance, SDL_GPUDevice *gpu, SDL_GPUTexture *&depth_texture,
+                       std::function<void(const unsigned int, const unsigned int, SDL_GPUDevice *, SDL_GPUTexture *&)>
+                         generate_depth_texture);
+    void
+    handle_manual_resize(const bool fullscreen, SDL_Window *instance, SDL_GPUDevice *gpu,
+                         SDL_GPUTexture *&depth_texture,
+                         std::function<void(const unsigned int, const unsigned int, SDL_GPUDevice *, SDL_GPUTexture *&)>
+                           generate_depth_texture);
+    static glm::ivec2 calculate_display_center(const SDL_DisplayID display, const unsigned int width,
+                                               const unsigned int height);
+    static glm::ivec2 relative_to_absolute(const SDL_DisplayID display, const int left, const int top);
+    static glm::ivec2 absolute_to_relative(const SDL_DisplayID display, const int left, const int top);
+
   public:
     window_state::previous previous{};
     window_state::active active{};
@@ -139,6 +154,10 @@ namespace cse::help
   private:
     SDL_Event event{};
     const bool *input{};
+    int windowed_left{};
+    int windowed_top{};
+    unsigned int windowed_width{};
+    unsigned int windowed_height{};
   };
 
   struct scene_state

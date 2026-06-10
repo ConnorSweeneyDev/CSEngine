@@ -11,37 +11,30 @@
 namespace cse
 {
   window::window(const initial_state &state_, const initial_graphics &graphics_)
-    : state{state_.display, state_.left, state_.top, state_.width, state_.height, state_.fullscreen, state_.vsync},
-      graphics{graphics_.title}
+    : state{state_.display, state_.left, state_.top, state_.width, state_.height},
+      graphics{graphics_.title, graphics_.fullscreen, graphics_.vsync}
   {
+    state.active.display.change = [this]()
+    { state.handle_manual_display_move(graphics.active.fullscreen, graphics.instance, PRIMARY); };
+    state.active.left.change = [this]()
+    { state.handle_manual_move(graphics.active.fullscreen, graphics.instance, CENTER); };
+    state.active.top.change = [this]()
+    { state.handle_manual_move(graphics.active.fullscreen, graphics.instance, CENTER); };
     state.active.width.change = [this]()
     {
-      graphics.handle_manual_resize(state.active.display, state.active.left, state.active.top, state.active.width,
-                                    state.active.height, state.active.fullscreen);
+      state.handle_manual_resize(graphics.active.fullscreen, graphics.instance, graphics.gpu, graphics.depth_texture,
+                                 graphics.generate_depth_texture);
     };
     state.active.height.change = [this]()
     {
-      graphics.handle_manual_resize(state.active.display, state.active.left, state.active.top, state.active.width,
-                                    state.active.height, state.active.fullscreen);
+      state.handle_manual_resize(graphics.active.fullscreen, graphics.instance, graphics.gpu, graphics.depth_texture,
+                                 graphics.generate_depth_texture);
     };
-    state.active.left.change = [this]()
+    graphics.active.fullscreen.change = [this]()
     {
-      graphics.handle_manual_move(state.active.display, state.active.left, state.active.top, state.active.width,
-                                  state.active.height, state.active.fullscreen, CENTER);
+      graphics.handle_fullscreen(state.active.display, state.windowed_left, state.windowed_top, state.windowed_width,
+                                 state.windowed_height, state.calculate_display_center, state.relative_to_absolute);
     };
-    state.active.top.change = [this]()
-    {
-      graphics.handle_manual_move(state.active.display, state.active.left, state.active.top, state.active.width,
-                                  state.active.height, state.active.fullscreen, CENTER);
-    };
-    state.active.display.change = [this]()
-    {
-      graphics.handle_manual_display_move(state.active.display, state.active.left, state.active.top, state.active.width,
-                                          state.active.height, state.active.fullscreen, PRIMARY);
-    };
-    state.active.fullscreen.change = [this]()
-    { graphics.handle_fullscreen(state.active.display, state.active.fullscreen); };
-    state.active.vsync.change = [this]() { graphics.handle_vsync(state.active.vsync); };
   }
 
   void window::on_prepare() {}
@@ -58,7 +51,9 @@ namespace cse
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Window must be prepared before creation");
     graphics.create_window(state.active.display, state.active.left, state.active.top, state.active.width,
-                           state.active.height, state.active.fullscreen, state.active.vsync, PRIMARY, CENTER);
+                           state.active.height, state.windowed_left, state.windowed_top, state.windowed_width,
+                           state.windowed_height, state.calculate_display_center, state.relative_to_absolute,
+                           state.absolute_to_relative, PRIMARY, CENTER);
     state.active.phase = help::phase::CREATED;
     on_create();
   }
@@ -80,12 +75,10 @@ namespace cse
     switch (state.event.type)
     {
       case SDL_EVENT_QUIT: state.active.running = false; break;
-      case SDL_EVENT_WINDOW_MOVED:
-        graphics.handle_move(state.active.display, state.active.left, state.active.top, state.active.fullscreen);
-        break;
+      case SDL_EVENT_WINDOW_MOVED: state.handle_move(graphics.active.fullscreen, graphics.instance); break;
       case SDL_EVENT_WINDOW_RESIZED:
-        graphics.handle_resize(state.active.display, state.active.left, state.active.top, state.active.width,
-                               state.active.height, state.active.fullscreen);
+        state.handle_resize(graphics.active.fullscreen, graphics.instance, graphics.gpu, graphics.depth_texture,
+                            graphics.generate_depth_texture);
         break;
       default: on_event(state.event); break;
     }
