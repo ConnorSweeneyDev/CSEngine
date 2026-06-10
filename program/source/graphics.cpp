@@ -90,10 +90,10 @@ namespace cse::help
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
     if (!instance) throw sdl_exception("Could not create window");
 
-    display = display == PRIMARY ? SDL_GetPrimaryDisplay() : display;
     int display_count{};
-    if (SDL_GetDisplays(&display_count); display > static_cast<unsigned int>(display_count) || display == 0)
-      throw sdl_exception("Invalid display index {}", display);
+    SDL_GetDisplays(&display_count);
+    if (display == PRIMARY || display > static_cast<unsigned int>(display_count)) display = SDL_GetPrimaryDisplay();
+    if (display == 0) throw sdl_exception("Invalid display index {}", display);
 
     auto absolute_center{calculate_display_center(display, width, height)};
     auto relative_center{absolute_to_relative(display, absolute_center.x, absolute_center.y)};
