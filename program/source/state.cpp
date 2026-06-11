@@ -222,7 +222,7 @@ namespace cse::help
               {
                 if (left->state.active.priority != right->state.active.priority)
                   return left->state.active.priority > right->state.active.priority;
-                return left->name.string() < right->name.string();
+                return left->name.identifier() < right->name.identifier();
               });
   }
 

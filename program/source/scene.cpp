@@ -1,7 +1,6 @@
 #include "scene.hpp"
 
 #include <memory>
-#include <utility>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
@@ -47,13 +46,14 @@ namespace cse
 
   void scene::pre_create() {}
   void scene::post_create() {}
-  void scene::create(SDL_Window *instance, SDL_GPUDevice *gpu)
+  void scene::create(SDL_GPUDevice *gpu)
   {
     if (state.active.phase != help::phase::PREPARED)
       throw exception("Scene '{}' must be prepared before creation", name.string());
     pre_create();
+    graphics.create(gpu);
     state.active.camera->create();
-    for (const auto &object : state.active.objects) object->create(instance, gpu);
+    for (const auto &object : state.active.objects) object->create();
     state.active.phase = help::phase::CREATED;
     post_create();
   }
@@ -73,7 +73,7 @@ namespace cse
 
   void scene::pre_sync() {}
   void scene::post_sync() {}
-  void scene::sync(SDL_Window *instance, SDL_GPUDevice *gpu)
+  void scene::sync()
   {
     if (state.active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before syncing", name.string());
@@ -94,7 +94,7 @@ namespace cse
         if (auto iterator{try_iterate(state.active.objects, object_name)}; iterator != state.active.objects.end())
         {
           const auto &object{*iterator};
-          if (object->state.active.phase == help::phase::CREATED) object->destroy(gpu);
+          if (object->state.active.phase == help::phase::CREATED) object->destroy();
           object->clean();
           state.active.objects.erase(iterator);
         }
@@ -106,7 +106,7 @@ namespace cse
       {
         set_or_add(state.active.objects, object);
         object->prepare();
-        object->create(instance, gpu);
+        object->create();
       }
       state.additions.clear();
     }
@@ -164,16 +164,17 @@ namespace cse
 
   void scene::pre_render(const double) {}
   void scene::post_render(const double) {}
-  void scene::render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                     const double previous_aspect, const double active_aspect, const double alpha)
+  void scene::render(SDL_Window *instance, SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer,
+                     SDL_GPURenderPass *render_pass, const double previous_aspect, const double active_aspect,
+                     const double alpha)
   {
     if (state.active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before rendering", name.string());
     pre_render(alpha);
-    auto matrices = state.active.camera->render(previous_aspect, active_aspect, alpha);
-    for (graphics.generate_order(state.active.camera.get(), state.active.objects, alpha);
-         const auto &object : graphics.order)
-      object->render(gpu, command_buffer, render_pass, matrices.first, matrices.second, alpha);
+    graphics.render(instance, gpu, state.active.camera.get(), state.active.objects,
+                    state.active.camera->render(previous_aspect, active_aspect, alpha), command_buffer, render_pass,
+                    alpha);
+    for (const auto &object : graphics.order) object->render(alpha);
     post_render(alpha);
   }
 
@@ -184,8 +185,9 @@ namespace cse
     if (state.active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before destruction", name.string());
     pre_destroy();
-    for (const auto &object : state.active.objects) object->destroy(gpu);
+    for (const auto &object : state.active.objects) object->destroy();
     state.active.camera->destroy();
+    graphics.destroy(gpu);
     state.active.phase = help::phase::PREPARED;
     post_destroy();
   }

@@ -106,7 +106,7 @@ namespace cse
     pre_create();
     graphics.create_app();
     state.active.window->create();
-    state.active.scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+    state.active.scene->create(state.active.window->graphics.gpu);
     state.active.phase = help::phase::CREATED;
     post_create();
   }
@@ -141,7 +141,7 @@ namespace cse
         state.active.window = window;
         window->prepare();
         window->create();
-        state.active.scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+        state.active.scene->create(state.active.window->graphics.gpu);
       }
       else
         throw exception("Tried to set window to null");
@@ -156,7 +156,7 @@ namespace cse
         set_or_add(state.active.scenes, scene);
         state.active.scene = scene;
         scene->prepare();
-        scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+        scene->create(state.active.window->graphics.gpu);
       }
       else
       {
@@ -165,12 +165,12 @@ namespace cse
         {
           state.active.scene->destroy(state.active.window->graphics.gpu);
           state.active.scene = next_scene;
-          next_scene->create(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+          next_scene->create(state.active.window->graphics.gpu);
         }
       }
       state.next.scene.reset();
     }
-    state.active.scene->sync(state.active.window->graphics.instance, state.active.window->graphics.gpu);
+    state.active.scene->sync();
     post_sync();
   }
 
@@ -231,9 +231,9 @@ namespace cse
     if (!state.active.window->start_render(graphics.previous.clear.value, graphics.active.clear.value,
                                            graphics.previous.aspect.value, graphics.active.aspect.value, state.alpha))
       return;
-    state.active.scene->render(state.active.window->graphics.gpu, state.active.window->graphics.command_buffer,
-                               state.active.window->graphics.render_pass, graphics.previous.aspect.value,
-                               graphics.active.aspect.value, state.alpha);
+    state.active.scene->render(state.active.window->graphics.instance, state.active.window->graphics.gpu,
+                               state.active.window->graphics.command_buffer, state.active.window->graphics.render_pass,
+                               graphics.previous.aspect.value, graphics.active.aspect.value, state.alpha);
     state.active.window->end_render(state.alpha);
     post_render(state.alpha);
   }

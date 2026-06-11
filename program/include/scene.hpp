@@ -62,15 +62,16 @@ namespace cse
 
   private:
     void prepare();
-    void create(SDL_Window *instance, SDL_GPUDevice *gpu);
+    void create(SDL_GPUDevice *gpu);
     void previous();
-    void sync(SDL_Window *instance, SDL_GPUDevice *gpu);
+    void sync();
     void event(const SDL_Event &event);
     void input(const bool *input);
     void simulate(const double tick);
     void collide(const double tick);
-    void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const double previous_aspect, const double active_aspect, const double alpha);
+    void render(SDL_Window *instance, SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer,
+                SDL_GPURenderPass *render_pass, const double previous_aspect, const double active_aspect,
+                const double alpha);
     void destroy(SDL_GPUDevice *gpu);
     void clean();
 

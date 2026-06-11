@@ -1,20 +1,22 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
+#include <tuple>
+#include <utility>
 #include <vector>
 
 #include "SDL3/SDL_gpu.h"
-#include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_int2.hpp"
 
 #include "core.hpp"
-#include "name.hpp"
 #include "property.hpp"
 #include "resource.hpp"
 #include "temporal.hpp"
@@ -135,6 +137,42 @@ namespace cse::help
   {
     friend class cse::scene;
 
+  private:
+    struct corner
+    {
+      float x{}, y{};
+      float u{}, v{};
+    };
+    using pipeline_key = std::tuple<const unsigned char *, std::size_t, const unsigned char *, std::size_t>;
+    using texture_key = std::pair<const unsigned char *, std::size_t>;
+    struct pipelines
+    {
+      SDL_GPUGraphicsPipeline *opaque{};
+      SDL_GPUGraphicsPipeline *transparent{};
+    };
+    struct batch
+    {
+      std::size_t first{};
+      std::size_t count{};
+      SDL_GPUGraphicsPipeline *pipeline{};
+      SDL_GPUTexture *texture{};
+    };
+    struct instance
+    {
+      std::array<float, 16> model{};
+      float r{}, g{}, b{}, a{};
+      float left{}, bottom{}, right{}, top{};
+      float transparency{};
+    };
+    struct stream
+    {
+      std::vector<batch> batches{};
+      std::vector<instance> instances{};
+      std::size_t capacity{};
+      SDL_GPUBuffer *buffer{};
+      SDL_GPUTransferBuffer *transfer_buffer{};
+    };
+
   public:
     scene_graphics() = default;
     ~scene_graphics() = default;
@@ -144,10 +182,29 @@ namespace cse::help
     scene_graphics &operator=(scene_graphics &&) = delete;
 
   private:
+    void create(SDL_GPUDevice *gpu);
+    void render(SDL_Window *instance, SDL_GPUDevice *gpu, const camera *camera,
+                const std::vector<std::shared_ptr<object>> &objects, const std::pair<glm::dmat4, glm::dmat4> &matrices,
+                SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass, const double alpha);
+    void destroy(SDL_GPUDevice *gpu);
+
     void generate_order(const camera *camera, const std::vector<std::shared_ptr<object>> &objects, const double alpha);
+    void generate_instances_and_batches(SDL_Window *instance, SDL_GPUDevice *gpu, const double alpha);
+    void upload_instances(SDL_GPUDevice *gpu);
+    void draw_batches(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
+                      const std::pair<glm::dmat4, glm::dmat4> &matrices);
+    pipelines &require_pipelines(SDL_Window *instance, SDL_GPUDevice *gpu, const cse::vertex &vertex,
+                                 const cse::fragment &fragment);
+    SDL_GPUTexture *require_texture(SDL_GPUDevice *gpu, const cse::image &image);
 
   private:
+    SDL_GPUBuffer *vertex_buffer{};
+    SDL_GPUBuffer *index_buffer{};
+    SDL_GPUSampler *sampler{};
     std::vector<object *> order{};
+    std::map<pipeline_key, pipelines> pipeline_cache{};
+    std::map<texture_key, SDL_GPUTexture *> texture_cache{};
+    scene_graphics::stream stream{};
   };
 
   struct camera_graphics
@@ -197,18 +254,6 @@ namespace cse::help
     friend class cse::object;
 
   private:
-    struct pipelines
-    {
-      SDL_GPUGraphicsPipeline *opaque{};
-      SDL_GPUGraphicsPipeline *transparent{};
-    };
-    struct vertex_data
-    {
-      float x{}, y{}, z{};
-      float r{}, g{}, b{}, a{};
-      float u{}, v{};
-    };
-
     struct shader
     {
       cse::property<cse::vertex> vertex{};
@@ -254,33 +299,10 @@ namespace cse::help
   private:
     void update_previous();
 
-    void create_pipeline_and_buffers(const name &name, SDL_Window *instance, SDL_GPUDevice *gpu);
-    void upload_static_buffers(const name &name, SDL_GPUDevice *gpu);
-    void upload_dynamic_buffers(const name &name, SDL_GPUDevice *gpu, const double alpha);
-    void generate_pipeline();
-    void generate_and_upload_texture();
     void animate(const double tick);
-    void bind_pipeline_and_buffers(SDL_GPURenderPass *render_pass, const double alpha);
-    void push_uniform_data(SDL_GPUCommandBuffer *command_buffer, const std::array<glm::dmat4, 3> &matrices,
-                           const double alpha);
-    void draw_primitives(SDL_GPURenderPass *render_pass);
-    void destroy_resources(SDL_GPUDevice *gpu);
 
   public:
     object_graphics::previous previous{};
     object_graphics::active active{};
-
-  private:
-    SDL_Window *cached_instance{};
-    SDL_GPUDevice *cached_gpu{};
-    object_graphics::pipelines pipelines{};
-    SDL_GPUBuffer *vertex_buffer{};
-    SDL_GPUBuffer *index_buffer{};
-    SDL_GPUTexture *texture_buffer{};
-    SDL_GPUSampler *sampler_buffer{};
-    SDL_GPUTransferBuffer *vertex_transfer_buffer{};
-    SDL_GPUTransferBuffer *texture_transfer_buffer{};
-    std::array<vertex_data, 4> quad_vertices{};
-    std::array<Uint16, 6> quad_indices{};
   };
 }

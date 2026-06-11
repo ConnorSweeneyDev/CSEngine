@@ -1,9 +1,6 @@
 #pragma once
 
 #include "SDL3/SDL_events.h"
-#include "SDL3/SDL_gpu.h"
-#include "SDL3/SDL_video.h"
-#include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
 
@@ -57,15 +54,14 @@ namespace cse
 
   private:
     void prepare();
-    void create(SDL_Window *instance, SDL_GPUDevice *gpu);
+    void create();
     void previous();
     void event(const SDL_Event &event);
     void input(const bool *input);
     void simulate(const double tick);
     void collide(const double tick);
-    void render(SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                const glm::dmat4 &projection_matrix, const glm::dmat4 &view_matrix, const double alpha);
-    void destroy(SDL_GPUDevice *gpu);
+    void render(const double alpha);
+    void destroy();
     void clean();
 
   public:

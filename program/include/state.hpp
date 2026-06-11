@@ -258,6 +258,7 @@ namespace cse::help
   {
     friend class cse::scene;
     friend class cse::object;
+    friend struct scene_graphics;
 
   private:
     struct previous
