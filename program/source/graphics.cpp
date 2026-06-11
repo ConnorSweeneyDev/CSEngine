@@ -413,6 +413,7 @@ namespace cse::help
     const glm::vec4 color{precise_color};
     auto &frame{active.render.playback.frame};
     auto size{active.texture.animation.frames.size()};
+    if (size == 0) throw exception("Object '{}' contains no frames", name.string());
     if (frame >= size) frame = size - 1;
     const auto &frame_coordinates{active.texture.animation.frames[frame].coordinates};
     const float left{
