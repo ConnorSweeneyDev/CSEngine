@@ -157,7 +157,7 @@ namespace cse::help
       SDL_GPUGraphicsPipeline *pipeline{};
       SDL_GPUTexture *texture{};
     };
-    struct instance
+    struct sample
     {
       std::array<float, 16> model{};
       float r{}, g{}, b{}, a{};
@@ -167,7 +167,7 @@ namespace cse::help
     struct stream
     {
       std::vector<batch> batches{};
-      std::vector<instance> instances{};
+      std::vector<sample> samples{};
       std::size_t capacity{};
       SDL_GPUBuffer *buffer{};
       SDL_GPUTransferBuffer *transfer_buffer{};
@@ -189,8 +189,8 @@ namespace cse::help
     void destroy(SDL_GPUDevice *gpu);
 
     void generate_order(const camera *camera, const std::vector<std::shared_ptr<object>> &objects, const double alpha);
-    void generate_instances_and_batches(SDL_Window *instance, SDL_GPUDevice *gpu, const double alpha);
-    void upload_instances(SDL_GPUDevice *gpu);
+    void generate_samples_and_batches(SDL_Window *instance, SDL_GPUDevice *gpu, const double alpha);
+    void upload_samples(SDL_GPUDevice *gpu);
     void draw_batches(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                       const std::pair<glm::dmat4, glm::dmat4> &matrices);
     pipelines &require_pipelines(SDL_Window *instance, SDL_GPUDevice *gpu, const cse::vertex &vertex,

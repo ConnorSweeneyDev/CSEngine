@@ -331,9 +331,9 @@ namespace cse::help
                               SDL_GPURenderPass *render_pass, const double alpha)
   {
     generate_order(camera, objects, alpha);
-    generate_instances_and_batches(instance, gpu, alpha);
-    if (stream.instances.empty()) return;
-    upload_instances(gpu);
+    generate_samples_and_batches(instance, gpu, alpha);
+    if (stream.samples.empty()) return;
+    upload_samples(gpu);
     draw_batches(command_buffer, render_pass, matrices);
   }
 
@@ -353,7 +353,7 @@ namespace cse::help
     stream.transfer_buffer = nullptr;
     stream.buffer = nullptr;
     stream.capacity = 0;
-    stream.instances.clear();
+    stream.samples.clear();
     stream.batches.clear();
     texture_cache.clear();
     pipeline_cache.clear();
@@ -401,11 +401,11 @@ namespace cse::help
               });
   }
 
-  void scene_graphics::generate_instances_and_batches(SDL_Window *instance, SDL_GPUDevice *gpu, const double alpha)
+  void scene_graphics::generate_samples_and_batches(SDL_Window *instance, SDL_GPUDevice *gpu, const double alpha)
   {
-    stream.instances.clear();
+    stream.samples.clear();
     stream.batches.clear();
-    stream.instances.reserve(order.size());
+    stream.samples.reserve(order.size());
     for (auto *object : order)
     {
       auto &graphics{object->graphics};
@@ -422,7 +422,7 @@ namespace cse::help
         (graphics.active.render.transparency.value - graphics.previous.render.transparency.value) * alpha};
       const glm::mat4 model{object->state.calculate_model_matrix(graphics.active.texture.image->frame_width,
                                                                  graphics.active.texture.image->frame_height, alpha)};
-      scene_graphics::instance data{};
+      sample data{};
       SDL_memcpy(data.model.data(), &model, sizeof(model));
       data.r = color.r;
       data.g = color.g;
@@ -441,35 +441,33 @@ namespace cse::help
           stream.batches.back().texture == texture)
         stream.batches.back().count++;
       else
-        stream.batches.push_back({stream.instances.size(), 1, pipeline, texture});
-      stream.instances.push_back(data);
+        stream.batches.push_back({stream.samples.size(), 1, pipeline, texture});
+      stream.samples.push_back(data);
     }
   }
 
-  void scene_graphics::upload_instances(SDL_GPUDevice *gpu)
+  void scene_graphics::upload_samples(SDL_GPUDevice *gpu)
   {
-    if (stream.instances.size() > stream.capacity)
+    if (stream.samples.size() > stream.capacity)
     {
       SDL_ReleaseGPUTransferBuffer(gpu, stream.transfer_buffer);
       SDL_ReleaseGPUBuffer(gpu, stream.buffer);
       stream.capacity = std::max<std::size_t>(stream.capacity, 16);
-      while (stream.capacity < stream.instances.size()) stream.capacity *= 2;
+      while (stream.capacity < stream.samples.size()) stream.capacity *= 2;
       SDL_GPUBufferCreateInfo instance_buffer_info{
-        .usage = SDL_GPU_BUFFERUSAGE_VERTEX,
-        .size = static_cast<Uint32>(sizeof(scene_graphics::instance) * stream.capacity),
-        .props = 0};
+        .usage = SDL_GPU_BUFFERUSAGE_VERTEX, .size = static_cast<Uint32>(sizeof(sample) * stream.capacity), .props = 0};
       stream.buffer = SDL_CreateGPUBuffer(gpu, &instance_buffer_info);
       if (!stream.buffer) throw sdl_exception("Could not create instance buffer for scene");
       SDL_GPUTransferBufferCreateInfo instance_transfer_buffer_info{
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-        .size = static_cast<Uint32>(sizeof(scene_graphics::instance) * stream.capacity),
+        .size = static_cast<Uint32>(sizeof(sample) * stream.capacity),
         .props = 0};
       stream.transfer_buffer = SDL_CreateGPUTransferBuffer(gpu, &instance_transfer_buffer_info);
       if (!stream.transfer_buffer) throw sdl_exception("Could not create instance transfer buffer for scene");
     }
     auto *start{SDL_MapGPUTransferBuffer(gpu, stream.transfer_buffer, true)};
     if (!start) throw sdl_exception("Could not map instance data for scene");
-    SDL_memcpy(start, stream.instances.data(), sizeof(scene_graphics::instance) * stream.instances.size());
+    SDL_memcpy(start, stream.samples.data(), sizeof(sample) * stream.samples.size());
     SDL_UnmapGPUTransferBuffer(gpu, stream.transfer_buffer);
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(gpu)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for scene");
@@ -477,9 +475,7 @@ namespace cse::help
     if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for scene");
     SDL_GPUTransferBufferLocation instance_transfer_location{.transfer_buffer = stream.transfer_buffer, .offset = 0};
     SDL_GPUBufferRegion instance_buffer_region{
-      .buffer = stream.buffer,
-      .offset = 0,
-      .size = static_cast<Uint32>(sizeof(scene_graphics::instance) * stream.instances.size())};
+      .buffer = stream.buffer, .offset = 0, .size = static_cast<Uint32>(sizeof(sample) * stream.samples.size())};
     SDL_UploadToGPUBuffer(copy_pass, &instance_transfer_location, &instance_buffer_region, true);
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
@@ -496,13 +492,13 @@ namespace cse::help
     SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffer_bindings.data(), 2);
     SDL_GPUBufferBinding index_buffer_binding{.buffer = index_buffer, .offset = 0};
     SDL_BindGPUIndexBuffer(render_pass, &index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-    for (const auto &batch : stream.batches)
+    for (const auto &group : stream.batches)
     {
-      SDL_BindGPUGraphicsPipeline(render_pass, batch.pipeline);
-      SDL_GPUTextureSamplerBinding texture_sampler_binding{.texture = batch.texture, .sampler = sampler};
+      SDL_BindGPUGraphicsPipeline(render_pass, group.pipeline);
+      SDL_GPUTextureSamplerBinding texture_sampler_binding{.texture = group.texture, .sampler = sampler};
       SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_sampler_binding, 1);
-      SDL_DrawGPUIndexedPrimitives(render_pass, 6, static_cast<Uint32>(batch.count), 0, 0,
-                                   static_cast<Uint32>(batch.first));
+      SDL_DrawGPUIndexedPrimitives(render_pass, 6, static_cast<Uint32>(group.count), 0, 0,
+                                   static_cast<Uint32>(group.first));
     }
   }
 
@@ -540,20 +536,17 @@ namespace cse::help
     if (!fragment_shader) throw sdl_exception("Could not create fragment shader for scene");
     const std::array<SDL_GPUVertexBufferDescription, 2> vertex_buffer_descriptions{
       {{.slot = 0, .pitch = sizeof(corner), .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX, .instance_step_rate = 0},
-       {.slot = 1,
-        .pitch = sizeof(scene_graphics::instance),
-        .input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
-        .instance_step_rate = 0}}};
+       {.slot = 1, .pitch = sizeof(sample), .input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE, .instance_step_rate = 0}}};
     const std::array<SDL_GPUVertexAttribute, 9> vertex_attributes{
       {{0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(corner, x)},
        {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(corner, u)},
-       {2, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(scene_graphics::instance, model)},
-       {3, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(scene_graphics::instance, model) + sizeof(float) * 4},
-       {4, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(scene_graphics::instance, model) + sizeof(float) * 8},
-       {5, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(scene_graphics::instance, model) + sizeof(float) * 12},
-       {6, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(scene_graphics::instance, r)},
-       {7, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(scene_graphics::instance, left)},
-       {8, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, offsetof(scene_graphics::instance, transparency)}}};
+       {2, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(sample, model)},
+       {3, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(sample, model) + sizeof(float) * 4},
+       {4, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(sample, model) + sizeof(float) * 8},
+       {5, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(sample, model) + sizeof(float) * 12},
+       {6, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(sample, r)},
+       {7, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(sample, left)},
+       {8, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, offsetof(sample, transparency)}}};
     SDL_GPUVertexInputState vertex_input_state{.vertex_buffer_descriptions = vertex_buffer_descriptions.data(),
                                                .num_vertex_buffers = 2,
                                                .vertex_attributes = vertex_attributes.data(),
