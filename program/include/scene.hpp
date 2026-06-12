@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
@@ -33,7 +35,11 @@ namespace cse
     template <trait::is_camera camera_type, typename... camera_arguments> scene &set(camera_arguments &&...arguments);
     template <trait::is_object object_type, typename... object_arguments>
     scene &set(const cse::name object_name, object_arguments &&...arguments);
-    scene &remove(const cse::name object_name);
+    template <trait::is_interface interface_type, typename... interface_arguments>
+    scene &set(const cse::name interface_name, interface_arguments &&...arguments);
+    template <typename target_type = void>
+      requires(std::is_void_v<target_type> || trait::is_object<target_type> || trait::is_interface<target_type>)
+    scene &remove(const cse::name target_name);
 
   protected:
     scene() = default;
@@ -62,7 +68,7 @@ namespace cse
 
   private:
     void prepare();
-    void create(SDL_GPUDevice *gpu);
+    void create();
     void previous();
     void sync();
     void event(const SDL_Event &event);
@@ -72,7 +78,7 @@ namespace cse
     void render(SDL_Window *instance, SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer,
                 SDL_GPURenderPass *render_pass, const double previous_aspect, const double active_aspect,
                 const double alpha);
-    void destroy(SDL_GPUDevice *gpu);
+    void destroy();
     void clean();
 
   public:

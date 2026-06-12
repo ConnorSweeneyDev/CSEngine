@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -12,6 +13,7 @@
 
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
+#include "SDL3_ttf/SDL_ttf.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_int2.hpp"
@@ -26,23 +28,94 @@ namespace cse::help
   struct game_graphics
   {
     friend class cse::game;
+    friend struct scene_graphics;
 
     struct previous
     {
       double frame{};
       temporal<double> aspect{};
+      unsigned int resolution{};
       temporal<glm::dvec4> clear{};
     };
     struct active
     {
       double frame{};
       temporal<double> aspect{};
+      unsigned int resolution{};
       temporal<glm::dvec4> clear{};
+    };
+
+  private:
+    struct corner
+    {
+      float x{}, y{};
+      float u{}, v{};
+    };
+    struct buffer
+    {
+      SDL_GPUBuffer *vertex{};
+      SDL_GPUBuffer *index{};
+      SDL_GPUSampler *sample{};
+    };
+    struct pipeline
+    {
+      SDL_GPUGraphicsPipeline *opaque{};
+      SDL_GPUGraphicsPipeline *transparent{};
+      SDL_GPUGraphicsPipeline *interface{};
+    };
+    struct object
+    {
+      struct batch
+      {
+        std::size_t first{};
+        std::size_t count{};
+        SDL_GPUGraphicsPipeline *pipeline{};
+        SDL_GPUTexture *texture{};
+      };
+      struct sample
+      {
+        std::array<float, 16> model{};
+        float red{}, green{}, blue{}, alpha{};
+        float left{}, bottom{}, right{}, top{};
+        float transparency{};
+      };
+      std::vector<batch> batches{};
+      std::vector<sample> samples{};
+      std::size_t capacity{};
+      SDL_GPUBuffer *buffer{};
+      SDL_GPUTransferBuffer *transfer_buffer{};
+    };
+    struct interface
+    {
+      struct label
+      {
+        std::string text{};
+        const unsigned char *font{};
+        unsigned int size{};
+        glm::dvec4 color{};
+        unsigned int width{};
+        SDL_GPUTexture *texture{};
+        unsigned int texture_width{};
+        unsigned int texture_height{};
+        std::uint64_t stamp{};
+      };
+      std::vector<cse::interface *> order{};
+      std::map<const cse::interface *, label> labels{};
+      std::uint64_t stamp{};
+    };
+    using pipeline_key = std::tuple<const unsigned char *, std::size_t, const unsigned char *, std::size_t>;
+    using texture_key = std::pair<const unsigned char *, std::size_t>;
+    using font_key = std::tuple<const unsigned char *, std::size_t, unsigned int>;
+    struct cache
+    {
+      std::map<pipeline_key, pipeline> pipeline{};
+      std::map<texture_key, SDL_GPUTexture *> texture{};
+      std::map<font_key, TTF_Font *> font{};
     };
 
   public:
     game_graphics() = default;
-    game_graphics(const double frame_, const double aspect_, const glm::dvec4 &clear_);
+    game_graphics(const double frame_, const double aspect_, const unsigned int resolution_, const glm::dvec4 &clear_);
     ~game_graphics() = default;
     game_graphics(const game_graphics &) = delete;
     game_graphics &operator=(const game_graphics &) = delete;
@@ -53,7 +126,29 @@ namespace cse::help
     void update_previous();
 
     void create_app();
+    void create(SDL_GPUDevice *gpu);
+    void render(const std::vector<std::shared_ptr<cse::interface>> &scene_interfaces,
+                const std::vector<std::shared_ptr<cse::interface>> &game_interfaces, SDL_Window *instance,
+                SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
+                const double alpha);
+    void destroy(SDL_GPUDevice *gpu);
     void destroy_app();
+
+    void generate_order(const std::vector<std::shared_ptr<cse::interface>> &scene_interfaces,
+                        const std::vector<std::shared_ptr<cse::interface>> &game_interfaces);
+    void generate_samples_and_batches(const std::vector<cse::object *> &order, SDL_Window *instance, SDL_GPUDevice *gpu,
+                                      const double alpha);
+    void generate_samples_and_batches(const std::vector<cse::interface *> &order, SDL_Window *instance,
+                                      SDL_GPUDevice *gpu, const double alpha);
+    void upload_samples(SDL_GPUDevice *gpu);
+    void draw_batches(const std::pair<glm::dmat4, glm::dmat4> &matrices, SDL_GPUCommandBuffer *command_buffer,
+                      SDL_GPURenderPass *render_pass);
+    std::pair<glm::dmat4, glm::dmat4> calculate_interface_matrices(const double alpha) const;
+    pipeline &require_pipelines(SDL_Window *instance, SDL_GPUDevice *gpu, const cse::vertex &vertex,
+                                const cse::fragment &fragment);
+    SDL_GPUTexture *require_texture(SDL_GPUDevice *gpu, const cse::image &image);
+    TTF_Font *require_font(const cse::font &font, const unsigned int size);
+    game_graphics::interface::label &require_label(SDL_GPUDevice *gpu, const cse::interface *element);
 
   public:
     game_graphics::previous previous{};
@@ -61,6 +156,10 @@ namespace cse::help
 
   private:
     double actual_frame{1.0 / active.frame};
+    game_graphics::buffer buffer{};
+    game_graphics::cache cache{};
+    game_graphics::object object{};
+    game_graphics::interface interface{};
   };
 
   struct window_graphics
@@ -137,42 +236,6 @@ namespace cse::help
   {
     friend class cse::scene;
 
-  private:
-    struct corner
-    {
-      float x{}, y{};
-      float u{}, v{};
-    };
-    using pipeline_key = std::tuple<const unsigned char *, std::size_t, const unsigned char *, std::size_t>;
-    using texture_key = std::pair<const unsigned char *, std::size_t>;
-    struct pipelines
-    {
-      SDL_GPUGraphicsPipeline *opaque{};
-      SDL_GPUGraphicsPipeline *transparent{};
-    };
-    struct batch
-    {
-      std::size_t first{};
-      std::size_t count{};
-      SDL_GPUGraphicsPipeline *pipeline{};
-      SDL_GPUTexture *texture{};
-    };
-    struct sample
-    {
-      std::array<float, 16> model{};
-      float r{}, g{}, b{}, a{};
-      float left{}, bottom{}, right{}, top{};
-      float transparency{};
-    };
-    struct stream
-    {
-      std::vector<batch> batches{};
-      std::vector<sample> samples{};
-      std::size_t capacity{};
-      SDL_GPUBuffer *buffer{};
-      SDL_GPUTransferBuffer *transfer_buffer{};
-    };
-
   public:
     scene_graphics() = default;
     ~scene_graphics() = default;
@@ -182,29 +245,14 @@ namespace cse::help
     scene_graphics &operator=(scene_graphics &&) = delete;
 
   private:
-    void create(SDL_GPUDevice *gpu);
-    void render(SDL_Window *instance, SDL_GPUDevice *gpu, const camera *camera,
+    void render(SDL_Window *instance, SDL_GPUDevice *gpu, game_graphics &graphics, const camera *camera,
                 const std::vector<std::shared_ptr<object>> &objects, const std::pair<glm::dmat4, glm::dmat4> &matrices,
                 SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass, const double alpha);
-    void destroy(SDL_GPUDevice *gpu);
 
     void generate_order(const camera *camera, const std::vector<std::shared_ptr<object>> &objects, const double alpha);
-    void generate_samples_and_batches(SDL_Window *instance, SDL_GPUDevice *gpu, const double alpha);
-    void upload_samples(SDL_GPUDevice *gpu);
-    void draw_batches(SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
-                      const std::pair<glm::dmat4, glm::dmat4> &matrices);
-    pipelines &require_pipelines(SDL_Window *instance, SDL_GPUDevice *gpu, const cse::vertex &vertex,
-                                 const cse::fragment &fragment);
-    SDL_GPUTexture *require_texture(SDL_GPUDevice *gpu, const cse::image &image);
 
   private:
-    SDL_GPUBuffer *vertex_buffer{};
-    SDL_GPUBuffer *index_buffer{};
-    SDL_GPUSampler *sampler{};
     std::vector<object *> order{};
-    std::map<pipeline_key, pipelines> pipeline_cache{};
-    std::map<texture_key, SDL_GPUTexture *> texture_cache{};
-    scene_graphics::stream stream{};
   };
 
   struct camera_graphics
@@ -256,12 +304,12 @@ namespace cse::help
   private:
     struct shader
     {
-      cse::property<cse::vertex> vertex{};
-      cse::property<cse::fragment> fragment{};
+      cse::vertex vertex{};
+      cse::fragment fragment{};
     };
     struct texture
     {
-      cse::property<cse::image> image{};
+      cse::image image{};
       cse::animation animation{};
     };
     struct render
@@ -304,5 +352,71 @@ namespace cse::help
   public:
     object_graphics::previous previous{};
     object_graphics::active active{};
+  };
+
+  struct interface_graphics
+  {
+    friend class cse::interface;
+
+  private:
+    struct shader
+    {
+      cse::vertex vertex{};
+      cse::fragment fragment{};
+    };
+    struct texture
+    {
+      cse::image image{};
+      cse::animation animation{};
+    };
+    struct render
+    {
+      cse::playback playback{};
+      cse::flip flip{};
+      temporal<cse::color> color{};
+      temporal<cse::transparency> transparency{};
+    };
+    struct text
+    {
+      cse::font font{};
+      unsigned int size{};
+      cse::color color{};
+    };
+
+    struct previous
+    {
+      interface_graphics::shader shader{};
+      interface_graphics::texture texture{};
+      interface_graphics::render render{};
+      interface_graphics::text text{};
+      int priority{};
+    };
+    struct active
+    {
+      interface_graphics::shader shader{};
+      interface_graphics::texture texture{};
+      interface_graphics::render render{};
+      interface_graphics::text text{};
+      int priority{};
+    };
+
+  public:
+    interface_graphics() = default;
+    interface_graphics(const shader &shader_, const texture &texture_, const render &render_, const text &text_,
+                       const int priority_);
+    ~interface_graphics() = default;
+    interface_graphics(const interface_graphics &) = delete;
+    interface_graphics &operator=(const interface_graphics &) = delete;
+    interface_graphics(interface_graphics &&) = delete;
+    interface_graphics &operator=(interface_graphics &&) = delete;
+
+  private:
+    void update_previous();
+
+    void animate(const double tick);
+
+  public:
+    interface_graphics::previous previous{};
+    interface_graphics::active active{};
   };
 }

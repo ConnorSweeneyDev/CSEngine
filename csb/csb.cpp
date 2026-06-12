@@ -61,6 +61,7 @@ int csb::build()
                                             {{"name", "wayland"}, {"platform", "linux"}},
                                           }},
                                        },
+                                       "sdl3-ttf",
                                        "glm",
                                      }},
                                     {"overrides",
@@ -68,6 +69,10 @@ int csb::build()
                                        {
                                          {"name", "sdl3"},
                                          {"version", "3.4.4"},
+                                       },
+                                       {
+                                         {"name", "sdl3-ttf"},
+                                         {"version", "3.2.2#1"},
                                        },
                                        {
                                          {"name", "glm"},

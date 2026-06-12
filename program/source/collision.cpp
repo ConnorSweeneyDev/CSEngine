@@ -6,7 +6,9 @@
 #include <utility>
 
 #include "glm/ext/vector_double2.hpp"
+#include "glm/trigonometric.hpp"
 
+#include "interface.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
 #include "object.hpp"
@@ -31,8 +33,8 @@ namespace cse::help::collision
 
   rectangle bounds(const object *object, const rectangle &bounds)
   {
-    auto width{static_cast<double>(object->graphics.active.texture.image->frame_width)};
-    auto height{static_cast<double>(object->graphics.active.texture.image->frame_height)};
+    auto width{static_cast<double>(object->graphics.active.texture.image.frame_width)};
+    auto height{static_cast<double>(object->graphics.active.texture.image.frame_height)};
     auto translation{object->state.active.translation.value};
     auto rotation{static_cast<int>(std::floor(object->state.active.rotation.value + 0.5))};
     auto scale{object->state.active.scale.value};
@@ -133,5 +135,51 @@ namespace cse::help::collision
             .overlap = overlap,
             .normal = normal,
             .penetration = penetration};
+  }
+
+  hitbox hit(const interface *interface, const glm::dvec2 &point)
+  {
+    const auto &animation{interface->graphics.active.texture.animation};
+    const auto frame{interface->graphics.active.render.playback.frame};
+    if (frame >= animation.frames.size()) return {};
+    const auto &hitboxes{animation.frames[frame].hitboxes};
+    if (hitboxes.empty()) return {};
+    const auto scale_x{std::floor(interface->state.active.scale.value.x + 0.5)};
+    const auto scale_y{std::floor(interface->state.active.scale.value.y + 0.5)};
+    if (scale_x <= 0.0 || scale_y <= 0.0) return {};
+
+    const auto &translation{interface->state.active.translation.value};
+    const auto rotation{glm::radians(std::floor(interface->state.active.rotation.value + 0.5) * -90.0)};
+    const auto frame_width{interface->graphics.active.texture.image.frame_width};
+    const auto frame_height{interface->graphics.active.texture.image.frame_height};
+    glm::dvec2 local{point.x - std::floor(translation.x + 0.5), point.y - std::floor(translation.y + 0.5)};
+    const auto sine{std::sin(-rotation)};
+    const auto cosine{std::cos(-rotation)};
+    local = {local.x * cosine - local.y * sine, local.x * sine + local.y * cosine};
+    local -= glm::dvec2{frame_width % 2 == 0 ? 0.5 : 0.0, frame_height % 2 == 0 ? 0.5 : 0.0};
+    local /= glm::dvec2{scale_x, scale_y};
+    const glm::dvec2 center{frame_width / 2.0, frame_height / 2.0};
+    const auto &flip{interface->graphics.active.render.flip};
+    for (const auto &[identifier, bounds] : hitboxes)
+    {
+      auto left{bounds.left - 1.0 - center.x};
+      auto right{bounds.right - center.x};
+      auto top{bounds.top - 1.0 - center.y};
+      auto bottom{bounds.bottom - center.y};
+      if (flip.horizontal)
+      {
+        auto temporary{-left};
+        left = -right;
+        right = temporary;
+      }
+      if (flip.vertical)
+      {
+        auto temporary{-top};
+        top = -bottom;
+        bottom = temporary;
+      }
+      if (local.x >= left && local.x < right && local.y >= top && local.y < bottom) return identifier;
+    }
+    return {};
   }
 }

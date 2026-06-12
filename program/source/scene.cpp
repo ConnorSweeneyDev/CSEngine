@@ -9,27 +9,14 @@
 #include "camera.hpp"
 #include "container.hpp"
 #include "exception.hpp"
+#include "game.hpp"
+#include "interface.hpp"
 #include "name.hpp"
 #include "object.hpp"
 #include "state.hpp"
 
 namespace cse
 {
-  scene &scene::remove(const cse::name object_name)
-  {
-    if (auto iterator{try_iterate(state.active.objects, object_name)}; iterator != state.active.objects.end())
-    {
-      if (auto &object{*iterator}; state.active.phase == help::phase::CREATED)
-        state.removals.insert(object_name);
-      else
-      {
-        if (object->state.active.phase == help::phase::PREPARED) object->clean();
-        state.active.objects.erase(iterator);
-      }
-    }
-    return *this;
-  }
-
   void scene::pre_prepare() {}
   void scene::post_prepare() {}
   void scene::prepare()
@@ -40,20 +27,21 @@ namespace cse
     if (!state.active.camera) throw exception("Scene '{}' must have a camera to be prepared", name.string());
     state.active.camera->prepare();
     for (const auto &object : state.active.objects) object->prepare();
+    for (const auto &interface : state.active.interfaces) interface->prepare();
     state.active.phase = help::phase::PREPARED;
     post_prepare();
   }
 
   void scene::pre_create() {}
   void scene::post_create() {}
-  void scene::create(SDL_GPUDevice *gpu)
+  void scene::create()
   {
     if (state.active.phase != help::phase::PREPARED)
       throw exception("Scene '{}' must be prepared before creation", name.string());
     pre_create();
-    graphics.create(gpu);
     state.active.camera->create();
     for (const auto &object : state.active.objects) object->create();
+    for (const auto &interface : state.active.interfaces) interface->create();
     state.active.phase = help::phase::CREATED;
     post_create();
   }
@@ -68,6 +56,7 @@ namespace cse
     state.update_previous();
     state.active.camera->previous();
     for (const auto &object : state.active.objects) object->previous();
+    for (const auto &interface : state.active.interfaces) interface->previous();
     post_previous();
   }
 
@@ -88,9 +77,9 @@ namespace cse
       new_camera->create();
       state.next.camera.reset();
     }
-    if (!state.removals.empty())
+    if (!state.object_removals.empty())
     {
-      for (const auto &object_name : state.removals)
+      for (const auto &object_name : state.object_removals)
         if (auto iterator{try_iterate(state.active.objects, object_name)}; iterator != state.active.objects.end())
         {
           const auto &object{*iterator};
@@ -98,19 +87,43 @@ namespace cse
           object->clean();
           state.active.objects.erase(iterator);
         }
-      state.removals.clear();
+      state.object_removals.clear();
     }
-    if (!state.additions.empty())
+    if (!state.object_additions.empty())
     {
-      for (auto &object : state.additions)
+      for (auto &object : state.object_additions)
       {
         set_or_add(state.active.objects, object);
         object->prepare();
         object->create();
       }
-      state.additions.clear();
+      state.object_additions.clear();
+    }
+    if (!state.interface_removals.empty())
+    {
+      for (const auto &interface_name : state.interface_removals)
+        if (auto iterator{try_iterate(state.active.interfaces, interface_name)};
+            iterator != state.active.interfaces.end())
+        {
+          const auto &interface{*iterator};
+          if (interface->state.active.phase == help::phase::CREATED) interface->destroy();
+          interface->clean();
+          state.active.interfaces.erase(iterator);
+        }
+      state.interface_removals.clear();
+    }
+    if (!state.interface_additions.empty())
+    {
+      for (auto &interface : state.interface_additions)
+      {
+        set_or_add(state.active.interfaces, interface);
+        interface->prepare();
+        interface->create();
+      }
+      state.interface_additions.clear();
     }
     state.generate_order(state.active.objects);
+    state.generate_order(state.active.interfaces);
     post_sync();
   }
 
@@ -122,7 +135,8 @@ namespace cse
       throw exception("Scene '{}' must be created before processing events", name.string());
     pre_event(event);
     state.active.camera->event(event);
-    for (const auto &object : state.order) object->event(event);
+    for (const auto &object : state.object_order) object->event(event);
+    for (const auto &interface : state.interface_order) interface->event(event);
     post_event(event);
   }
 
@@ -134,7 +148,8 @@ namespace cse
       throw exception("Scene '{}' must be created before processing input", name.string());
     pre_input(input);
     state.active.camera->input(input);
-    for (const auto &object : state.order) object->input(input);
+    for (const auto &object : state.object_order) object->input(input);
+    for (const auto &interface : state.interface_order) interface->input(input);
     post_input(input);
   }
 
@@ -147,7 +162,8 @@ namespace cse
     pre_simulate(tick);
     state.active.timer.update(tick);
     state.active.camera->simulate(tick);
-    for (const auto &object : state.order) object->simulate(tick);
+    for (const auto &object : state.object_order) object->simulate(tick);
+    for (const auto &interface : state.interface_order) interface->simulate(tick);
     post_simulate(tick);
   }
 
@@ -158,7 +174,7 @@ namespace cse
     if (state.active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before collision", name.string());
     pre_collide(tick);
-    for (state.generate_contacts(); const auto &object : state.order) object->collide(tick);
+    for (state.generate_contacts(); const auto &object : state.object_order) object->collide(tick);
     post_collide(tick);
   }
 
@@ -171,7 +187,7 @@ namespace cse
     if (state.active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before rendering", name.string());
     pre_render(alpha);
-    graphics.render(instance, gpu, state.active.camera.get(), state.active.objects,
+    graphics.render(instance, gpu, game->graphics, state.active.camera.get(), state.active.objects,
                     state.active.camera->render(previous_aspect, active_aspect, alpha), command_buffer, render_pass,
                     alpha);
     for (const auto &object : graphics.order) object->render(alpha);
@@ -180,14 +196,15 @@ namespace cse
 
   void scene::pre_destroy() {}
   void scene::post_destroy() {}
-  void scene::destroy(SDL_GPUDevice *gpu)
+  void scene::destroy()
   {
     if (state.active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before destruction", name.string());
     pre_destroy();
+    for (const auto &interface : state.active.interfaces) interface->destroy();
     for (const auto &object : state.active.objects) object->destroy();
     state.active.camera->destroy();
-    graphics.destroy(gpu);
+    graphics.order.clear();
     state.active.phase = help::phase::PREPARED;
     post_destroy();
   }
@@ -199,6 +216,7 @@ namespace cse
     if (state.active.phase != help::phase::PREPARED)
       throw exception("Scene '{}' must be prepared before cleaning", name.string());
     pre_clean();
+    for (const auto &interface : state.active.interfaces) interface->clean();
     for (const auto &object : state.active.objects) object->clean();
     state.active.camera->clean();
     state.active.phase = help::phase::CLEANED;

@@ -11,6 +11,7 @@
 
 #include "container.hpp"
 #include "exception.hpp"
+#include "interface.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
 #include "print.hpp"
@@ -21,32 +22,19 @@
 namespace cse
 {
   game::game(const initial_state &state_, const initial_graphics &graphics_)
-    : state{state_.tick}, graphics{graphics_.frame, graphics_.aspect, graphics_.clear}
+    : state{state_.tick}, graphics{graphics_.frame, graphics_.aspect, graphics_.resolution, graphics_.clear}
   {
   }
 
-  game &game::current(const name name)
+  game &game::current(const name scene_name)
   {
-    auto scene{throw_find(state.active.scenes, name)};
+    auto scene{throw_find(state.active.scenes, scene_name)};
     if (state.active.phase == help::phase::CREATED)
-      state.next.scene = {name, {}};
+      state.next.scene = {scene_name, {}};
     else
     {
       state.active.scene = scene;
       state.previous.scene = scene;
-    }
-    return *this;
-  }
-
-  game &game::remove(const name name)
-  {
-    if (auto iterator{try_iterate(state.active.scenes, name)}; iterator != state.active.scenes.end())
-    {
-      const auto &scene{*iterator};
-      if (state.active.scene == scene || scene->state.active.phase == help::phase::CREATED)
-        throw exception("Tried to remove current or created scene '{}'", name.string());
-      scene->clean();
-      state.active.scenes.erase(iterator);
     }
     return *this;
   }
@@ -89,11 +77,14 @@ namespace cse
     if (!state.active.window->game) state.active.window->game = this;
     for (const auto &scene : state.active.scenes)
       if (!scene->game) scene->game = this;
+    for (const auto &interface : state.active.interfaces)
+      if (!interface->game) interface->game = this;
     pre_prepare();
     state.active.window->prepare();
     if (state.active.scenes.empty()) throw exception("No scenes have been added to the game");
     if (!state.active.scene) throw exception("No current scene has been set for the game");
     for (const auto &scene : state.active.scenes) scene->prepare();
+    for (const auto &interface : state.active.interfaces) interface->prepare();
     state.active.phase = help::phase::PREPARED;
     post_prepare();
   }
@@ -106,7 +97,9 @@ namespace cse
     pre_create();
     graphics.create_app();
     state.active.window->create();
-    state.active.scene->create(state.active.window->graphics.gpu);
+    graphics.create(state.active.window->graphics.gpu);
+    state.active.scene->create();
+    for (const auto &interface : state.active.interfaces) interface->create();
     state.active.phase = help::phase::CREATED;
     post_create();
   }
@@ -122,6 +115,7 @@ namespace cse
     graphics.update_previous();
     state.active.window->previous();
     state.active.scene->previous();
+    for (const auto &interface : state.active.interfaces) interface->previous();
     post_previous();
   }
 
@@ -135,13 +129,17 @@ namespace cse
     {
       if (auto &window{state.next.window.value()})
       {
-        state.active.scene->destroy(state.active.window->graphics.gpu);
+        for (const auto &interface : state.active.interfaces) interface->destroy();
+        state.active.scene->destroy();
+        graphics.destroy(state.active.window->graphics.gpu);
         state.active.window->destroy();
         state.active.window->clean();
         state.active.window = window;
         window->prepare();
         window->create();
-        state.active.scene->create(state.active.window->graphics.gpu);
+        graphics.create(state.active.window->graphics.gpu);
+        state.active.scene->create();
+        for (const auto &interface : state.active.interfaces) interface->create();
       }
       else
         throw exception("Tried to set window to null");
@@ -151,26 +149,51 @@ namespace cse
     {
       if (auto &[name, scene]{state.next.scene.value()}; scene)
       {
-        state.active.scene->destroy(state.active.window->graphics.gpu);
+        state.active.scene->destroy();
         if (name == state.active.scene->name) state.active.scene->clean();
         set_or_add(state.active.scenes, scene);
         state.active.scene = scene;
         scene->prepare();
-        scene->create(state.active.window->graphics.gpu);
+        scene->create();
       }
       else
       {
         auto next_scene{throw_find(state.active.scenes, name)};
         if (name != state.active.scene->name)
         {
-          state.active.scene->destroy(state.active.window->graphics.gpu);
+          state.active.scene->destroy();
           state.active.scene = next_scene;
-          next_scene->create(state.active.window->graphics.gpu);
+          next_scene->create();
         }
       }
       state.next.scene.reset();
     }
     state.active.scene->sync();
+    if (!state.interface_removals.empty())
+    {
+      for (const auto &interface_name : state.interface_removals)
+        if (auto iterator{try_iterate(state.active.interfaces, interface_name)};
+            iterator != state.active.interfaces.end())
+        {
+          const auto &interface{*iterator};
+          if (interface->state.active.phase == help::phase::CREATED) interface->destroy();
+          interface->clean();
+          state.active.interfaces.erase(iterator);
+        }
+      state.interface_removals.clear();
+    }
+    if (!state.interface_additions.empty())
+    {
+      for (auto &interface : state.interface_additions)
+      {
+        set_or_add(state.active.interfaces, interface);
+        interface->prepare();
+        interface->create();
+      }
+      state.interface_additions.clear();
+    }
+    state.generate_order(state.active.interfaces);
+    state.generate_pool(state.active.scene->state.interface_order);
     post_sync();
   }
 
@@ -184,6 +207,10 @@ namespace cse
       pre_event(state.active.window->state.event);
       state.active.window->event();
       state.active.scene->event(state.active.window->state.event);
+      for (const auto &interface : state.order) interface->event(state.active.window->state.event);
+      state.interact(state.active.window->state.event, state.active.window->state.active.width,
+                     state.active.window->state.active.height, graphics.active.aspect.value,
+                     graphics.active.resolution);
       post_event(state.active.window->state.event);
     }
   }
@@ -196,7 +223,10 @@ namespace cse
     state.active.window->state.input = SDL_GetKeyboardState(nullptr);
     pre_input(state.active.window->state.input);
     state.active.window->input();
+    state.hover(state.active.window->graphics.instance, state.active.window->state.active.width,
+                state.active.window->state.active.height, graphics.active.aspect.value, graphics.active.resolution);
     state.active.scene->input(state.active.window->state.input);
+    for (const auto &interface : state.order) interface->input(state.active.window->state.input);
     post_input(state.active.window->state.input);
   }
 
@@ -209,6 +239,7 @@ namespace cse
     state.active.timer.update(state.actual_tick);
     state.active.window->simulate(state.actual_tick);
     state.active.scene->simulate(state.actual_tick);
+    for (const auto &interface : state.order) interface->simulate(state.actual_tick);
     post_simulate(state.actual_tick);
   }
 
@@ -234,6 +265,11 @@ namespace cse
     state.active.scene->render(state.active.window->graphics.instance, state.active.window->graphics.gpu,
                                state.active.window->graphics.command_buffer, state.active.window->graphics.render_pass,
                                graphics.previous.aspect.value, graphics.active.aspect.value, state.alpha);
+    graphics.render(state.active.scene->state.active.interfaces, state.active.interfaces,
+                    state.active.window->graphics.instance, state.active.window->graphics.gpu,
+                    state.active.window->graphics.command_buffer, state.active.window->graphics.render_pass,
+                    state.alpha);
+    for (const auto &interface : graphics.interface.order) interface->render(state.alpha);
     state.active.window->end_render(state.alpha);
     post_render(state.alpha);
   }
@@ -244,7 +280,9 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before destruction");
     pre_destroy();
-    state.active.scene->destroy(state.active.window->graphics.gpu);
+    for (const auto &interface : state.active.interfaces) interface->destroy();
+    state.active.scene->destroy();
+    graphics.destroy(state.active.window->graphics.gpu);
     state.active.window->destroy();
     graphics.destroy_app();
     state.active.phase = help::phase::PREPARED;
@@ -257,6 +295,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Game must be prepared before cleaning");
     pre_clean();
+    for (const auto &interface : state.active.interfaces) interface->clean();
     for (const auto &scene : state.active.scenes) scene->clean();
     state.active.window->clean();
     state.active.phase = help::phase::CLEANED;

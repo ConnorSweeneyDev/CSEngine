@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -47,6 +48,7 @@ namespace cse::help
       std::shared_ptr<cse::window> window{};
       std::vector<std::shared_ptr<cse::scene>> scenes{};
       std::shared_ptr<cse::scene> scene{};
+      std::vector<std::shared_ptr<cse::interface>> interfaces{};
       help::timer timer{};
       help::phase phase{};
     };
@@ -56,6 +58,7 @@ namespace cse::help
       std::shared_ptr<cse::window> window{};
       std::vector<std::shared_ptr<cse::scene>> scenes{};
       std::shared_ptr<cse::scene> scene{};
+      std::vector<std::shared_ptr<cse::interface>> interfaces{};
       help::timer timer{};
       help::phase phase{};
     };
@@ -77,6 +80,15 @@ namespace cse::help
   private:
     void update_previous();
 
+    void generate_order(const std::vector<std::shared_ptr<interface>> &interfaces);
+    void generate_pool(const std::vector<interface *> &interfaces);
+    std::optional<glm::dvec2> locate(const float x, const float y, const unsigned int width, const unsigned int height,
+                                     const double aspect, const unsigned int resolution) const;
+    void interact(const SDL_Event &event, const unsigned int width, const unsigned int height, const double aspect,
+                  const unsigned int resolution);
+    void hover(SDL_Window *instance, const unsigned int width, const unsigned int height, const double aspect,
+               const unsigned int resolution);
+
   public:
     game_state::previous previous{};
     game_state::active active{};
@@ -87,6 +99,10 @@ namespace cse::help
     double time{};
     double accumulator{};
     double alpha{};
+    std::unordered_set<cse::name> interface_removals{};
+    std::vector<std::shared_ptr<interface>> interface_additions{};
+    std::vector<interface *> order{};
+    std::vector<interface *> pool{};
   };
 
   struct window_state
@@ -170,6 +186,7 @@ namespace cse::help
     {
       std::shared_ptr<cse::camera> camera{};
       std::vector<std::shared_ptr<cse::object>> objects{};
+      std::vector<std::shared_ptr<cse::interface>> interfaces{};
       std::vector<contact> contacts{};
       help::timer timer{};
       help::phase phase{};
@@ -178,6 +195,7 @@ namespace cse::help
     {
       std::shared_ptr<cse::camera> camera{};
       std::vector<std::shared_ptr<cse::object>> objects{};
+      std::vector<std::shared_ptr<cse::interface>> interfaces{};
       std::vector<contact> contacts{};
       help::timer timer{};
       help::phase phase{};
@@ -199,6 +217,7 @@ namespace cse::help
     void update_previous();
 
     void generate_order(const std::vector<std::shared_ptr<object>> &objects);
+    void generate_order(const std::vector<std::shared_ptr<interface>> &interfaces);
     void generate_contacts();
 
   public:
@@ -207,9 +226,12 @@ namespace cse::help
     scene_state::next next{};
 
   private:
-    std::unordered_set<cse::name> removals{};
-    std::vector<std::shared_ptr<object>> additions{};
-    std::vector<object *> order{};
+    std::unordered_set<cse::name> object_removals{};
+    std::vector<std::shared_ptr<object>> object_additions{};
+    std::vector<object *> object_order{};
+    std::unordered_set<cse::name> interface_removals{};
+    std::vector<std::shared_ptr<interface>> interface_additions{};
+    std::vector<interface *> interface_order{};
   };
 
   struct camera_state
@@ -258,7 +280,7 @@ namespace cse::help
   {
     friend class cse::scene;
     friend class cse::object;
-    friend struct scene_graphics;
+    friend struct game_graphics;
 
   private:
     struct previous
@@ -301,5 +323,60 @@ namespace cse::help
   public:
     object_state::previous previous{};
     object_state::active active{};
+  };
+
+  struct interface_state
+  {
+    friend class cse::game;
+    friend class cse::scene;
+    friend class cse::interface;
+    friend struct game_graphics;
+
+  private:
+    struct previous
+    {
+      temporal<glm::dvec2> translation{};
+      temporal<double> rotation{};
+      temporal<glm::dvec2> scale{};
+      std::string text{};
+      cse::hitbox hovered{};
+      cse::hitbox pressed{};
+      int priority{};
+      help::timer timer{};
+      help::phase phase{};
+    };
+    struct active
+    {
+      temporal<glm::dvec2> translation{};
+      temporal<double> rotation{};
+      temporal<glm::dvec2> scale{};
+      std::string text{};
+      cse::hitbox hovered{};
+      cse::hitbox pressed{};
+      int priority{};
+      help::timer timer{};
+      help::phase phase{};
+    };
+
+  public:
+    interface_state() = default;
+    interface_state(const glm::dvec2 &translation_, const double rotation_, const glm::dvec2 &scale_,
+                    const std::string &text_, const int priority_);
+    ~interface_state() = default;
+    interface_state(const interface_state &) = delete;
+    interface_state &operator=(const interface_state &) = delete;
+    interface_state(interface_state &&) = delete;
+    interface_state &operator=(interface_state &&) = delete;
+
+  private:
+    void update_previous();
+
+    glm::dmat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
+                                      const double alpha) const;
+    glm::dmat4 calculate_text_matrix(const unsigned int width, const unsigned int height, const double alpha) const;
+
+  public:
+    interface_state::previous previous{};
+    interface_state::active active{};
   };
 }

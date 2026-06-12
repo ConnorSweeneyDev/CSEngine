@@ -9,6 +9,7 @@ namespace cse
   class scene;
   class camera;
   class object;
+  class interface;
 }
 
 namespace cse::help
@@ -23,6 +24,8 @@ namespace cse::help
   struct camera_graphics;
   struct object_state;
   struct object_graphics;
+  struct interface_state;
+  struct interface_graphics;
 }
 
 namespace cse::trait
@@ -37,4 +40,6 @@ namespace cse::trait
   concept is_camera = std::is_base_of_v<camera, type>;
   template <typename type>
   concept is_object = std::is_base_of_v<object, type>;
+  template <typename type>
+  concept is_interface = std::is_base_of_v<interface, type>;
 }

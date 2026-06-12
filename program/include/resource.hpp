@@ -15,16 +15,23 @@ namespace cse
   struct vertex
   {
     bool operator==(const vertex &other) const
-    { return source.data() == other.source.data() && source.size() == other.source.size(); }
+    { return data.data() == other.data.data() && data.size() == other.data.size(); }
 
-    std::span<const unsigned char> source{};
+    std::span<const unsigned char> data{};
   };
   struct fragment
   {
     bool operator==(const fragment &other) const
-    { return source.data() == other.source.data() && source.size() == other.source.size(); }
+    { return data.data() == other.data.data() && data.size() == other.data.size(); }
 
-    std::span<const unsigned char> source{};
+    std::span<const unsigned char> data{};
+  };
+  struct font
+  {
+    bool operator==(const font &other) const
+    { return data.data() == other.data.data() && data.size() == other.data.size(); }
+
+    std::span<const unsigned char> data{};
   };
 
   struct image

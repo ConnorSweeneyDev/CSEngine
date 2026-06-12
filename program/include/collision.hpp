@@ -51,5 +51,6 @@ namespace cse
     rectangle bounds(const object *object, const rectangle &bounds);
     contact describe(const name self_name, object *target, const hitbox own, const hitbox theirs,
                      const rectangle &self_bounds, const rectangle &target_bounds);
+    hitbox hit(const interface *interface, const glm::dvec2 &point);
   }
 }

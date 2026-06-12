@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <type_traits>
 
 #include "SDL3/SDL_events.h"
 #include "glm/ext/vector_double4.hpp"
@@ -25,6 +26,7 @@ namespace cse
     {
       const double frame{};
       const double aspect{};
+      const unsigned int resolution{};
       const glm::dvec4 clear{};
     };
 
@@ -41,17 +43,21 @@ namespace cse
     static std::shared_ptr<game> create(callable &&config, game_arguments &&...arguments);
     template <trait::is_window window_type, typename... window_arguments> game &set(window_arguments &&...arguments);
     template <trait::is_scene scene_type, typename... scene_arguments>
-    game &set(const name name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
+    game &set(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
               scene_arguments &&...arguments);
     template <trait::is_callable callable, typename... scene_arguments>
-    game &set(const name name, callable &&config, scene_arguments &&...arguments);
+    game &set(const name scene_name, callable &&config, scene_arguments &&...arguments);
     template <trait::is_scene scene_type, typename... scene_arguments>
-    game &current(const name name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
+    game &current(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
                   scene_arguments &&...arguments);
     template <trait::is_callable callable, typename... scene_arguments>
-    game &current(const name name, callable &&config, scene_arguments &&...arguments);
-    game &current(const name name);
-    game &remove(const name name);
+    game &current(const name scene_name, callable &&config, scene_arguments &&...arguments);
+    game &current(const name scene_name);
+    template <trait::is_interface interface_type, typename... interface_arguments>
+    game &set(const name interface_name, interface_arguments &&...arguments);
+    template <typename target_type = void>
+      requires(std::is_void_v<target_type> || trait::is_scene<target_type> || trait::is_interface<target_type>)
+    game &remove(const name target_name);
 
     void run();
 

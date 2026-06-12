@@ -6,9 +6,13 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
+#include <string>
 #include <vector>
 
+#include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
+#include "SDL3/SDL_mouse.h"
 #include "SDL3/SDL_rect.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
@@ -20,6 +24,7 @@
 
 #include "collision.hpp"
 #include "exception.hpp"
+#include "interface.hpp"
 #include "object.hpp"
 
 namespace cse::help
@@ -32,8 +37,140 @@ namespace cse::help
     previous.window = active.window;
     previous.scenes = active.scenes;
     previous.scene = active.scene;
+    previous.interfaces = active.interfaces;
     previous.timer = active.timer;
     previous.phase = active.phase;
+  }
+
+  void game_state::generate_order(const std::vector<std::shared_ptr<interface>> &interfaces)
+  {
+    order.clear();
+    for (order.reserve(interfaces.size()); const auto &interface : interfaces) order.emplace_back(interface.get());
+    std::sort(order.begin(), order.end(),
+              [](const interface *left, const interface *right)
+              {
+                if (left->state.active.priority != right->state.active.priority)
+                  return left->state.active.priority > right->state.active.priority;
+                return left->name.identifier() < right->name.identifier();
+              });
+  }
+
+  void game_state::generate_pool(const std::vector<interface *> &interfaces)
+  {
+    pool.clear();
+    pool.reserve(interfaces.size() + order.size());
+    pool.insert(pool.end(), interfaces.begin(), interfaces.end());
+    pool.insert(pool.end(), order.begin(), order.end());
+    std::sort(pool.begin(), pool.end(),
+              [](const interface *left, const interface *right)
+              {
+                if (left->state.active.priority != right->state.active.priority)
+                  return left->state.active.priority > right->state.active.priority;
+                if (const auto left_layer{left->scene ? 0 : 1}, right_layer{right->scene ? 0 : 1};
+                    left_layer != right_layer)
+                  return left_layer > right_layer;
+                return left->name.identifier() < right->name.identifier();
+              });
+  }
+
+  std::optional<glm::dvec2> game_state::locate(const float x, const float y, const unsigned int width,
+                                               const unsigned int height, const double aspect,
+                                               const unsigned int resolution) const
+  {
+    const auto window_width{static_cast<double>(width)};
+    const auto window_height{static_cast<double>(height)};
+    double viewport_left{}, viewport_top{}, viewport_width{}, viewport_height{};
+    if (window_width / window_height > aspect)
+    {
+      viewport_height = window_height;
+      viewport_width = viewport_height * aspect;
+      viewport_left = (window_width - viewport_width) / 2.0;
+    }
+    else
+    {
+      viewport_width = window_width;
+      viewport_height = viewport_width / aspect;
+      viewport_top = (window_height - viewport_height) / 2.0;
+    }
+    const auto window_x{static_cast<double>(x)};
+    const auto window_y{static_cast<double>(y)};
+    if (window_x < viewport_left || window_x >= viewport_left + viewport_width || window_y < viewport_top ||
+        window_y >= viewport_top + viewport_height)
+      return std::nullopt;
+    const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
+    const auto canvas_width{canvas_height * aspect};
+    const glm::dvec2 canvas{(window_x - viewport_left) / viewport_width * canvas_width - canvas_width / 2.0,
+                            (window_y - viewport_top) / viewport_height * canvas_height - canvas_height / 2.0};
+    return glm::dvec2{canvas.x + (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
+                      canvas.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
+  }
+
+  void game_state::interact(const SDL_Event &event, const unsigned int width, const unsigned int height,
+                            const double aspect, const unsigned int resolution)
+  {
+    if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT)
+    {
+      const auto position{locate(event.button.x, event.button.y, width, height, aspect, resolution)};
+      if (!position) return;
+      for (auto *interface : pool)
+        if (const auto target{collision::hit(interface, *position)}; !(target == hitbox{}))
+        {
+          interface->state.active.pressed = target;
+          interface->on_press(target);
+          break;
+        }
+    }
+    else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP && event.button.button == SDL_BUTTON_LEFT)
+    {
+      const auto position{locate(event.button.x, event.button.y, width, height, aspect, resolution)};
+      interface *hit{};
+      hitbox top{};
+      if (position)
+        for (auto *interface : pool)
+          if (top = collision::hit(interface, *position); !(top == hitbox{}))
+          {
+            hit = interface;
+            break;
+          }
+      for (auto *interface : pool)
+        if (const auto target{interface->state.active.pressed}; !(target == hitbox{}))
+        {
+          interface->state.active.pressed = {};
+          interface->on_release(target);
+          if (interface == hit && target == top) interface->on_click(target);
+        }
+    }
+  }
+
+  void game_state::hover(SDL_Window *instance, const unsigned int width, const unsigned int height, const double aspect,
+                         const unsigned int resolution)
+  {
+    std::optional<glm::dvec2> position{};
+    if (SDL_GetMouseFocus() == instance)
+    {
+      float x{}, y{};
+      SDL_GetMouseState(&x, &y);
+      position = locate(x, y, width, height, aspect, resolution);
+    }
+    interface *hit{};
+    hitbox target{};
+    if (position)
+      for (auto *interface : pool)
+        if (target = collision::hit(interface, *position); !(target == hitbox{}))
+        {
+          hit = interface;
+          break;
+        }
+    for (auto *interface : pool)
+    {
+      const auto current{interface == hit ? target : hitbox{}};
+      auto &hovered{interface->state.active.hovered};
+      if (current == hovered) continue;
+      const auto previous_target{hovered};
+      hovered = current;
+      if (!(previous_target == hitbox{})) interface->on_unhover(previous_target);
+      if (!(current == hitbox{})) interface->on_hover(current);
+    }
   }
 
   window_state::window_state(const SDL_DisplayID display_, const int left_, const int top_, const unsigned int width_,
@@ -208,6 +345,7 @@ namespace cse::help
   {
     previous.camera = active.camera;
     previous.objects = active.objects;
+    previous.interfaces = active.interfaces;
     previous.contacts = active.contacts;
     previous.timer = active.timer;
     previous.phase = active.phase;
@@ -215,10 +353,24 @@ namespace cse::help
 
   void scene_state::generate_order(const std::vector<std::shared_ptr<object>> &objects)
   {
-    order.clear();
-    for (order.reserve(objects.size()); const auto &object : objects) order.emplace_back(object.get());
-    std::sort(order.begin(), order.end(),
+    object_order.clear();
+    for (object_order.reserve(objects.size()); const auto &object : objects) object_order.emplace_back(object.get());
+    std::sort(object_order.begin(), object_order.end(),
               [](const object *left, const object *right)
+              {
+                if (left->state.active.priority != right->state.active.priority)
+                  return left->state.active.priority > right->state.active.priority;
+                return left->name.identifier() < right->name.identifier();
+              });
+  }
+
+  void scene_state::generate_order(const std::vector<std::shared_ptr<interface>> &interfaces)
+  {
+    interface_order.clear();
+    for (interface_order.reserve(interfaces.size()); const auto &interface : interfaces)
+      interface_order.emplace_back(interface.get());
+    std::sort(interface_order.begin(), interface_order.end(),
+              [](const interface *left, const interface *right)
               {
                 if (left->state.active.priority != right->state.active.priority)
                   return left->state.active.priority > right->state.active.priority;
@@ -366,6 +518,58 @@ namespace cse::help
     model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation + 0.5) * 90.0), {0.0, 0.0, 1.0});
     model_matrix = glm::scale(model_matrix, {std::floor(scale.x + 0.5) * static_cast<double>(frame_width) / 2.0,
                                              std::floor(scale.y + 0.5) * static_cast<double>(frame_height) / 2.0, 1.0});
+    return model_matrix;
+  }
+
+  interface_state::interface_state(const glm::dvec2 &translation_, const double rotation_, const glm::dvec2 &scale_,
+                                   const std::string &text_, const int priority_)
+    : previous{
+        .translation = translation_, .rotation = rotation_, .scale = scale_, .text = text_, .priority = priority_},
+      active{.translation = translation_, .rotation = rotation_, .scale = scale_, .text = text_, .priority = priority_}
+  {
+  }
+
+  void interface_state::update_previous()
+  {
+    previous.translation = active.translation;
+    previous.rotation = active.rotation;
+    previous.scale = active.scale;
+    previous.text = active.text;
+    previous.hovered = active.hovered;
+    previous.pressed = active.pressed;
+    previous.priority = active.priority;
+    previous.timer = active.timer;
+    previous.phase = active.phase;
+  }
+
+  glm::dmat4 interface_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
+                                                     const double alpha) const
+  {
+    auto translation = previous.translation.value + (active.translation.value - previous.translation.value) * alpha;
+    auto rotation = previous.rotation.value + (active.rotation.value - previous.rotation.value) * alpha;
+    auto scale = previous.scale.value + (active.scale.value - previous.scale.value) * alpha;
+    auto model_matrix{glm::dmat4(1.0)};
+    model_matrix =
+      glm::translate(model_matrix, {std::floor(translation.x + 0.5), std::floor(translation.y + 0.5), 0.0});
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation + 0.5) * -90.0), {0.0, 0.0, 1.0});
+    model_matrix =
+      glm::translate(model_matrix, {frame_width % 2 == 0 ? 0.5 : 0.0, frame_height % 2 == 0 ? 0.5 : 0.0, 0.0});
+    model_matrix = glm::scale(model_matrix, {std::floor(scale.x + 0.5) * static_cast<double>(frame_width) / 2.0,
+                                             std::floor(scale.y + 0.5) * static_cast<double>(frame_height) / 2.0, 1.0});
+    return model_matrix;
+  }
+
+  glm::dmat4 interface_state::calculate_text_matrix(const unsigned int width, const unsigned int height,
+                                                    const double alpha) const
+  {
+    auto translation = previous.translation.value + (active.translation.value - previous.translation.value) * alpha;
+    auto rotation = previous.rotation.value + (active.rotation.value - previous.rotation.value) * alpha;
+    auto model_matrix{glm::dmat4(1.0)};
+    model_matrix =
+      glm::translate(model_matrix, {std::floor(translation.x + 0.5), std::floor(translation.y + 0.5), 0.0});
+    model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation + 0.5) * -90.0), {0.0, 0.0, 1.0});
+    model_matrix = glm::translate(model_matrix, {width % 2 == 0 ? 0.5 : 0.0, height % 2 == 0 ? 0.5 : 0.0, 0.0});
+    model_matrix = glm::scale(model_matrix, {width / 2.0, height / 2.0, 1.0});
     return model_matrix;
   }
 }
