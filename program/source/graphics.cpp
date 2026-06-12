@@ -286,8 +286,7 @@ namespace cse::help
       auto &available{require_pipelines(instance, gpu, graphics.active.shader.vertex, graphics.active.shader.fragment)};
       auto *pipe{available.interface};
       auto *texture{require_texture(gpu, graphics.active.texture.image)};
-      if (!object.batches.empty() && object.batches.back().pipeline == pipe &&
-          object.batches.back().texture == texture)
+      if (!object.batches.empty() && object.batches.back().pipeline == pipe && object.batches.back().texture == texture)
         object.batches.back().count++;
       else
         object.batches.push_back({object.samples.size(), 1, pipe, texture});
