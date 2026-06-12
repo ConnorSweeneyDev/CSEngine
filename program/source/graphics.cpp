@@ -240,13 +240,12 @@ namespace cse::help
       data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
       data.transparency = static_cast<float>(transparency);
       auto &available{require_pipelines(instance, gpu, graphics.active.shader.vertex, graphics.active.shader.fragment)};
-      auto *pipeline{transparency < 1.0 ? available.transparent : available.opaque};
+      auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
       auto *texture{require_texture(gpu, graphics.active.texture.image)};
-      if (!object.batches.empty() && object.batches.back().pipeline == pipeline &&
-          object.batches.back().texture == texture)
+      if (!object.batches.empty() && object.batches.back().pipeline == pipe && object.batches.back().texture == texture)
         object.batches.back().count++;
       else
-        object.batches.push_back({object.samples.size(), 1, pipeline, texture});
+        object.batches.push_back({object.samples.size(), 1, pipe, texture});
       object.samples.push_back(data);
     }
   }
@@ -285,13 +284,13 @@ namespace cse::help
       data.bottom = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
       data.transparency = static_cast<float>(transparency);
       auto &available{require_pipelines(instance, gpu, graphics.active.shader.vertex, graphics.active.shader.fragment)};
-      auto *pipeline{available.interface};
+      auto *pipe{available.interface};
       auto *texture{require_texture(gpu, graphics.active.texture.image)};
-      if (!object.batches.empty() && object.batches.back().pipeline == pipeline &&
+      if (!object.batches.empty() && object.batches.back().pipeline == pipe &&
           object.batches.back().texture == texture)
         object.batches.back().count++;
       else
-        object.batches.push_back({object.samples.size(), 1, pipeline, texture});
+        object.batches.push_back({object.samples.size(), 1, pipe, texture});
       object.samples.push_back(data);
 
       if (element->state.active.text.empty()) continue;
@@ -314,7 +313,7 @@ namespace cse::help
       text_data.top = static_cast<float>(1.0 - clip_top);
       text_data.bottom = static_cast<float>(clip_top);
       text_data.transparency = static_cast<float>(transparency);
-      object.batches.push_back({object.samples.size(), 1, pipeline, entry.texture});
+      object.batches.push_back({object.samples.size(), 1, pipe, entry.texture});
       object.samples.push_back(text_data);
     }
   }

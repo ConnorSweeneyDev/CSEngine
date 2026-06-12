@@ -108,7 +108,7 @@ namespace cse::help
     using font_key = std::tuple<const unsigned char *, std::size_t, unsigned int>;
     struct cache
     {
-      std::map<pipeline_key, pipeline> pipeline{};
+      std::map<pipeline_key, game_graphics::pipeline> pipeline{};
       std::map<texture_key, SDL_GPUTexture *> texture{};
       std::map<font_key, TTF_Font *> font{};
     };
