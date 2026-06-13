@@ -9,8 +9,7 @@ namespace cse::help
 {
   void mixer::load(std::initializer_list<request> requests)
   {
-    for (const auto &request : requests)
-      std::visit([&](const auto &source) { load(request.id, source); }, request.source);
+    for (const auto &name : requests) std::visit([&](const auto &source) { load(name.id, source); }, name.source);
   }
 
   void mixer::unload(const name name)

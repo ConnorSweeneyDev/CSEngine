@@ -78,11 +78,11 @@ namespace cse::help
       for (const auto &interface : scene->state.active.interfaces) add(interface.get(), live);
     }
 
-    for (auto &[key, track] : tracks) track.seen = false;
-    for (const auto &channel : channels)
+    for (auto &[key, audio] : tracks) audio.seen = false;
+    for (const auto &audio : channels)
     {
-      reconcile<cse::sound>(channel.previous, channel.active, channel.live, alpha, "sound", true, sound_bus);
-      reconcile<cse::music>(channel.previous, channel.active, channel.live, alpha, "music", false, music_bus);
+      reconcile<cse::sound>(audio.previous, audio.active, audio.live, alpha, "sound", true, sound_bus);
+      reconcile<cse::music>(audio.previous, audio.active, audio.live, alpha, "music", false, music_bus);
     }
     for (auto iterator{tracks.begin()}; iterator != tracks.end();)
       if (!iterator->second.seen)
@@ -96,8 +96,8 @@ namespace cse::help
 
   void game_audio::destroy_app()
   {
-    for (auto &[key, track] : tracks)
-      if (track.handle) MIX_DestroyTrack(track.handle);
+    for (auto &[key, audio] : tracks)
+      if (audio.handle) MIX_DestroyTrack(audio.handle);
     tracks.clear();
     for (auto &[key, audio] : cache)
       if (audio) MIX_DestroyAudio(audio);
