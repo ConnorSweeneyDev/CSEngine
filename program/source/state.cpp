@@ -39,6 +39,7 @@ namespace cse::help
     previous.scene = active.scene;
     previous.interfaces = active.interfaces;
     previous.timer = active.timer;
+    previous.mixer = active.mixer;
     previous.phase = active.phase;
   }
 
@@ -188,6 +189,7 @@ namespace cse::help
     previous.height = active.height;
     previous.running = active.running;
     previous.timer = active.timer;
+    previous.mixer = active.mixer;
     previous.phase = active.phase;
   }
 
@@ -348,6 +350,7 @@ namespace cse::help
     previous.interfaces = active.interfaces;
     previous.contacts = active.contacts;
     previous.timer = active.timer;
+    previous.mixer = active.mixer;
     previous.phase = active.phase;
   }
 
@@ -474,6 +477,7 @@ namespace cse::help
     previous.forward = active.forward;
     previous.up = active.up;
     previous.timer = active.timer;
+    previous.mixer = active.mixer;
     previous.phase = active.phase;
   }
 
@@ -500,6 +504,7 @@ namespace cse::help
     previous.collidable = active.collidable;
     previous.priority = active.priority;
     previous.timer = active.timer;
+    previous.mixer = active.mixer;
     previous.phase = active.phase;
   }
 
@@ -539,6 +544,7 @@ namespace cse::help
     previous.pressed = active.pressed;
     previous.priority = active.priority;
     previous.timer = active.timer;
+    previous.mixer = active.mixer;
     previous.phase = active.phase;
   }
 

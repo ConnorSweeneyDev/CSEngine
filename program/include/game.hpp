@@ -7,6 +7,7 @@
 #include "SDL3/SDL_events.h"
 #include "glm/ext/vector_double4.hpp"
 
+#include "audio.hpp"
 #include "core.hpp"
 #include "function.hpp"
 #include "graphics.hpp"
@@ -28,6 +29,12 @@ namespace cse
       const double aspect{};
       const unsigned int resolution{};
       const glm::dvec4 clear{};
+    };
+    struct initial_audio
+    {
+      const double master{};
+      const double sound{};
+      const double music{};
     };
 
   public:
@@ -62,7 +69,7 @@ namespace cse
     void run();
 
   protected:
-    game(const initial_state &state_, const initial_graphics &graphics_);
+    game(const initial_state &state_, const initial_graphics &graphics_, const initial_audio &audio_);
     virtual void pre_prepare();
     virtual void post_prepare();
     virtual void pre_create();
@@ -81,6 +88,8 @@ namespace cse
     virtual void post_collide(const double tick);
     virtual void pre_render(const double alpha);
     virtual void post_render(const double alpha);
+    virtual void pre_mix(const double alpha);
+    virtual void post_mix(const double alpha);
     virtual void pre_destroy();
     virtual void post_destroy();
     virtual void pre_clean();
@@ -96,6 +105,7 @@ namespace cse
     void simulate();
     void collide();
     void render();
+    void mix();
     void destroy();
     void clean();
 
@@ -112,6 +122,7 @@ namespace cse
   public:
     help::game_state state{};
     help::game_graphics graphics{};
+    help::game_audio audio{};
 
   private:
     static inline std::weak_ptr<game> instance{};

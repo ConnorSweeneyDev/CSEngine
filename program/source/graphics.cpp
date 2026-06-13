@@ -177,6 +177,7 @@ namespace cse::help
   void game_graphics::destroy_app()
   {
     TTF_Quit();
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
     SDL_Quit();
   }
 
@@ -392,7 +393,7 @@ namespace cse::help
   game_graphics::pipeline &game_graphics::require_pipelines(SDL_Window *instance, SDL_GPUDevice *gpu,
                                                             const cse::vertex &vertex, const cse::fragment &fragment)
   {
-    const pipeline_key key{vertex.data.data(), vertex.data.size(), fragment.data.data(), fragment.data.size()};
+    const cache::pipeline_key key{vertex.data.data(), vertex.data.size(), fragment.data.data(), fragment.data.size()};
     if (const auto iterator{cache.pipeline.find(key)}; iterator != cache.pipeline.end()) return iterator->second;
     const auto backend_formats{SDL_GetGPUShaderFormats(gpu)};
     if (!(backend_formats & SDL_GPU_SHADERFORMAT_SPIRV))
@@ -535,7 +536,7 @@ namespace cse::help
 
   SDL_GPUTexture *game_graphics::require_texture(SDL_GPUDevice *gpu, const cse::image &image)
   {
-    const texture_key key{image.data.data(), image.data.size()};
+    const cache::texture_key key{image.data.data(), image.data.size()};
     if (const auto iterator{cache.texture.find(key)}; iterator != cache.texture.end()) return iterator->second;
     const auto type{SDL_GPU_TEXTURETYPE_2D};
     const auto format{SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM};
@@ -585,7 +586,7 @@ namespace cse::help
 
   TTF_Font *game_graphics::require_font(const cse::font &font, const unsigned int size)
   {
-    const font_key key{font.data.data(), font.data.size(), size};
+    const cache::font_key key{font.data.data(), font.data.size(), size};
     if (const auto iterator{cache.font.find(key)}; iterator != cache.font.end()) return iterator->second;
     auto *source{SDL_IOFromConstMem(font.data.data(), font.data.size())};
     if (!source) throw sdl_exception("Could not open font data for game");

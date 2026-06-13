@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <span>
+#include <type_traits>
 #include <utility>
 
 #include "glm/ext/vector_double4.hpp"
@@ -29,6 +30,20 @@ namespace cse
   struct font
   {
     bool operator==(const font &other) const
+    { return data.data() == other.data.data() && data.size() == other.data.size(); }
+
+    std::span<const unsigned char> data{};
+  };
+  struct sound
+  {
+    bool operator==(const sound &other) const
+    { return data.data() == other.data.data() && data.size() == other.data.size(); }
+
+    std::span<const unsigned char> data{};
+  };
+  struct music
+  {
+    bool operator==(const music &other) const
     { return data.data() == other.data.data() && data.size() == other.data.size(); }
 
     std::span<const unsigned char> data{};
@@ -75,4 +90,10 @@ namespace cse
   };
   using color = glm::dvec4;
   using transparency = double;
+}
+
+namespace cse::trait
+{
+  template <typename type>
+  concept is_audio = std::is_same_v<type, sound> || std::is_same_v<type, music>;
 }

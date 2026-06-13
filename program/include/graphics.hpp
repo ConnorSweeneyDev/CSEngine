@@ -103,11 +103,11 @@ namespace cse::help
       std::map<const cse::interface *, label> labels{};
       std::uint64_t stamp{};
     };
-    using pipeline_key = std::tuple<const unsigned char *, std::size_t, const unsigned char *, std::size_t>;
-    using texture_key = std::pair<const unsigned char *, std::size_t>;
-    using font_key = std::tuple<const unsigned char *, std::size_t, unsigned int>;
     struct cache
     {
+      using pipeline_key = std::tuple<const unsigned char *, std::size_t, const unsigned char *, std::size_t>;
+      using texture_key = std::pair<const unsigned char *, std::size_t>;
+      using font_key = std::tuple<const unsigned char *, std::size_t, unsigned int>;
       std::map<pipeline_key, game_graphics::pipeline> pipeline{};
       std::map<texture_key, SDL_GPUTexture *> texture{};
       std::map<font_key, TTF_Font *> font{};

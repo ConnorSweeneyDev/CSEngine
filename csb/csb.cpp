@@ -62,6 +62,14 @@ int csb::build()
                                           }},
                                        },
                                        "sdl3-ttf",
+                                       {
+                                         {"name", "sdl3-mixer"},
+                                         {"default-features", false},
+                                         {"features",
+                                          {
+                                            "opusfile",
+                                          }},
+                                       },
                                        "glm",
                                      }},
                                     {"overrides",
@@ -73,6 +81,10 @@ int csb::build()
                                        {
                                          {"name", "sdl3-ttf"},
                                          {"version", "3.2.2#1"},
+                                       },
+                                       {
+                                         {"name", "sdl3-mixer"},
+                                         {"version", "3.2.0#2"},
                                        },
                                        {
                                          {"name", "glm"},

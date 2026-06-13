@@ -21,8 +21,9 @@
 
 namespace cse
 {
-  game::game(const initial_state &state_, const initial_graphics &graphics_)
-    : state{state_.tick}, graphics{graphics_.frame, graphics_.aspect, graphics_.resolution, graphics_.clear}
+  game::game(const initial_state &state_, const initial_graphics &graphics_, const initial_audio &audio_)
+    : state{state_.tick}, graphics{graphics_.frame, graphics_.aspect, graphics_.resolution, graphics_.clear},
+      audio{audio_.master, audio_.sound, audio_.music}
   {
   }
 
@@ -61,6 +62,7 @@ namespace cse
       {
         fps();
         render();
+        mix();
         fps();
       }
     }
@@ -96,6 +98,7 @@ namespace cse
     if (state.active.phase != help::phase::PREPARED) throw exception("Game must be prepared before creation");
     pre_create();
     graphics.create_app();
+    audio.create_app();
     state.active.window->create();
     graphics.create(state.active.window->graphics.gpu);
     state.active.scene->create();
@@ -113,6 +116,7 @@ namespace cse
     pre_previous();
     state.update_previous();
     graphics.update_previous();
+    audio.update_previous();
     state.active.window->previous();
     state.active.scene->previous();
     for (const auto &interface : state.active.interfaces) interface->previous();
@@ -274,6 +278,17 @@ namespace cse
     post_render(state.alpha);
   }
 
+  void game::pre_mix(const double) {}
+  void game::post_mix(const double) {}
+  void game::mix()
+  {
+    if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before mixing");
+    pre_mix(state.alpha);
+    audio.mix(state.previous.mixer, state.active.mixer, state.active.window, state.active.interfaces,
+              state.active.scenes, state.active.scene, state.alpha);
+    post_mix(state.alpha);
+  }
+
   void game::pre_destroy() {}
   void game::post_destroy() {}
   void game::destroy()
@@ -284,6 +299,7 @@ namespace cse
     state.active.scene->destroy();
     graphics.destroy(state.active.window->graphics.gpu);
     state.active.window->destroy();
+    audio.destroy_app();
     graphics.destroy_app();
     state.active.phase = help::phase::PREPARED;
     post_destroy();

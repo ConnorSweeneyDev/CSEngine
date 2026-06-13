@@ -17,6 +17,7 @@
 
 #include "collision.hpp"
 #include "core.hpp"
+#include "mixer.hpp"
 #include "name.hpp"
 #include "property.hpp"
 #include "temporal.hpp"
@@ -50,6 +51,7 @@ namespace cse::help
       std::shared_ptr<cse::scene> scene{};
       std::vector<std::shared_ptr<cse::interface>> interfaces{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
     struct active
@@ -60,6 +62,7 @@ namespace cse::help
       std::shared_ptr<cse::scene> scene{};
       std::vector<std::shared_ptr<cse::interface>> interfaces{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
     struct next
@@ -120,6 +123,7 @@ namespace cse::help
       unsigned int height{};
       bool running{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
     struct active
@@ -131,6 +135,7 @@ namespace cse::help
       property<unsigned int> height{};
       bool running{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
 
@@ -189,6 +194,7 @@ namespace cse::help
       std::vector<std::shared_ptr<cse::interface>> interfaces{};
       std::vector<contact> contacts{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
     struct active
@@ -198,6 +204,7 @@ namespace cse::help
       std::vector<std::shared_ptr<cse::interface>> interfaces{};
       std::vector<contact> contacts{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
     struct next
@@ -246,6 +253,7 @@ namespace cse::help
       temporal<glm::dvec3> forward{};
       temporal<glm::dvec3> up{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
     struct active
@@ -254,6 +262,7 @@ namespace cse::help
       temporal<glm::dvec3> forward{};
       temporal<glm::dvec3> up{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
 
@@ -291,6 +300,7 @@ namespace cse::help
       bool collidable{};
       int priority{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
     struct active
@@ -301,6 +311,7 @@ namespace cse::help
       bool collidable{};
       int priority{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
 
@@ -343,6 +354,7 @@ namespace cse::help
       cse::hitbox pressed{};
       int priority{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
     struct active
@@ -355,6 +367,7 @@ namespace cse::help
       cse::hitbox pressed{};
       int priority{};
       help::timer timer{};
+      help::mixer mixer{};
       help::phase phase{};
     };
 

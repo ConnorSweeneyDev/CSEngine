@@ -16,6 +16,7 @@ namespace cse::help
 {
   struct game_state;
   struct game_graphics;
+  struct game_audio;
   struct window_state;
   struct window_graphics;
   struct scene_state;
