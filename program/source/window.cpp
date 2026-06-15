@@ -14,27 +14,6 @@ namespace cse
     : state{state_.display, state_.left, state_.top, state_.width, state_.height},
       graphics{graphics_.title, graphics_.fullscreen, graphics_.vsync}
   {
-    state.active.display.change = [this]()
-    { state.handle_manual_display_move(graphics.active.fullscreen, graphics.instance, PRIMARY); };
-    state.active.left.change = [this]()
-    { state.handle_manual_move(graphics.active.fullscreen, graphics.instance, CENTER); };
-    state.active.top.change = [this]()
-    { state.handle_manual_move(graphics.active.fullscreen, graphics.instance, CENTER); };
-    state.active.width.change = [this]()
-    {
-      state.handle_manual_resize(graphics.active.fullscreen, graphics.instance, graphics.gpu, graphics.depth_texture,
-                                 graphics.generate_depth_texture);
-    };
-    state.active.height.change = [this]()
-    {
-      state.handle_manual_resize(graphics.active.fullscreen, graphics.instance, graphics.gpu, graphics.depth_texture,
-                                 graphics.generate_depth_texture);
-    };
-    graphics.active.fullscreen.change = [this]()
-    {
-      graphics.handle_fullscreen(state.active.display, state.windowed_left, state.windowed_top, state.windowed_width,
-                                 state.windowed_height, state.calculate_display_center, state.relative_to_absolute);
-    };
   }
 
   void window::on_prepare() {}
@@ -51,9 +30,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Window must be prepared before creation");
     graphics.create_window(state.active.display, state.active.left, state.active.top, state.active.width,
-                           state.active.height, state.windowed_left, state.windowed_top, state.windowed_width,
-                           state.windowed_height, state.calculate_display_center, state.relative_to_absolute,
-                           state.absolute_to_relative, PRIMARY, CENTER);
+                           state.active.height, PRIMARY, CENTER);
     state.active.phase = help::phase::CREATED;
     on_create();
   }
@@ -75,10 +52,12 @@ namespace cse
     switch (state.event.type)
     {
       case SDL_EVENT_QUIT: state.active.running = false; break;
-      case SDL_EVENT_WINDOW_MOVED: state.handle_move(graphics.active.fullscreen, graphics.instance); break;
+      case SDL_EVENT_WINDOW_MOVED:
+        graphics.handle_move(state.active.display, state.active.left, state.active.top);
+        break;
       case SDL_EVENT_WINDOW_RESIZED:
-        state.handle_resize(graphics.active.fullscreen, graphics.instance, graphics.gpu, graphics.depth_texture,
-                            graphics.generate_depth_texture);
+        graphics.handle_resize(state.active.display, state.active.left, state.active.top, state.active.width,
+                               state.active.height);
         break;
       default: on_event(state.event); break;
     }
@@ -104,6 +83,8 @@ namespace cse
                             const double previous_aspect, const double active_aspect, const double alpha)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
+    graphics.reconcile(state.active.display, state.active.left, state.active.top, state.active.width,
+                       state.active.height, PRIMARY, CENTER);
     if (!graphics.acquire_swapchain_texture()) return false;
     graphics.start_render_pass(state.active.width, state.active.height, previous_clear, active_clear, previous_aspect,
                                active_aspect, alpha);

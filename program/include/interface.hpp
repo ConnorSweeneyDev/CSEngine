@@ -16,8 +16,8 @@ namespace cse
   class interface
   {
     friend class game;
-    friend class scene;
     friend struct help::game_state;
+    friend class scene;
 
   protected:
     struct initial_state

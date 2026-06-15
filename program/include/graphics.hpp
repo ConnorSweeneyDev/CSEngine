@@ -3,7 +3,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -19,7 +18,6 @@
 #include "glm/ext/vector_int2.hpp"
 
 #include "core.hpp"
-#include "property.hpp"
 #include "resource.hpp"
 #include "temporal.hpp"
 
@@ -29,21 +27,6 @@ namespace cse::help
   {
     friend class cse::game;
     friend struct scene_graphics;
-
-    struct previous
-    {
-      double frame{};
-      temporal<double> aspect{};
-      unsigned int resolution{};
-      temporal<glm::dvec4> clear{};
-    };
-    struct active
-    {
-      double frame{};
-      temporal<double> aspect{};
-      unsigned int resolution{};
-      temporal<glm::dvec4> clear{};
-    };
 
   private:
     struct corner
@@ -113,6 +96,21 @@ namespace cse::help
       std::map<font_key, TTF_Font *> font{};
     };
 
+    struct previous
+    {
+      double frame{};
+      temporal<double> aspect{};
+      unsigned int resolution{};
+      temporal<glm::dvec4> clear{};
+    };
+    struct active
+    {
+      double frame{};
+      temporal<double> aspect{};
+      unsigned int resolution{};
+      temporal<glm::dvec4> clear{};
+    };
+
   public:
     game_graphics() = default;
     game_graphics(const double frame_, const double aspect_, const unsigned int resolution_, const glm::dvec4 &clear_);
@@ -143,12 +141,12 @@ namespace cse::help
     void upload_samples(SDL_GPUDevice *gpu);
     void draw_batches(const std::pair<glm::dmat4, glm::dmat4> &matrices, SDL_GPUCommandBuffer *command_buffer,
                       SDL_GPURenderPass *render_pass);
-    std::pair<glm::dmat4, glm::dmat4> calculate_interface_matrices(const double alpha) const;
     pipeline &require_pipelines(SDL_Window *instance, SDL_GPUDevice *gpu, const cse::vertex &vertex,
                                 const cse::fragment &fragment);
     SDL_GPUTexture *require_texture(SDL_GPUDevice *gpu, const cse::image &image);
     TTF_Font *require_font(const cse::font &font, const unsigned int size);
     game_graphics::interface::label &require_label(SDL_GPUDevice *gpu, const cse::interface *element);
+    std::pair<glm::dmat4, glm::dmat4> calculate_interface_matrices(const double alpha) const;
 
   public:
     game_graphics::previous previous{};
@@ -169,6 +167,18 @@ namespace cse::help
     friend class cse::scene;
 
   private:
+    struct shadow
+    {
+      SDL_DisplayID display{};
+      int left{};
+      int top{};
+      unsigned int width{};
+      unsigned int height{};
+      std::string title{};
+      bool fullscreen{};
+      bool vsync{};
+    };
+
     struct previous
     {
       std::string title{};
@@ -177,9 +187,9 @@ namespace cse::help
     };
     struct active
     {
-      property<std::string> title{};
-      property<bool> fullscreen{};
-      property<bool> vsync{};
+      std::string title{};
+      bool fullscreen{};
+      bool vsync{};
     };
 
   public:
@@ -194,42 +204,50 @@ namespace cse::help
   private:
     void update_previous();
 
-    void create_window(
-      SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
-      int &windowed_left, int &windowed_top, unsigned int &windowed_width, unsigned int &windowed_height,
-      const std::function<glm::ivec2(const SDL_DisplayID display, const unsigned int width, const unsigned int height)>
-        &calculate_display_center,
-      const std::function<glm::ivec2(const SDL_DisplayID display, const int left, const int top)> &relative_to_absolute,
-      const std::function<glm::ivec2(const SDL_DisplayID display, const int left, const int top)> &absolute_to_relative,
-      const SDL_DisplayID PRIMARY, const int CENTER);
-    static void generate_depth_texture(const unsigned int width, const unsigned int height, SDL_GPUDevice *gpu,
-                                       SDL_GPUTexture *&depth_texture);
+    void create_window(SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
+                       const SDL_DisplayID PRIMARY, const int CENTER);
+    void generate_depth_texture(const unsigned int width, const unsigned int height);
     bool acquire_swapchain_texture();
     void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec4 &previous_clear,
                            const glm::dvec4 &active_clear, const double previous_aspect, const double active_aspect,
                            const double alpha);
     void end_render_pass();
-    void handle_title_change();
-    void handle_fullscreen(const SDL_DisplayID display, const int windowed_left, const int windowed_top,
-                           const unsigned int windowed_width, const unsigned int windowed_height,
-                           const std::function<glm::ivec2(const SDL_DisplayID display, const unsigned int width,
-                                                          const unsigned int height)> &calculate_display_center,
-                           const std::function<glm::ivec2(const SDL_DisplayID display, const int left, const int top)>
-                             &relative_to_absolute);
-    void handle_vsync();
     void destroy_window();
+
+    void reconcile(SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
+                   const SDL_DisplayID PRIMARY, const int CENTER);
+    void handle_move(SDL_DisplayID &display, int &left, int &top);
+    void handle_resize(SDL_DisplayID &display, int &left, int &top, unsigned int &width, unsigned int &height);
+    void handle_manual_move(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
+                            const unsigned int height, const int CENTER);
+    void handle_manual_display_move(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
+                                    const unsigned int height, const SDL_DisplayID PRIMARY);
+    void handle_manual_resize(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
+                              const unsigned int height);
+    void handle_title_change();
+    void handle_fullscreen(const SDL_DisplayID display);
+    void handle_vsync();
+    glm::ivec2 calculate_display_center(const SDL_DisplayID display, const unsigned int width,
+                                        const unsigned int height);
+    glm::ivec2 relative_to_absolute(const SDL_DisplayID display, const int left, const int top);
+    glm::ivec2 absolute_to_relative(const SDL_DisplayID display, const int left, const int top);
 
   public:
     window_graphics::previous previous{};
     window_graphics::active active{};
 
   private:
+    window_graphics::shadow shadow{};
     SDL_Window *instance{};
     SDL_GPUDevice *gpu{};
     SDL_GPUCommandBuffer *command_buffer{};
     SDL_GPUTexture *swapchain_texture{};
     SDL_GPUTexture *depth_texture{};
     SDL_GPURenderPass *render_pass{};
+    int windowed_left{};
+    int windowed_top{};
+    unsigned int windowed_width{};
+    unsigned int windowed_height{};
   };
 
   struct scene_graphics

@@ -4,26 +4,21 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "SDL3/SDL_events.h"
-#include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_mouse.h"
-#include "SDL3/SDL_rect.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
-#include "glm/ext/vector_int2.hpp"
 #include "glm/trigonometric.hpp"
 
 #include "collision.hpp"
-#include "exception.hpp"
 #include "interface.hpp"
 #include "object.hpp"
 
@@ -191,156 +186,6 @@ namespace cse::help
     previous.timer = active.timer;
     previous.mixer = active.mixer;
     previous.phase = active.phase;
-  }
-
-  void window_state::handle_move(const bool fullscreen, SDL_Window *instance)
-  {
-    if (fullscreen) return;
-    active.display.value = SDL_GetDisplayForWindow(instance);
-    if (active.display == SDL_DisplayID{0}) throw sdl_exception("Could not get window display index");
-    glm::ivec2 absolute{};
-    if (!SDL_GetWindowPosition(instance, &absolute.x, &absolute.y))
-      throw sdl_exception("Could not get window position");
-    auto relative{absolute_to_relative(active.display, absolute.x, absolute.y)};
-    active.left.value = relative.x;
-    active.top.value = relative.y;
-    windowed_left = active.left;
-    windowed_top = active.top;
-  }
-
-  void window_state::handle_manual_move(const bool fullscreen, SDL_Window *instance, const int CENTER)
-  {
-    auto absolute_center{calculate_display_center(active.display, active.width, active.height)};
-    auto relative_center(absolute_to_relative(active.display, absolute_center.x, absolute_center.y));
-    active.left.value = active.left == CENTER ? relative_center.x : static_cast<int>(active.left);
-    active.top.value = active.top == CENTER ? relative_center.y : static_cast<int>(active.top);
-    if (!fullscreen)
-    {
-      windowed_left = active.left;
-      windowed_top = active.top;
-    }
-    auto absolute{relative_to_absolute(active.display, active.left, active.top)};
-    if (!SDL_SetWindowPosition(instance, absolute.x, absolute.y))
-      throw sdl_exception("Could not set window position to {}, {}", active.left, active.top);
-    if (auto new_display = SDL_GetDisplayForWindow(instance); active.display != new_display)
-    {
-      active.display.value = new_display;
-      if (active.display == SDL_DisplayID{0}) throw sdl_exception("Could not get window display index");
-      auto relative{absolute_to_relative(active.display, absolute.x, absolute.y)};
-      active.left.value = relative.x;
-      active.top.value = relative.y;
-      if (!fullscreen)
-      {
-        windowed_left = active.left;
-        windowed_top = active.top;
-      }
-    }
-  }
-
-  void window_state::handle_manual_display_move(const bool fullscreen, SDL_Window *instance,
-                                                const SDL_DisplayID PRIMARY)
-  {
-    if (active.display == PRIMARY) active.display.value = SDL_GetPrimaryDisplay();
-    auto absolute_center{calculate_display_center(active.display, active.width, active.height)};
-    auto relative_center(absolute_to_relative(active.display, absolute_center.x, absolute_center.y));
-    active.left.value = relative_center.x;
-    active.top.value = relative_center.y;
-    if (!fullscreen)
-    {
-      windowed_left = active.left;
-      windowed_top = active.top;
-    }
-    auto absolute{relative_to_absolute(active.display, active.left, active.top)};
-    if (!SDL_SetWindowPosition(instance, absolute.x, absolute.y))
-      throw sdl_exception("Could not set window position centered on display {}", active.display);
-  }
-
-  void window_state::handle_resize(
-    const bool fullscreen, SDL_Window *instance, SDL_GPUDevice *gpu, SDL_GPUTexture *&depth_texture,
-    std::function<void(const unsigned int, const unsigned int, SDL_GPUDevice *, SDL_GPUTexture *&)>
-      generate_depth_texture)
-  {
-    if (auto new_display = SDL_GetDisplayForWindow(instance); active.display != new_display)
-    {
-      active.display.value = new_display;
-      if (active.display == SDL_DisplayID{0}) throw sdl_exception("Could not get window display index");
-      glm::ivec2 absolute{};
-      if (!SDL_GetWindowPosition(instance, &absolute.x, &absolute.y))
-        throw sdl_exception("Could not get window position");
-      auto relative{absolute_to_relative(active.display, absolute.x, absolute.y)};
-      active.left.value = relative.x;
-      active.top.value = relative.y;
-      if (!fullscreen)
-      {
-        windowed_left = active.left;
-        windowed_top = active.top;
-      }
-    }
-    int current_width{}, current_height{};
-    SDL_GetWindowSize(instance, &current_width, &current_height);
-    if (current_width <= 0) current_width = 1;
-    if (current_height <= 0) current_height = 1;
-    active.width.value = static_cast<unsigned int>(current_width);
-    active.height.value = static_cast<unsigned int>(current_height);
-    if (!fullscreen)
-    {
-      windowed_width = active.width;
-      windowed_height = active.height;
-    }
-    generate_depth_texture(active.width, active.height, gpu, depth_texture);
-  }
-
-  void window_state::handle_manual_resize(
-    const bool fullscreen, SDL_Window *instance, SDL_GPUDevice *gpu, SDL_GPUTexture *&depth_texture,
-    std::function<void(const unsigned int, const unsigned int, SDL_GPUDevice *, SDL_GPUTexture *&)>
-      generate_depth_texture)
-  {
-    if (!fullscreen)
-    {
-      windowed_width = active.width;
-      windowed_height = active.height;
-    }
-    if (!SDL_SetWindowSize(instance, static_cast<int>(active.width), static_cast<int>(active.height)))
-      throw sdl_exception("Could not set window size to {}, {}", active.width, active.height);
-    if (auto new_display = SDL_GetDisplayForWindow(instance); active.display != new_display)
-    {
-      active.display.value = new_display;
-      if (active.display == SDL_DisplayID{0}) throw sdl_exception("Could not get window display index");
-      glm::ivec2 absolute{};
-      if (!SDL_GetWindowPosition(instance, &absolute.x, &absolute.y))
-        throw sdl_exception("Could not get window position");
-      auto relative{absolute_to_relative(active.display, absolute.x, absolute.y)};
-      active.left.value = relative.x;
-      active.top.value = relative.y;
-      if (!fullscreen)
-      {
-        windowed_left = active.left;
-        windowed_top = active.top;
-      }
-    }
-    generate_depth_texture(active.width, active.height, gpu, depth_texture);
-  }
-
-  glm::ivec2 window_state::calculate_display_center(const SDL_DisplayID display, const unsigned int width,
-                                                    const unsigned int height)
-  {
-    SDL_Rect bounds{};
-    if (!SDL_GetDisplayBounds(display, &bounds)) throw sdl_exception("Could not get bounds for display {}", display);
-    return {bounds.x + (bounds.w - static_cast<int>(width)) / 2, bounds.y + (bounds.h - static_cast<int>(height)) / 2};
-  }
-
-  glm::ivec2 window_state::relative_to_absolute(const SDL_DisplayID display, const int left, const int top)
-  {
-    SDL_Rect bounds{};
-    if (!SDL_GetDisplayBounds(display, &bounds)) throw sdl_exception("Could not get bounds for display {}", display);
-    return {left + bounds.x, top + bounds.y};
-  }
-
-  glm::ivec2 window_state::absolute_to_relative(const SDL_DisplayID display, const int left, const int top)
-  {
-    SDL_Rect bounds{};
-    if (!SDL_GetDisplayBounds(display, &bounds)) throw sdl_exception("Could not get bounds for display {}", display);
-    return {left - bounds.x, top - bounds.y};
   }
 
   void scene_state::update_previous()

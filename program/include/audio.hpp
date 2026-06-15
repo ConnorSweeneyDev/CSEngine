@@ -19,20 +19,6 @@ namespace cse::help
   {
     friend class cse::game;
 
-  public:
-    struct previous
-    {
-      temporal<double> master{0.5};
-      temporal<double> sound{0.5};
-      temporal<double> music{0.5};
-    };
-    struct active
-    {
-      temporal<double> master{0.5};
-      temporal<double> sound{0.5};
-      temporal<double> music{0.5};
-    };
-
   private:
     struct channel
     {
@@ -49,13 +35,26 @@ namespace cse::help
       const unsigned char *source{};
       std::size_t size{};
       double position{};
-      double applied_gain{-1.0};
-      double applied_speed{-1.0};
+      double gain{-1.0};
+      double speed{-1.0};
       bool started{};
       bool paused{};
       bool finished{};
       bool loop{};
       bool seen{};
+    };
+
+    struct previous
+    {
+      temporal<double> master{0.5};
+      temporal<double> sound{0.5};
+      temporal<double> music{0.5};
+    };
+    struct active
+    {
+      temporal<double> master{0.5};
+      temporal<double> sound{0.5};
+      temporal<double> music{0.5};
     };
 
   public:

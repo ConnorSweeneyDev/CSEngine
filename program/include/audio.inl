@@ -60,15 +60,15 @@ namespace cse::help
           volume = iterator->second.volume.value + (entry.volume.value - iterator->second.volume.value) * alpha;
           speed = iterator->second.speed.value + (entry.speed.value - iterator->second.speed.value) * alpha;
         }
-      if (const auto target{bus * gain(volume)}; !equal(target, audio.applied_gain))
+      if (const auto target{bus * gain(volume)}; !equal(target, audio.gain))
       {
         MIX_SetTrackGain(audio.handle, static_cast<float>(target));
-        audio.applied_gain = target;
+        audio.gain = target;
       }
-      if (speed > 0.0 && !equal(speed, audio.applied_speed))
+      if (speed > 0.0 && !equal(speed, audio.speed))
       {
         MIX_SetTrackFrequencyRatio(audio.handle, static_cast<float>(speed));
-        audio.applied_speed = speed;
+        audio.speed = speed;
       }
 
       if (!equal(entry.position, audio.position))
