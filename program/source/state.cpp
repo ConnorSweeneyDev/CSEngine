@@ -21,6 +21,7 @@
 #include "collision.hpp"
 #include "interface.hpp"
 #include "object.hpp"
+#include "window.hpp"
 
 namespace cse::help
 {
@@ -69,7 +70,7 @@ namespace cse::help
               });
   }
 
-  std::optional<glm::dvec2> game_state::locate(const float x, const float y, const unsigned int width,
+  std::optional<glm::dvec2> game_state::locate(const double x, const double y, const unsigned int width,
                                                const unsigned int height, const double aspect,
                                                const unsigned int resolution) const
   {
@@ -88,15 +89,13 @@ namespace cse::help
       viewport_height = viewport_width / aspect;
       viewport_top = (window_height - viewport_height) / 2.0;
     }
-    const auto window_x{static_cast<double>(x)};
-    const auto window_y{static_cast<double>(y)};
-    if (window_x < viewport_left || window_x >= viewport_left + viewport_width || window_y < viewport_top ||
-        window_y >= viewport_top + viewport_height)
+    if (x < viewport_left || x >= viewport_left + viewport_width || y < viewport_top ||
+        y >= viewport_top + viewport_height)
       return std::nullopt;
     const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
     const auto canvas_width{canvas_height * aspect};
-    const glm::dvec2 canvas{(window_x - viewport_left) / viewport_width * canvas_width - canvas_width / 2.0,
-                            (window_y - viewport_top) / viewport_height * canvas_height - canvas_height / 2.0};
+    const glm::dvec2 canvas{(x - viewport_left) / viewport_width * canvas_width - canvas_width / 2.0,
+                            (y - viewport_top) / viewport_height * canvas_height - canvas_height / 2.0};
     return glm::dvec2{canvas.x + (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
                       canvas.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
   }
@@ -104,36 +103,46 @@ namespace cse::help
   void game_state::interact(const SDL_Event &event, const unsigned int width, const unsigned int height,
                             const double aspect, const unsigned int resolution)
   {
-    if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT)
+    const auto &mouse{active.window->state.active.mouse};
+    if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
-      const auto position{locate(event.button.x, event.button.y, width, height, aspect, resolution)};
+      const auto position{locate(mouse.position.x, mouse.position.y, width, height, aspect, resolution)};
       if (!position) return;
       for (auto *interface : pool)
-        if (const auto target{collision::hit(interface, *position)}; !(target == hitbox{}))
+        if (const auto target{collision::hit(interface, *position)}; target != hitbox{})
         {
-          interface->state.active.pressed = target;
-          interface->on_press(target);
+          interface->state.active.target.interacted = target;
+          interface->on_press(event.button.button);
           break;
         }
     }
-    else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP && event.button.button == SDL_BUTTON_LEFT)
+    else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
     {
-      const auto position{locate(event.button.x, event.button.y, width, height, aspect, resolution)};
+      const auto position{locate(mouse.position.x, mouse.position.y, width, height, aspect, resolution)};
       interface *hit{};
       hitbox top{};
       if (position)
         for (auto *interface : pool)
-          if (top = collision::hit(interface, *position); !(top == hitbox{}))
+          if (top = collision::hit(interface, *position); top != hitbox{})
           {
             hit = interface;
             break;
           }
       for (auto *interface : pool)
-        if (const auto target{interface->state.active.pressed}; !(target == hitbox{}))
+        if (const auto target{interface->state.active.target.interacted}; target != hitbox{})
         {
-          interface->state.active.pressed = {};
-          interface->on_release(target);
-          if (interface == hit && target == top) interface->on_click(target);
+          interface->on_release(event.button.button);
+          if (interface == hit && target == top) interface->on_click(event.button.button);
+          interface->state.active.target.interacted = {};
+        }
+    }
+    else if (event.type == SDL_EVENT_MOUSE_WHEEL)
+    {
+      for (auto *interface : pool)
+        if (interface->state.active.target.hovered != hitbox{})
+        {
+          interface->on_scroll({static_cast<double>(event.wheel.x), static_cast<double>(event.wheel.y)});
+          break;
         }
     }
   }
@@ -144,15 +153,14 @@ namespace cse::help
     std::optional<glm::dvec2> position{};
     if (SDL_GetMouseFocus() == instance)
     {
-      float x{}, y{};
-      SDL_GetMouseState(&x, &y);
-      position = locate(x, y, width, height, aspect, resolution);
+      const auto &mouse{active.window->state.active.mouse};
+      position = locate(mouse.position.x, mouse.position.y, width, height, aspect, resolution);
     }
     interface *hit{};
     hitbox target{};
     if (position)
       for (auto *interface : pool)
-        if (target = collision::hit(interface, *position); !(target == hitbox{}))
+        if (target = collision::hit(interface, *position); target != hitbox{})
         {
           hit = interface;
           break;
@@ -160,12 +168,11 @@ namespace cse::help
     for (auto *interface : pool)
     {
       const auto current{interface == hit ? target : hitbox{}};
-      auto &hovered{interface->state.active.hovered};
+      auto &hovered{interface->state.active.target.hovered};
       if (current == hovered) continue;
-      const auto previous_target{hovered};
+      if (hovered != hitbox{}) interface->on_unhover();
       hovered = current;
-      if (!(previous_target == hitbox{})) interface->on_unhover(previous_target);
-      if (!(current == hitbox{})) interface->on_hover(current);
+      if (current != hitbox{}) interface->on_hover();
     }
   }
 
@@ -183,9 +190,23 @@ namespace cse::help
     previous.width = active.width;
     previous.height = active.height;
     previous.running = active.running;
+    previous.mouse = active.mouse;
     previous.timer = active.timer;
     previous.mixer = active.mixer;
     previous.phase = active.phase;
+  }
+
+  void window_state::poll_mouse(SDL_Window *instance)
+  {
+    float x{}, y{};
+    active.mouse.buttons = SDL_GetMouseState(&x, &y);
+    if (active.mouse.position != shadow.mouse.position)
+      SDL_WarpMouseInWindow(instance, static_cast<float>(active.mouse.position.x),
+                            static_cast<float>(active.mouse.position.y));
+    else
+      active.mouse.position = {x, y};
+    active.mouse.wheel = {};
+    shadow.mouse.position = active.mouse.position;
   }
 
   void scene_state::update_previous()
@@ -373,9 +394,8 @@ namespace cse::help
 
   interface_state::interface_state(const glm::dvec2 &translation_, const double rotation_, const glm::dvec2 &scale_,
                                    const std::string &text_, const int priority_)
-    : previous{
-        .translation = translation_, .rotation = rotation_, .scale = scale_, .text = text_, .priority = priority_},
-      active{.translation = translation_, .rotation = rotation_, .scale = scale_, .text = text_, .priority = priority_}
+    : previous{translation_, rotation_, scale_, text_, priority_},
+      active{translation_, rotation_, scale_, text_, priority_}
   {
   }
 
@@ -385,8 +405,8 @@ namespace cse::help
     previous.rotation = active.rotation;
     previous.scale = active.scale;
     previous.text = active.text;
-    previous.hovered = active.hovered;
-    previous.pressed = active.pressed;
+    previous.target.hovered = active.target.hovered;
+    previous.target.interacted = active.target.interacted;
     previous.priority = active.priority;
     previous.timer = active.timer;
     previous.mixer = active.mixer;

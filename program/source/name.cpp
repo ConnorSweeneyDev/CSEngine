@@ -29,6 +29,8 @@ namespace cse
 
   bool name::operator==(const name &other) const { return hash == other.hash; }
 
+  bool name::operator!=(const name &other) const { return hash != other.hash; }
+
   std::uint64_t name::hash_runtime(const std::string &string)
   {
     std::uint64_t hash{14695981039346656037ULL};

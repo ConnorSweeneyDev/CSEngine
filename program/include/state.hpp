@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "SDL3/SDL_events.h"
+#include "SDL3/SDL_mouse.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
@@ -81,8 +82,9 @@ namespace cse::help
 
     void generate_order(const std::vector<std::shared_ptr<interface>> &interfaces);
     void generate_pool(const std::vector<interface *> &interfaces);
-    std::optional<glm::dvec2> locate(const float x, const float y, const unsigned int width, const unsigned int height,
-                                     const double aspect, const unsigned int resolution) const;
+    std::optional<glm::dvec2> locate(const double x, const double y, const unsigned int width,
+                                     const unsigned int height, const double aspect,
+                                     const unsigned int resolution) const;
     void interact(const SDL_Event &event, const unsigned int width, const unsigned int height, const double aspect,
                   const unsigned int resolution);
     void hover(SDL_Window *instance, const unsigned int width, const unsigned int height, const double aspect,
@@ -110,6 +112,18 @@ namespace cse::help
     friend class cse::window;
 
   private:
+    struct mouse
+    {
+      glm::dvec2 position{};
+      SDL_MouseButtonFlags buttons{};
+      glm::dvec2 wheel{};
+    };
+
+    struct shadow
+    {
+      window_state::mouse mouse{};
+    };
+
     struct previous
     {
       SDL_DisplayID display{};
@@ -118,6 +132,7 @@ namespace cse::help
       unsigned int width{};
       unsigned int height{};
       bool running{};
+      window_state::mouse mouse{};
       help::timer timer{};
       help::mixer mixer{};
       help::phase phase{};
@@ -130,6 +145,7 @@ namespace cse::help
       unsigned int width{};
       unsigned int height{};
       bool running{};
+      window_state::mouse mouse{};
       help::timer timer{};
       help::mixer mixer{};
       help::phase phase{};
@@ -148,11 +164,14 @@ namespace cse::help
   private:
     void update_previous();
 
+    void poll_mouse(SDL_Window *instance);
+
   public:
     window_state::previous previous{};
     window_state::active active{};
 
   private:
+    window_state::shadow shadow{};
     SDL_Event event{};
     const bool *input{};
   };
@@ -320,15 +339,20 @@ namespace cse::help
     friend class cse::interface;
 
   private:
+    struct target
+    {
+      cse::hitbox hovered{};
+      cse::hitbox interacted{};
+    };
+
     struct previous
     {
       temporal<glm::dvec2> translation{};
       temporal<double> rotation{};
       temporal<glm::dvec2> scale{};
       std::string text{};
-      cse::hitbox hovered{};
-      cse::hitbox pressed{};
       int priority{};
+      interface_state::target target{};
       help::timer timer{};
       help::mixer mixer{};
       help::phase phase{};
@@ -339,9 +363,8 @@ namespace cse::help
       temporal<double> rotation{};
       temporal<glm::dvec2> scale{};
       std::string text{};
-      cse::hitbox hovered{};
-      cse::hitbox pressed{};
       int priority{};
+      interface_state::target target{};
       help::timer timer{};
       help::mixer mixer{};
       help::phase phase{};

@@ -18,6 +18,7 @@ namespace cse
     name(const std::string &string_);
 
     bool operator==(const name &other) const;
+    bool operator!=(const name &other) const;
 
     constexpr std::uint64_t identifier() const;
     std::string string() const;

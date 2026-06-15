@@ -3,9 +3,9 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
+#include "SDL3/SDL_stdinc.h"
 #include "glm/ext/vector_double2.hpp"
 
-#include "collision.hpp"
 #include "core.hpp"
 #include "graphics.hpp"
 #include "name.hpp"
@@ -49,11 +49,12 @@ namespace cse
     virtual void on_prepare();
     virtual void on_create();
     virtual void on_previous();
-    virtual void on_hover(const hitbox hitbox);
-    virtual void on_unhover(const hitbox hitbox);
-    virtual void on_press(const hitbox hitbox);
-    virtual void on_release(const hitbox hitbox);
-    virtual void on_click(const hitbox hitbox);
+    virtual void on_hover();
+    virtual void on_unhover();
+    virtual void on_press(const Uint8 button);
+    virtual void on_release(const Uint8 button);
+    virtual void on_click(const Uint8 button);
+    virtual void on_scroll(const glm::dvec2 &delta);
     virtual void on_event(const SDL_Event &event);
     virtual void on_input(const bool *keys);
     virtual void on_simulate(const double tick);

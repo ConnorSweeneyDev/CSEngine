@@ -3,6 +3,7 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
+#include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double4.hpp"
 
 #include "exception.hpp"
@@ -58,6 +59,10 @@ namespace cse
       case SDL_EVENT_WINDOW_RESIZED:
         graphics.handle_resize(state.active.display, state.active.left, state.active.top, state.active.width,
                                state.active.height);
+        break;
+      case SDL_EVENT_MOUSE_WHEEL:
+        state.active.mouse.wheel += glm::dvec2{state.event.wheel.x, state.event.wheel.y};
+        on_event(state.event);
         break;
       default: on_event(state.event); break;
     }

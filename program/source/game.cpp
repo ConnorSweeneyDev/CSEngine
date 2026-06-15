@@ -206,15 +206,16 @@ namespace cse
   void game::event()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing events");
+    state.active.window->state.poll_mouse(state.active.window->graphics.instance);
     while (SDL_PollEvent(&state.active.window->state.event))
     {
       pre_event(state.active.window->state.event);
-      state.active.window->event();
-      state.active.scene->event(state.active.window->state.event);
-      for (const auto &interface : state.order) interface->event(state.active.window->state.event);
       state.interact(state.active.window->state.event, state.active.window->state.active.width,
                      state.active.window->state.active.height, graphics.active.aspect.value,
                      graphics.active.resolution);
+      state.active.window->event();
+      state.active.scene->event(state.active.window->state.event);
+      for (const auto &interface : state.order) interface->event(state.active.window->state.event);
       post_event(state.active.window->state.event);
     }
   }
@@ -226,9 +227,9 @@ namespace cse
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing input");
     state.active.window->state.input = SDL_GetKeyboardState(nullptr);
     pre_input(state.active.window->state.input);
-    state.active.window->input();
     state.hover(state.active.window->graphics.instance, state.active.window->state.active.width,
                 state.active.window->state.active.height, graphics.active.aspect.value, graphics.active.resolution);
+    state.active.window->input();
     state.active.scene->input(state.active.window->state.input);
     for (const auto &interface : state.order) interface->input(state.active.window->state.input);
     post_input(state.active.window->state.input);
