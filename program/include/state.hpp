@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <memory>
 #include <optional>
 #include <string>
@@ -82,13 +83,10 @@ namespace cse::help
 
     void generate_order(const std::vector<std::shared_ptr<interface>> &interfaces);
     void generate_pool(const std::vector<interface *> &interfaces);
-    std::optional<glm::dvec2> locate(const double x, const double y, const unsigned int width,
-                                     const unsigned int height, const double aspect,
-                                     const unsigned int resolution) const;
-    void interact(const SDL_Event &event, const unsigned int width, const unsigned int height, const double aspect,
-                  const unsigned int resolution);
-    void hover(SDL_Window *instance, const unsigned int width, const unsigned int height, const double aspect,
-               const unsigned int resolution);
+
+    bool inside(const glm::dvec2 &position, const double aspect, const unsigned int resolution);
+    void interact(const SDL_Event &event, const double aspect, const unsigned int resolution);
+    void hover(SDL_Window *instance, const double aspect, const unsigned int resolution);
 
   public:
     game_state::previous previous{};
@@ -112,6 +110,13 @@ namespace cse::help
     friend class cse::window;
 
   private:
+    struct viewport
+    {
+      double left{};
+      double top{};
+      double width{};
+      double height{};
+    };
     struct mouse
     {
       glm::dvec2 position{};
@@ -164,7 +169,13 @@ namespace cse::help
   private:
     void update_previous();
 
-    void poll_mouse(SDL_Window *instance);
+    void poll_mouse(SDL_Window *instance, const double aspect, const unsigned int resolution);
+
+    viewport letterbox(const unsigned int width, const unsigned int height, const double aspect);
+    glm::dvec2 to_virtual(const double x, const double y, const unsigned int width, const unsigned int height,
+                          const double aspect, const unsigned int resolution);
+    glm::dvec2 to_pixel(const double x, const double y, const unsigned int width, const unsigned int height,
+                        const double aspect, const unsigned int resolution);
 
   public:
     window_state::previous previous{};
@@ -342,7 +353,7 @@ namespace cse::help
     struct target
     {
       cse::hitbox hovered{};
-      cse::hitbox interacted{};
+      std::array<cse::hitbox, SDL_BUTTON_X2 + 1> interacted{};
     };
 
     struct previous

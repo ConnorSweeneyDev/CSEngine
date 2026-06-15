@@ -70,70 +70,47 @@ namespace cse::help
               });
   }
 
-  std::optional<glm::dvec2> game_state::locate(const double x, const double y, const unsigned int width,
-                                               const unsigned int height, const double aspect,
-                                               const unsigned int resolution) const
+  bool game_state::inside(const glm::dvec2 &position, const double aspect, const unsigned int resolution)
   {
-    const auto window_width{static_cast<double>(width)};
-    const auto window_height{static_cast<double>(height)};
-    double viewport_left{}, viewport_top{}, viewport_width{}, viewport_height{};
-    if (window_width / window_height > aspect)
-    {
-      viewport_height = window_height;
-      viewport_width = viewport_height * aspect;
-      viewport_left = (window_width - viewport_width) / 2.0;
-    }
-    else
-    {
-      viewport_width = window_width;
-      viewport_height = viewport_width / aspect;
-      viewport_top = (window_height - viewport_height) / 2.0;
-    }
-    if (x < viewport_left || x >= viewport_left + viewport_width || y < viewport_top ||
-        y >= viewport_top + viewport_height)
-      return std::nullopt;
     const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
     const auto canvas_width{canvas_height * aspect};
-    const glm::dvec2 canvas{(x - viewport_left) / viewport_width * canvas_width - canvas_width / 2.0,
-                            (y - viewport_top) / viewport_height * canvas_height - canvas_height / 2.0};
-    return glm::dvec2{canvas.x + (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
-                      canvas.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
+    const auto x{position.x - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0)};
+    const auto y{position.y - (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
+    return x >= -canvas_width / 2.0 && x < canvas_width / 2.0 && y >= -canvas_height / 2.0 && y < canvas_height / 2.0;
   }
 
-  void game_state::interact(const SDL_Event &event, const unsigned int width, const unsigned int height,
-                            const double aspect, const unsigned int resolution)
+  void game_state::interact(const SDL_Event &event, const double aspect, const unsigned int resolution)
   {
     const auto &mouse{active.window->state.active.mouse};
     if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
-      const auto position{locate(mouse.position.x, mouse.position.y, width, height, aspect, resolution)};
-      if (!position) return;
+      if (event.button.button > SDL_BUTTON_X2 || !inside(mouse.position, aspect, resolution)) return;
       for (auto *interface : pool)
-        if (const auto target{collision::hit(interface, *position)}; target != hitbox{})
+        if (const auto target{collision::hit(interface, mouse.position)}; target != hitbox{})
         {
-          interface->state.active.target.interacted = target;
+          interface->state.active.target.interacted[event.button.button] = target;
           interface->on_press(event.button.button);
           break;
         }
     }
     else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
     {
-      const auto position{locate(mouse.position.x, mouse.position.y, width, height, aspect, resolution)};
+      if (event.button.button > SDL_BUTTON_X2) return;
       interface *hit{};
       hitbox top{};
-      if (position)
+      if (inside(mouse.position, aspect, resolution))
         for (auto *interface : pool)
-          if (top = collision::hit(interface, *position); top != hitbox{})
+          if (top = collision::hit(interface, mouse.position); top != hitbox{})
           {
             hit = interface;
             break;
           }
       for (auto *interface : pool)
-        if (const auto target{interface->state.active.target.interacted}; target != hitbox{})
+        if (const auto target{interface->state.active.target.interacted[event.button.button]}; target != hitbox{})
         {
           interface->on_release(event.button.button);
           if (interface == hit && target == top) interface->on_click(event.button.button);
-          interface->state.active.target.interacted = {};
+          interface->state.active.target.interacted[event.button.button] = {};
         }
     }
     else if (event.type == SDL_EVENT_MOUSE_WHEEL)
@@ -147,15 +124,11 @@ namespace cse::help
     }
   }
 
-  void game_state::hover(SDL_Window *instance, const unsigned int width, const unsigned int height, const double aspect,
-                         const unsigned int resolution)
+  void game_state::hover(SDL_Window *instance, const double aspect, const unsigned int resolution)
   {
     std::optional<glm::dvec2> position{};
-    if (SDL_GetMouseFocus() == instance)
-    {
-      const auto &mouse{active.window->state.active.mouse};
-      position = locate(mouse.position.x, mouse.position.y, width, height, aspect, resolution);
-    }
+    const auto &mouse{active.window->state.active.mouse};
+    if (SDL_GetMouseFocus() == instance && inside(mouse.position, aspect, resolution)) position = mouse.position;
     interface *hit{};
     hitbox target{};
     if (position)
@@ -196,17 +169,65 @@ namespace cse::help
     previous.phase = active.phase;
   }
 
-  void window_state::poll_mouse(SDL_Window *instance)
+  void window_state::poll_mouse(SDL_Window *instance, const double aspect, const unsigned int resolution)
   {
     float x{}, y{};
     active.mouse.buttons = SDL_GetMouseState(&x, &y);
     if (active.mouse.position != shadow.mouse.position)
-      SDL_WarpMouseInWindow(instance, static_cast<float>(active.mouse.position.x),
-                            static_cast<float>(active.mouse.position.y));
+    {
+      const auto pixel{
+        to_pixel(active.mouse.position.x, active.mouse.position.y, active.width, active.height, aspect, resolution)};
+      SDL_WarpMouseInWindow(instance, static_cast<float>(pixel.x), static_cast<float>(pixel.y));
+    }
     else
-      active.mouse.position = {x, y};
+      active.mouse.position = to_virtual(x, y, active.width, active.height, aspect, resolution);
     active.mouse.wheel = {};
     shadow.mouse.position = active.mouse.position;
+  }
+
+  window_state::viewport window_state::letterbox(const unsigned int width, const unsigned int height,
+                                                 const double aspect)
+  {
+    const auto window_width{static_cast<double>(width)};
+    const auto window_height{static_cast<double>(height)};
+    viewport result{};
+    if (window_width / window_height > aspect)
+    {
+      result.height = window_height;
+      result.width = result.height * aspect;
+      result.left = (window_width - result.width) / 2.0;
+    }
+    else
+    {
+      result.width = window_width;
+      result.height = result.width / aspect;
+      result.top = (window_height - result.height) / 2.0;
+    }
+    return result;
+  }
+
+  glm::dvec2 window_state::to_virtual(const double x, const double y, const unsigned int width,
+                                      const unsigned int height, const double aspect, const unsigned int resolution)
+  {
+    const auto view{letterbox(width, height, aspect)};
+    const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
+    const auto canvas_width{canvas_height * aspect};
+    const glm::dvec2 canvas{(x - view.left) / view.width * canvas_width - canvas_width / 2.0,
+                            (y - view.top) / view.height * canvas_height - canvas_height / 2.0};
+    return {canvas.x + (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
+            canvas.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
+  }
+
+  glm::dvec2 window_state::to_pixel(const double x, const double y, const unsigned int width, const unsigned int height,
+                                    const double aspect, const unsigned int resolution)
+  {
+    const auto view{letterbox(width, height, aspect)};
+    const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
+    const auto canvas_width{canvas_height * aspect};
+    const glm::dvec2 canvas{x - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
+                            y - (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
+    return {(canvas.x + canvas_width / 2.0) / canvas_width * view.width + view.left,
+            (canvas.y + canvas_height / 2.0) / canvas_height * view.height + view.top};
   }
 
   void scene_state::update_previous()
