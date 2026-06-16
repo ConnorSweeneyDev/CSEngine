@@ -7,7 +7,6 @@
 #include "glm/ext/vector_double4.hpp"
 
 #include "exception.hpp"
-#include "input.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -67,13 +66,6 @@ namespace cse
         break;
       default: on_event(state.event); break;
     }
-  }
-
-  void window::on_input(const cse::keyboard &, const cse::mouse &) {}
-  void window::input()
-  {
-    if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before processing input");
-    on_input(state.active.keyboard, state.active.mouse);
   }
 
   void window::on_simulate(const double) {}

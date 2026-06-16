@@ -10,7 +10,6 @@
 #include "container.hpp"
 #include "exception.hpp"
 #include "game.hpp"
-#include "input.hpp"
 #include "interface.hpp"
 #include "name.hpp"
 #include "object.hpp"
@@ -141,19 +140,6 @@ namespace cse
     post_event(event);
   }
 
-  void scene::pre_input(const cse::keyboard &, const cse::mouse &) {}
-  void scene::post_input(const cse::keyboard &, const cse::mouse &) {}
-  void scene::input(const cse::keyboard &keyboard, const cse::mouse &mouse)
-  {
-    if (state.active.phase != help::phase::CREATED)
-      throw exception("Scene '{}' must be created before processing input", name.string());
-    pre_input(keyboard, mouse);
-    state.active.camera->input(keyboard, mouse);
-    for (const auto &object : state.object_order) object->input(keyboard, mouse);
-    for (const auto &interface : state.interface_order) interface->input(keyboard, mouse);
-    post_input(keyboard, mouse);
-  }
-
   void scene::pre_simulate(const double) {}
   void scene::post_simulate(const double) {}
   void scene::simulate(const double tick)
@@ -191,7 +177,6 @@ namespace cse
     graphics.render(instance, gpu, game->graphics, state.active.camera.get(), state.active.objects,
                     state.active.camera->render(previous_aspect, active_aspect, alpha), command_buffer, render_pass,
                     alpha);
-    for (const auto &object : graphics.order) object->render(alpha);
     post_render(alpha);
   }
 

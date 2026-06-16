@@ -8,7 +8,6 @@
 
 #include "core.hpp"
 #include "graphics.hpp"
-#include "input.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -43,7 +42,6 @@ namespace cse
     virtual void on_create();
     virtual void on_previous();
     virtual void on_event(const SDL_Event &event);
-    virtual void on_input(const cse::keyboard &keyboard, const cse::mouse &mouse);
     virtual void on_simulate(const double tick);
     virtual void on_render(const double alpha);
     virtual void on_destroy();
@@ -54,7 +52,6 @@ namespace cse
     void create();
     void previous();
     void event(const SDL_Event &event);
-    void input(const cse::keyboard &keyboard, const cse::mouse &mouse);
     void simulate(const double tick);
     std::pair<glm::dmat4, glm::dmat4> render(const double previous_aspect, const double active_aspect,
                                              const double alpha);

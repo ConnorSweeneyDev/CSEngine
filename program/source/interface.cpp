@@ -4,7 +4,6 @@
 
 #include "exception.hpp"
 #include "graphics.hpp"
-#include "input.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -51,14 +50,6 @@ namespace cse
     on_event(event);
   }
 
-  void interface::on_input(const cse::keyboard &, const cse::mouse &) {}
-  void interface::input(const cse::keyboard &keyboard, const cse::mouse &mouse)
-  {
-    if (state.active.phase != help::phase::CREATED)
-      throw exception("Interface '{}' must be created before processing input", name.string());
-    on_input(keyboard, mouse);
-  }
-
   void interface::on_simulate(const double) {}
   void interface::simulate(const double tick)
   {
@@ -67,14 +58,6 @@ namespace cse
     state.active.timer.update(tick);
     graphics.animate(tick);
     on_simulate(tick);
-  }
-
-  void interface::on_render(const double) {}
-  void interface::render(const double alpha)
-  {
-    if (state.active.phase != help::phase::CREATED)
-      throw exception("Interface '{}' must be created before rendering", name.string());
-    on_render(alpha);
   }
 
   void interface::on_destroy() {}

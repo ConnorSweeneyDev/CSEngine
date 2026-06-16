@@ -8,7 +8,6 @@
 
 #include "core.hpp"
 #include "graphics.hpp"
-#include "input.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -46,7 +45,6 @@ namespace cse
     virtual void on_create();
     virtual void on_previous();
     virtual void on_event(const SDL_Event &event);
-    virtual void on_input(const cse::keyboard &keyboard, const cse::mouse &mouse);
     virtual void on_simulate(const double tick);
     virtual void pre_render(const double alpha);
     virtual void post_render(const double alpha);
@@ -58,7 +56,6 @@ namespace cse
     void create();
     void previous();
     void event();
-    void input();
     void simulate(const double tick);
     bool start_render(const glm::dvec4 &previous_clear, const glm::dvec4 &active_clear, const double previous_aspect,
                       const double active_aspect, const double alpha);

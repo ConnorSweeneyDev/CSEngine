@@ -10,7 +10,6 @@
 
 #include "container.hpp"
 #include "exception.hpp"
-#include "input.hpp"
 #include "interface.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
@@ -220,19 +219,15 @@ namespace cse
     }
   }
 
-  void game::pre_input(const cse::keyboard &, const cse::mouse &) {}
-  void game::post_input(const cse::keyboard &, const cse::mouse &) {}
+  void game::pre_input() {}
+  void game::post_input() {}
   void game::input()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing input");
     state.active.window->state.poll_keyboard();
-    pre_input(state.active.window->state.active.keyboard, state.active.window->state.active.mouse);
+    pre_input();
     state.hover(state.active.window->graphics.instance, graphics.active.aspect.value, graphics.active.resolution);
-    state.active.window->input();
-    state.active.scene->input(state.active.window->state.active.keyboard, state.active.window->state.active.mouse);
-    for (const auto &interface : state.order)
-      interface->input(state.active.window->state.active.keyboard, state.active.window->state.active.mouse);
-    post_input(state.active.window->state.active.keyboard, state.active.window->state.active.mouse);
+    post_input();
   }
 
   void game::pre_simulate(const double) {}
@@ -274,7 +269,6 @@ namespace cse
                     state.active.window->graphics.instance, state.active.window->graphics.gpu,
                     state.active.window->graphics.command_buffer, state.active.window->graphics.render_pass,
                     state.alpha);
-    for (const auto &interface : graphics.interface.order) interface->render(state.alpha);
     state.active.window->end_render(state.alpha);
     post_render(state.alpha);
   }

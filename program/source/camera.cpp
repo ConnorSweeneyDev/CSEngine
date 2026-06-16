@@ -6,7 +6,6 @@
 #include "glm/ext/matrix_double4x4.hpp"
 
 #include "exception.hpp"
-#include "input.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -47,13 +46,6 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before processing events");
     on_event(event);
-  }
-
-  void camera::on_input(const cse::keyboard &, const cse::mouse &) {}
-  void camera::input(const cse::keyboard &keyboard, const cse::mouse &mouse)
-  {
-    if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before processing input");
-    on_input(keyboard, mouse);
   }
 
   void camera::on_simulate(const double) {}
