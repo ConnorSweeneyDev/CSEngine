@@ -11,6 +11,7 @@
 #include "core.hpp"
 #include "function.hpp"
 #include "graphics.hpp"
+#include "input.hpp"
 #include "name.hpp"
 #include "state.hpp"
 
@@ -80,8 +81,8 @@ namespace cse
     virtual void post_sync();
     virtual void pre_event(const SDL_Event &event);
     virtual void post_event(const SDL_Event &event);
-    virtual void pre_input(const bool *keys);
-    virtual void post_input(const bool *keys);
+    virtual void pre_input(const cse::keyboard &keyboard, const cse::mouse &mouse);
+    virtual void post_input(const cse::keyboard &keyboard, const cse::mouse &mouse);
     virtual void pre_simulate(const double tick);
     virtual void post_simulate(const double tick);
     virtual void pre_collide(const double tick);

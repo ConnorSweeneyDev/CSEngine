@@ -7,6 +7,7 @@
 #include "glm/ext/vector_double4.hpp"
 
 #include "exception.hpp"
+#include "input.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -68,11 +69,11 @@ namespace cse
     }
   }
 
-  void window::on_input(const bool *) {}
+  void window::on_input(const cse::keyboard &, const cse::mouse &) {}
   void window::input()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before processing input");
-    on_input(state.input);
+    on_input(state.active.keyboard, state.active.mouse);
   }
 
   void window::on_simulate(const double) {}
@@ -109,7 +110,6 @@ namespace cse
   void window::destroy()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before destruction");
-    state.input = nullptr;
     state.event = {};
     graphics.destroy_window();
     state.active.phase = help::phase::PREPARED;

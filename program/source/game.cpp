@@ -6,11 +6,11 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
-#include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_timer.h"
 
 #include "container.hpp"
 #include "exception.hpp"
+#include "input.hpp"
 #include "interface.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
@@ -220,18 +220,19 @@ namespace cse
     }
   }
 
-  void game::pre_input(const bool *) {}
-  void game::post_input(const bool *) {}
+  void game::pre_input(const cse::keyboard &, const cse::mouse &) {}
+  void game::post_input(const cse::keyboard &, const cse::mouse &) {}
   void game::input()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing input");
-    state.active.window->state.input = SDL_GetKeyboardState(nullptr);
-    pre_input(state.active.window->state.input);
+    state.active.window->state.poll_keyboard();
+    pre_input(state.active.window->state.active.keyboard, state.active.window->state.active.mouse);
     state.hover(state.active.window->graphics.instance, graphics.active.aspect.value, graphics.active.resolution);
     state.active.window->input();
-    state.active.scene->input(state.active.window->state.input);
-    for (const auto &interface : state.order) interface->input(state.active.window->state.input);
-    post_input(state.active.window->state.input);
+    state.active.scene->input(state.active.window->state.active.keyboard, state.active.window->state.active.mouse);
+    for (const auto &interface : state.order)
+      interface->input(state.active.window->state.active.keyboard, state.active.window->state.active.mouse);
+    post_input(state.active.window->state.active.keyboard, state.active.window->state.active.mouse);
   }
 
   void game::pre_simulate(const double) {}

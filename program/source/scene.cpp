@@ -10,6 +10,7 @@
 #include "container.hpp"
 #include "exception.hpp"
 #include "game.hpp"
+#include "input.hpp"
 #include "interface.hpp"
 #include "name.hpp"
 #include "object.hpp"
@@ -140,17 +141,17 @@ namespace cse
     post_event(event);
   }
 
-  void scene::pre_input(const bool *) {}
-  void scene::post_input(const bool *) {}
-  void scene::input(const bool *input)
+  void scene::pre_input(const cse::keyboard &, const cse::mouse &) {}
+  void scene::post_input(const cse::keyboard &, const cse::mouse &) {}
+  void scene::input(const cse::keyboard &keyboard, const cse::mouse &mouse)
   {
     if (state.active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before processing input", name.string());
-    pre_input(input);
-    state.active.camera->input(input);
-    for (const auto &object : state.object_order) object->input(input);
-    for (const auto &interface : state.interface_order) interface->input(input);
-    post_input(input);
+    pre_input(keyboard, mouse);
+    state.active.camera->input(keyboard, mouse);
+    for (const auto &object : state.object_order) object->input(keyboard, mouse);
+    for (const auto &interface : state.interface_order) interface->input(keyboard, mouse);
+    post_input(keyboard, mouse);
   }
 
   void scene::pre_simulate(const double) {}

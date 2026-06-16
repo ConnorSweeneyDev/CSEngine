@@ -16,6 +16,7 @@
 
 #include "collision.hpp"
 #include "core.hpp"
+#include "input.hpp"
 #include "mixer.hpp"
 #include "name.hpp"
 #include "temporal.hpp"
@@ -118,16 +119,10 @@ namespace cse::help
       double width{};
       double height{};
     };
-    struct mouse
-    {
-      glm::dvec2 position{};
-      std::array<bool, SDL_BUTTON_X2 + 1> buttons{};
-      glm::dvec2 wheel{};
-    };
 
     struct shadow
     {
-      window_state::mouse mouse{};
+      cse::mouse mouse{};
     };
 
     struct previous
@@ -138,7 +133,8 @@ namespace cse::help
       unsigned int width{};
       unsigned int height{};
       bool running{};
-      window_state::mouse mouse{};
+      cse::keyboard keyboard{};
+      cse::mouse mouse{};
       help::timer timer{};
       help::mixer mixer{};
       help::phase phase{};
@@ -151,7 +147,8 @@ namespace cse::help
       unsigned int width{};
       unsigned int height{};
       bool running{};
-      window_state::mouse mouse{};
+      cse::keyboard keyboard{};
+      cse::mouse mouse{};
       help::timer timer{};
       help::mixer mixer{};
       help::phase phase{};
@@ -171,6 +168,7 @@ namespace cse::help
     void update_previous();
 
     void poll_mouse(SDL_Window *instance, const double aspect, const unsigned int resolution);
+    void poll_keyboard();
 
     viewport letterbox(const unsigned int width, const unsigned int height, const double aspect);
     glm::dvec2 to_virtual(const double x, const double y, const unsigned int width, const unsigned int height,
@@ -185,7 +183,6 @@ namespace cse::help
   private:
     window_state::shadow shadow{};
     SDL_Event event{};
-    const bool *input{};
   };
 
   struct scene_state

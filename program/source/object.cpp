@@ -4,6 +4,7 @@
 
 #include "exception.hpp"
 #include "graphics.hpp"
+#include "input.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -50,12 +51,12 @@ namespace cse
     on_event(event);
   }
 
-  void object::on_input(const bool *) {}
-  void object::input(const bool *input)
+  void object::on_input(const cse::keyboard &, const cse::mouse &) {}
+  void object::input(const cse::keyboard &keyboard, const cse::mouse &mouse)
   {
     if (state.active.phase != help::phase::CREATED)
       throw exception("Object '{}' must be created before processing input", name.string());
-    on_input(input);
+    on_input(keyboard, mouse);
   }
 
   void object::on_simulate(const double) {}

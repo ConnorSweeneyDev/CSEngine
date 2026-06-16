@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "SDL3/SDL_events.h"
+#include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_mouse.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_double4x4.hpp"
@@ -140,6 +141,7 @@ namespace cse::help
     previous.width = active.width;
     previous.height = active.height;
     previous.running = active.running;
+    previous.keyboard = active.keyboard;
     previous.mouse = active.mouse;
     previous.timer = active.timer;
     previous.mixer = active.mixer;
@@ -163,6 +165,9 @@ namespace cse::help
     active.mouse.wheel = {};
     shadow.mouse.position = active.mouse.position;
   }
+
+  void window_state::poll_keyboard()
+  { std::copy_n(SDL_GetKeyboardState(nullptr), active.keyboard.size(), active.keyboard.begin()); }
 
   window_state::viewport window_state::letterbox(const unsigned int width, const unsigned int height,
                                                  const double aspect)

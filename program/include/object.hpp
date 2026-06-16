@@ -6,6 +6,7 @@
 
 #include "core.hpp"
 #include "graphics.hpp"
+#include "input.hpp"
 #include "name.hpp"
 #include "state.hpp"
 
@@ -45,7 +46,7 @@ namespace cse
     virtual void on_create();
     virtual void on_previous();
     virtual void on_event(const SDL_Event &event);
-    virtual void on_input(const bool *keys);
+    virtual void on_input(const cse::keyboard &keyboard, const cse::mouse &mouse);
     virtual void on_simulate(const double tick);
     virtual void on_collide(const double tick);
     virtual void on_render(const double alpha);
@@ -57,7 +58,7 @@ namespace cse
     void create();
     void previous();
     void event(const SDL_Event &event);
-    void input(const bool *input);
+    void input(const cse::keyboard &keyboard, const cse::mouse &mouse);
     void simulate(const double tick);
     void collide(const double tick);
     void render(const double alpha);
