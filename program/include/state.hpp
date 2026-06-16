@@ -84,6 +84,7 @@ namespace cse::help
     void generate_order(const std::vector<std::shared_ptr<interface>> &interfaces);
     void generate_pool(const std::vector<interface *> &interfaces);
 
+    void reset_targets();
     bool inside(const glm::dvec2 &position, const double aspect, const unsigned int resolution);
     void interact(const SDL_Event &event, const double aspect, const unsigned int resolution);
     void hover(SDL_Window *instance, const double aspect, const unsigned int resolution);
@@ -353,7 +354,8 @@ namespace cse::help
     struct target
     {
       cse::hitbox hovered{};
-      std::array<cse::hitbox, SDL_BUTTON_X2 + 1> interacted{};
+      std::array<cse::hitbox, SDL_BUTTON_X2 + 1> pressed{};
+      std::array<cse::hitbox, SDL_BUTTON_X2 + 1> released{};
     };
 
     struct previous

@@ -208,6 +208,7 @@ namespace cse
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing events");
     state.active.window->state.poll_mouse(state.active.window->graphics.instance, graphics.active.aspect.value,
                                           graphics.active.resolution);
+    state.reset_targets();
     while (SDL_PollEvent(&state.active.window->state.event))
     {
       pre_event(state.active.window->state.event);

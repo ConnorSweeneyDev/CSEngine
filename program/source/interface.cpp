@@ -1,8 +1,6 @@
 #include "interface.hpp"
 
 #include "SDL3/SDL_events.h"
-#include "SDL3/SDL_stdinc.h"
-#include "glm/ext/vector_double2.hpp"
 
 #include "exception.hpp"
 #include "graphics.hpp"
@@ -44,12 +42,6 @@ namespace cse
     on_previous();
   }
 
-  void interface::on_hover() {}
-  void interface::on_unhover() {}
-  void interface::on_press(const Uint8) {}
-  void interface::on_release(const Uint8) {}
-  void interface::on_click(const Uint8) {}
-  void interface::on_scroll(const glm::dvec2 &) {}
   void interface::on_event(const SDL_Event &) {}
   void interface::event(const SDL_Event &event)
   {

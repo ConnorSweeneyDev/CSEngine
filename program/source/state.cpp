@@ -70,6 +70,11 @@ namespace cse::help
               });
   }
 
+  void game_state::reset_targets()
+  {
+    for (auto *interface : pool) interface->state.active.target.released = {};
+  }
+
   bool game_state::inside(const glm::dvec2 &position, const double aspect, const unsigned int resolution)
   {
     const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
@@ -88,38 +93,18 @@ namespace cse::help
       for (auto *interface : pool)
         if (const auto target{collision::hit(interface, mouse.position)}; target != hitbox{})
         {
-          interface->state.active.target.interacted[event.button.button] = target;
-          interface->on_press(event.button.button);
+          interface->state.active.target.pressed[event.button.button] = target;
           break;
         }
     }
     else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
     {
       if (event.button.button > SDL_BUTTON_X2) return;
-      interface *hit{};
-      hitbox top{};
-      if (inside(mouse.position, aspect, resolution))
-        for (auto *interface : pool)
-          if (top = collision::hit(interface, mouse.position); top != hitbox{})
-          {
-            hit = interface;
-            break;
-          }
       for (auto *interface : pool)
-        if (const auto target{interface->state.active.target.interacted[event.button.button]}; target != hitbox{})
+        if (const auto target{interface->state.active.target.pressed[event.button.button]}; target != hitbox{})
         {
-          interface->on_release(event.button.button);
-          if (interface == hit && target == top) interface->on_click(event.button.button);
-          interface->state.active.target.interacted[event.button.button] = {};
-        }
-    }
-    else if (event.type == SDL_EVENT_MOUSE_WHEEL)
-    {
-      for (auto *interface : pool)
-        if (interface->state.active.target.hovered != hitbox{})
-        {
-          interface->on_scroll({static_cast<double>(event.wheel.x), static_cast<double>(event.wheel.y)});
-          break;
+          interface->state.active.target.released[event.button.button] = target;
+          interface->state.active.target.pressed[event.button.button] = {};
         }
     }
   }
@@ -138,15 +123,7 @@ namespace cse::help
           hit = interface;
           break;
         }
-    for (auto *interface : pool)
-    {
-      const auto current{interface == hit ? target : hitbox{}};
-      auto &hovered{interface->state.active.target.hovered};
-      if (current == hovered) continue;
-      if (hovered != hitbox{}) interface->on_unhover();
-      hovered = current;
-      if (current != hitbox{}) interface->on_hover();
-    }
+    for (auto *interface : pool) interface->state.active.target.hovered = interface == hit ? target : hitbox{};
   }
 
   window_state::window_state(const SDL_DisplayID display_, const int left_, const int top_, const unsigned int width_,
@@ -429,7 +406,7 @@ namespace cse::help
     previous.scale = active.scale;
     previous.text = active.text;
     previous.target.hovered = active.target.hovered;
-    previous.target.interacted = active.target.interacted;
+    previous.target.pressed = active.target.pressed;
     previous.priority = active.priority;
     previous.timer = active.timer;
     previous.mixer = active.mixer;
