@@ -120,7 +120,7 @@ namespace cse::help
     struct mouse
     {
       glm::dvec2 position{};
-      SDL_MouseButtonFlags buttons{};
+      std::array<bool, SDL_BUTTON_X2 + 1> buttons{};
       glm::dvec2 wheel{};
     };
 

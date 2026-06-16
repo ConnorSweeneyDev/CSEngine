@@ -172,7 +172,9 @@ namespace cse::help
   void window_state::poll_mouse(SDL_Window *instance, const double aspect, const unsigned int resolution)
   {
     float x{}, y{};
-    active.mouse.buttons = SDL_GetMouseState(&x, &y);
+    const auto buttons{SDL_GetMouseState(&x, &y)};
+    for (std::size_t button{SDL_BUTTON_LEFT}; button <= SDL_BUTTON_X2; ++button)
+      active.mouse.buttons[button] = (buttons & SDL_BUTTON_MASK(button)) != 0;
     if (active.mouse.position != shadow.mouse.position)
     {
       const auto pixel{
