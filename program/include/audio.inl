@@ -14,8 +14,8 @@
 namespace cse::help
 {
   template <typename resource> void game_audio::reconcile(const help::mixer *previous_mix, help::mixer *active_mix,
-                                                          const bool live, const double alpha, const char *tag,
-                                                          const bool predecode, const double bus)
+                                                          const double alpha, const char *tag, const bool predecode,
+                                                          const double bus)
   {
     if (!active_mix) return;
     auto &entries{active_mix->select<resource>()};
@@ -82,7 +82,7 @@ namespace cse::help
         audio.finished = false;
       }
 
-      if (const bool audible{entry.playing && live}; audible)
+      if (entry.playing)
       {
         if (audio.finished) {}
         else if (!audio.started)

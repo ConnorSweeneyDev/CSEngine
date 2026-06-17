@@ -91,9 +91,15 @@ namespace cse::help
       using pipeline_key = std::tuple<const unsigned char *, std::size_t, const unsigned char *, std::size_t>;
       using texture_key = std::pair<const unsigned char *, std::size_t>;
       using font_key = std::tuple<const unsigned char *, std::size_t, unsigned int>;
-      std::map<pipeline_key, game_graphics::pipeline> pipeline{};
-      std::map<texture_key, SDL_GPUTexture *> texture{};
-      std::map<font_key, TTF_Font *> font{};
+      template <typename handle> struct cached
+      {
+        handle value{};
+        std::uint64_t stamp{};
+      };
+      std::map<pipeline_key, cached<game_graphics::pipeline>> pipeline{};
+      std::map<texture_key, cached<SDL_GPUTexture *>> texture{};
+      std::map<font_key, cached<TTF_Font *>> font{};
+      std::uint64_t stamp{};
     };
 
     struct previous

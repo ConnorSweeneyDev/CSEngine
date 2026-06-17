@@ -280,7 +280,7 @@ namespace cse
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before mixing");
     pre_mix(state.alpha);
     audio.mix(state.previous.mixer, state.active.mixer, state.active.window, state.active.interfaces,
-              state.active.scenes, state.active.scene, state.alpha);
+              state.active.scene, state.alpha);
     post_mix(state.alpha);
   }
 

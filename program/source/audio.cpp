@@ -49,8 +49,7 @@ namespace cse::help
 
   void game_audio::mix(const help::mixer &current_previous, help::mixer &current_active,
                        const std::shared_ptr<window> &window, const std::vector<std::shared_ptr<interface>> &interfaces,
-                       const std::vector<std::shared_ptr<scene>> &scenes, const std::shared_ptr<scene> &current,
-                       const double alpha)
+                       const std::shared_ptr<scene> &current, const double alpha)
   {
     if (!handle) return;
     active.master.value = std::clamp(active.master.value, 0.0, 1.0);
@@ -63,32 +62,40 @@ namespace cse::help
     MIX_SetMixerGain(handle, static_cast<float>(gain(blend(previous.master, active.master))));
 
     std::vector<channel> channels{};
-    const auto add{[&channels](auto *source, const bool live)
-                   { channels.push_back({&source->state.previous.mixer, &source->state.active.mixer, live}); }};
-    channels.reserve(2 + interfaces.size() + (scenes.size() * 10));
-    channels.push_back({&current_previous, &current_active, true});
-    add(window.get(), true);
-    for (const auto &interface : interfaces) add(interface.get(), true);
-    for (const auto &scene : scenes)
+    const auto add{[&channels](auto *source)
+                   { channels.push_back({&source->state.previous.mixer, &source->state.active.mixer}); }};
+    channels.reserve(3 + interfaces.size());
+    channels.push_back({&current_previous, &current_active});
+    add(window.get());
+    for (const auto &interface : interfaces) add(interface.get());
+    if (current)
     {
-      const bool live{scene == current};
-      add(scene.get(), live);
-      if (scene->state.active.camera) add(scene->state.active.camera.get(), live);
-      for (const auto &object : scene->state.active.objects) add(object.get(), live);
-      for (const auto &interface : scene->state.active.interfaces) add(interface.get(), live);
+      add(current.get());
+      if (current->state.active.camera) add(current->state.active.camera.get());
+      for (const auto &object : current->state.active.objects) add(object.get());
+      for (const auto &interface : current->state.active.interfaces) add(interface.get());
     }
 
     for (auto &[key, audio] : tracks) audio.seen = false;
     for (const auto &audio : channels)
     {
-      reconcile<cse::sound>(audio.previous, audio.active, audio.live, alpha, "sound", true, sound_bus);
-      reconcile<cse::music>(audio.previous, audio.active, audio.live, alpha, "music", false, music_bus);
+      reconcile<cse::sound>(audio.previous, audio.active, alpha, "sound", true, sound_bus);
+      reconcile<cse::music>(audio.previous, audio.active, alpha, "music", false, music_bus);
     }
     for (auto iterator{tracks.begin()}; iterator != tracks.end();)
       if (!iterator->second.seen)
       {
         if (iterator->second.handle) MIX_DestroyTrack(iterator->second.handle);
         iterator = tracks.erase(iterator);
+      }
+      else
+        ++iterator;
+    for (auto iterator{cache.begin()}; iterator != cache.end();)
+      if (std::none_of(tracks.begin(), tracks.end(),
+                       [audio = iterator->second](const auto &entry) { return entry.second.audio == audio; }))
+      {
+        if (iterator->second) MIX_DestroyAudio(iterator->second);
+        iterator = cache.erase(iterator);
       }
       else
         ++iterator;

@@ -139,20 +139,47 @@ namespace cse::help
         ++iterator;
     upload_samples(gpu);
     draw_batches(calculate_interface_matrices(alpha), command_buffer, render_pass);
+    for (auto iterator{cache.font.begin()}; iterator != cache.font.end();)
+      if (iterator->second.stamp != cache.stamp)
+      {
+        TTF_CloseFont(iterator->second.value);
+        iterator = cache.font.erase(iterator);
+      }
+      else
+        ++iterator;
+    for (auto iterator{cache.texture.begin()}; iterator != cache.texture.end();)
+      if (iterator->second.stamp != cache.stamp)
+      {
+        SDL_ReleaseGPUTexture(gpu, iterator->second.value);
+        iterator = cache.texture.erase(iterator);
+      }
+      else
+        ++iterator;
+    for (auto iterator{cache.pipeline.begin()}; iterator != cache.pipeline.end();)
+      if (iterator->second.stamp != cache.stamp)
+      {
+        SDL_ReleaseGPUGraphicsPipeline(gpu, iterator->second.value.interface);
+        SDL_ReleaseGPUGraphicsPipeline(gpu, iterator->second.value.transparent);
+        SDL_ReleaseGPUGraphicsPipeline(gpu, iterator->second.value.opaque);
+        iterator = cache.pipeline.erase(iterator);
+      }
+      else
+        ++iterator;
+    cache.stamp++;
   }
 
   void game_graphics::destroy(SDL_GPUDevice *gpu)
   {
     for (const auto &[key, entry] : interface.labels) SDL_ReleaseGPUTexture(gpu, entry.texture);
-    for (const auto &[key, font] : cache.font) TTF_CloseFont(font);
+    for (const auto &[key, font] : cache.font) TTF_CloseFont(font.value);
     SDL_ReleaseGPUTransferBuffer(gpu, object.transfer_buffer);
     SDL_ReleaseGPUBuffer(gpu, object.buffer);
-    for (const auto &[key, texture] : cache.texture) SDL_ReleaseGPUTexture(gpu, texture);
+    for (const auto &[key, texture] : cache.texture) SDL_ReleaseGPUTexture(gpu, texture.value);
     for (const auto &[key, available] : cache.pipeline)
     {
-      SDL_ReleaseGPUGraphicsPipeline(gpu, available.interface);
-      SDL_ReleaseGPUGraphicsPipeline(gpu, available.transparent);
-      SDL_ReleaseGPUGraphicsPipeline(gpu, available.opaque);
+      SDL_ReleaseGPUGraphicsPipeline(gpu, available.value.interface);
+      SDL_ReleaseGPUGraphicsPipeline(gpu, available.value.transparent);
+      SDL_ReleaseGPUGraphicsPipeline(gpu, available.value.opaque);
     }
     SDL_ReleaseGPUSampler(gpu, buffer.sample);
     SDL_ReleaseGPUBuffer(gpu, buffer.index);
@@ -168,6 +195,7 @@ namespace cse::help
     cache.font.clear();
     cache.texture.clear();
     cache.pipeline.clear();
+    cache.stamp = 0;
     buffer.sample = nullptr;
     buffer.index = nullptr;
     buffer.vertex = nullptr;
@@ -383,7 +411,11 @@ namespace cse::help
                                                             const cse::vertex &vertex, const cse::fragment &fragment)
   {
     const cache::pipeline_key key{vertex.data.data(), vertex.data.size(), fragment.data.data(), fragment.data.size()};
-    if (const auto iterator{cache.pipeline.find(key)}; iterator != cache.pipeline.end()) return iterator->second;
+    if (const auto iterator{cache.pipeline.find(key)}; iterator != cache.pipeline.end())
+    {
+      iterator->second.stamp = cache.stamp;
+      return iterator->second.value;
+    }
     const auto backend_formats{SDL_GetGPUShaderFormats(gpu)};
     if (!(backend_formats & SDL_GPU_SHADERFORMAT_SPIRV))
       throw sdl_exception("No supported vulkan shader formats for game");
@@ -520,13 +552,17 @@ namespace cse::help
     if (!available.interface) throw sdl_exception("Could not create interface graphics pipeline for game");
     SDL_ReleaseGPUShader(gpu, fragment_shader);
     SDL_ReleaseGPUShader(gpu, vertex_shader);
-    return cache.pipeline.emplace(key, available).first->second;
+    return cache.pipeline.emplace(key, cache::cached<pipeline>{available, cache.stamp}).first->second.value;
   }
 
   SDL_GPUTexture *game_graphics::require_texture(SDL_GPUDevice *gpu, const cse::image &image)
   {
     const cache::texture_key key{image.data.data(), image.data.size()};
-    if (const auto iterator{cache.texture.find(key)}; iterator != cache.texture.end()) return iterator->second;
+    if (const auto iterator{cache.texture.find(key)}; iterator != cache.texture.end())
+    {
+      iterator->second.stamp = cache.stamp;
+      return iterator->second.value;
+    }
     const auto type{SDL_GPU_TEXTURETYPE_2D};
     const auto format{SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM};
     const auto usage{SDL_GPU_TEXTUREUSAGE_SAMPLER};
@@ -570,19 +606,23 @@ namespace cse::help
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
     SDL_ReleaseGPUTransferBuffer(gpu, texture_transfer_buffer);
-    return cache.texture.emplace(key, texture).first->second;
+    return cache.texture.emplace(key, cache::cached<SDL_GPUTexture *>{texture, cache.stamp}).first->second.value;
   }
 
   TTF_Font *game_graphics::require_font(const cse::font &font, const unsigned int size)
   {
     const cache::font_key key{font.data.data(), font.data.size(), size};
-    if (const auto iterator{cache.font.find(key)}; iterator != cache.font.end()) return iterator->second;
+    if (const auto iterator{cache.font.find(key)}; iterator != cache.font.end())
+    {
+      iterator->second.stamp = cache.stamp;
+      return iterator->second.value;
+    }
     auto *source{SDL_IOFromConstMem(font.data.data(), font.data.size())};
     if (!source) throw sdl_exception("Could not open font data for game");
     auto *opened{TTF_OpenFontIO(source, true, static_cast<float>(size))};
     if (!opened) throw sdl_exception("Could not open font for game");
     TTF_SetFontWrapAlignment(opened, TTF_HORIZONTAL_ALIGN_CENTER);
-    return cache.font.emplace(key, opened).first->second;
+    return cache.font.emplace(key, cache::cached<TTF_Font *>{opened, cache.stamp}).first->second.value;
   }
 
   game_graphics::interface::label &game_graphics::require_label(SDL_GPUDevice *gpu, const cse::interface *element)
@@ -594,6 +634,7 @@ namespace cse::help
     const auto width{static_cast<unsigned int>(static_cast<double>(element->graphics.active.texture.image.frame_width) *
                                                std::max(1.0, std::floor(scale.x + 0.5)))};
     auto &entry{interface.labels[element]};
+    auto *font{require_font(style.font, style.size)};
     if (entry.texture && entry.text == content && entry.font == style.font.data.data() && entry.size == style.size &&
         entry.color == style.color && entry.width == width)
       return entry;
@@ -602,7 +643,6 @@ namespace cse::help
       SDL_ReleaseGPUTexture(gpu, entry.texture);
       entry.texture = nullptr;
     }
-    auto *font{require_font(style.font, style.size)};
     const SDL_Color color{static_cast<Uint8>(std::clamp(style.color.r, 0.0, 1.0) * 255.0),
                           static_cast<Uint8>(std::clamp(style.color.g, 0.0, 1.0) * 255.0),
                           static_cast<Uint8>(std::clamp(style.color.b, 0.0, 1.0) * 255.0),

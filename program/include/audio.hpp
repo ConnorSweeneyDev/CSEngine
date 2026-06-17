@@ -24,7 +24,6 @@ namespace cse::help
     {
       const help::mixer *previous{};
       help::mixer *active{};
-      bool live{};
     };
     struct track
     {
@@ -71,14 +70,12 @@ namespace cse::help
 
     void create_app();
     void mix(const help::mixer &previous, help::mixer &active, const std::shared_ptr<window> &window,
-             const std::vector<std::shared_ptr<interface>> &interfaces,
-             const std::vector<std::shared_ptr<scene>> &scenes, const std::shared_ptr<scene> &current,
+             const std::vector<std::shared_ptr<interface>> &interfaces, const std::shared_ptr<scene> &current,
              const double alpha);
     void destroy_app();
 
-    template <typename resource> void reconcile(const help::mixer *previous, help::mixer *active, const bool live,
-                                                const double alpha, const char *tag, const bool predecode,
-                                                const double bus);
+    template <typename resource> void reconcile(const help::mixer *previous, help::mixer *active, const double alpha,
+                                                const char *tag, const bool predecode, const double bus);
     std::int64_t seconds_to_frames(const double seconds) const;
     double frames_to_seconds(const std::int64_t frames) const;
     static double gain(const double volume);
