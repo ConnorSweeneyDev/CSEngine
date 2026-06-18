@@ -4,6 +4,7 @@
 
 #include "SDL3/SDL_main.h"
 
+#include "csp.hpp"
 #include "print.hpp"
 
 int main(int argc, char *argv[])
@@ -11,6 +12,7 @@ int main(int argc, char *argv[])
 {
   try
   {
+    csp::mount();
     return cse::main(argc, argv);
   }
   catch (const std::exception &error)
