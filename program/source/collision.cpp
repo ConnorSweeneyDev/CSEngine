@@ -40,9 +40,9 @@ namespace cse::help::collision
     auto scale{object->state.active.scale.value};
     auto flip{object->graphics.active.render.flip};
     glm::dvec2 center{width / 2.0, height / 2.0};
-    double local_left{bounds.left - 1.0 - center.x};
+    double local_left{bounds.left - center.x};
     double local_right{bounds.right - center.x};
-    double local_top{center.y - (bounds.top - 1.0)};
+    double local_top{center.y - bounds.top};
     double local_bottom{center.y - bounds.bottom};
 
     if (flip.horizontal)
@@ -162,9 +162,9 @@ namespace cse::help::collision
     const auto &flip{interface->graphics.active.render.flip};
     for (const auto &[identifier, bounds] : hitboxes)
     {
-      auto left{bounds.left - 1.0 - center.x};
+      auto left{bounds.left - center.x};
       auto right{bounds.right - center.x};
-      auto top{bounds.top - 1.0 - center.y};
+      auto top{bounds.top - center.y};
       auto bottom{bounds.bottom - center.y};
       if (flip.horizontal)
       {
