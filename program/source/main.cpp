@@ -2,9 +2,11 @@
 
 #include <exception>
 
+#include "SDL3/SDL_filesystem.h"
 #include "SDL3/SDL_main.h"
+#include "csp/csp.hpp"
 
-#include "csp.hpp"
+#include "exception.hpp"
 #include "print.hpp"
 
 int main(int argc, char *argv[])
@@ -12,7 +14,9 @@ int main(int argc, char *argv[])
 {
   try
   {
-    csp::mount();
+    const char *base{SDL_GetBasePath()};
+    if (!base) throw cse::exception("Failed to resolve the application directory: {}", base);
+    csp::mount(base);
     return cse::main(argc, argv);
   }
   catch (const std::exception &error)

@@ -1,7 +1,9 @@
 #include "csb.hpp"
 
+#include <filesystem>
 #include <format>
 #include <string>
+#include <vector>
 
 void csb::configure()
 {
@@ -92,16 +94,42 @@ int csb::build()
                                        },
                                      }}});
 
-  auto build_include_path = csb::path("build/include/cse");
-  if (!csb::exists(build_include_path)) csb::mkdir(build_include_path);
-  for (const auto &file : csb::directory(build_include_path))
+  csb::subproject_install({"ConnorSweeneyDev/CSPack", "1.0.0", HEADER_LIBRARY});
+
+  const auto build_include_path = csb::path("build/include");
+  const auto cse_include_path = build_include_path / "cse";
+  if (!csb::exists(cse_include_path)) csb::mkdir(cse_include_path);
+  for (const auto &file : csb::directory(cse_include_path))
     if (!csb::contains(csb::include_files, csb::path("program/include") / file.path().filename()))
       csb::remove(file.path());
   csb::multi_task_run(std::format("{} () []", csb::host_platform == WINDOWS ? "copy /Y" : "cp"), csb::include_files,
-                      {build_include_path / "(filename)"});
+                      {cse_include_path / "(filename)"});
+
+  std::vector<std::filesystem::path> external_includes{};
+  for (const auto &entry : csb::directory(csb::vcpkg_include())) external_includes.push_back(entry.path());
+  for (const auto &entry : csb::directory(csb::subproject_include("CSPack"))) external_includes.push_back(entry.path());
+  csb::multi_task_run(
+    [](const std::filesystem::path &source, const std::vector<std::filesystem::path> &,
+       const std::vector<std::filesystem::path> &) -> std::string
+    {
+      if (csb::host_platform == WINDOWS)
+        return std::filesystem::is_directory(source) ? "xcopy /E /I /Y /Q () []" : "copy /Y () []";
+      return std::filesystem::is_directory(source) ? "cp -rT () []" : "cp () []";
+    },
+    external_includes, {build_include_path / "(filename)"});
+
+  const auto build_library_path{csb::path("build") / (csb::target_configuration == RELEASE ? "release" : "debug")};
+  if (!csb::exists(build_library_path)) csb::mkdir(build_library_path);
+  std::vector<std::filesystem::path> external_libraries{};
+  for (const auto &entry : csb::directory_recurse(csb::vcpkg_library()))
+    if (entry.is_regular_file() && entry.path().extension() == (csb::host_platform == WINDOWS ? ".lib" : ".a"))
+      external_libraries.push_back(entry.path());
+  csb::multi_task_run(std::format("{} () []", csb::host_platform == WINDOWS ? "copy /Y" : "cp"), external_libraries,
+                      {build_library_path / "(filename)"});
 
   csb::generate_clangd({{"Diagnostics", {{"UnusedIncludes", "Strict"}, {"MissingIncludes", "Strict"}}}});
   csb::generate_compile_commands();
+
   csb::compile();
   csb::link();
   return csb::run();
