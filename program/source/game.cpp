@@ -13,7 +13,6 @@
 #include "interface.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
-#include "print.hpp"
 #include "scene.hpp"
 #include "state.hpp"
 #include "window.hpp"
@@ -317,10 +316,10 @@ namespace cse
 
   void game::step()
   {
-    state.active.tick = std::max(10.0, state.active.tick);
-    graphics.active.frame = std::max(1.0, graphics.active.frame);
-    const double real_tick = 1.0 / state.active.tick;
-    const double real_frame = 1.0 / graphics.active.frame;
+    state.active.tick.target = std::max(10.0, state.active.tick.target);
+    graphics.active.frame.target = std::max(1.0, graphics.active.frame.target);
+    const double real_tick = 1.0 / state.active.tick.target;
+    const double real_frame = 1.0 / graphics.active.frame.target;
     if (!equal(real_tick, state.actual_tick))
     {
       state.accumulator = state.accumulator * (real_tick / state.actual_tick);
@@ -378,10 +377,8 @@ namespace cse
     accumulator += (static_cast<double>(SDL_GetTicksNS()) / 1e9) - start.value();
     if (state.time - deadline >= 1.0)
     {
-      const double average = (accumulator / count) * 1000.0;
-      const double target = state.actual_tick * 1000.0;
-      const double usage = (average / target) * 100.0;
-      print<CLOG>("TPS: {} | {:.3f}ms / {:.3f}ms ({:.2f}%)\n", count, average, target, usage);
+      state.active.tick.count = count;
+      state.active.tick.average = (accumulator / count) * 1000.0;
       deadline = state.time;
       accumulator = 0.0;
       count = 0;
@@ -405,10 +402,8 @@ namespace cse
     accumulator += (static_cast<double>(SDL_GetTicksNS()) / 1e9) - start.value();
     if (state.time - deadline >= 1.0)
     {
-      const double average = (accumulator / count) * 1000.0;
-      const double target = graphics.actual_frame * 1000.0;
-      const double usage = (average / target) * 100.0;
-      print<CLOG>("FPS: {} | {:.3f}ms / {:.3f}ms ({:.2f}%)\n", count, average, target, usage);
+      graphics.active.frame.count = count;
+      graphics.active.frame.average = (accumulator / count) * 1000.0;
       deadline = state.time;
       accumulator = 0.0;
       count = 0;

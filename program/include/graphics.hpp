@@ -29,6 +29,13 @@ namespace cse::help
     friend struct scene_graphics;
 
   private:
+    struct frame
+    {
+      double target{};
+      unsigned int count{};
+      double average{};
+    };
+
     struct corner
     {
       float x{}, y{};
@@ -104,14 +111,14 @@ namespace cse::help
 
     struct previous
     {
-      double frame{};
+      game_graphics::frame frame{};
       temporal<double> aspect{};
       unsigned int resolution{};
       temporal<glm::dvec4> clear{};
     };
     struct active
     {
-      double frame{};
+      game_graphics::frame frame{};
       temporal<double> aspect{};
       unsigned int resolution{};
       temporal<glm::dvec4> clear{};
@@ -159,7 +166,7 @@ namespace cse::help
     game_graphics::active active{};
 
   private:
-    double actual_frame{1.0 / active.frame};
+    double actual_frame{1.0 / active.frame.target};
     game_graphics::buffer buffer{};
     game_graphics::cache cache{};
     game_graphics::object object{};

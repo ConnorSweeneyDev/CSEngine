@@ -36,6 +36,12 @@ namespace cse::help
     friend class cse::game;
 
   private:
+    struct tick
+    {
+      double target{};
+      unsigned int count{};
+      double average{};
+    };
     struct next_scene
     {
       cse::name name{};
@@ -44,7 +50,7 @@ namespace cse::help
 
     struct previous
     {
-      double tick{};
+      game_state::tick tick{};
       std::shared_ptr<cse::window> window{};
       std::vector<std::shared_ptr<cse::scene>> scenes{};
       std::shared_ptr<cse::scene> scene{};
@@ -55,7 +61,7 @@ namespace cse::help
     };
     struct active
     {
-      double tick{};
+      game_state::tick tick{};
       std::shared_ptr<cse::window> window{};
       std::vector<std::shared_ptr<cse::scene>> scenes{};
       std::shared_ptr<cse::scene> scene{};
@@ -96,7 +102,7 @@ namespace cse::help
     game_state::next next{};
 
   private:
-    double actual_tick{1.0 / active.tick};
+    double actual_tick{1.0 / active.tick.target};
     double time{};
     double accumulator{};
     double alpha{};

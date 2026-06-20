@@ -46,14 +46,16 @@ namespace cse::help
 {
   game_graphics::game_graphics(const double frame_, const double aspect_, const unsigned int resolution_,
                                const glm::dvec4 &clear_)
-    : previous{frame_, aspect_, resolution_, clear_}, active{frame_, aspect_, resolution_, clear_}
+    : previous{{frame_}, aspect_, resolution_, clear_}, active{{frame_}, aspect_, resolution_, clear_}
   {
   }
 
   void game_graphics::update_previous()
   {
+    previous.frame.target = active.frame.target;
+    previous.frame.count = active.frame.count;
+    previous.frame.average = active.frame.average;
     previous.aspect = active.aspect;
-    previous.frame = active.frame;
     previous.resolution = active.resolution;
     previous.clear = active.clear;
   }

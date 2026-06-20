@@ -26,11 +26,13 @@
 
 namespace cse::help
 {
-  game_state::game_state(const double tick_) : previous{tick_}, active{tick_} {}
+  game_state::game_state(const double tick_) : previous{{tick_}}, active{{tick_}} {}
 
   void game_state::update_previous()
   {
-    previous.tick = active.tick;
+    previous.tick.target = active.tick.target;
+    previous.tick.count = active.tick.count;
+    previous.tick.average = active.tick.average;
     previous.window = active.window;
     previous.scenes = active.scenes;
     previous.scene = active.scene;
