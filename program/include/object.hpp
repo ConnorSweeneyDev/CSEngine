@@ -28,7 +28,6 @@ namespace cse
     {
       const help::object_graphics::shader shader{};
       const help::object_graphics::texture texture{};
-      const help::object_graphics::render render{};
       const int priority{};
     };
 

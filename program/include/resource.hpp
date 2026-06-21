@@ -27,23 +27,10 @@ namespace cse
 
     std::span<const unsigned char> data{};
   };
+
   struct font
   {
     bool operator==(const font &other) const
-    { return data.data() == other.data.data() && data.size() == other.data.size(); }
-
-    std::span<const unsigned char> data{};
-  };
-  struct sound
-  {
-    bool operator==(const sound &other) const
-    { return data.data() == other.data.data() && data.size() == other.data.size(); }
-
-    std::span<const unsigned char> data{};
-  };
-  struct music
-  {
-    bool operator==(const music &other) const
     { return data.data() == other.data.data() && data.size() == other.data.size(); }
 
     std::span<const unsigned char> data{};
@@ -90,6 +77,21 @@ namespace cse
   };
   using color = glm::dvec4;
   using transparency = double;
+
+  struct sound
+  {
+    bool operator==(const sound &other) const
+    { return data.data() == other.data.data() && data.size() == other.data.size(); }
+
+    std::span<const unsigned char> data{};
+  };
+  struct music
+  {
+    bool operator==(const music &other) const
+    { return data.data() == other.data.data() && data.size() == other.data.size(); }
+
+    std::span<const unsigned char> data{};
+  };
 }
 
 namespace cse::trait

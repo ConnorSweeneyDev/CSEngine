@@ -31,7 +31,6 @@ namespace cse
     {
       const help::interface_graphics::shader shader{};
       const help::interface_graphics::texture texture{};
-      const help::interface_graphics::render render{};
       const help::interface_graphics::text text{};
       const int priority{};
     };

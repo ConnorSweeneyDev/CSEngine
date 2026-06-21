@@ -245,17 +245,18 @@ namespace cse::help
     for (auto *element : order)
     {
       auto &graphics{element->graphics};
-      auto &frame{graphics.active.render.playback.frame};
+      auto &frame{graphics.active.texture.playback.frame};
       const auto size{graphics.active.texture.animation.frames.size()};
       if (size == 0) throw exception("Object '{}' contains no frames", element->name.string());
       if (frame >= size) frame = size - 1;
       const auto &coordinates{graphics.active.texture.animation.frames[frame].coordinates};
-      const auto &flip{graphics.active.render.flip};
-      const auto color{glm::vec4{graphics.previous.render.color.value +
-                                 (graphics.active.render.color.value - graphics.previous.render.color.value) * alpha}};
+      const auto &flip{graphics.active.texture.flip};
+      const auto color{
+        glm::vec4{graphics.previous.texture.color.value +
+                  (graphics.active.texture.color.value - graphics.previous.texture.color.value) * alpha}};
       const auto transparency{
-        graphics.previous.render.transparency.value +
-        (graphics.active.render.transparency.value - graphics.previous.render.transparency.value) * alpha};
+        graphics.previous.texture.transparency.value +
+        (graphics.active.texture.transparency.value - graphics.previous.texture.transparency.value) * alpha};
       const glm::mat4 model{element->state.calculate_model_matrix(graphics.active.texture.image.frame_width,
                                                                   graphics.active.texture.image.frame_height, alpha)};
       object::sample data{};
@@ -289,17 +290,18 @@ namespace cse::help
     for (auto *element : order)
     {
       auto &graphics{element->graphics};
-      auto &frame{graphics.active.render.playback.frame};
+      auto &frame{graphics.active.texture.playback.frame};
       const auto size{graphics.active.texture.animation.frames.size()};
       if (size == 0) throw exception("Interface '{}' contains no frames", element->name.string());
       if (frame >= size) frame = size - 1;
       const auto &coordinates{graphics.active.texture.animation.frames[frame].coordinates};
-      const auto &flip{graphics.active.render.flip};
-      const auto color{glm::vec4{graphics.previous.render.color.value +
-                                 (graphics.active.render.color.value - graphics.previous.render.color.value) * alpha}};
+      const auto &flip{graphics.active.texture.flip};
+      const auto color{
+        glm::vec4{graphics.previous.texture.color.value +
+                  (graphics.active.texture.color.value - graphics.previous.texture.color.value) * alpha}};
       const auto transparency{
-        graphics.previous.render.transparency.value +
-        (graphics.active.render.transparency.value - graphics.previous.render.transparency.value) * alpha};
+        graphics.previous.texture.transparency.value +
+        (graphics.active.texture.transparency.value - graphics.previous.texture.transparency.value) * alpha};
       const glm::mat4 model{element->state.calculate_model_matrix(graphics.active.texture.image.frame_width,
                                                                   graphics.active.texture.image.frame_height, alpha)};
       object::sample data{};
@@ -1171,9 +1173,8 @@ namespace cse::help
                             active.clip.far);
   }
 
-  object_graphics::object_graphics(const shader &shader_, const texture &texture_, const render &render_,
-                                   const int priority_)
-    : previous{shader_, texture_, render_, priority_}, active{shader_, texture_, render_, priority_}
+  object_graphics::object_graphics(const shader &shader_, const texture &texture_, const int priority_)
+    : previous{shader_, texture_, priority_}, active{shader_, texture_, priority_}
   {
   }
 
@@ -1183,17 +1184,17 @@ namespace cse::help
     previous.shader.fragment = active.shader.fragment;
     previous.texture.image = active.texture.image;
     previous.texture.animation = active.texture.animation;
-    previous.render.playback = active.render.playback;
-    previous.render.flip = active.render.flip;
-    previous.render.color = active.render.color;
-    previous.render.transparency = active.render.transparency;
+    previous.texture.playback = active.texture.playback;
+    previous.texture.flip = active.texture.flip;
+    previous.texture.color = active.texture.color;
+    previous.texture.transparency = active.texture.transparency;
     previous.priority = active.priority;
   }
 
   void object_graphics::animate(const double tick)
   {
     auto &animation{active.texture.animation};
-    auto &playback{active.render.playback};
+    auto &playback{active.texture.playback};
     auto no_frames{animation.frames.empty()};
     auto frame_count{animation.frames.size()};
     if (no_frames)
@@ -1246,9 +1247,9 @@ namespace cse::help
     }
   }
 
-  interface_graphics::interface_graphics(const shader &shader_, const texture &texture_, const render &render_,
-                                         const text &text_, const int priority_)
-    : previous{shader_, texture_, render_, text_, priority_}, active{shader_, texture_, render_, text_, priority_}
+  interface_graphics::interface_graphics(const shader &shader_, const texture &texture_, const text &text_,
+                                         const int priority_)
+    : previous{shader_, texture_, text_, priority_}, active{shader_, texture_, text_, priority_}
   {
   }
 
@@ -1258,10 +1259,10 @@ namespace cse::help
     previous.shader.fragment = active.shader.fragment;
     previous.texture.image = active.texture.image;
     previous.texture.animation = active.texture.animation;
-    previous.render.playback = active.render.playback;
-    previous.render.flip = active.render.flip;
-    previous.render.color = active.render.color;
-    previous.render.transparency = active.render.transparency;
+    previous.texture.playback = active.texture.playback;
+    previous.texture.flip = active.texture.flip;
+    previous.texture.color = active.texture.color;
+    previous.texture.transparency = active.texture.transparency;
     previous.text.font = active.text.font;
     previous.text.size = active.text.size;
     previous.text.color = active.text.color;
@@ -1271,7 +1272,7 @@ namespace cse::help
   void interface_graphics::animate(const double tick)
   {
     auto &animation{active.texture.animation};
-    auto &playback{active.render.playback};
+    auto &playback{active.texture.playback};
     auto no_frames{animation.frames.empty()};
     auto frame_count{animation.frames.size()};
     if (no_frames)

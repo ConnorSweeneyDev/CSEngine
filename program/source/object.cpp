@@ -10,7 +10,7 @@ namespace cse
 {
   object::object(const initial_state &state_, const initial_graphics &graphics_)
     : state{state_.translation, state_.rotation, state_.scale, state_.collidable, state_.priority},
-      graphics{graphics_.shader, graphics_.texture, graphics_.render, graphics_.priority}
+      graphics{graphics_.shader, graphics_.texture, graphics_.priority}
   {
   }
 

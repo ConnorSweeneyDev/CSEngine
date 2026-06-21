@@ -342,9 +342,6 @@ namespace cse::help
     {
       cse::image image{};
       cse::animation animation{};
-    };
-    struct render
-    {
       cse::playback playback{};
       cse::flip flip{};
       temporal<cse::color> color{};
@@ -355,20 +352,18 @@ namespace cse::help
     {
       object_graphics::shader shader{};
       object_graphics::texture texture{};
-      object_graphics::render render{};
       int priority{};
     };
     struct active
     {
       object_graphics::shader shader{};
       object_graphics::texture texture{};
-      object_graphics::render render{};
       int priority{};
     };
 
   public:
     object_graphics() = default;
-    object_graphics(const shader &shader_, const texture &texture_, const render &render_, const int priority_);
+    object_graphics(const shader &shader_, const texture &texture_, const int priority_);
     ~object_graphics() = default;
     object_graphics(const object_graphics &) = delete;
     object_graphics &operator=(const object_graphics &) = delete;
@@ -399,9 +394,6 @@ namespace cse::help
     {
       cse::image image{};
       cse::animation animation{};
-    };
-    struct render
-    {
       cse::playback playback{};
       cse::flip flip{};
       temporal<cse::color> color{};
@@ -418,7 +410,6 @@ namespace cse::help
     {
       interface_graphics::shader shader{};
       interface_graphics::texture texture{};
-      interface_graphics::render render{};
       interface_graphics::text text{};
       int priority{};
     };
@@ -426,15 +417,13 @@ namespace cse::help
     {
       interface_graphics::shader shader{};
       interface_graphics::texture texture{};
-      interface_graphics::render render{};
       interface_graphics::text text{};
       int priority{};
     };
 
   public:
     interface_graphics() = default;
-    interface_graphics(const shader &shader_, const texture &texture_, const render &render_, const text &text_,
-                       const int priority_);
+    interface_graphics(const shader &shader_, const texture &texture_, const text &text_, const int priority_);
     ~interface_graphics() = default;
     interface_graphics(const interface_graphics &) = delete;
     interface_graphics &operator=(const interface_graphics &) = delete;

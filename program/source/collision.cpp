@@ -26,7 +26,7 @@ namespace cse::help::collision
   {
     if (!object->state.active.collidable) return {};
     const auto &animation{object->graphics.active.texture.animation};
-    auto frame{object->graphics.active.render.playback.frame};
+    auto frame{object->graphics.active.texture.playback.frame};
     if (frame >= animation.frames.size()) return {};
     return animation.frames[frame].hitboxes;
   }
@@ -38,7 +38,7 @@ namespace cse::help::collision
     auto translation{object->state.active.translation.value};
     auto rotation{static_cast<int>(std::floor(object->state.active.rotation.value + 0.5))};
     auto scale{object->state.active.scale.value};
-    auto flip{object->graphics.active.render.flip};
+    auto flip{object->graphics.active.texture.flip};
     glm::dvec2 center{width / 2.0, height / 2.0};
     double local_left{bounds.left - center.x};
     double local_right{bounds.right - center.x};
@@ -140,7 +140,7 @@ namespace cse::help::collision
   hitbox hit(const interface *interface, const glm::dvec2 &point)
   {
     const auto &animation{interface->graphics.active.texture.animation};
-    const auto frame{interface->graphics.active.render.playback.frame};
+    const auto frame{interface->graphics.active.texture.playback.frame};
     if (frame >= animation.frames.size()) return {};
     const auto &hitboxes{animation.frames[frame].hitboxes};
     if (hitboxes.empty()) return {};
@@ -159,7 +159,7 @@ namespace cse::help::collision
     local -= glm::dvec2{frame_width % 2 == 0 ? 0.5 : 0.0, frame_height % 2 == 0 ? 0.5 : 0.0};
     local /= glm::dvec2{scale_x, scale_y};
     const glm::dvec2 center{frame_width / 2.0, frame_height / 2.0};
-    const auto &flip{interface->graphics.active.render.flip};
+    const auto &flip{interface->graphics.active.texture.flip};
     for (const auto &[identifier, bounds] : hitboxes)
     {
       auto left{bounds.left - center.x};
