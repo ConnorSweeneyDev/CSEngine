@@ -400,7 +400,8 @@ namespace cse::help
 
     glm::dmat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
                                       const double alpha) const;
-    glm::dmat4 calculate_text_matrix(const unsigned int width, const unsigned int height, const double alpha) const;
+    glm::dmat4 calculate_text_matrix(const double width, const double height, const glm::dvec2 &offset,
+                                     const double alpha) const;
 
   public:
     interface_state::previous previous{};

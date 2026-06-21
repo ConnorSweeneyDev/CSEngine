@@ -82,8 +82,12 @@ namespace cse::help
         std::string text{};
         const unsigned char *font{};
         unsigned int size{};
+        TTF_FontStyleFlags style{};
         glm::dvec4 color{};
+        TTF_HorizontalAlignment align{};
+        bool wrap{};
         unsigned int width{};
+        int skip{};
         SDL_GPUTexture *texture{};
         unsigned int texture_width{};
         unsigned int texture_height{};
@@ -98,6 +102,11 @@ namespace cse::help
       using pipeline_key = std::tuple<const unsigned char *, std::size_t, const unsigned char *, std::size_t>;
       using texture_key = std::pair<const unsigned char *, std::size_t>;
       using font_key = std::tuple<const unsigned char *, std::size_t, unsigned int>;
+      struct typeface
+      {
+        TTF_Font *font{};
+        int skip{};
+      };
       template <typename handle> struct cached
       {
         handle value{};
@@ -105,7 +114,7 @@ namespace cse::help
       };
       std::map<pipeline_key, cached<game_graphics::pipeline>> pipeline{};
       std::map<texture_key, cached<SDL_GPUTexture *>> texture{};
-      std::map<font_key, cached<TTF_Font *>> font{};
+      std::map<font_key, cached<typeface>> font{};
       std::uint64_t stamp{};
     };
 
@@ -157,8 +166,9 @@ namespace cse::help
     pipeline &require_pipelines(SDL_Window *instance, SDL_GPUDevice *gpu, const cse::vertex &vertex,
                                 const cse::fragment &fragment);
     SDL_GPUTexture *require_texture(SDL_GPUDevice *gpu, const cse::image &image);
-    TTF_Font *require_font(const cse::font &font, const unsigned int size);
-    game_graphics::interface::label &require_label(SDL_GPUDevice *gpu, const cse::interface *element);
+    cache::typeface &require_font(const cse::font &font, const unsigned int size);
+    game_graphics::interface::label &require_label(SDL_GPUDevice *gpu, const cse::interface *element,
+                                                   const double alpha);
     std::pair<glm::dmat4, glm::dmat4> calculate_interface_matrices(const double alpha) const;
 
   public:
@@ -404,7 +414,12 @@ namespace cse::help
       std::string content{};
       cse::font font{};
       unsigned int size{};
-      cse::color color{};
+      cse::style style{};
+      temporal<cse::color> color{};
+      cse::align align{};
+      double spacing{};
+      bool wrap{};
+      bool overflow{};
     };
 
     struct previous

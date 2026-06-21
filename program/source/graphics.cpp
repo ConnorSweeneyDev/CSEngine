@@ -24,6 +24,7 @@
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
 #include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_float4.hpp"
@@ -144,7 +145,7 @@ namespace cse::help
     for (auto iterator{cache.font.begin()}; iterator != cache.font.end();)
       if (iterator->second.stamp != cache.stamp)
       {
-        TTF_CloseFont(iterator->second.value);
+        TTF_CloseFont(iterator->second.value.font);
         iterator = cache.font.erase(iterator);
       }
       else
@@ -173,7 +174,7 @@ namespace cse::help
   void game_graphics::destroy(SDL_GPUDevice *gpu)
   {
     for (const auto &[key, entry] : interface.labels) SDL_ReleaseGPUTexture(gpu, entry.texture);
-    for (const auto &[key, font] : cache.font) TTF_CloseFont(font.value);
+    for (const auto &[key, font] : cache.font) TTF_CloseFont(font.value.font);
     SDL_ReleaseGPUTransferBuffer(gpu, object.transfer_buffer);
     SDL_ReleaseGPUBuffer(gpu, object.buffer);
     for (const auto &[key, texture] : cache.texture) SDL_ReleaseGPUTexture(gpu, texture.value);
@@ -324,25 +325,60 @@ namespace cse::help
         object.batches.push_back({object.samples.size(), 1, pipe, texture});
       object.samples.push_back(data);
 
-      if (element->graphics.active.text.content.empty()) continue;
-      auto &entry{require_label(gpu, element)};
+      const auto &text{graphics.active.text};
+      if (text.content.empty()) continue;
+      const auto text_alpha{graphics.previous.text.color.value.a +
+                            (text.color.value.a - graphics.previous.text.color.value.a) * alpha};
+      if (static_cast<int>(std::clamp(text_alpha, 0.0, 1.0) * 255.0) <= 0) continue;
+      auto &entry{require_label(gpu, element, alpha)};
       entry.stamp = interface.stamp;
       const auto &scale{element->state.active.scale.value};
-      const auto width{static_cast<unsigned int>(static_cast<double>(graphics.active.texture.image.frame_width) *
-                                                 std::max(1.0, std::floor(scale.x + 0.5)))};
-      const auto height{static_cast<unsigned int>(static_cast<double>(graphics.active.texture.image.frame_height) *
-                                                  std::max(1.0, std::floor(scale.y + 0.5)))};
-      const auto visible_width{std::min(entry.texture_width, width)};
-      const auto visible_height{std::min(entry.texture_height, height)};
-      const auto clip_left{static_cast<double>(entry.texture_width - visible_width) / 2.0 / entry.texture_width};
-      const auto clip_top{static_cast<double>(entry.texture_height - visible_height) / 2.0 / entry.texture_height};
-      const glm::mat4 text_model{element->state.calculate_text_matrix(visible_width, visible_height, alpha)};
+      const auto element_width{static_cast<double>(graphics.active.texture.image.frame_width) *
+                               std::max(1.0, std::floor(scale.x + 0.5))};
+      const auto element_height{static_cast<double>(graphics.active.texture.image.frame_height) *
+                                std::max(1.0, std::floor(scale.y + 0.5))};
+      const auto texture_width{static_cast<double>(entry.texture_width)};
+      const auto texture_height{static_cast<double>(entry.texture_height)};
+      const auto box_left{-element_width / 2.0};
+      const auto box_right{element_width / 2.0};
+      const auto box_top{-element_height / 2.0};
+      const auto box_bottom{element_height / 2.0};
+      const auto &prior{graphics.previous.text.align.offset.value};
+      const auto &offset{text.align.offset.value};
+      const glm::dvec2 shift{prior + (offset - prior) * alpha};
+      double block_left{-texture_width / 2.0};
+      if (text.align.horizontal == cse::align::LEFT)
+        block_left = box_left;
+      else if (text.align.horizontal == cse::align::RIGHT)
+        block_left = box_right - texture_width;
+      block_left += shift.x;
+      double block_top{-texture_height / 2.0};
+      if (text.align.vertical == cse::align::TOP)
+        block_top = box_top;
+      else if (text.align.vertical == cse::align::BOTTOM)
+        block_top = box_bottom - texture_height;
+      block_top += shift.y;
+      auto visible_left{block_left};
+      auto visible_right{block_left + texture_width};
+      auto visible_top{block_top};
+      auto visible_bottom{block_top + texture_height};
+      if (!text.overflow)
+      {
+        visible_left = std::max(visible_left, box_left);
+        visible_right = std::min(visible_right, box_right);
+        visible_top = std::max(visible_top, box_top);
+        visible_bottom = std::min(visible_bottom, box_bottom);
+      }
+      if (visible_right <= visible_left || visible_bottom <= visible_top) continue;
+      const glm::mat4 text_model{element->state.calculate_text_matrix(
+        visible_right - visible_left, visible_bottom - visible_top,
+        {(visible_left + visible_right) / 2.0, (visible_top + visible_bottom) / 2.0}, alpha)};
       object::sample text_data{};
       SDL_memcpy(text_data.model.data(), &text_model, sizeof(text_model));
-      text_data.left = static_cast<float>(clip_left);
-      text_data.right = static_cast<float>(1.0 - clip_left);
-      text_data.top = static_cast<float>(1.0 - clip_top);
-      text_data.bottom = static_cast<float>(clip_top);
+      text_data.left = static_cast<float>((visible_left - block_left) / texture_width);
+      text_data.right = static_cast<float>((visible_right - block_left) / texture_width);
+      text_data.top = static_cast<float>((visible_bottom - block_top) / texture_height);
+      text_data.bottom = static_cast<float>((visible_top - block_top) / texture_height);
       text_data.transparency = static_cast<float>(transparency);
       object.batches.push_back({object.samples.size(), 1, pipe, entry.texture});
       object.samples.push_back(text_data);
@@ -613,7 +649,7 @@ namespace cse::help
     return cache.texture.emplace(key, cache::cached<SDL_GPUTexture *>{texture, cache.stamp}).first->second.value;
   }
 
-  TTF_Font *game_graphics::require_font(const cse::font &font, const unsigned int size)
+  game_graphics::cache::typeface &game_graphics::require_font(const cse::font &font, const unsigned int size)
   {
     const cache::font_key key{font.data.data(), font.data.size(), size};
     if (const auto iterator{cache.font.find(key)}; iterator != cache.font.end())
@@ -625,32 +661,50 @@ namespace cse::help
     if (!source) throw sdl_exception("Could not open font data for game");
     auto *opened{TTF_OpenFontIO(source, true, static_cast<float>(size))};
     if (!opened) throw sdl_exception("Could not open font for game");
-    TTF_SetFontWrapAlignment(opened, TTF_HORIZONTAL_ALIGN_CENTER);
-    return cache.font.emplace(key, cache::cached<TTF_Font *>{opened, cache.stamp}).first->second.value;
+    const cache::typeface value{opened, TTF_GetFontLineSkip(opened)};
+    return cache.font.emplace(key, cache::cached<cache::typeface>{value, cache.stamp}).first->second.value;
   }
 
-  game_graphics::interface::label &game_graphics::require_label(SDL_GPUDevice *gpu, const cse::interface *element)
+  game_graphics::interface::label &game_graphics::require_label(SDL_GPUDevice *gpu, const cse::interface *element,
+                                                                const double alpha)
   {
     const auto &text{element->graphics.active.text};
     if (!text.font.data.data()) throw exception("Interface '{}' has text but no font", element->name.string());
     const auto &scale{element->state.active.scale.value};
+    const auto &prior{element->graphics.previous.text};
+    const auto color{prior.color.value + (text.color.value - prior.color.value) * alpha};
     const auto width{static_cast<unsigned int>(static_cast<double>(element->graphics.active.texture.image.frame_width) *
                                                std::max(1.0, std::floor(scale.x + 0.5)))};
     auto &entry{interface.labels[element]};
-    auto *font{require_font(text.font, text.size)};
+    auto &face{require_font(text.font, text.size)};
+    const auto skip{std::max(0, static_cast<int>(std::floor(face.skip + text.spacing + 0.5)))};
+    const auto align{text.align.horizontal == cse::align::LEFT    ? TTF_HORIZONTAL_ALIGN_LEFT
+                     : text.align.horizontal == cse::align::RIGHT ? TTF_HORIZONTAL_ALIGN_RIGHT
+                                                                  : TTF_HORIZONTAL_ALIGN_CENTER};
+    int flags{TTF_STYLE_NORMAL};
+    if (text.style.bold) flags |= TTF_STYLE_BOLD;
+    if (text.style.italic) flags |= TTF_STYLE_ITALIC;
+    if (text.style.underline) flags |= TTF_STYLE_UNDERLINE;
+    if (text.style.strikethrough) flags |= TTF_STYLE_STRIKETHROUGH;
+    const auto style{static_cast<TTF_FontStyleFlags>(flags)};
     if (entry.texture && entry.text == text.content && entry.font == text.font.data.data() && entry.size == text.size &&
-        entry.color == text.color && entry.width == width)
+        entry.style == style && entry.color == color && entry.align == align && entry.wrap == text.wrap &&
+        entry.width == width && entry.skip == skip)
       return entry;
     if (entry.texture)
     {
       SDL_ReleaseGPUTexture(gpu, entry.texture);
       entry.texture = nullptr;
     }
-    const SDL_Color color{static_cast<Uint8>(std::clamp(text.color.r, 0.0, 1.0) * 255.0),
-                          static_cast<Uint8>(std::clamp(text.color.g, 0.0, 1.0) * 255.0),
-                          static_cast<Uint8>(std::clamp(text.color.b, 0.0, 1.0) * 255.0),
-                          static_cast<Uint8>(std::clamp(text.color.a, 0.0, 1.0) * 255.0)};
-    auto *rendered{TTF_RenderText_Blended_Wrapped(font, text.content.c_str(), 0, color, static_cast<int>(width))};
+    TTF_SetFontStyle(face.font, style);
+    TTF_SetFontWrapAlignment(face.font, align);
+    TTF_SetFontLineSkip(face.font, skip);
+    const SDL_Color sdl_color{static_cast<Uint8>(std::clamp(color.r, 0.0, 1.0) * 255.0),
+                              static_cast<Uint8>(std::clamp(color.g, 0.0, 1.0) * 255.0),
+                              static_cast<Uint8>(std::clamp(color.b, 0.0, 1.0) * 255.0),
+                              static_cast<Uint8>(std::clamp(color.a, 0.0, 1.0) * 255.0)};
+    auto *rendered{TTF_RenderText_Blended_Wrapped(face.font, text.content.c_str(), 0, sdl_color,
+                                                  text.wrap ? static_cast<int>(width) : 0)};
     if (!rendered) throw sdl_exception("Could not render text for interface '{}'", element->name.string());
     auto *surface{SDL_ConvertSurface(rendered, SDL_PIXELFORMAT_RGBA32)};
     SDL_DestroySurface(rendered);
@@ -705,8 +759,12 @@ namespace cse::help
     entry.text = text.content;
     entry.font = text.font.data.data();
     entry.size = text.size;
-    entry.color = text.color;
+    entry.style = style;
+    entry.color = color;
+    entry.align = align;
+    entry.wrap = text.wrap;
     entry.width = width;
+    entry.skip = skip;
     entry.texture = texture;
     entry.texture_width = static_cast<unsigned int>(surface->w);
     entry.texture_height = static_cast<unsigned int>(surface->h);
@@ -1265,7 +1323,14 @@ namespace cse::help
     previous.text.content = active.text.content;
     previous.text.font = active.text.font;
     previous.text.size = active.text.size;
+    previous.text.style = active.text.style;
     previous.text.color = active.text.color;
+    previous.text.align.horizontal = active.text.align.horizontal;
+    previous.text.align.vertical = active.text.align.vertical;
+    previous.text.align.offset = active.text.align.offset;
+    previous.text.spacing = active.text.spacing;
+    previous.text.wrap = active.text.wrap;
+    previous.text.overflow = active.text.overflow;
     previous.priority = active.priority;
   }
 

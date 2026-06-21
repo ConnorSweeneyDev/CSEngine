@@ -436,17 +436,21 @@ namespace cse::help
     return model_matrix;
   }
 
-  glm::dmat4 interface_state::calculate_text_matrix(const unsigned int width, const unsigned int height,
+  glm::dmat4 interface_state::calculate_text_matrix(const double width, const double height, const glm::dvec2 &offset,
                                                     const double alpha) const
   {
     auto translation = previous.translation.value + (active.translation.value - previous.translation.value) * alpha;
     auto rotation = previous.rotation.value + (active.rotation.value - previous.rotation.value) * alpha;
+    const auto pixel_width{std::floor(width + 0.5)};
+    const auto pixel_height{std::floor(height + 0.5)};
     auto model_matrix{glm::dmat4(1.0)};
     model_matrix =
       glm::translate(model_matrix, {std::floor(translation.x + 0.5), std::floor(translation.y + 0.5), 0.0});
     model_matrix = glm::rotate(model_matrix, glm::radians(std::floor(rotation + 0.5) * -90.0), {0.0, 0.0, 1.0});
-    model_matrix = glm::translate(model_matrix, {width % 2 == 0 ? 0.5 : 0.0, height % 2 == 0 ? 0.5 : 0.0, 0.0});
-    model_matrix = glm::scale(model_matrix, {width / 2.0, height / 2.0, 1.0});
+    model_matrix = glm::translate(
+      model_matrix, {std::floor(offset.x + 0.5) + (static_cast<int>(pixel_width) % 2 == 0 ? 0.5 : 0.0),
+                     std::floor(offset.y + 0.5) + (static_cast<int>(pixel_height) % 2 == 0 ? 0.5 : 0.0), 0.0});
+    model_matrix = glm::scale(model_matrix, {pixel_width / 2.0, pixel_height / 2.0, 1.0});
     return model_matrix;
   }
 }

@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double4.hpp"
 
 #include "collision.hpp"
@@ -34,6 +35,31 @@ namespace cse
     { return data.data() == other.data.data() && data.size() == other.data.size(); }
 
     std::span<const unsigned char> data{};
+  };
+  struct style
+  {
+    bool bold{};
+    bool italic{};
+    bool underline{};
+    bool strikethrough{};
+  };
+  struct align
+  {
+    enum horizontal
+    {
+      LEFT,
+      CENTER,
+      RIGHT
+    };
+    enum vertical
+    {
+      TOP,
+      MIDDLE,
+      BOTTOM
+    };
+    align::horizontal horizontal{CENTER};
+    align::vertical vertical{MIDDLE};
+    temporal<glm::dvec2> offset{};
   };
 
   struct image
