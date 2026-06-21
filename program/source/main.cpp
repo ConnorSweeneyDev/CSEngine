@@ -8,6 +8,7 @@
 
 #include "exception.hpp"
 #include "print.hpp"
+#include "resource.hpp"
 
 int main(int argc, char *argv[])
 #undef main
@@ -17,6 +18,7 @@ int main(int argc, char *argv[])
     const char *base{SDL_GetBasePath()};
     if (!base) throw cse::exception("Failed to resolve the application directory: {}", base);
     csp::mount(base);
+    cse::resource::mount();
     return cse::main(argc, argv);
   }
   catch (const std::exception &error)

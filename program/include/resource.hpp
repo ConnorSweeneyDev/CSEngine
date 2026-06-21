@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <span>
 #include <type_traits>
@@ -120,8 +121,36 @@ namespace cse
   };
 }
 
+namespace cse::resource
+{
+  struct binding
+  {
+    animation *target;
+    std::size_t index;
+    std::size_t count;
+    std::size_t start;
+    std::size_t end;
+  };
+  inline std::span<const binding> bindings{};
+  inline std::span<const unsigned char> frames{};
+  inline std::span<const unsigned char> hitboxes{};
+#if defined(_DEBUG)
+  inline std::span<const unsigned char> strings{};
+#endif
+
+  template <std::size_t count> struct loader
+  {
+    std::array<binding, count> storage;
+    explicit loader(const std::array<binding, count> &list);
+  };
+
+  void mount();
+}
+
 namespace cse::trait
 {
   template <typename type>
   concept is_audio = std::is_same_v<type, sound> || std::is_same_v<type, music>;
 }
+
+#include "resource.inl" // IWYU pragma: keep
