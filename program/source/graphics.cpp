@@ -324,7 +324,7 @@ namespace cse::help
         object.batches.push_back({object.samples.size(), 1, pipe, texture});
       object.samples.push_back(data);
 
-      if (element->state.active.text.empty()) continue;
+      if (element->graphics.active.text.content.empty()) continue;
       auto &entry{require_label(gpu, element)};
       entry.stamp = interface.stamp;
       const auto &scale{element->state.active.scale.value};
@@ -631,27 +631,26 @@ namespace cse::help
 
   game_graphics::interface::label &game_graphics::require_label(SDL_GPUDevice *gpu, const cse::interface *element)
   {
-    const auto &content{element->state.active.text};
-    const auto &style{element->graphics.active.text};
-    if (!style.font.data.data()) throw exception("Interface '{}' has text but no font", element->name.string());
+    const auto &text{element->graphics.active.text};
+    if (!text.font.data.data()) throw exception("Interface '{}' has text but no font", element->name.string());
     const auto &scale{element->state.active.scale.value};
     const auto width{static_cast<unsigned int>(static_cast<double>(element->graphics.active.texture.image.frame_width) *
                                                std::max(1.0, std::floor(scale.x + 0.5)))};
     auto &entry{interface.labels[element]};
-    auto *font{require_font(style.font, style.size)};
-    if (entry.texture && entry.text == content && entry.font == style.font.data.data() && entry.size == style.size &&
-        entry.color == style.color && entry.width == width)
+    auto *font{require_font(text.font, text.size)};
+    if (entry.texture && entry.text == text.content && entry.font == text.font.data.data() && entry.size == text.size &&
+        entry.color == text.color && entry.width == width)
       return entry;
     if (entry.texture)
     {
       SDL_ReleaseGPUTexture(gpu, entry.texture);
       entry.texture = nullptr;
     }
-    const SDL_Color color{static_cast<Uint8>(std::clamp(style.color.r, 0.0, 1.0) * 255.0),
-                          static_cast<Uint8>(std::clamp(style.color.g, 0.0, 1.0) * 255.0),
-                          static_cast<Uint8>(std::clamp(style.color.b, 0.0, 1.0) * 255.0),
-                          static_cast<Uint8>(std::clamp(style.color.a, 0.0, 1.0) * 255.0)};
-    auto *rendered{TTF_RenderText_Blended_Wrapped(font, content.c_str(), 0, color, static_cast<int>(width))};
+    const SDL_Color color{static_cast<Uint8>(std::clamp(text.color.r, 0.0, 1.0) * 255.0),
+                          static_cast<Uint8>(std::clamp(text.color.g, 0.0, 1.0) * 255.0),
+                          static_cast<Uint8>(std::clamp(text.color.b, 0.0, 1.0) * 255.0),
+                          static_cast<Uint8>(std::clamp(text.color.a, 0.0, 1.0) * 255.0)};
+    auto *rendered{TTF_RenderText_Blended_Wrapped(font, text.content.c_str(), 0, color, static_cast<int>(width))};
     if (!rendered) throw sdl_exception("Could not render text for interface '{}'", element->name.string());
     auto *surface{SDL_ConvertSurface(rendered, SDL_PIXELFORMAT_RGBA32)};
     SDL_DestroySurface(rendered);
@@ -703,10 +702,10 @@ namespace cse::help
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
     SDL_ReleaseGPUTransferBuffer(gpu, transfer_buffer);
-    entry.text = content;
-    entry.font = style.font.data.data();
-    entry.size = style.size;
-    entry.color = style.color;
+    entry.text = text.content;
+    entry.font = text.font.data.data();
+    entry.size = text.size;
+    entry.color = text.color;
     entry.width = width;
     entry.texture = texture;
     entry.texture_width = static_cast<unsigned int>(surface->w);
@@ -1263,6 +1262,7 @@ namespace cse::help
     previous.texture.flip = active.texture.flip;
     previous.texture.color = active.texture.color;
     previous.texture.transparency = active.texture.transparency;
+    previous.text.content = active.text.content;
     previous.text.font = active.text.font;
     previous.text.size = active.text.size;
     previous.text.color = active.text.color;

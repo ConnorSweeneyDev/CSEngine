@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include "SDL3/SDL_events.h"
 #include "glm/ext/vector_double2.hpp"
 
@@ -24,7 +22,7 @@ namespace cse
       const glm::dvec2 translation{};
       const double rotation{};
       const glm::dvec2 scale{};
-      const std::string text{};
+      const bool interactable{};
       const int priority{};
     };
     struct initial_graphics

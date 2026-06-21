@@ -401,6 +401,7 @@ namespace cse::help
     };
     struct text
     {
+      std::string content{};
       cse::font font{};
       unsigned int size{};
       cse::color color{};

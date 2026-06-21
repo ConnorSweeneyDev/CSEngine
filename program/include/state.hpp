@@ -3,7 +3,6 @@
 #include <array>
 #include <memory>
 #include <optional>
-#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -366,7 +365,7 @@ namespace cse::help
       temporal<glm::dvec2> translation{};
       temporal<double> rotation{};
       temporal<glm::dvec2> scale{};
-      std::string text{};
+      bool interactable{};
       int priority{};
       interface_state::target target{};
       help::timer timer{};
@@ -378,7 +377,7 @@ namespace cse::help
       temporal<glm::dvec2> translation{};
       temporal<double> rotation{};
       temporal<glm::dvec2> scale{};
-      std::string text{};
+      bool interactable{};
       int priority{};
       interface_state::target target{};
       help::timer timer{};
@@ -389,7 +388,7 @@ namespace cse::help
   public:
     interface_state() = default;
     interface_state(const glm::dvec2 &translation_, const double rotation_, const glm::dvec2 &scale_,
-                    const std::string &text_, const int priority_);
+                    const bool interactable_, const int priority_);
     ~interface_state() = default;
     interface_state(const interface_state &) = delete;
     interface_state &operator=(const interface_state &) = delete;

@@ -139,6 +139,7 @@ namespace cse::help::collision
 
   hitbox hit(const interface *interface, const glm::dvec2 &point)
   {
+    if (!interface->state.active.interactable) return {};
     const auto &animation{interface->graphics.active.texture.animation};
     const auto frame{interface->graphics.active.texture.playback.frame};
     if (frame >= animation.frames.size()) return {};

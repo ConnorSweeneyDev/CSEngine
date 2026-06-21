@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
-#include <string>
 #include <vector>
 
 #include "SDL3/SDL_events.h"
@@ -400,9 +399,9 @@ namespace cse::help
   }
 
   interface_state::interface_state(const glm::dvec2 &translation_, const double rotation_, const glm::dvec2 &scale_,
-                                   const std::string &text_, const int priority_)
-    : previous{translation_, rotation_, scale_, text_, priority_},
-      active{translation_, rotation_, scale_, text_, priority_}
+                                   const bool interactable_, const int priority_)
+    : previous{translation_, rotation_, scale_, interactable_, priority_},
+      active{translation_, rotation_, scale_, interactable_, priority_}
   {
   }
 
@@ -411,7 +410,7 @@ namespace cse::help
     previous.translation = active.translation;
     previous.rotation = active.rotation;
     previous.scale = active.scale;
-    previous.text = active.text;
+    previous.interactable = active.interactable;
     previous.target.hovered = active.target.hovered;
     previous.target.pressed = active.target.pressed;
     previous.priority = active.priority;

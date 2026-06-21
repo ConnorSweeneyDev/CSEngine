@@ -9,7 +9,7 @@
 namespace cse
 {
   interface::interface(const initial_state &state_, const initial_graphics &graphics_)
-    : state{state_.translation, state_.rotation, state_.scale, state_.text, state_.priority},
+    : state{state_.translation, state_.rotation, state_.scale, state_.interactable, state_.priority},
       graphics{graphics_.shader, graphics_.texture, graphics_.text, graphics_.priority}
   {
   }
