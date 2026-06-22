@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdlib>
+
 enum platforms
 {
   WINDOWS,
@@ -19,4 +21,7 @@ namespace cse
 #elif defined(NDEBUG)
   constexpr bool debug{false};
 #endif
+
+  constexpr auto success{EXIT_SUCCESS};
+  constexpr auto failure{EXIT_FAILURE};
 }

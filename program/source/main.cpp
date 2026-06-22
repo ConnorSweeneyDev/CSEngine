@@ -5,6 +5,7 @@
 #include "SDL3/SDL_main.h"
 
 #include "print.hpp"
+#include "system.hpp"
 
 int main(int argc, char *argv[])
 #undef main

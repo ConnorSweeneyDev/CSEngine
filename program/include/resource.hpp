@@ -127,14 +127,13 @@ namespace cse::resource
   std::span<const animation::frame> frames(std::size_t index, std::size_t count);
   struct loader
   {
+    loader(const char *name, std::uint64_t signature, std::uint64_t frames_offset, std::uint64_t frames_size,
+           std::uint64_t hitboxes_offset, std::uint64_t hitboxes_size
 #if defined(_DEBUG)
-    loader(const char *name, std::uint64_t signature, std::uint64_t frames_offset, std::uint64_t frames_size,
-           std::uint64_t hitboxes_offset, std::uint64_t hitboxes_size, std::uint64_t strings_offset,
-           std::uint64_t strings_size);
-#else
-    loader(const char *name, std::uint64_t signature, std::uint64_t frames_offset, std::uint64_t frames_size,
-           std::uint64_t hitboxes_offset, std::uint64_t hitboxes_size);
+           ,
+           std::uint64_t strings_offset, std::uint64_t strings_size
 #endif
+    );
   };
 }
 

@@ -18,6 +18,7 @@
 #include "exception.hpp"
 #include "numeric.hpp"
 #include "print.hpp"
+#include "system.hpp"
 
 namespace cse::resource
 {
@@ -41,20 +42,16 @@ namespace cse::resource
       std::uint64_t hitbox_index;
       std::uint64_t hitbox_count;
     };
-#if defined(_DEBUG)
     struct hitbox_record
     {
+#if defined(_DEBUG)
       std::uint64_t label_offset;
       std::uint64_t label_size;
-      double left, top, right, bottom;
-    };
 #else
-    struct hitbox_record
-    {
       std::uint64_t identifier;
+#endif
       double left, top, right, bottom;
     };
-#endif
   }
 
   std::span<const unsigned char> region(std::uint64_t offset, std::uint64_t size)
@@ -63,14 +60,13 @@ namespace cse::resource
   std::span<const animation::frame> frames(std::size_t index, std::size_t count)
   { return {frame_storage().data() + index, count}; }
 
+  loader::loader(const char *name, std::uint64_t signature, std::uint64_t frames_offset, std::uint64_t frames_size,
+                 std::uint64_t hitboxes_offset, std::uint64_t hitboxes_size
 #if defined(_DEBUG)
-  loader::loader(const char *name, std::uint64_t signature, std::uint64_t frames_offset, std::uint64_t frames_size,
-                 std::uint64_t hitboxes_offset, std::uint64_t hitboxes_size, std::uint64_t strings_offset,
-                 std::uint64_t strings_size)
-#else
-  loader::loader(const char *name, std::uint64_t signature, std::uint64_t frames_offset, std::uint64_t frames_size,
-                 std::uint64_t hitboxes_offset, std::uint64_t hitboxes_size)
+                 ,
+                 std::uint64_t strings_offset, std::uint64_t strings_size
 #endif
+  )
   {
     try
     {
@@ -114,7 +110,7 @@ namespace cse::resource
     catch (const std::exception &error)
     {
       print<CERR>("{}.\n", error.what());
-      std::exit(EXIT_FAILURE);
+      std::exit(failure);
     }
   }
 }
