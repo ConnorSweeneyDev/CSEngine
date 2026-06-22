@@ -131,7 +131,7 @@ namespace cse::resource
            std::uint64_t hitboxes_offset, std::uint64_t hitboxes_size
 #if defined(_DEBUG)
            ,
-           std::uint64_t strings_offset, std::uint64_t strings_size
+           std::uint64_t strings_offset
 #endif
     );
   };
