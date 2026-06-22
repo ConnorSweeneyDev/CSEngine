@@ -246,11 +246,11 @@ namespace cse::help
     for (auto *element : order)
     {
       auto &graphics{element->graphics};
-      auto &frame{graphics.active.texture.playback.frame};
+      auto &current{graphics.active.texture.playback.frame};
       const auto size{graphics.active.texture.animation.frames.size()};
       if (size == 0) throw exception("Object '{}' contains no frames", element->name.string());
-      if (frame >= size) frame = size - 1;
-      const auto &coordinates{graphics.active.texture.animation.frames[frame].coordinates};
+      if (current >= size) current = size - 1;
+      const auto &coordinates{graphics.active.texture.animation.frames[current].coordinates};
       const auto &flip{graphics.active.texture.flip};
       const auto color{
         glm::vec4{graphics.previous.texture.color.value +
@@ -291,11 +291,11 @@ namespace cse::help
     for (auto *element : order)
     {
       auto &graphics{element->graphics};
-      auto &frame{graphics.active.texture.playback.frame};
+      auto &current{graphics.active.texture.playback.frame};
       const auto size{graphics.active.texture.animation.frames.size()};
       if (size == 0) throw exception("Interface '{}' contains no frames", element->name.string());
-      if (frame >= size) frame = size - 1;
-      const auto &coordinates{graphics.active.texture.animation.frames[frame].coordinates};
+      if (current >= size) current = size - 1;
+      const auto &coordinates{graphics.active.texture.animation.frames[current].coordinates};
       const auto &flip{graphics.active.texture.flip};
       const auto color{
         glm::vec4{graphics.previous.texture.color.value +
