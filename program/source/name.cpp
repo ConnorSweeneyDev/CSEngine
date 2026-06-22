@@ -18,6 +18,8 @@ namespace cse
   {
   }
 
+  name::name(std::uint64_t identifier_) : hash{identifier_} {}
+
   std::string name::string() const
   {
 #if defined(_DEBUG)

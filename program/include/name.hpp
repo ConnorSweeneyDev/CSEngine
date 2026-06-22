@@ -16,6 +16,7 @@ namespace cse
 #endif
       name(const char *string_);
     name(const std::string &string_);
+    explicit name(std::uint64_t identifier_);
 
     bool operator==(const name &other) const;
     bool operator!=(const name &other) const;

@@ -1,59 +1,120 @@
 #include "resource.hpp"
 
+#include <cstddef>
 #include <cstdint>
+#include <cstdlib>
+#include <exception>
 #include <span>
 #include <utility>
+#include <vector>
 #if defined(_DEBUG)
   #include <string>
-  #include <vector>
 #endif
 
+#include "SDL3/SDL_filesystem.h"
+#include "csp/csp.hpp"
+
 #include "collision.hpp"
+#include "exception.hpp"
 #include "numeric.hpp"
+#include "print.hpp"
 
 namespace cse::resource
 {
-#if defined(_DEBUG)
-  namespace { std::vector<std::pair<hitbox, rectangle>> pool{}; }
-#endif
-
-  void mount()
+  namespace
   {
-    if (bindings.empty()) return;
-
-    const auto base{const_cast<animation::frame *>(reinterpret_cast<const animation::frame *>(frames.data()))};
-    const std::span<animation::frame> all{base, frames.size() / sizeof(animation::frame)};
-    for (const auto &entry : bindings)
+    std::vector<animation::frame> &frame_storage()
     {
-      entry.target->frames = {base + entry.index, entry.count};
-      entry.target->start = entry.start;
-      entry.target->end = entry.end;
+      static std::vector<animation::frame> instance{};
+      return instance;
+    }
+    std::vector<std::pair<hitbox, rectangle>> &hitbox_storage()
+    {
+      static std::vector<std::pair<hitbox, rectangle>> instance{};
+      return instance;
     }
 
+    struct frame_record
+    {
+      double left, top, right, bottom;
+      double duration;
+      std::uint64_t hitbox_index;
+      std::uint64_t hitbox_count;
+    };
 #if defined(_DEBUG)
-    struct record
+    struct hitbox_record
     {
       std::uint64_t label_offset;
       std::uint64_t label_size;
-      rectangle bounds;
+      double left, top, right, bottom;
     };
-    const std::span<const record> records{reinterpret_cast<const record *>(hitboxes.data()),
-                                          hitboxes.size() / sizeof(record)};
-    pool.reserve(records.size());
-    for (const auto &item : records)
-      pool.push_back(
-        {hitbox(std::string(reinterpret_cast<const char *>(strings.data()) + item.label_offset, item.label_size)),
-         item.bounds});
-    const auto *resolved{pool.data()};
 #else
-    const auto *resolved{reinterpret_cast<const std::pair<hitbox, rectangle> *>(hitboxes.data())};
-#endif
-
-    for (auto &frame : all)
+    struct hitbox_record
     {
-      if (frame.hitboxes.empty()) continue;
-      const auto index{reinterpret_cast<std::uintptr_t>(frame.hitboxes.data())};
-      frame.hitboxes = std::span<const std::pair<hitbox, rectangle>>{resolved + index, frame.hitboxes.size()};
+      std::uint64_t identifier;
+      double left, top, right, bottom;
+    };
+#endif
+  }
+
+  std::span<const unsigned char> region(std::uint64_t offset, std::uint64_t size)
+  { return {csp::current.base() + offset, size}; }
+
+  std::span<const animation::frame> frames(std::size_t index, std::size_t count)
+  { return {frame_storage().data() + index, count}; }
+
+#if defined(_DEBUG)
+  loader::loader(const char *name, std::uint64_t signature, std::uint64_t frames_offset, std::uint64_t frames_size,
+                 std::uint64_t hitboxes_offset, std::uint64_t hitboxes_size, std::uint64_t strings_offset,
+                 std::uint64_t strings_size)
+#else
+  loader::loader(const char *name, std::uint64_t signature, std::uint64_t frames_offset, std::uint64_t frames_size,
+                 std::uint64_t hitboxes_offset, std::uint64_t hitboxes_size)
+#endif
+  {
+    try
+    {
+      const char *directory{SDL_GetBasePath()};
+      if (!directory) throw exception("Failed to resolve the application directory");
+      csp::mount(directory, name, signature);
+      const unsigned char *base{csp::current.base()};
+
+      auto &hitbox_pool{hitbox_storage()};
+      const std::size_t hitbox_total{static_cast<std::size_t>(hitboxes_size / sizeof(hitbox_record))};
+      const auto *hitbox_records{reinterpret_cast<const hitbox_record *>(base + hitboxes_offset)};
+#if defined(_DEBUG)
+      const auto *strings{reinterpret_cast<const char *>(base + strings_offset)};
+#endif
+      hitbox_pool.reserve(hitbox_total);
+      for (std::size_t index{}; index < hitbox_total; ++index)
+      {
+        const auto &record{hitbox_records[index]};
+        const rectangle bounds{record.left, record.top, record.right, record.bottom};
+#if defined(_DEBUG)
+        hitbox_pool.push_back({hitbox(std::string(strings + record.label_offset, record.label_size)), bounds});
+#else
+        hitbox_pool.push_back({hitbox(record.identifier), bounds});
+#endif
+      }
+
+      auto &frame_pool{frame_storage()};
+      const std::size_t frame_total{static_cast<std::size_t>(frames_size / sizeof(frame_record))};
+      const auto *frame_records{reinterpret_cast<const frame_record *>(base + frames_offset)};
+      frame_pool.reserve(frame_total);
+      for (std::size_t index{}; index < frame_total; ++index)
+      {
+        const auto &record{frame_records[index]};
+        std::span<const std::pair<hitbox, rectangle>> hitboxes{};
+        if (record.hitbox_count)
+          hitboxes = {hitbox_pool.data() + record.hitbox_index, static_cast<std::size_t>(record.hitbox_count)};
+        frame_pool.push_back(
+          animation::frame{rectangle{record.left, record.top, record.right, record.bottom}, record.duration, hitboxes});
+      }
+    }
+    catch (const std::exception &error)
+    {
+      print<CERR>("{}.\n", error.what());
+      std::exit(EXIT_FAILURE);
     }
   }
 }
