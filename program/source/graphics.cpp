@@ -20,6 +20,7 @@
 #include "SDL3/SDL_surface.h"
 #include "SDL3/SDL_video.h"
 #include "SDL3_ttf/SDL_ttf.h"
+#include "csp/csp.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/matrix_float4x4.hpp"
@@ -456,6 +457,8 @@ namespace cse::help
       iterator->second.stamp = cache.stamp;
       return iterator->second.value;
     }
+    csp::current.verify(vertex.data.data(), vertex.data.size());
+    csp::current.verify(fragment.data.data(), fragment.data.size());
     const auto backend_formats{SDL_GetGPUShaderFormats(gpu)};
     if (!(backend_formats & SDL_GPU_SHADERFORMAT_SPIRV))
       throw sdl_exception("No supported vulkan shader formats for game");
@@ -603,6 +606,7 @@ namespace cse::help
       iterator->second.stamp = cache.stamp;
       return iterator->second.value;
     }
+    csp::current.verify(image.data.data(), image.data.size());
     const auto type{SDL_GPU_TEXTURETYPE_2D};
     const auto format{SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM};
     const auto usage{SDL_GPU_TEXTUREUSAGE_SAMPLER};
@@ -657,6 +661,7 @@ namespace cse::help
       iterator->second.stamp = cache.stamp;
       return iterator->second.value;
     }
+    csp::current.verify(font.data.data(), font.data.size());
     auto *source{SDL_IOFromConstMem(font.data.data(), font.data.size())};
     if (!source) throw sdl_exception("Could not open font data for game");
     auto *opened{TTF_OpenFontIO(source, true, static_cast<float>(size))};

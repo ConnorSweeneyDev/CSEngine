@@ -75,6 +75,9 @@ namespace cse::resource
       csp::mount(directory, name, signature);
       const unsigned char *base{csp::current.base()};
 
+      if (hitboxes_size) csp::current.verify(base + hitboxes_offset, hitboxes_size);
+      if (frames_size) csp::current.verify(base + frames_offset, frames_size);
+
       auto &hitbox_pool{hitbox_storage()};
       const std::size_t hitbox_total{static_cast<std::size_t>(hitboxes_size / sizeof(hitbox_record))};
       const auto *hitbox_records{reinterpret_cast<const hitbox_record *>(base + hitboxes_offset)};
@@ -87,6 +90,9 @@ namespace cse::resource
         const auto &record{hitbox_records[index]};
         const rectangle bounds{record.left, record.top, record.right, record.bottom};
 #if defined(_DEBUG)
+        if (record.label_size)
+          csp::current.verify(reinterpret_cast<const unsigned char *>(strings + record.label_offset),
+                              record.label_size);
         hitbox_pool.push_back({hitbox(std::string(strings + record.label_offset, record.label_size)), bounds});
 #else
         hitbox_pool.push_back({hitbox(record.identifier), bounds});

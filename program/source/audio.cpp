@@ -12,6 +12,7 @@
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_iostream.h"
 #include "SDL3_mixer/SDL_mixer.h"
+#include "csp/csp.hpp"
 
 #include "exception.hpp"
 #include "interface.hpp"
@@ -137,6 +138,7 @@ namespace cse::help
   {
     const track::audio_key key{data, size};
     if (const auto iterator{cache.find(key)}; iterator != cache.end()) return iterator->second;
+    csp::current.verify(data, size);
     auto *source{SDL_IOFromConstMem(data, size)};
     if (!source) throw sdl_exception("Could not open audio data for game");
     auto *audio{MIX_LoadAudio_IO(handle, source, predecode, true)};
