@@ -5,11 +5,10 @@
 #include <cstdlib>
 #include <exception>
 #include <span>
+#include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
-#if defined(_DEBUG)
-  #include <string>
-#endif
 
 #include "SDL3/SDL_filesystem.h"
 #include "csp/csp.hpp"
@@ -28,9 +27,9 @@ namespace cse::resource
     std::uint64_t hitbox_index;
     std::uint64_t hitbox_count;
   };
-  std::vector<animation::frame> &frame_storage()
+  std::unordered_map<std::string, std::vector<animation::frame>> &frame_storage()
   {
-    static std::vector<animation::frame> instance{};
+    static std::unordered_map<std::string, std::vector<animation::frame>> instance{};
     return instance;
   }
   struct hitbox_record
@@ -43,9 +42,9 @@ namespace cse::resource
 #endif
     double left, top, right, bottom;
   };
-  std::vector<std::pair<hitbox, rectangle>> &hitbox_storage()
+  std::unordered_map<std::string, std::vector<std::pair<hitbox, rectangle>>> &hitbox_storage()
   {
-    static std::vector<std::pair<hitbox, rectangle>> instance{};
+    static std::unordered_map<std::string, std::vector<std::pair<hitbox, rectangle>>> instance{};
     return instance;
   }
 
@@ -62,13 +61,13 @@ namespace cse::resource
     {
       const char *directory{SDL_GetBasePath()};
       if (!directory) throw exception("Failed to resolve the application directory");
-      csp::mount(directory, name_, signature_);
-      const unsigned char *base{csp::current.base()};
+      csp::mapping &pack{csp::mount(directory, name_, signature_)};
+      const unsigned char *base{pack.base()};
 
-      if (hitboxes_size_) csp::current.verify(base + hitboxes_offset_, hitboxes_size_);
-      if (frames_size_) csp::current.verify(base + frames_offset_, frames_size_);
+      if (hitboxes_size_) csp::verify(base + hitboxes_offset_, hitboxes_size_);
+      if (frames_size_) csp::verify(base + frames_offset_, frames_size_);
 
-      auto &hitbox_pool{hitbox_storage()};
+      auto &hitbox_pool{hitbox_storage()[name_]};
       const std::size_t hitbox_total{static_cast<std::size_t>(hitboxes_size_ / sizeof(hitbox_record))};
       const auto *hitbox_records{reinterpret_cast<const hitbox_record *>(base + hitboxes_offset_)};
 #if defined(_DEBUG)
@@ -81,15 +80,14 @@ namespace cse::resource
         const rectangle bounds{record.left, record.top, record.right, record.bottom};
 #if defined(_DEBUG)
         if (record.label_size)
-          csp::current.verify(reinterpret_cast<const unsigned char *>(strings + record.label_offset),
-                              record.label_size);
+          csp::verify(reinterpret_cast<const unsigned char *>(strings + record.label_offset), record.label_size);
         hitbox_pool.push_back({hitbox(std::string(strings + record.label_offset, record.label_size)), bounds});
 #else
         hitbox_pool.push_back({hitbox(record.identifier), bounds});
 #endif
       }
 
-      auto &frame_pool{frame_storage()};
+      auto &frame_pool{frame_storage()[name_]};
       const std::size_t frame_total{static_cast<std::size_t>(frames_size_ / sizeof(frame_record))};
       const auto *frame_records{reinterpret_cast<const frame_record *>(base + frames_offset_)};
       frame_pool.reserve(frame_total);
@@ -110,9 +108,9 @@ namespace cse::resource
     }
   }
 
-  std::span<const unsigned char> region(const std::uint64_t offset, const std::uint64_t size)
-  { return {csp::current.base() + offset, size}; }
+  std::span<const unsigned char> region(const char *pack, const std::uint64_t offset, const std::uint64_t size)
+  { return {csp::mounted(pack).base() + offset, size}; }
 
-  std::span<const animation::frame> frames(const std::size_t index, const std::size_t count)
-  { return {frame_storage().data() + index, count}; }
+  std::span<const animation::frame> frames(const char *pack, const std::size_t index, const std::size_t count)
+  { return {frame_storage().at(pack).data() + index, count}; }
 }

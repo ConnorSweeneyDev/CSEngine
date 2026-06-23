@@ -134,8 +134,8 @@ namespace cse::resource
     );
   };
 
-  std::span<const unsigned char> region(const std::uint64_t offset, const std::uint64_t size);
-  std::span<const animation::frame> frames(const std::size_t index, const std::size_t count);
+  std::span<const unsigned char> region(const char *pack, const std::uint64_t offset, const std::uint64_t size);
+  std::span<const animation::frame> frames(const char *pack, const std::size_t index, const std::size_t count);
 }
 
 namespace cse::trait

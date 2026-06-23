@@ -138,7 +138,7 @@ namespace cse::help
   {
     const track::audio_key key{data, size};
     if (const auto iterator{cache.find(key)}; iterator != cache.end()) return iterator->second;
-    csp::current.verify(data, size);
+    csp::verify(data, size);
     auto *source{SDL_IOFromConstMem(data, size)};
     if (!source) throw sdl_exception("Could not open audio data for game");
     auto *audio{MIX_LoadAudio_IO(handle, source, predecode, true)};
