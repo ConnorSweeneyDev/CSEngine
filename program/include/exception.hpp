@@ -11,6 +11,7 @@ namespace cse
     template <typename... message_arguments> exception(const std::string &message_, message_arguments &&...arguments_);
 
     const char *what() const noexcept override;
+    static void report(const std::exception &error);
 
   protected:
     std::string message{};

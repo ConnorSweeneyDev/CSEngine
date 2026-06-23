@@ -123,22 +123,25 @@ namespace cse
 
 namespace cse::resource
 {
-  std::span<const unsigned char> region(std::uint64_t offset, std::uint64_t size);
-  std::span<const animation::frame> frames(std::size_t index, std::size_t count);
   struct loader
   {
-    loader(const char *name, std::uint64_t signature, std::uint64_t frames_offset, std::uint64_t frames_size,
-           std::uint64_t hitboxes_offset, std::uint64_t hitboxes_size
+    loader(const char *name_, const std::uint64_t signature_, const std::uint64_t frames_offset_,
+           const std::uint64_t frames_size_, const std::uint64_t hitboxes_offset_, const std::uint64_t hitboxes_size_
 #if defined(_DEBUG)
            ,
-           std::uint64_t strings_offset
+           const std::uint64_t strings_offset_
 #endif
     );
   };
+
+  std::span<const unsigned char> region(const std::uint64_t offset, const std::uint64_t size);
+  std::span<const animation::frame> frames(const std::size_t index, const std::size_t count);
 }
 
 namespace cse::trait
 {
+  template <typename type>
+  concept is_shader = std::is_same_v<type, vertex> || std::is_same_v<type, fragment>;
   template <typename type>
   concept is_audio = std::is_same_v<type, sound> || std::is_same_v<type, music>;
 }

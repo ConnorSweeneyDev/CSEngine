@@ -4,7 +4,7 @@
 
 #include "SDL3/SDL_main.h"
 
-#include "print.hpp"
+#include "exception.hpp"
 #include "system.hpp"
 
 int main(int argc, char *argv[])
@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
   }
   catch (const std::exception &error)
   {
-    cse::print<CERR>("{}.\n", error.what());
+    cse::exception::report(error);
     return cse::failure;
   }
 }

@@ -17,7 +17,6 @@
 #include "collision.hpp"
 #include "exception.hpp"
 #include "numeric.hpp"
-#include "print.hpp"
 #include "system.hpp"
 
 namespace cse::resource
@@ -54,17 +53,12 @@ namespace cse::resource
     };
   }
 
-  std::span<const unsigned char> region(std::uint64_t offset, std::uint64_t size)
-  { return {csp::current.base() + offset, size}; }
-
-  std::span<const animation::frame> frames(std::size_t index, std::size_t count)
-  { return {frame_storage().data() + index, count}; }
-
-  loader::loader(const char *name, std::uint64_t signature, std::uint64_t frames_offset, std::uint64_t frames_size,
-                 std::uint64_t hitboxes_offset, std::uint64_t hitboxes_size
+  loader::loader(const char *name_, const std::uint64_t signature_, const std::uint64_t frames_offset_,
+                 const std::uint64_t frames_size_, const std::uint64_t hitboxes_offset_,
+                 const std::uint64_t hitboxes_size_
 #if defined(_DEBUG)
                  ,
-                 std::uint64_t strings_offset
+                 const std::uint64_t strings_offset_
 #endif
   )
   {
@@ -72,17 +66,17 @@ namespace cse::resource
     {
       const char *directory{SDL_GetBasePath()};
       if (!directory) throw exception("Failed to resolve the application directory");
-      csp::mount(directory, name, signature);
+      csp::mount(directory, name_, signature_);
       const unsigned char *base{csp::current.base()};
 
-      if (hitboxes_size) csp::current.verify(base + hitboxes_offset, hitboxes_size);
-      if (frames_size) csp::current.verify(base + frames_offset, frames_size);
+      if (hitboxes_size_) csp::current.verify(base + hitboxes_offset_, hitboxes_size_);
+      if (frames_size_) csp::current.verify(base + frames_offset_, frames_size_);
 
       auto &hitbox_pool{hitbox_storage()};
-      const std::size_t hitbox_total{static_cast<std::size_t>(hitboxes_size / sizeof(hitbox_record))};
-      const auto *hitbox_records{reinterpret_cast<const hitbox_record *>(base + hitboxes_offset)};
+      const std::size_t hitbox_total{static_cast<std::size_t>(hitboxes_size_ / sizeof(hitbox_record))};
+      const auto *hitbox_records{reinterpret_cast<const hitbox_record *>(base + hitboxes_offset_)};
 #if defined(_DEBUG)
-      const auto *strings{reinterpret_cast<const char *>(base + strings_offset)};
+      const auto *strings{reinterpret_cast<const char *>(base + strings_offset_)};
 #endif
       hitbox_pool.reserve(hitbox_total);
       for (std::size_t index{}; index < hitbox_total; ++index)
@@ -100,8 +94,8 @@ namespace cse::resource
       }
 
       auto &frame_pool{frame_storage()};
-      const std::size_t frame_total{static_cast<std::size_t>(frames_size / sizeof(frame_record))};
-      const auto *frame_records{reinterpret_cast<const frame_record *>(base + frames_offset)};
+      const std::size_t frame_total{static_cast<std::size_t>(frames_size_ / sizeof(frame_record))};
+      const auto *frame_records{reinterpret_cast<const frame_record *>(base + frames_offset_)};
       frame_pool.reserve(frame_total);
       for (std::size_t index{}; index < frame_total; ++index)
       {
@@ -115,8 +109,14 @@ namespace cse::resource
     }
     catch (const std::exception &error)
     {
-      print<CERR>("{}.\n", error.what());
+      exception::report(error);
       std::exit(failure);
     }
   }
+
+  std::span<const unsigned char> region(const std::uint64_t offset, const std::uint64_t size)
+  { return {csp::current.base() + offset, size}; }
+
+  std::span<const animation::frame> frames(const std::size_t index, const std::size_t count)
+  { return {frame_storage().data() + index, count}; }
 }
