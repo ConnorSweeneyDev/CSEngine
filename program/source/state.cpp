@@ -4,8 +4,10 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
+#include <unordered_map>
 #include <vector>
 
 #include "SDL3/SDL_events.h"
@@ -226,6 +228,16 @@ namespace cse::help
     previous.phase = active.phase;
   }
 
+  std::size_t scene_state::contact_key::hash::operator()(const contact_key &key) const
+  {
+    std::size_t seed{std::hash<std::size_t>{}(key.self)};
+    const auto mix{[&seed](std::size_t value) { seed ^= value + 0x9e3779b97f4a7c15ull + (seed << 6) + (seed >> 2); }};
+    mix(std::hash<std::size_t>{}(key.target));
+    mix(std::hash<std::uint64_t>{}(key.self_hitbox));
+    mix(std::hash<std::uint64_t>{}(key.target_hitbox));
+    return seed;
+  }
+
   void scene_state::generate_order(const std::vector<std::shared_ptr<object>> &objects)
   {
     object_order.clear();
@@ -300,6 +312,27 @@ namespace cse::help
         entries[second] = key;
       }
 
+    static std::unordered_map<contact_key, std::size_t, contact_key::hash> contact_lookup{};
+    contact_lookup.clear();
+    const auto emit{[&](std::size_t self_index, std::size_t target_index, const auto &own, const auto &theirs,
+                        const auto &self_bounds, const auto &target_bounds)
+                    {
+                      auto contact{collision::describe(objects[self_index]->name, objects[target_index].get(), own,
+                                                       theirs, self_bounds, target_bounds)};
+                      const double area{std::max(contact.overlap.x, 0.0) * std::max(contact.overlap.y, 0.0)};
+                      const contact_key key{self_index, target_index, own.identifier(), theirs.identifier()};
+                      const auto found{contact_lookup.find(key)};
+                      if (found == contact_lookup.end())
+                      {
+                        contact_lookup.emplace(key, active.contacts.size());
+                        active.contacts.push_back(std::move(contact));
+                        return;
+                      }
+                      auto &existing{active.contacts[found->second]};
+                      const double existing_area{std::max(existing.overlap.x, 0.0) * std::max(existing.overlap.y, 0.0)};
+                      if (area > existing_area) existing = std::move(contact);
+                    }};
+
     static std::vector<std::size_t> active_list{};
     active_list.clear();
     active_list.reserve(std::min(entries.size(), static_cast<std::size_t>(64)));
@@ -325,10 +358,8 @@ namespace cse::help
           }
           if (current.index != other.index && collision::overlaps(current.bounds, other.bounds))
           {
-            active.contacts.push_back(collision::describe(objects[current.index]->name, objects[other.index].get(),
-                                                          current.hitbox, other.hitbox, current.bounds, other.bounds));
-            active.contacts.push_back(collision::describe(objects[other.index]->name, objects[current.index].get(),
-                                                          other.hitbox, current.hitbox, other.bounds, current.bounds));
+            emit(current.index, other.index, current.hitbox, other.hitbox, current.bounds, other.bounds);
+            emit(other.index, current.index, other.hitbox, current.hitbox, other.bounds, current.bounds);
           }
           ++second;
         }

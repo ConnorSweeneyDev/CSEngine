@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <unordered_set>
@@ -196,6 +198,21 @@ namespace cse::help
     friend class cse::scene;
 
   private:
+    struct contact_key
+    {
+      struct hash
+      {
+        std::size_t operator()(const contact_key &key) const;
+      };
+
+      bool operator==(const contact_key &other) const = default;
+
+      std::size_t self;
+      std::size_t target;
+      std::uint64_t self_hitbox;
+      std::uint64_t target_hitbox;
+    };
+
     struct previous
     {
       std::shared_ptr<cse::camera> camera{};

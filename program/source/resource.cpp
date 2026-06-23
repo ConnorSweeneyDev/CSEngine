@@ -21,36 +21,32 @@
 
 namespace cse::resource
 {
-  namespace
+  struct frame_record
   {
-    std::vector<animation::frame> &frame_storage()
-    {
-      static std::vector<animation::frame> instance{};
-      return instance;
-    }
-    std::vector<std::pair<hitbox, rectangle>> &hitbox_storage()
-    {
-      static std::vector<std::pair<hitbox, rectangle>> instance{};
-      return instance;
-    }
-
-    struct frame_record
-    {
-      double left, top, right, bottom;
-      double duration;
-      std::uint64_t hitbox_index;
-      std::uint64_t hitbox_count;
-    };
-    struct hitbox_record
-    {
+    double left, top, right, bottom;
+    double duration;
+    std::uint64_t hitbox_index;
+    std::uint64_t hitbox_count;
+  };
+  std::vector<animation::frame> &frame_storage()
+  {
+    static std::vector<animation::frame> instance{};
+    return instance;
+  }
+  struct hitbox_record
+  {
 #if defined(_DEBUG)
-      std::uint64_t label_offset;
-      std::uint64_t label_size;
+    std::uint64_t label_offset;
+    std::uint64_t label_size;
 #else
-      std::uint64_t identifier;
+    std::uint64_t identifier;
 #endif
-      double left, top, right, bottom;
-    };
+    double left, top, right, bottom;
+  };
+  std::vector<std::pair<hitbox, rectangle>> &hitbox_storage()
+  {
+    static std::vector<std::pair<hitbox, rectangle>> instance{};
+    return instance;
   }
 
   loader::loader(const char *name_, const std::uint64_t signature_, const std::uint64_t frames_offset_,
