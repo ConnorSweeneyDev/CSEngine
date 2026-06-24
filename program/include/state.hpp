@@ -92,7 +92,6 @@ namespace cse::help
     void generate_order(const std::vector<std::shared_ptr<interface>> &interfaces);
     void generate_pool(const std::vector<interface *> &interfaces);
 
-    void reset_targets();
     bool inside(const glm::dvec2 &position, const double aspect, const unsigned int resolution);
     void interact(const SDL_Event &event, const double aspect, const unsigned int resolution);
     void hover(SDL_Window *instance, const double aspect, const unsigned int resolution);
@@ -174,8 +173,8 @@ namespace cse::help
   private:
     void update_previous();
 
-    void poll_mouse(SDL_Window *instance, const double aspect, const unsigned int resolution);
-    void poll_keyboard();
+    void poll_input(const std::vector<interface *> &pool, SDL_Window *instance, const double aspect,
+                    const unsigned int resolution);
 
     viewport letterbox(const unsigned int width, const unsigned int height, const double aspect);
     glm::dvec2 to_virtual(const double x, const double y, const unsigned int width, const unsigned int height,

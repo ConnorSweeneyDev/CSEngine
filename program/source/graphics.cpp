@@ -62,7 +62,7 @@ namespace cse::help
     previous.clear = active.clear;
   }
 
-  void game_graphics::create_app()
+  void game_graphics::prepare()
   {
     SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
@@ -205,7 +205,7 @@ namespace cse::help
     buffer.vertex = nullptr;
   }
 
-  void game_graphics::destroy_app()
+  void game_graphics::clean()
   {
     TTF_Quit();
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
@@ -799,8 +799,8 @@ namespace cse::help
     previous.vsync = active.vsync;
   }
 
-  void window_graphics::create_window(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
-                                      const unsigned int height, const SDL_DisplayID PRIMARY, const int CENTER)
+  void window_graphics::create(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
+                               const unsigned int height, const SDL_DisplayID PRIMARY, const int CENTER)
   {
     instance = SDL_CreateWindow(active.title.c_str(), static_cast<int>(width), static_cast<int>(height),
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
@@ -940,7 +940,7 @@ namespace cse::help
     if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
   }
 
-  void window_graphics::destroy_window()
+  void window_graphics::destroy()
   {
     SDL_ReleaseGPUTexture(gpu, depth_texture);
     SDL_ReleaseWindowFromGPUDevice(gpu, instance);

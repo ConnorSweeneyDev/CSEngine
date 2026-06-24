@@ -145,14 +145,14 @@ namespace cse::help
   private:
     void update_previous();
 
-    void create_app();
+    void prepare();
     void create(SDL_GPUDevice *gpu);
     void render(const std::vector<std::shared_ptr<cse::interface>> &scene_interfaces,
                 const std::vector<std::shared_ptr<cse::interface>> &game_interfaces, SDL_Window *instance,
                 SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
                 const double alpha);
     void destroy(SDL_GPUDevice *gpu);
-    void destroy_app();
+    void clean();
 
     void generate_order(const std::vector<std::shared_ptr<cse::interface>> &scene_interfaces,
                         const std::vector<std::shared_ptr<cse::interface>> &game_interfaces);
@@ -227,15 +227,15 @@ namespace cse::help
   private:
     void update_previous();
 
-    void create_window(SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
-                       const SDL_DisplayID PRIMARY, const int CENTER);
+    void create(SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
+                const SDL_DisplayID PRIMARY, const int CENTER);
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     bool acquire_swapchain_texture();
     void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec4 &previous_clear,
                            const glm::dvec4 &active_clear, const double previous_aspect, const double active_aspect,
                            const double alpha);
     void end_render_pass();
-    void destroy_window();
+    void destroy();
 
     void reconcile(SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
                    const SDL_DisplayID PRIMARY, const int CENTER);

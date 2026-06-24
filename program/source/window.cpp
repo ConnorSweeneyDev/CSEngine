@@ -30,8 +30,8 @@ namespace cse
   void window::create()
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Window must be prepared before creation");
-    graphics.create_window(state.active.display, state.active.left, state.active.top, state.active.width,
-                           state.active.height, PRIMARY, CENTER);
+    graphics.create(state.active.display, state.active.left, state.active.top, state.active.width, state.active.height,
+                    PRIMARY, CENTER);
     state.active.phase = help::phase::CREATED;
     on_create();
   }
@@ -84,9 +84,9 @@ namespace cse
     graphics.reconcile(state.active.display, state.active.left, state.active.top, state.active.width,
                        state.active.height, PRIMARY, CENTER);
     if (!graphics.acquire_swapchain_texture()) return false;
+    pre_render(alpha);
     graphics.start_render_pass(state.active.width, state.active.height, previous_clear, active_clear, previous_aspect,
                                active_aspect, alpha);
-    pre_render(alpha);
     return true;
   }
 
@@ -103,7 +103,7 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before destruction");
     state.event = {};
-    graphics.destroy_window();
+    graphics.destroy();
     state.active.phase = help::phase::PREPARED;
     on_destroy();
   }

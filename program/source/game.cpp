@@ -51,7 +51,6 @@ namespace cse
         previous();
         sync();
         event();
-        input();
         simulate();
         collide();
         tps();
@@ -74,15 +73,17 @@ namespace cse
   {
     if (state.active.phase != help::phase::CLEANED) throw exception("Game must be cleaned before preparation");
     if (!state.active.window) throw exception("No window has been set for the game");
+    if (state.active.scenes.empty()) throw exception("No scenes have been added to the game");
+    if (!state.active.scene) throw exception("No current scene has been set for the game");
     if (!state.active.window->game) state.active.window->game = this;
     for (const auto &scene : state.active.scenes)
       if (!scene->game) scene->game = this;
     for (const auto &interface : state.active.interfaces)
       if (!interface->game) interface->game = this;
     pre_prepare();
+    graphics.prepare();
+    audio.prepare();
     state.active.window->prepare();
-    if (state.active.scenes.empty()) throw exception("No scenes have been added to the game");
-    if (!state.active.scene) throw exception("No current scene has been set for the game");
     for (const auto &scene : state.active.scenes) scene->prepare();
     for (const auto &interface : state.active.interfaces) interface->prepare();
     state.active.phase = help::phase::PREPARED;
@@ -95,8 +96,6 @@ namespace cse
   {
     if (state.active.phase != help::phase::PREPARED) throw exception("Game must be prepared before creation");
     pre_create();
-    graphics.create_app();
-    audio.create_app();
     state.active.window->create();
     graphics.create(state.active.window->graphics.gpu);
     state.active.scene->create();
@@ -204,9 +203,8 @@ namespace cse
   void game::event()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing events");
-    state.active.window->state.poll_mouse(state.active.window->graphics.instance, graphics.active.aspect.value,
-                                          graphics.active.resolution);
-    state.reset_targets();
+    state.active.window->state.poll_input(state.pool, state.active.window->graphics.instance,
+                                          graphics.active.aspect.value, graphics.active.resolution);
     while (SDL_PollEvent(&state.active.window->state.event))
     {
       pre_event(state.active.window->state.event);
@@ -216,17 +214,7 @@ namespace cse
       for (const auto &interface : state.order) interface->event(state.active.window->state.event);
       post_event(state.active.window->state.event);
     }
-  }
-
-  void game::pre_input() {}
-  void game::post_input() {}
-  void game::input()
-  {
-    if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing input");
-    state.active.window->state.poll_keyboard();
-    pre_input();
     state.hover(state.active.window->graphics.instance, graphics.active.aspect.value, graphics.active.resolution);
-    post_input();
   }
 
   void game::pre_simulate(const double) {}
@@ -293,8 +281,6 @@ namespace cse
     state.active.scene->destroy();
     graphics.destroy(state.active.window->graphics.gpu);
     state.active.window->destroy();
-    audio.destroy_app();
-    graphics.destroy_app();
     state.active.phase = help::phase::PREPARED;
     post_destroy();
   }
@@ -308,6 +294,8 @@ namespace cse
     for (const auto &interface : state.active.interfaces) interface->clean();
     for (const auto &scene : state.active.scenes) scene->clean();
     state.active.window->clean();
+    audio.clean();
+    graphics.clean();
     state.active.phase = help::phase::CLEANED;
     post_clean();
   }

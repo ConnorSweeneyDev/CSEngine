@@ -37,7 +37,7 @@ namespace cse::help
     previous.music = active.music;
   }
 
-  void game_audio::create_app()
+  void game_audio::prepare()
   {
     if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) throw sdl_exception("SDL audio could not be prepared");
     if (!MIX_Init()) throw sdl_exception("SDL_mixer could not be prepared");
@@ -102,7 +102,7 @@ namespace cse::help
         ++iterator;
   }
 
-  void game_audio::destroy_app()
+  void game_audio::clean()
   {
     for (auto &[key, audio] : tracks)
       if (audio.handle) MIX_DestroyTrack(audio.handle);

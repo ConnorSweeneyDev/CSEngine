@@ -68,11 +68,11 @@ namespace cse::help
   private:
     void update_previous();
 
-    void create_app();
+    void prepare();
     void mix(const help::mixer &previous, help::mixer &active, const std::shared_ptr<window> &window,
              const std::vector<std::shared_ptr<interface>> &interfaces, const std::shared_ptr<scene> &current,
              const double alpha);
-    void destroy_app();
+    void clean();
 
     template <typename resource> void reconcile(const help::mixer *previous, help::mixer *active, const double alpha,
                                                 const char *tag, const bool predecode, const double bus);

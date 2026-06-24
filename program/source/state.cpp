@@ -74,11 +74,6 @@ namespace cse::help
               });
   }
 
-  void game_state::reset_targets()
-  {
-    for (auto *interface : pool) interface->state.active.target.released = {};
-  }
-
   bool game_state::inside(const glm::dvec2 &position, const double aspect, const unsigned int resolution)
   {
     const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
@@ -151,7 +146,8 @@ namespace cse::help
     previous.phase = active.phase;
   }
 
-  void window_state::poll_mouse(SDL_Window *instance, const double aspect, const unsigned int resolution)
+  void window_state::poll_input(const std::vector<interface *> &pool, SDL_Window *instance, const double aspect,
+                                const unsigned int resolution)
   {
     float x{}, y{};
     const auto buttons{SDL_GetMouseState(&x, &y)};
@@ -167,10 +163,9 @@ namespace cse::help
       active.mouse.position = to_virtual(x, y, active.width, active.height, aspect, resolution);
     active.mouse.wheel = {};
     shadow.mouse.position = active.mouse.position;
+    for (auto *interface : pool) interface->state.active.target.released = {};
+    std::copy_n(SDL_GetKeyboardState(nullptr), active.keyboard.size(), active.keyboard.begin());
   }
-
-  void window_state::poll_keyboard()
-  { std::copy_n(SDL_GetKeyboardState(nullptr), active.keyboard.size(), active.keyboard.begin()); }
 
   window_state::viewport window_state::letterbox(const unsigned int width, const unsigned int height,
                                                  const double aspect)

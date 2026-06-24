@@ -80,8 +80,6 @@ namespace cse
     virtual void post_sync();
     virtual void pre_event(const SDL_Event &event);
     virtual void post_event(const SDL_Event &event);
-    virtual void pre_input();
-    virtual void post_input();
     virtual void pre_simulate(const double tick);
     virtual void post_simulate(const double tick);
     virtual void pre_collide(const double tick);
@@ -101,7 +99,6 @@ namespace cse
     void previous();
     void sync();
     void event();
-    void input();
     void simulate();
     void collide();
     void render();
