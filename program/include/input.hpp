@@ -12,6 +12,12 @@ namespace cse
 
   struct mouse
   {
+    struct initial
+    {
+      const bool visible{};
+      const glm::dvec2 position{};
+    };
+    bool visible{};
     glm::dvec2 position{};
     std::array<bool, SDL_BUTTON_X2 + 1> buttons{};
     glm::dvec2 wheel{};

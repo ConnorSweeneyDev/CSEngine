@@ -138,9 +138,9 @@ namespace cse::help
       int top{};
       unsigned int width{};
       unsigned int height{};
-      bool running{};
-      cse::keyboard keyboard{};
       cse::mouse mouse{};
+      cse::keyboard keyboard{};
+      bool running{};
       help::timer timer{};
       help::mixer mixer{};
       help::phase phase{};
@@ -152,9 +152,9 @@ namespace cse::help
       int top{};
       unsigned int width{};
       unsigned int height{};
-      bool running{};
-      cse::keyboard keyboard{};
       cse::mouse mouse{};
+      cse::keyboard keyboard{};
+      bool running{};
       help::timer timer{};
       help::mixer mixer{};
       help::phase phase{};
@@ -163,7 +163,7 @@ namespace cse::help
   public:
     window_state() = default;
     window_state(const SDL_DisplayID display_, const int left_, const int top_, const unsigned int width_,
-                 const unsigned int height_);
+                 const unsigned int height_, const cse::mouse::initial &mouse_);
     ~window_state() = default;
     window_state(const window_state &) = delete;
     window_state &operator=(const window_state &) = delete;
@@ -173,6 +173,7 @@ namespace cse::help
   private:
     void update_previous();
 
+    void create(SDL_Window *instance, const double aspect, const unsigned int resolution);
     void poll_input(const std::vector<interface *> &pool, SDL_Window *instance, const double aspect,
                     const unsigned int resolution);
 
@@ -373,7 +374,7 @@ namespace cse::help
     {
       cse::hitbox hovered{};
       std::array<cse::hitbox, SDL_BUTTON_X2 + 1> pressed{};
-      std::array<cse::hitbox, SDL_BUTTON_X2 + 1> released{};
+      std::array<cse::hitbox, SDL_BUTTON_X2 + 1> clicked{};
     };
 
     struct previous

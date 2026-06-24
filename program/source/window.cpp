@@ -7,12 +7,13 @@
 #include "glm/ext/vector_double4.hpp"
 
 #include "exception.hpp"
+#include "game.hpp"
 #include "state.hpp"
 
 namespace cse
 {
   window::window(const initial_state &state_, const initial_graphics &graphics_)
-    : state{state_.display, state_.left, state_.top, state_.width, state_.height},
+    : state{state_.display, state_.left, state_.top, state_.width, state_.height, state_.mouse},
       graphics{graphics_.title, graphics_.fullscreen, graphics_.vsync}
   {
   }
@@ -32,6 +33,7 @@ namespace cse
     if (state.active.phase != help::phase::PREPARED) throw exception("Window must be prepared before creation");
     graphics.create(state.active.display, state.active.left, state.active.top, state.active.width, state.active.height,
                     PRIMARY, CENTER);
+    state.create(graphics.instance, game->graphics.active.aspect.value, game->graphics.active.resolution);
     state.active.phase = help::phase::CREATED;
     on_create();
   }

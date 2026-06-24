@@ -21,6 +21,7 @@
 #include "glm/trigonometric.hpp"
 
 #include "collision.hpp"
+#include "input.hpp"
 #include "interface.hpp"
 #include "object.hpp"
 #include "window.hpp"
@@ -102,7 +103,7 @@ namespace cse::help
       for (auto *interface : pool)
         if (const auto target{interface->state.active.target.pressed[event.button.button]}; target != hitbox{})
         {
-          interface->state.active.target.released[event.button.button] = target;
+          interface->state.active.target.clicked[event.button.button] = target;
           interface->state.active.target.pressed[event.button.button] = {};
         }
     }
@@ -126,8 +127,9 @@ namespace cse::help
   }
 
   window_state::window_state(const SDL_DisplayID display_, const int left_, const int top_, const unsigned int width_,
-                             const unsigned int height_)
-    : previous{display_, left_, top_, width_, height_}, active{display_, left_, top_, width_, height_}
+                             const unsigned int height_, const cse::mouse::initial &mouse_)
+    : previous{display_, left_, top_, width_, height_, {mouse_.visible, mouse_.position}},
+      active{display_, left_, top_, width_, height_, {mouse_.visible, mouse_.position}}
   {
   }
 
@@ -138,17 +140,34 @@ namespace cse::help
     previous.top = active.top;
     previous.width = active.width;
     previous.height = active.height;
-    previous.running = active.running;
+    previous.mouse.visible = active.mouse.visible;
+    previous.mouse.position = active.mouse.position;
+    previous.mouse.buttons = active.mouse.buttons;
+    previous.mouse.wheel = active.mouse.wheel;
     previous.keyboard = active.keyboard;
-    previous.mouse = active.mouse;
+    previous.running = active.running;
     previous.timer = active.timer;
     previous.mixer = active.mixer;
     previous.phase = active.phase;
   }
 
+  void window_state::create(SDL_Window *instance, const double aspect, const unsigned int resolution)
+  {
+    if (!active.mouse.visible) SDL_HideCursor();
+    const auto pixel{
+      to_pixel(active.mouse.position.x, active.mouse.position.y, active.width, active.height, aspect, resolution)};
+    SDL_WarpMouseInWindow(instance, static_cast<float>(pixel.x), static_cast<float>(pixel.y));
+    shadow.mouse.position = active.mouse.position;
+  }
+
   void window_state::poll_input(const std::vector<interface *> &pool, SDL_Window *instance, const double aspect,
                                 const unsigned int resolution)
   {
+    if (active.mouse.visible && !SDL_CursorVisible())
+      SDL_ShowCursor();
+    else if (!active.mouse.visible && SDL_CursorVisible())
+      SDL_HideCursor();
+
     float x{}, y{};
     const auto buttons{SDL_GetMouseState(&x, &y)};
     for (std::size_t button{SDL_BUTTON_LEFT}; button <= SDL_BUTTON_X2; ++button)
@@ -163,7 +182,8 @@ namespace cse::help
       active.mouse.position = to_virtual(x, y, active.width, active.height, aspect, resolution);
     active.mouse.wheel = {};
     shadow.mouse.position = active.mouse.position;
-    for (auto *interface : pool) interface->state.active.target.released = {};
+    for (auto *interface : pool) interface->state.active.target.clicked = {};
+
     std::copy_n(SDL_GetKeyboardState(nullptr), active.keyboard.size(), active.keyboard.begin());
   }
 

@@ -8,6 +8,7 @@
 
 #include "core.hpp"
 #include "graphics.hpp"
+#include "input.hpp"
 #include "state.hpp"
 
 namespace cse
@@ -24,6 +25,7 @@ namespace cse
       const int top{};
       const unsigned int width{};
       const unsigned int height{};
+      const cse::mouse::initial mouse{};
     };
     struct initial_graphics
     {
