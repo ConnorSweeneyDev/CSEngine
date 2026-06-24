@@ -106,7 +106,7 @@ namespace cse::help
   }
 
   template <typename signature>
-  const std::function<signature> &timer::deduce(const name &name, const entry &target) const
+  const std::function<signature> &timer::deduce(const name name, const entry &target) const
   {
     try
     {

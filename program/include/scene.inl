@@ -8,6 +8,7 @@
 #include "camera.hpp"
 #include "container.hpp"
 #include "core.hpp"
+#include "exception.hpp"
 #include "interface.hpp"
 #include "name.hpp"
 #include "object.hpp"
@@ -63,6 +64,9 @@ namespace cse
   {
     auto interface{std::make_shared<interface_type>(std::forward<interface_arguments>(arguments)...)};
     interface->name = interface_name;
+    if (!game)
+      throw exception("Scene interface '{}' added before scene was attached to a game", interface_name.string());
+    interface->game = game;
     interface->scene = this;
     switch (state.active.phase)
     {

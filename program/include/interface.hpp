@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "SDL3/SDL_events.h"
 #include "glm/ext/vector_double2.hpp"
 
@@ -61,7 +63,7 @@ namespace cse
 
   public:
     cse::game *game{};
-    cse::scene *scene{};
+    std::optional<cse::scene *> scene{};
     cse::name name{};
     help::interface_state state{};
     help::interface_graphics graphics{};

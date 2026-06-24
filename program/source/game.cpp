@@ -75,11 +75,6 @@ namespace cse
     if (!state.active.window) throw exception("No window has been set for the game");
     if (state.active.scenes.empty()) throw exception("No scenes have been added to the game");
     if (!state.active.scene) throw exception("No current scene has been set for the game");
-    if (!state.active.window->game) state.active.window->game = this;
-    for (const auto &scene : state.active.scenes)
-      if (!scene->game) scene->game = this;
-    for (const auto &interface : state.active.interfaces)
-      if (!interface->game) interface->game = this;
     pre_prepare();
     graphics.prepare();
     audio.prepare();

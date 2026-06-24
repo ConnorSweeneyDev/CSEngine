@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -118,6 +119,7 @@ namespace cse
     auto interface{std::make_shared<interface_type>(std::forward<interface_arguments>(arguments)...)};
     interface->name = interface_name;
     interface->game = this;
+    interface->scene = std::nullopt;
     switch (state.active.phase)
     {
       case help::phase::CLEANED: set_or_add(state.active.interfaces, interface); break;
