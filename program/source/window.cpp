@@ -38,14 +38,13 @@ namespace cse
     on_create();
   }
 
-  void window::on_previous() {}
-  void window::previous()
+  void window::on_synchronize() {}
+  void window::synchronize()
   {
-    if (state.active.phase != help::phase::CREATED)
-      throw exception("Window must be created before updating previous state");
-    state.update_previous();
-    graphics.update_previous();
-    on_previous();
+    if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before synchronization");
+    state.synchronize();
+    graphics.synchronize();
+    on_synchronize();
   }
 
   void window::on_event(const SDL_Event &) {}

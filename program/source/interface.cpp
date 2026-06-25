@@ -32,14 +32,14 @@ namespace cse
     on_create();
   }
 
-  void interface::on_previous() {}
-  void interface::previous()
+  void interface::on_synchronize() {}
+  void interface::synchronize()
   {
     if (state.active.phase != help::phase::CREATED)
-      throw exception("Interface '{}' must be created before updating previous state", name.string());
-    state.update_previous();
-    graphics.update_previous();
-    on_previous();
+      throw exception("Interface '{}' must be created before synchronization", name.string());
+    state.synchronize();
+    graphics.synchronize();
+    on_synchronize();
   }
 
   void interface::on_event(const SDL_Event &) {}

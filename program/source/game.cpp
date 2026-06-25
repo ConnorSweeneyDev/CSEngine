@@ -48,8 +48,7 @@ namespace cse
       while (behind())
       {
         tps();
-        previous();
-        sync();
+        synchronize();
         event();
         simulate();
         collide();
@@ -99,28 +98,15 @@ namespace cse
     post_create();
   }
 
-  void game::pre_previous() {}
-  void game::post_previous() {}
-  void game::previous()
-  {
-    if (state.active.phase != help::phase::CREATED)
-      throw exception("Game must be created before updating previous state");
-    pre_previous();
-    state.update_previous();
-    graphics.update_previous();
-    audio.update_previous();
-    state.active.window->previous();
-    state.active.scene->previous();
-    for (const auto &interface : state.active.interfaces) interface->previous();
-    post_previous();
-  }
-
-  void game::pre_sync() {}
-  void game::post_sync() {}
-  void game::sync()
+  void game::pre_synchronize() {}
+  void game::post_synchronize() {}
+  void game::synchronize()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before synchronization");
-    pre_sync();
+    pre_synchronize();
+    state.synchronize();
+    graphics.synchronize();
+    audio.synchronize();
     if (state.next.window.has_value())
     {
       if (auto &window{state.next.window.value()})
@@ -141,6 +127,7 @@ namespace cse
         throw exception("Tried to set window to null");
       state.next.window.reset();
     }
+    state.active.window->synchronize();
     if (state.next.scene.has_value())
     {
       if (auto &[name, scene]{state.next.scene.value()}; scene)
@@ -164,7 +151,7 @@ namespace cse
       }
       state.next.scene.reset();
     }
-    state.active.scene->sync();
+    state.active.scene->synchronize();
     if (!state.interface_removals.empty())
     {
       for (const auto &interface_name : state.interface_removals)
@@ -190,7 +177,8 @@ namespace cse
     }
     state.generate_order(state.active.interfaces);
     state.generate_pool(state.active.scene->state.interface_order);
-    post_sync();
+    for (const auto &interface : state.active.interfaces) interface->synchronize();
+    post_synchronize();
   }
 
   void game::pre_event(const SDL_Event &) {}
@@ -198,8 +186,8 @@ namespace cse
   void game::event()
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing events");
-    state.active.window->state.poll_input(state.pool, state.active.window->graphics.instance,
-                                          graphics.active.aspect.value, graphics.active.resolution);
+    state.active.window->state.poll(state.active.window->graphics.instance, graphics.active.aspect.value,
+                                    graphics.active.resolution);
     while (SDL_PollEvent(&state.active.window->state.event))
     {
       pre_event(state.active.window->state.event);

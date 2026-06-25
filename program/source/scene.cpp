@@ -46,27 +46,14 @@ namespace cse
     post_create();
   }
 
-  void scene::pre_previous() {}
-  void scene::post_previous() {}
-  void scene::previous()
+  void scene::pre_synchronize() {}
+  void scene::post_synchronize() {}
+  void scene::synchronize()
   {
     if (state.active.phase != help::phase::CREATED)
-      throw exception("Scene '{}' must be created before updating previous state", name.string());
-    pre_previous();
-    state.update_previous();
-    state.active.camera->previous();
-    for (const auto &object : state.active.objects) object->previous();
-    for (const auto &interface : state.active.interfaces) interface->previous();
-    post_previous();
-  }
-
-  void scene::pre_sync() {}
-  void scene::post_sync() {}
-  void scene::sync()
-  {
-    if (state.active.phase != help::phase::CREATED)
-      throw exception("Scene '{}' must be created before syncing", name.string());
-    pre_sync();
+      throw exception("Scene '{}' must be created before synchronization", name.string());
+    pre_synchronize();
+    state.synchronize();
     if (state.next.camera.has_value())
     {
       auto &new_camera{state.next.camera.value()};
@@ -77,6 +64,7 @@ namespace cse
       new_camera->create();
       state.next.camera.reset();
     }
+    state.active.camera->synchronize();
     if (!state.object_removals.empty())
     {
       for (const auto &object_name : state.object_removals)
@@ -99,6 +87,7 @@ namespace cse
       }
       state.object_additions.clear();
     }
+    for (const auto &object : state.active.objects) object->synchronize();
     if (!state.interface_removals.empty())
     {
       for (const auto &interface_name : state.interface_removals)
@@ -124,7 +113,8 @@ namespace cse
     }
     state.generate_order(state.active.objects);
     state.generate_order(state.active.interfaces);
-    post_sync();
+    for (const auto &interface : state.active.interfaces) interface->synchronize();
+    post_synchronize();
   }
 
   void scene::pre_event(const SDL_Event &) {}

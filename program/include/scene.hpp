@@ -47,10 +47,8 @@ namespace cse
     virtual void post_prepare();
     virtual void pre_create();
     virtual void post_create();
-    virtual void pre_previous();
-    virtual void post_previous();
-    virtual void pre_sync();
-    virtual void post_sync();
+    virtual void pre_synchronize();
+    virtual void post_synchronize();
     virtual void pre_event(const SDL_Event &event);
     virtual void post_event(const SDL_Event &event);
     virtual void pre_simulate(const double tick);
@@ -67,8 +65,7 @@ namespace cse
   private:
     void prepare();
     void create();
-    void previous();
-    void sync();
+    void synchronize();
     void event(const SDL_Event &event);
     void simulate(const double tick);
     void collide(const double tick);

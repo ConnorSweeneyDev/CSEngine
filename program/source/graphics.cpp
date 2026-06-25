@@ -53,16 +53,6 @@ namespace cse::help
   {
   }
 
-  void game_graphics::update_previous()
-  {
-    previous.frame.target = active.frame.target;
-    previous.frame.count = active.frame.count;
-    previous.frame.average = active.frame.average;
-    previous.aspect = active.aspect;
-    previous.resolution = active.resolution;
-    previous.clear = active.clear;
-  }
-
   void game_graphics::prepare()
   {
     SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
@@ -124,6 +114,16 @@ namespace cse::help
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
     SDL_ReleaseGPUTransferBuffer(gpu, transfer_buffer);
+  }
+
+  void game_graphics::synchronize()
+  {
+    previous.frame.target = active.frame.target;
+    previous.frame.count = active.frame.count;
+    previous.frame.average = active.frame.average;
+    previous.aspect = active.aspect;
+    previous.resolution = active.resolution;
+    previous.clear = active.clear;
   }
 
   void game_graphics::render(const std::vector<std::shared_ptr<cse::interface>> &scene_interfaces,
@@ -793,13 +793,6 @@ namespace cse::help
   {
   }
 
-  void window_graphics::update_previous()
-  {
-    previous.title = active.title;
-    previous.fullscreen = active.fullscreen;
-    previous.vsync = active.vsync;
-  }
-
   void window_graphics::create(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
                                const unsigned int height, const SDL_DisplayID PRIMARY, const int CENTER)
   {
@@ -846,50 +839,11 @@ namespace cse::help
     SDL_ShowWindow(instance);
   }
 
-  void window_graphics::generate_depth_texture(const unsigned int width, const unsigned int height)
+  void window_graphics::synchronize()
   {
-    if (depth_texture)
-    {
-      SDL_ReleaseGPUTexture(gpu, depth_texture);
-      depth_texture = nullptr;
-    }
-    const auto type{SDL_GPU_TEXTURETYPE_2D};
-    const auto usage{SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET};
-    const std::array<SDL_GPUTextureFormat, 3> potential_formats{
-      SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
-    SDL_GPUTextureCreateInfo depth_texture_info{
-      .type = type,
-      .format = [this, &potential_formats]() -> SDL_GPUTextureFormat
-      {
-        for (const auto &potential_format : potential_formats)
-          if (SDL_GPUTextureSupportsFormat(gpu, potential_format, type, usage)) return potential_format;
-        return {};
-      }(),
-      .usage = usage,
-      .width = width,
-      .height = height,
-      .layer_count_or_depth = 1,
-      .num_levels = 1,
-      .sample_count = SDL_GPU_SAMPLECOUNT_1,
-      .props = 0};
-    if (depth_texture_info.format == SDL_GPU_TEXTUREFORMAT_INVALID)
-      throw sdl_exception("No supported depth texture format found");
-    depth_texture = SDL_CreateGPUTexture(gpu, &depth_texture_info);
-    if (!depth_texture) throw sdl_exception("Could not create depth texture");
-  }
-
-  bool window_graphics::acquire_swapchain_texture()
-  {
-    command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
-    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer");
-    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, nullptr, nullptr))
-      throw sdl_exception("Could not acquire GPU swapchain texture");
-    if (!swapchain_texture)
-    {
-      if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
-      return false;
-    }
-    return true;
+    previous.title = active.title;
+    previous.fullscreen = active.fullscreen;
+    previous.vsync = active.vsync;
   }
 
   void window_graphics::start_render_pass(const unsigned int width, const unsigned int height,
@@ -968,6 +922,52 @@ namespace cse::help
     shadow.title = active.title;
     shadow.fullscreen = active.fullscreen;
     shadow.vsync = active.vsync;
+  }
+
+  void window_graphics::generate_depth_texture(const unsigned int width, const unsigned int height)
+  {
+    if (depth_texture)
+    {
+      SDL_ReleaseGPUTexture(gpu, depth_texture);
+      depth_texture = nullptr;
+    }
+    const auto type{SDL_GPU_TEXTURETYPE_2D};
+    const auto usage{SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET};
+    const std::array<SDL_GPUTextureFormat, 3> potential_formats{
+      SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
+    SDL_GPUTextureCreateInfo depth_texture_info{
+      .type = type,
+      .format = [this, &potential_formats]() -> SDL_GPUTextureFormat
+      {
+        for (const auto &potential_format : potential_formats)
+          if (SDL_GPUTextureSupportsFormat(gpu, potential_format, type, usage)) return potential_format;
+        return {};
+      }(),
+      .usage = usage,
+      .width = width,
+      .height = height,
+      .layer_count_or_depth = 1,
+      .num_levels = 1,
+      .sample_count = SDL_GPU_SAMPLECOUNT_1,
+      .props = 0};
+    if (depth_texture_info.format == SDL_GPU_TEXTUREFORMAT_INVALID)
+      throw sdl_exception("No supported depth texture format found");
+    depth_texture = SDL_CreateGPUTexture(gpu, &depth_texture_info);
+    if (!depth_texture) throw sdl_exception("Could not create depth texture");
+  }
+
+  bool window_graphics::acquire_swapchain_texture()
+  {
+    command_buffer = SDL_AcquireGPUCommandBuffer(gpu);
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer");
+    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, nullptr, nullptr))
+      throw sdl_exception("Could not acquire GPU swapchain texture");
+    if (!swapchain_texture)
+    {
+      if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
+      return false;
+    }
+    return true;
   }
 
   void window_graphics::handle_move(SDL_DisplayID &display, int &left, int &top)
@@ -1221,7 +1221,7 @@ namespace cse::help
 
   camera_graphics::camera_graphics(const double fov_, const clip &clip_) : previous{fov_, clip_}, active{fov_, clip_} {}
 
-  void camera_graphics::update_previous()
+  void camera_graphics::synchronize()
   {
     previous.fov = active.fov;
     previous.clip.near = active.clip.near;
@@ -1241,7 +1241,7 @@ namespace cse::help
   {
   }
 
-  void object_graphics::update_previous()
+  void object_graphics::synchronize()
   {
     previous.shader.vertex = active.shader.vertex;
     previous.shader.fragment = active.shader.fragment;
@@ -1316,7 +1316,7 @@ namespace cse::help
   {
   }
 
-  void interface_graphics::update_previous()
+  void interface_graphics::synchronize()
   {
     previous.shader.vertex = active.shader.vertex;
     previous.shader.fragment = active.shader.fragment;

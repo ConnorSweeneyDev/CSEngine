@@ -32,14 +32,14 @@ namespace cse
     on_create();
   }
 
-  void object::on_previous() {}
-  void object::previous()
+  void object::on_synchronize() {}
+  void object::synchronize()
   {
     if (state.active.phase != help::phase::CREATED)
-      throw exception("Object '{}' must be created before updating previous state", name.string());
-    state.update_previous();
-    graphics.update_previous();
-    on_previous();
+      throw exception("Object '{}' must be created before synchronization", name.string());
+    state.synchronize();
+    graphics.synchronize();
+    on_synchronize();
   }
 
   void object::on_event(const SDL_Event &) {}

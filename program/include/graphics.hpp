@@ -144,10 +144,9 @@ namespace cse::help
     game_graphics &operator=(game_graphics &&) = delete;
 
   private:
-    void update_previous();
-
     void prepare();
     void create(SDL_GPUDevice *gpu);
+    void synchronize();
     void render(const std::vector<std::shared_ptr<cse::interface>> &scene_interfaces,
                 const std::vector<std::shared_ptr<cse::interface>> &game_interfaces, SDL_Window *instance,
                 SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer, SDL_GPURenderPass *render_pass,
@@ -226,12 +225,9 @@ namespace cse::help
     window_graphics &operator=(window_graphics &&) = delete;
 
   private:
-    void update_previous();
-
     void create(SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
                 const SDL_DisplayID PRIMARY, const int CENTER);
-    void generate_depth_texture(const unsigned int width, const unsigned int height);
-    bool acquire_swapchain_texture();
+    void synchronize();
     void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec3 &previous_clear,
                            const glm::dvec3 &active_clear, const double previous_aspect, const double active_aspect,
                            const double alpha);
@@ -240,6 +236,8 @@ namespace cse::help
 
     void reconcile(SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
                    const SDL_DisplayID PRIMARY, const int CENTER);
+    void generate_depth_texture(const unsigned int width, const unsigned int height);
+    bool acquire_swapchain_texture();
     void handle_move(SDL_DisplayID &display, int &left, int &top);
     void handle_resize(SDL_DisplayID &display, int &left, int &top, unsigned int &width, unsigned int &height);
     void handle_manual_move(SDL_DisplayID &display, int &left, int &top, const unsigned int width,
@@ -329,7 +327,7 @@ namespace cse::help
     camera_graphics &operator=(camera_graphics &&) = delete;
 
   private:
-    void update_previous();
+    void synchronize();
 
     glm::dmat4 calculate_projection_matrix(const double previous_aspect, const double active_aspect,
                                            const double alpha);
@@ -382,7 +380,7 @@ namespace cse::help
     object_graphics &operator=(object_graphics &&) = delete;
 
   private:
-    void update_previous();
+    void synchronize();
 
     void animate(const double tick);
 
@@ -448,7 +446,7 @@ namespace cse::help
     interface_graphics &operator=(interface_graphics &&) = delete;
 
   private:
-    void update_previous();
+    void synchronize();
 
     void animate(const double tick);
 

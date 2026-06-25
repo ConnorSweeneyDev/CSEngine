@@ -31,7 +31,7 @@ namespace cse::help
 {
   game_state::game_state(const double tick_) : previous{{tick_}}, active{{tick_}} {}
 
-  void game_state::update_previous()
+  void game_state::synchronize()
   {
     previous.tick.target = active.tick.target;
     previous.tick.count = active.tick.count;
@@ -43,6 +43,8 @@ namespace cse::help
     previous.timer = active.timer;
     previous.mixer = active.mixer;
     previous.phase = active.phase;
+
+    for (auto *interface : pool) interface->state.active.target.clicked = {};
   }
 
   void game_state::generate_order(const std::vector<std::shared_ptr<interface>> &interfaces)
@@ -134,7 +136,16 @@ namespace cse::help
   {
   }
 
-  void window_state::update_previous()
+  void window_state::create(SDL_Window *instance, const double aspect, const unsigned int resolution)
+  {
+    if (!active.mouse.visible) SDL_HideCursor();
+    const auto pixel{
+      to_pixel(active.mouse.position.x, active.mouse.position.y, active.width, active.height, aspect, resolution)};
+    SDL_WarpMouseInWindow(instance, static_cast<float>(pixel.x), static_cast<float>(pixel.y));
+    shadow.mouse.position = active.mouse.position;
+  }
+
+  void window_state::synchronize()
   {
     previous.display = active.display;
     previous.left = active.left;
@@ -152,17 +163,7 @@ namespace cse::help
     previous.phase = active.phase;
   }
 
-  void window_state::create(SDL_Window *instance, const double aspect, const unsigned int resolution)
-  {
-    if (!active.mouse.visible) SDL_HideCursor();
-    const auto pixel{
-      to_pixel(active.mouse.position.x, active.mouse.position.y, active.width, active.height, aspect, resolution)};
-    SDL_WarpMouseInWindow(instance, static_cast<float>(pixel.x), static_cast<float>(pixel.y));
-    shadow.mouse.position = active.mouse.position;
-  }
-
-  void window_state::poll_input(const std::vector<interface *> &pool, SDL_Window *instance, const double aspect,
-                                const unsigned int resolution)
+  void window_state::poll(SDL_Window *instance, const double aspect, const unsigned int resolution)
   {
     float x{}, y{};
     const auto buttons{SDL_GetMouseState(&x, &y)};
@@ -189,7 +190,6 @@ namespace cse::help
       active.mouse.position = to_virtual(x, y, active.width, active.height, aspect, resolution);
     active.mouse.wheel = {};
     shadow.mouse.position = active.mouse.position;
-    for (auto *interface : pool) interface->state.active.target.clicked = {};
 
     std::copy_n(SDL_GetKeyboardState(nullptr), active.keyboard.size(), active.keyboard.begin());
   }
@@ -239,7 +239,7 @@ namespace cse::help
             (canvas.y + canvas_height / 2.0) / canvas_height * view.height + view.top};
   }
 
-  void scene_state::update_previous()
+  void scene_state::synchronize()
   {
     previous.camera = active.camera;
     previous.objects = active.objects;
@@ -396,7 +396,7 @@ namespace cse::help
   {
   }
 
-  void camera_state::update_previous()
+  void camera_state::synchronize()
   {
     previous.translation = active.translation;
     previous.forward = active.forward;
@@ -421,7 +421,7 @@ namespace cse::help
   {
   }
 
-  void object_state::update_previous()
+  void object_state::synchronize()
   {
     previous.translation = active.translation;
     previous.rotation = active.rotation;
@@ -458,7 +458,7 @@ namespace cse::help
   {
   }
 
-  void interface_state::update_previous()
+  void interface_state::synchronize()
   {
     previous.translation = active.translation;
     previous.rotation = active.rotation;

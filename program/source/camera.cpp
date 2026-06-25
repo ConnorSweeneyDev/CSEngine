@@ -31,14 +31,13 @@ namespace cse
     on_create();
   }
 
-  void camera::on_previous() {}
-  void camera::previous()
+  void camera::on_synchronize() {}
+  void camera::synchronize()
   {
-    if (state.active.phase != help::phase::CREATED)
-      throw exception("Camera must be created before updating previous state");
-    state.update_previous();
-    graphics.update_previous();
-    on_previous();
+    if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before synchronization");
+    state.synchronize();
+    graphics.synchronize();
+    on_synchronize();
   }
 
   void camera::on_event(const SDL_Event &) {}

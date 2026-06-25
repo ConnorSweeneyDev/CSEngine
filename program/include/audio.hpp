@@ -66,9 +66,8 @@ namespace cse::help
     game_audio &operator=(game_audio &&) = delete;
 
   private:
-    void update_previous();
-
     void prepare();
+    void synchronize();
     void mix(const help::mixer &previous, help::mixer &active, const std::shared_ptr<window> &window,
              const std::vector<std::shared_ptr<interface>> &interfaces, const std::shared_ptr<scene> &current,
              const double alpha);

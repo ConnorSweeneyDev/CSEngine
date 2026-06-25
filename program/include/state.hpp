@@ -87,7 +87,7 @@ namespace cse::help
     game_state &operator=(game_state &&) = delete;
 
   private:
-    void update_previous();
+    void synchronize();
 
     void generate_order(const std::vector<std::shared_ptr<interface>> &interfaces);
     void generate_pool(const std::vector<interface *> &interfaces);
@@ -171,11 +171,10 @@ namespace cse::help
     window_state &operator=(window_state &&) = delete;
 
   private:
-    void update_previous();
-
     void create(SDL_Window *instance, const double aspect, const unsigned int resolution);
-    void poll_input(const std::vector<interface *> &pool, SDL_Window *instance, const double aspect,
-                    const unsigned int resolution);
+    void synchronize();
+
+    void poll(SDL_Window *instance, const double aspect, const unsigned int resolution);
 
     viewport letterbox(const unsigned int width, const unsigned int height, const double aspect);
     glm::dvec2 to_virtual(const double x, const double y, const unsigned int width, const unsigned int height,
@@ -247,7 +246,7 @@ namespace cse::help
     scene_state &operator=(scene_state &&) = delete;
 
   private:
-    void update_previous();
+    void synchronize();
 
     void generate_order(const std::vector<std::shared_ptr<object>> &objects);
     void generate_order(const std::vector<std::shared_ptr<interface>> &interfaces);
@@ -302,7 +301,7 @@ namespace cse::help
     camera_state &operator=(camera_state &&) = delete;
 
   private:
-    void update_previous();
+    void synchronize();
 
     glm::dmat4 calculate_view_matrix(const double alpha) const;
 
@@ -352,7 +351,7 @@ namespace cse::help
     object_state &operator=(object_state &&) = delete;
 
   private:
-    void update_previous();
+    void synchronize();
 
     glm::dmat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
                                       const double alpha) const;
@@ -413,7 +412,7 @@ namespace cse::help
     interface_state &operator=(interface_state &&) = delete;
 
   private:
-    void update_previous();
+    void synchronize();
 
     glm::dmat4 calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
                                       const double alpha) const;

@@ -30,13 +30,6 @@ namespace cse::help
   {
   }
 
-  void game_audio::update_previous()
-  {
-    previous.master = active.master;
-    previous.sound = active.sound;
-    previous.music = active.music;
-  }
-
   void game_audio::prepare()
   {
     if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) throw sdl_exception("SDL audio could not be prepared");
@@ -46,6 +39,13 @@ namespace cse::help
     SDL_AudioSpec spec{};
     if (!MIX_GetMixerFormat(handle, &spec)) throw sdl_exception("Could not get audio mixer format for game");
     frequency = spec.freq;
+  }
+
+  void game_audio::synchronize()
+  {
+    previous.master = active.master;
+    previous.sound = active.sound;
+    previous.music = active.music;
   }
 
   void game_audio::mix(const help::mixer &current_previous, help::mixer &current_active,
