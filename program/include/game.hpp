@@ -5,7 +5,7 @@
 #include <type_traits>
 
 #include "SDL3/SDL_events.h"
-#include "glm/ext/vector_double4.hpp"
+#include "glm/ext/vector_double3.hpp"
 
 #include "audio.hpp"
 #include "core.hpp"
@@ -28,7 +28,7 @@ namespace cse
       const double frame{};
       const double aspect{};
       const unsigned int resolution{};
-      const glm::dvec4 clear{};
+      const glm::dvec3 clear{};
     };
     struct initial_audio
     {

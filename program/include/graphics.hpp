@@ -14,6 +14,7 @@
 #include "SDL3/SDL_video.h"
 #include "SDL3_ttf/SDL_ttf.h"
 #include "glm/ext/matrix_double4x4.hpp"
+#include "glm/ext/vector_double3.hpp"
 #include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_int2.hpp"
 
@@ -123,19 +124,19 @@ namespace cse::help
       game_graphics::frame frame{};
       temporal<double> aspect{};
       unsigned int resolution{};
-      temporal<glm::dvec4> clear{};
+      temporal<glm::dvec3> clear{};
     };
     struct active
     {
       game_graphics::frame frame{};
       temporal<double> aspect{};
       unsigned int resolution{};
-      temporal<glm::dvec4> clear{};
+      temporal<glm::dvec3> clear{};
     };
 
   public:
     game_graphics() = default;
-    game_graphics(const double frame_, const double aspect_, const unsigned int resolution_, const glm::dvec4 &clear_);
+    game_graphics(const double frame_, const double aspect_, const unsigned int resolution_, const glm::dvec3 &clear_);
     ~game_graphics() = default;
     game_graphics(const game_graphics &) = delete;
     game_graphics &operator=(const game_graphics &) = delete;
@@ -231,8 +232,8 @@ namespace cse::help
                 const SDL_DisplayID PRIMARY, const int CENTER);
     void generate_depth_texture(const unsigned int width, const unsigned int height);
     bool acquire_swapchain_texture();
-    void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec4 &previous_clear,
-                           const glm::dvec4 &active_clear, const double previous_aspect, const double active_aspect,
+    void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec3 &previous_clear,
+                           const glm::dvec3 &active_clear, const double previous_aspect, const double active_aspect,
                            const double alpha);
     void end_render_pass();
     void destroy();

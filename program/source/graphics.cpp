@@ -37,6 +37,7 @@
 #include "core.hpp"
 #include "exception.hpp"
 #include "interface.hpp"
+#include "mask.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
 #include "object.hpp"
@@ -47,7 +48,7 @@
 namespace cse::help
 {
   game_graphics::game_graphics(const double frame_, const double aspect_, const unsigned int resolution_,
-                               const glm::dvec4 &clear_)
+                               const glm::dvec3 &clear_)
     : previous{{frame_}, aspect_, resolution_, clear_}, active{{frame_}, aspect_, resolution_, clear_}
   {
   }
@@ -460,7 +461,7 @@ namespace cse::help
     csp::verify(vertex.data.data(), vertex.data.size());
     csp::verify(fragment.data.data(), fragment.data.size());
     const auto backend_formats{SDL_GetGPUShaderFormats(gpu)};
-    if (!(backend_formats & SDL_GPU_SHADERFORMAT_SPIRV))
+    if (!has(backend_formats, SDL_GPU_SHADERFORMAT_SPIRV))
       throw sdl_exception("No supported vulkan shader formats for game");
     SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = vertex.data.size(),
                                                .code = vertex.data.data(),
@@ -892,14 +893,14 @@ namespace cse::help
   }
 
   void window_graphics::start_render_pass(const unsigned int width, const unsigned int height,
-                                          const glm::dvec4 &previous_clear, const glm::dvec4 &active_clear,
+                                          const glm::dvec3 &previous_clear, const glm::dvec3 &active_clear,
                                           const double previous_aspect, const double active_aspect, const double alpha)
   {
     SDL_GPUColorTargetInfo color_target_info{};
     color_target_info.texture = swapchain_texture;
     auto target_clear{previous_clear + (active_clear - previous_clear) * alpha};
     color_target_info.clear_color = {static_cast<float>(target_clear.r), static_cast<float>(target_clear.g),
-                                     static_cast<float>(target_clear.b), static_cast<float>(target_clear.a)};
+                                     static_cast<float>(target_clear.b), 1.0f};
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     SDL_GPUDepthStencilTargetInfo depth_stencil_target_info{};

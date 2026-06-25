@@ -4,7 +4,7 @@
 
 #include "SDL3/SDL_events.h"
 #include "glm/ext/vector_double2.hpp"
-#include "glm/ext/vector_double4.hpp"
+#include "glm/ext/vector_double3.hpp"
 
 #include "exception.hpp"
 #include "game.hpp"
@@ -79,7 +79,7 @@ namespace cse
   }
 
   void window::pre_render(const double) {}
-  bool window::start_render(const glm::dvec4 &previous_clear, const glm::dvec4 &active_clear,
+  bool window::start_render(const glm::dvec3 &previous_clear, const glm::dvec3 &active_clear,
                             const double previous_aspect, const double active_aspect, const double alpha)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");

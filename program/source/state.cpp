@@ -23,6 +23,7 @@
 #include "collision.hpp"
 #include "input.hpp"
 #include "interface.hpp"
+#include "mask.hpp"
 #include "object.hpp"
 #include "window.hpp"
 
@@ -163,16 +164,22 @@ namespace cse::help
   void window_state::poll_input(const std::vector<interface *> &pool, SDL_Window *instance, const double aspect,
                                 const unsigned int resolution)
   {
-    if (active.mouse.visible && !SDL_CursorVisible())
-      SDL_ShowCursor();
-    else if (!active.mouse.visible && SDL_CursorVisible())
-      SDL_HideCursor();
-
     float x{}, y{};
     const auto buttons{SDL_GetMouseState(&x, &y)};
+    const auto view{letterbox(active.width, active.height, aspect)};
+    const bool warping{active.mouse.position != shadow.mouse.position};
+    const bool focused{SDL_GetMouseFocus() == instance};
+    const bool inside{focused && x >= view.left && x <= view.left + view.width && y >= view.top &&
+                      y <= view.top + view.height};
+    const bool show{active.mouse.visible || (!warping && !inside)};
+
+    if (show && !SDL_CursorVisible())
+      SDL_ShowCursor();
+    else if (!show && SDL_CursorVisible())
+      SDL_HideCursor();
     for (std::size_t button{SDL_BUTTON_LEFT}; button <= SDL_BUTTON_X2; ++button)
-      active.mouse.buttons[button] = (buttons & SDL_BUTTON_MASK(button)) != 0;
-    if (active.mouse.position != shadow.mouse.position)
+      active.mouse.buttons[button] = has(buttons, SDL_BUTTON_MASK(button));
+    if (warping)
     {
       const auto pixel{
         to_pixel(active.mouse.position.x, active.mouse.position.y, active.width, active.height, aspect, resolution)};
