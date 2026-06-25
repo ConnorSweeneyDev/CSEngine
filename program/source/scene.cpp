@@ -158,15 +158,13 @@ namespace cse
   void scene::pre_render(const double) {}
   void scene::post_render(const double) {}
   void scene::render(SDL_Window *instance, SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer,
-                     SDL_GPURenderPass *render_pass, const double previous_aspect, const double active_aspect,
-                     const double alpha)
+                     SDL_GPURenderPass *render_pass, const double aspect, const double alpha)
   {
     if (state.active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before rendering", name.string());
     pre_render(alpha);
     graphics.render(instance, gpu, game->graphics, state.active.camera.get(), state.active.objects,
-                    state.active.camera->render(previous_aspect, active_aspect, alpha), command_buffer, render_pass,
-                    alpha);
+                    state.active.camera->render(aspect, alpha), command_buffer, render_pass, alpha);
     post_render(alpha);
   }
 

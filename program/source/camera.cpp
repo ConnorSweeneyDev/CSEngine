@@ -56,13 +56,11 @@ namespace cse
   }
 
   void camera::on_render(const double) {}
-  std::pair<glm::dmat4, glm::dmat4> camera::render(const double previous_aspect, const double active_aspect,
-                                                   const double alpha)
+  std::pair<glm::dmat4, glm::dmat4> camera::render(const double aspect, const double alpha)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Camera must be created before rendering");
     on_render(alpha);
-    return {graphics.calculate_projection_matrix(previous_aspect, active_aspect, alpha),
-            state.calculate_view_matrix(alpha)};
+    return {graphics.calculate_projection_matrix(aspect, alpha), state.calculate_view_matrix(alpha)};
   }
 
   void camera::on_destroy() {}

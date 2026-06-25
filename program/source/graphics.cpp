@@ -44,11 +44,12 @@
 #include "resource.hpp"
 #include "state.hpp"
 #include "system.hpp"
+#include "temporal.hpp"
 
 namespace cse::help
 {
-  game_graphics::game_graphics(const double frame_, const double aspect_, const unsigned int resolution_,
-                               const glm::dvec3 &clear_)
+  game_graphics::game_graphics(const double frame_, const temporal<double> &aspect_, const unsigned int resolution_,
+                               const temporal<glm::dvec3> &clear_)
     : previous{{frame_}, aspect_, resolution_, clear_}, active{{frame_}, aspect_, resolution_, clear_}
   {
   }
@@ -118,12 +119,13 @@ namespace cse::help
 
   void game_graphics::synchronize()
   {
-    previous.frame.target = active.frame.target;
-    previous.frame.count = active.frame.count;
-    previous.frame.average = active.frame.average;
+    previous.frame = active.frame;
     previous.aspect = active.aspect;
     previous.resolution = active.resolution;
     previous.clear = active.clear;
+
+    active.aspect.instant = false;
+    active.clear.instant = false;
   }
 
   void game_graphics::render(const std::vector<std::shared_ptr<cse::interface>> &scene_interfaces,
@@ -254,12 +256,9 @@ namespace cse::help
       if (current >= size) current = size - 1;
       const auto &coordinates{graphics.active.texture.animation.frames[current].coordinates};
       const auto &flip{graphics.active.texture.flip};
-      const auto color{
-        glm::vec4{graphics.previous.texture.color.value +
-                  (graphics.active.texture.color.value - graphics.previous.texture.color.value) * alpha}};
+      const auto color{glm::vec4{graphics.active.texture.color.interpolated(graphics.previous.texture.color, alpha)}};
       const auto transparency{
-        graphics.previous.texture.transparency.value +
-        (graphics.active.texture.transparency.value - graphics.previous.texture.transparency.value) * alpha};
+        graphics.active.texture.transparency.interpolated(graphics.previous.texture.transparency, alpha)};
       const glm::mat4 model{element->state.calculate_model_matrix(graphics.active.texture.image.frame_width,
                                                                   graphics.active.texture.image.frame_height, alpha)};
       object::sample data{};
@@ -299,12 +298,9 @@ namespace cse::help
       if (current >= size) current = size - 1;
       const auto &coordinates{graphics.active.texture.animation.frames[current].coordinates};
       const auto &flip{graphics.active.texture.flip};
-      const auto color{
-        glm::vec4{graphics.previous.texture.color.value +
-                  (graphics.active.texture.color.value - graphics.previous.texture.color.value) * alpha}};
+      const auto color{glm::vec4{graphics.active.texture.color.interpolated(graphics.previous.texture.color, alpha)}};
       const auto transparency{
-        graphics.previous.texture.transparency.value +
-        (graphics.active.texture.transparency.value - graphics.previous.texture.transparency.value) * alpha};
+        graphics.active.texture.transparency.interpolated(graphics.previous.texture.transparency, alpha)};
       const glm::mat4 model{element->state.calculate_model_matrix(graphics.active.texture.image.frame_width,
                                                                   graphics.active.texture.image.frame_height, alpha)};
       object::sample data{};
@@ -329,8 +325,7 @@ namespace cse::help
 
       const auto &text{graphics.active.text};
       if (text.content.empty()) continue;
-      const auto text_alpha{graphics.previous.text.color.value.a +
-                            (text.color.value.a - graphics.previous.text.color.value.a) * alpha};
+      const auto text_alpha{text.color.interpolated(graphics.previous.text.color, alpha).a};
       if (static_cast<int>(std::clamp(text_alpha, 0.0, 1.0) * 255.0) <= 0) continue;
       auto &entry{require_label(gpu, element, alpha)};
       entry.stamp = interface.stamp;
@@ -345,9 +340,7 @@ namespace cse::help
       const auto box_right{element_width / 2.0};
       const auto box_top{-element_height / 2.0};
       const auto box_bottom{element_height / 2.0};
-      const auto &prior{graphics.previous.text.align.offset.value};
-      const auto &offset{text.align.offset.value};
-      const glm::dvec2 shift{prior + (offset - prior) * alpha};
+      const glm::dvec2 shift{text.align.offset.interpolated(graphics.previous.text.align.offset, alpha)};
       double block_left{-texture_width / 2.0};
       if (text.align.horizontal == cse::align::LEFT)
         block_left = box_left;
@@ -678,7 +671,7 @@ namespace cse::help
     if (!text.font.data.data()) throw exception("Interface '{}' has text but no font", element->name.string());
     const auto &scale{element->state.active.scale.value};
     const auto &prior{element->graphics.previous.text};
-    const auto color{prior.color.value + (text.color.value - prior.color.value) * alpha};
+    const auto color{text.color.interpolated(prior.color, alpha)};
     const auto width{static_cast<unsigned int>(static_cast<double>(element->graphics.active.texture.image.frame_width) *
                                                std::max(1.0, std::floor(scale.x + 0.5)))};
     auto &entry{interface.labels[element]};
@@ -781,7 +774,7 @@ namespace cse::help
   std::pair<glm::dmat4, glm::dmat4> game_graphics::calculate_interface_matrices(const double alpha) const
   {
     const auto height{static_cast<double>(std::max(1u, active.resolution))};
-    const auto aspect{previous.aspect.value + (active.aspect.value - previous.aspect.value) * alpha};
+    const auto aspect{active.aspect.interpolated(previous.aspect, alpha)};
     const auto width{height * aspect};
     const auto projection{glm::ortho(-width / 2.0, width / 2.0, height / 2.0, -height / 2.0, -1.0, 1.0)};
     const glm::dvec3 origin{std::llround(width) % 2 == 0 ? -0.5 : 0.0, std::llround(height) % 2 == 0 ? -0.5 : 0.0, 0.0};
@@ -846,15 +839,13 @@ namespace cse::help
     previous.vsync = active.vsync;
   }
 
-  void window_graphics::start_render_pass(const unsigned int width, const unsigned int height,
-                                          const glm::dvec3 &previous_clear, const glm::dvec3 &active_clear,
-                                          const double previous_aspect, const double active_aspect, const double alpha)
+  void window_graphics::start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec3 &clear,
+                                          const double aspect)
   {
     SDL_GPUColorTargetInfo color_target_info{};
     color_target_info.texture = swapchain_texture;
-    auto target_clear{previous_clear + (active_clear - previous_clear) * alpha};
-    color_target_info.clear_color = {static_cast<float>(target_clear.r), static_cast<float>(target_clear.g),
-                                     static_cast<float>(target_clear.b), 1.0f};
+    color_target_info.clear_color = {static_cast<float>(clear.r), static_cast<float>(clear.g),
+                                     static_cast<float>(clear.b), 1.0f};
     color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     SDL_GPUDepthStencilTargetInfo depth_stencil_target_info{};
@@ -865,7 +856,7 @@ namespace cse::help
     render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, &depth_stencil_target_info);
     if (!render_pass) throw sdl_exception("Could not begin GPU render pass");
     float viewport_left{}, viewport_top{}, viewport_width{}, viewport_height{};
-    auto target_aspect{static_cast<float>(previous_aspect + (active_aspect - previous_aspect) * alpha)};
+    const auto target_aspect{static_cast<float>(aspect)};
     if ((static_cast<float>(width) / static_cast<float>(height)) > target_aspect)
     {
       viewport_height = static_cast<float>(height);
@@ -1186,23 +1177,18 @@ namespace cse::help
   {
     order.clear();
     for (order.reserve(objects.size()); const auto &object : objects) order.emplace_back(object.get());
-    auto camera_translation =
-      camera->state.previous.translation.value +
-      (camera->state.active.translation.value - camera->state.previous.translation.value) * alpha;
+    auto camera_translation = camera->state.active.translation.interpolated(camera->state.previous.translation, alpha);
     auto camera_forward =
-      glm::normalize(camera->state.previous.forward.value +
-                     (camera->state.active.forward.value - camera->state.previous.forward.value) * alpha);
+      glm::normalize(camera->state.active.forward.interpolated(camera->state.previous.forward, alpha));
     std::sort(order.begin(), order.end(),
               [alpha, &camera_translation, &camera_forward](const auto &left, const auto &right)
               {
                 double left_depth =
-                  glm::dot((left->state.previous.translation.value +
-                            (left->state.active.translation.value - left->state.previous.translation.value) * alpha) -
+                  glm::dot(left->state.active.translation.interpolated(left->state.previous.translation, alpha) -
                              camera_translation,
                            camera_forward);
                 double right_depth =
-                  glm::dot((right->state.previous.translation.value +
-                            (right->state.active.translation.value - right->state.previous.translation.value) * alpha) -
+                  glm::dot(right->state.active.translation.interpolated(right->state.previous.translation, alpha) -
                              camera_translation,
                            camera_forward);
                 if (!equal(left_depth, right_depth, 1e-4)) return left_depth > right_depth;
@@ -1219,20 +1205,22 @@ namespace cse::help
               });
   }
 
-  camera_graphics::camera_graphics(const double fov_, const clip &clip_) : previous{fov_, clip_}, active{fov_, clip_} {}
+  camera_graphics::camera_graphics(const temporal<double> &fov_, const clip &clip_)
+    : previous{fov_, clip_}, active{fov_, clip_}
+  {
+  }
 
   void camera_graphics::synchronize()
   {
     previous.fov = active.fov;
-    previous.clip.near = active.clip.near;
-    previous.clip.far = active.clip.far;
+    previous.clip = active.clip;
+
+    active.fov.instant = false;
   }
 
-  glm::dmat4 camera_graphics::calculate_projection_matrix(const double previous_aspect, const double active_aspect,
-                                                          const double alpha)
+  glm::dmat4 camera_graphics::calculate_projection_matrix(const double aspect, const double alpha)
   {
-    return glm::perspective(glm::radians(previous.fov.value + (active.fov.value - previous.fov.value) * alpha),
-                            previous_aspect + (active_aspect - previous_aspect) * alpha, active.clip.near,
+    return glm::perspective(glm::radians(active.fov.interpolated(previous.fov, alpha)), aspect, active.clip.near,
                             active.clip.far);
   }
 
@@ -1243,15 +1231,13 @@ namespace cse::help
 
   void object_graphics::synchronize()
   {
-    previous.shader.vertex = active.shader.vertex;
-    previous.shader.fragment = active.shader.fragment;
-    previous.texture.image = active.texture.image;
-    previous.texture.animation = active.texture.animation;
-    previous.texture.playback = active.texture.playback;
-    previous.texture.flip = active.texture.flip;
-    previous.texture.color = active.texture.color;
-    previous.texture.transparency = active.texture.transparency;
+    previous.shader = active.shader;
+    previous.texture = active.texture;
     previous.priority = active.priority;
+
+    active.texture.color.instant = false;
+    active.texture.transparency.instant = false;
+    active.texture.playback.speed.instant = false;
   }
 
   void object_graphics::animate(const double tick)
@@ -1318,26 +1304,16 @@ namespace cse::help
 
   void interface_graphics::synchronize()
   {
-    previous.shader.vertex = active.shader.vertex;
-    previous.shader.fragment = active.shader.fragment;
-    previous.texture.image = active.texture.image;
-    previous.texture.animation = active.texture.animation;
-    previous.texture.playback = active.texture.playback;
-    previous.texture.flip = active.texture.flip;
-    previous.texture.color = active.texture.color;
-    previous.texture.transparency = active.texture.transparency;
-    previous.text.content = active.text.content;
-    previous.text.font = active.text.font;
-    previous.text.size = active.text.size;
-    previous.text.style = active.text.style;
-    previous.text.color = active.text.color;
-    previous.text.align.horizontal = active.text.align.horizontal;
-    previous.text.align.vertical = active.text.align.vertical;
-    previous.text.align.offset = active.text.align.offset;
-    previous.text.spacing = active.text.spacing;
-    previous.text.wrap = active.text.wrap;
-    previous.text.overflow = active.text.overflow;
+    previous.shader = active.shader;
+    previous.texture = active.texture;
+    previous.text = active.text;
     previous.priority = active.priority;
+
+    active.texture.color.instant = false;
+    active.texture.transparency.instant = false;
+    active.texture.playback.speed.instant = false;
+    active.text.color.instant = false;
+    active.text.align.offset.instant = false;
   }
 
   void interface_graphics::animate(const double tick)

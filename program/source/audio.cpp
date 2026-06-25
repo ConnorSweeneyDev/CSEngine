@@ -25,7 +25,8 @@
 
 namespace cse::help
 {
-  game_audio::game_audio(const double master_, const double sound_, const double music_)
+  game_audio::game_audio(const temporal<double> &master_, const temporal<double> &sound_,
+                         const temporal<double> &music_)
     : previous{master_, sound_, music_}, active{master_, sound_, music_}
   {
   }
@@ -46,6 +47,10 @@ namespace cse::help
     previous.master = active.master;
     previous.sound = active.sound;
     previous.music = active.music;
+
+    active.master.instant = false;
+    active.sound.instant = false;
+    active.music.instant = false;
   }
 
   void game_audio::mix(const help::mixer &current_previous, help::mixer &current_active,
@@ -57,7 +62,7 @@ namespace cse::help
     active.sound.value = std::clamp(active.sound.value, 0.0, 1.0);
     active.music.value = std::clamp(active.music.value, 0.0, 1.0);
     const auto blend{[alpha](const temporal<double> &previous_gain, const temporal<double> &active_gain)
-                     { return previous_gain.value + (active_gain.value - previous_gain.value) * alpha; }};
+                     { return active_gain.interpolated(previous_gain, alpha); }};
     const auto sound_bus{gain(blend(previous.sound, active.sound))};
     const auto music_bus{gain(blend(previous.music, active.music))};
     MIX_SetMixerGain(handle, static_cast<float>(gain(blend(previous.master, active.master))));

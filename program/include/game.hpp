@@ -13,6 +13,7 @@
 #include "graphics.hpp"
 #include "name.hpp"
 #include "state.hpp"
+#include "temporal.hpp"
 
 namespace cse
 {
@@ -26,15 +27,15 @@ namespace cse
     struct initial_graphics
     {
       const double frame{};
-      const double aspect{};
+      const temporal<double> aspect{};
       const unsigned int resolution{};
-      const glm::dvec3 clear{};
+      const temporal<glm::dvec3> clear{};
     };
     struct initial_audio
     {
-      const double master{};
-      const double sound{};
-      const double music{};
+      const temporal<double> master{};
+      const temporal<double> sound{};
+      const temporal<double> music{};
     };
 
   public:

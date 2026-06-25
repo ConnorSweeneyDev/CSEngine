@@ -57,8 +57,8 @@ namespace cse::help
       if (previous_entries)
         if (const auto iterator{previous_entries->find(entry_name)}; iterator != previous_entries->end())
         {
-          volume = iterator->second.volume.value + (entry.volume.value - iterator->second.volume.value) * alpha;
-          speed = iterator->second.speed.value + (entry.speed.value - iterator->second.speed.value) * alpha;
+          volume = entry.volume.interpolated(iterator->second.volume, alpha);
+          speed = entry.speed.interpolated(iterator->second.speed, alpha);
         }
       if (const auto target{bus * gain(volume)}; !equal(target, audio.gain))
       {

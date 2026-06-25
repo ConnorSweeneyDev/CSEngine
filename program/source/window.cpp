@@ -78,16 +78,14 @@ namespace cse
   }
 
   void window::pre_render(const double) {}
-  bool window::start_render(const glm::dvec3 &previous_clear, const glm::dvec3 &active_clear,
-                            const double previous_aspect, const double active_aspect, const double alpha)
+  bool window::start_render(const glm::dvec3 &clear, const double aspect, const double alpha)
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
     graphics.reconcile(state.active.display, state.active.left, state.active.top, state.active.width,
                        state.active.height, PRIMARY, CENTER);
     if (!graphics.acquire_swapchain_texture()) return false;
     pre_render(alpha);
-    graphics.start_render_pass(state.active.width, state.active.height, previous_clear, active_clear, previous_aspect,
-                               active_aspect, alpha);
+    graphics.start_render_pass(state.active.width, state.active.height, clear, aspect);
     return true;
   }
 

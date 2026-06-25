@@ -136,7 +136,8 @@ namespace cse::help
 
   public:
     game_graphics() = default;
-    game_graphics(const double frame_, const double aspect_, const unsigned int resolution_, const glm::dvec3 &clear_);
+    game_graphics(const double frame_, const temporal<double> &aspect_, const unsigned int resolution_,
+                  const temporal<glm::dvec3> &clear_);
     ~game_graphics() = default;
     game_graphics(const game_graphics &) = delete;
     game_graphics &operator=(const game_graphics &) = delete;
@@ -228,9 +229,8 @@ namespace cse::help
     void create(SDL_DisplayID &display, int &left, int &top, const unsigned int width, const unsigned int height,
                 const SDL_DisplayID PRIMARY, const int CENTER);
     void synchronize();
-    void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec3 &previous_clear,
-                           const glm::dvec3 &active_clear, const double previous_aspect, const double active_aspect,
-                           const double alpha);
+    void start_render_pass(const unsigned int width, const unsigned int height, const glm::dvec3 &clear,
+                           const double aspect);
     void end_render_pass();
     void destroy();
 
@@ -319,7 +319,7 @@ namespace cse::help
 
   public:
     camera_graphics() = default;
-    camera_graphics(const double fov_, const clip &clip_);
+    camera_graphics(const temporal<double> &fov_, const clip &clip_);
     ~camera_graphics() = default;
     camera_graphics(const camera_graphics &) = delete;
     camera_graphics &operator=(const camera_graphics &) = delete;
@@ -329,8 +329,7 @@ namespace cse::help
   private:
     void synchronize();
 
-    glm::dmat4 calculate_projection_matrix(const double previous_aspect, const double active_aspect,
-                                           const double alpha);
+    glm::dmat4 calculate_projection_matrix(const double aspect, const double alpha);
 
   public:
     camera_graphics::previous previous{};

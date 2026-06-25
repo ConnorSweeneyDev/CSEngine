@@ -9,6 +9,7 @@
 #include "core.hpp"
 #include "graphics.hpp"
 #include "state.hpp"
+#include "temporal.hpp"
 
 namespace cse
 {
@@ -19,13 +20,13 @@ namespace cse
   protected:
     struct initial_state
     {
-      const glm::dvec3 translation{};
-      const glm::dvec3 forward{};
-      const glm::dvec3 up{};
+      const temporal<glm::dvec3> translation{};
+      const temporal<glm::dvec3> forward{};
+      const temporal<glm::dvec3> up{};
     };
     struct initial_graphics
     {
-      const double fov{};
+      const temporal<double> fov{};
       const help::camera_graphics::clip clip{};
     };
 
@@ -53,8 +54,7 @@ namespace cse
     void synchronize();
     void event(const SDL_Event &event);
     void simulate(const double tick);
-    std::pair<glm::dmat4, glm::dmat4> render(const double previous_aspect, const double active_aspect,
-                                             const double alpha);
+    std::pair<glm::dmat4, glm::dmat4> render(const double aspect, const double alpha);
     void destroy();
     void clean();
 

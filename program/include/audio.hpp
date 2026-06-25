@@ -58,7 +58,7 @@ namespace cse::help
 
   public:
     game_audio() = default;
-    game_audio(const double master_, const double sound_, const double music_);
+    game_audio(const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_);
     ~game_audio() = default;
     game_audio(const game_audio &) = delete;
     game_audio &operator=(const game_audio &) = delete;

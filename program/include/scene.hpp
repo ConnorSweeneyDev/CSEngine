@@ -70,8 +70,7 @@ namespace cse
     void simulate(const double tick);
     void collide(const double tick);
     void render(SDL_Window *instance, SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer,
-                SDL_GPURenderPass *render_pass, const double previous_aspect, const double active_aspect,
-                const double alpha);
+                SDL_GPURenderPass *render_pass, const double aspect, const double alpha);
     void destroy();
     void clean();
 

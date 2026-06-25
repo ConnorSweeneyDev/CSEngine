@@ -229,12 +229,12 @@ namespace cse
   {
     if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before rendering");
     pre_render(state.alpha);
-    if (!state.active.window->start_render(graphics.previous.clear.value, graphics.active.clear.value,
-                                           graphics.previous.aspect.value, graphics.active.aspect.value, state.alpha))
-      return;
+    const auto clear{graphics.active.clear.interpolated(graphics.previous.clear, state.alpha)};
+    const auto aspect{graphics.active.aspect.interpolated(graphics.previous.aspect, state.alpha)};
+    if (!state.active.window->start_render(clear, aspect, state.alpha)) return;
     state.active.scene->render(state.active.window->graphics.instance, state.active.window->graphics.gpu,
                                state.active.window->graphics.command_buffer, state.active.window->graphics.render_pass,
-                               graphics.previous.aspect.value, graphics.active.aspect.value, state.alpha);
+                               aspect, state.alpha);
     graphics.render(state.active.scene->state.active.interfaces, state.active.interfaces,
                     state.active.window->graphics.instance, state.active.window->graphics.gpu,
                     state.active.window->graphics.command_buffer, state.active.window->graphics.render_pass,

@@ -59,8 +59,7 @@ namespace cse
     void synchronize();
     void event();
     void simulate(const double tick);
-    bool start_render(const glm::dvec3 &previous_clear, const glm::dvec3 &active_clear, const double previous_aspect,
-                      const double active_aspect, const double alpha);
+    bool start_render(const glm::dvec3 &clear, const double aspect, const double alpha);
     void end_render(const double alpha);
     void destroy();
     void clean();

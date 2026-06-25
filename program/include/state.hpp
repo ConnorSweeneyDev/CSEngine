@@ -293,7 +293,8 @@ namespace cse::help
 
   public:
     camera_state() = default;
-    camera_state(const glm::dvec3 &translation_, const glm::dvec3 &forward_, const glm::dvec3 &up_);
+    camera_state(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec3> &forward_,
+                 const temporal<glm::dvec3> &up_);
     ~camera_state() = default;
     camera_state(const camera_state &) = delete;
     camera_state &operator=(const camera_state &) = delete;
@@ -342,8 +343,8 @@ namespace cse::help
 
   public:
     object_state() = default;
-    object_state(const glm::dvec3 &translation_, const double rotation_, const glm::dvec2 &scale_,
-                 const bool collidable_, const int priority_);
+    object_state(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
+                 const temporal<glm::dvec2> &scale_, const bool collidable_, const int priority_);
     ~object_state() = default;
     object_state(const object_state &) = delete;
     object_state &operator=(const object_state &) = delete;
@@ -403,8 +404,8 @@ namespace cse::help
 
   public:
     interface_state() = default;
-    interface_state(const glm::dvec2 &translation_, const double rotation_, const glm::dvec2 &scale_,
-                    const bool interactable_, const int priority_);
+    interface_state(const temporal<glm::dvec2> &translation_, const temporal<double> &rotation_,
+                    const temporal<glm::dvec2> &scale_, const bool interactable_, const int priority_);
     ~interface_state() = default;
     interface_state(const interface_state &) = delete;
     interface_state &operator=(const interface_state &) = delete;

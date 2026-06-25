@@ -8,6 +8,7 @@
 #include "graphics.hpp"
 #include "name.hpp"
 #include "state.hpp"
+#include "temporal.hpp"
 
 namespace cse
 {
@@ -18,9 +19,9 @@ namespace cse
   protected:
     struct initial_state
     {
-      const glm::dvec3 translation{};
-      const double rotation{};
-      const glm::dvec2 scale{};
+      const temporal<glm::dvec3> translation{};
+      const temporal<double> rotation{};
+      const temporal<glm::dvec2> scale{};
       const bool collidable{};
       const int priority{};
     };

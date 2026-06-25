@@ -25,6 +25,7 @@
 #include "interface.hpp"
 #include "mask.hpp"
 #include "object.hpp"
+#include "temporal.hpp"
 #include "window.hpp"
 
 namespace cse::help
@@ -33,9 +34,7 @@ namespace cse::help
 
   void game_state::synchronize()
   {
-    previous.tick.target = active.tick.target;
-    previous.tick.count = active.tick.count;
-    previous.tick.average = active.tick.average;
+    previous.tick = active.tick;
     previous.window = active.window;
     previous.scenes = active.scenes;
     previous.scene = active.scene;
@@ -44,7 +43,16 @@ namespace cse::help
     previous.mixer = active.mixer;
     previous.phase = active.phase;
 
-    for (auto *interface : pool) interface->state.active.target.clicked = {};
+    for (auto &[name, sound] : active.mixer.sounds)
+    {
+      sound.speed.instant = false;
+      sound.volume.instant = false;
+    }
+    for (auto &[name, music] : active.mixer.musics)
+    {
+      music.speed.instant = false;
+      music.volume.instant = false;
+    }
   }
 
   void game_state::generate_order(const std::vector<std::shared_ptr<interface>> &interfaces)
@@ -152,15 +160,24 @@ namespace cse::help
     previous.top = active.top;
     previous.width = active.width;
     previous.height = active.height;
-    previous.mouse.visible = active.mouse.visible;
-    previous.mouse.position = active.mouse.position;
-    previous.mouse.buttons = active.mouse.buttons;
-    previous.mouse.wheel = active.mouse.wheel;
+    previous.mouse = active.mouse;
     previous.keyboard = active.keyboard;
     previous.running = active.running;
     previous.timer = active.timer;
     previous.mixer = active.mixer;
     previous.phase = active.phase;
+
+    for (auto &[name, sound] : active.mixer.sounds)
+    {
+      sound.speed.instant = false;
+      sound.volume.instant = false;
+    }
+    for (auto &[name, music] : active.mixer.musics)
+    {
+      music.speed.instant = false;
+      music.volume.instant = false;
+    }
+    active.mouse.wheel = {};
   }
 
   void window_state::poll(SDL_Window *instance, const double aspect, const unsigned int resolution)
@@ -188,7 +205,6 @@ namespace cse::help
     }
     else
       active.mouse.position = to_virtual(x, y, active.width, active.height, aspect, resolution);
-    active.mouse.wheel = {};
     shadow.mouse.position = active.mouse.position;
 
     std::copy_n(SDL_GetKeyboardState(nullptr), active.keyboard.size(), active.keyboard.begin());
@@ -248,6 +264,17 @@ namespace cse::help
     previous.timer = active.timer;
     previous.mixer = active.mixer;
     previous.phase = active.phase;
+
+    for (auto &[name, sound] : active.mixer.sounds)
+    {
+      sound.speed.instant = false;
+      sound.volume.instant = false;
+    }
+    for (auto &[name, music] : active.mixer.musics)
+    {
+      music.speed.instant = false;
+      music.volume.instant = false;
+    }
   }
 
   std::size_t scene_state::contact_key::hash::operator()(const contact_key &key) const
@@ -391,7 +418,8 @@ namespace cse::help
     }
   }
 
-  camera_state::camera_state(const glm::dvec3 &translation_, const glm::dvec3 &forward_, const glm::dvec3 &up_)
+  camera_state::camera_state(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec3> &forward_,
+                             const temporal<glm::dvec3> &up_)
     : previous{translation_, forward_, up_}, active{translation_, forward_, up_}
   {
   }
@@ -404,18 +432,32 @@ namespace cse::help
     previous.timer = active.timer;
     previous.mixer = active.mixer;
     previous.phase = active.phase;
+
+    for (auto &[name, sound] : active.mixer.sounds)
+    {
+      sound.speed.instant = false;
+      sound.volume.instant = false;
+    }
+    for (auto &[name, music] : active.mixer.musics)
+    {
+      music.speed.instant = false;
+      music.volume.instant = false;
+    }
+    active.translation.instant = false;
+    active.forward.instant = false;
+    active.up.instant = false;
   }
 
   glm::dmat4 camera_state::calculate_view_matrix(const double alpha) const
   {
-    auto translation = previous.translation.value + (active.translation.value - previous.translation.value) * alpha;
-    auto forward = previous.forward.value + (active.forward.value - previous.forward.value) * alpha;
-    auto up = previous.up.value + (active.up.value - previous.up.value) * alpha;
+    auto translation = active.translation.interpolated(previous.translation, alpha);
+    auto forward = active.forward.interpolated(previous.forward, alpha);
+    auto up = active.up.interpolated(previous.up, alpha);
     return glm::lookAt(translation, translation + forward, up);
   }
 
-  object_state::object_state(const glm::dvec3 &translation_, const double rotation_, const glm::dvec2 &scale_,
-                             const bool collidable_, const int priority_)
+  object_state::object_state(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
+                             const temporal<glm::dvec2> &scale_, const bool collidable_, const int priority_)
     : previous{translation_, rotation_, scale_, collidable_, priority_},
       active{translation_, rotation_, scale_, collidable_, priority_}
   {
@@ -431,14 +473,28 @@ namespace cse::help
     previous.timer = active.timer;
     previous.mixer = active.mixer;
     previous.phase = active.phase;
+
+    for (auto &[name, sound] : active.mixer.sounds)
+    {
+      sound.speed.instant = false;
+      sound.volume.instant = false;
+    }
+    for (auto &[name, music] : active.mixer.musics)
+    {
+      music.speed.instant = false;
+      music.volume.instant = false;
+    }
+    active.translation.instant = false;
+    active.rotation.instant = false;
+    active.scale.instant = false;
   }
 
   glm::dmat4 object_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
                                                   const double alpha) const
   {
-    auto translation = previous.translation.value + (active.translation.value - previous.translation.value) * alpha;
-    auto rotation = previous.rotation.value + (active.rotation.value - previous.rotation.value) * alpha;
-    auto scale = previous.scale.value + (active.scale.value - previous.scale.value) * alpha;
+    auto translation = active.translation.interpolated(previous.translation, alpha);
+    auto rotation = active.rotation.interpolated(previous.rotation, alpha);
+    auto scale = active.scale.interpolated(previous.scale, alpha);
     auto model_matrix{glm::dmat4(1.0)};
     model_matrix = glm::translate(model_matrix, {std::floor(translation.x + 0.5) - (frame_width % 2 == 1 ? 0.5 : 0.0),
                                                  std::floor(translation.y + 0.5) - (frame_height % 2 == 1 ? 0.5 : 0.0),
@@ -451,8 +507,8 @@ namespace cse::help
     return model_matrix;
   }
 
-  interface_state::interface_state(const glm::dvec2 &translation_, const double rotation_, const glm::dvec2 &scale_,
-                                   const bool interactable_, const int priority_)
+  interface_state::interface_state(const temporal<glm::dvec2> &translation_, const temporal<double> &rotation_,
+                                   const temporal<glm::dvec2> &scale_, const bool interactable_, const int priority_)
     : previous{translation_, rotation_, scale_, interactable_, priority_},
       active{translation_, rotation_, scale_, interactable_, priority_}
   {
@@ -464,20 +520,34 @@ namespace cse::help
     previous.rotation = active.rotation;
     previous.scale = active.scale;
     previous.interactable = active.interactable;
-    previous.target.hovered = active.target.hovered;
-    previous.target.pressed = active.target.pressed;
+    previous.target = active.target;
     previous.priority = active.priority;
     previous.timer = active.timer;
     previous.mixer = active.mixer;
     previous.phase = active.phase;
+
+    for (auto &[name, sound] : active.mixer.sounds)
+    {
+      sound.speed.instant = false;
+      sound.volume.instant = false;
+    }
+    for (auto &[name, music] : active.mixer.musics)
+    {
+      music.speed.instant = false;
+      music.volume.instant = false;
+    }
+    active.translation.instant = false;
+    active.rotation.instant = false;
+    active.scale.instant = false;
+    active.target.clicked = {};
   }
 
   glm::dmat4 interface_state::calculate_model_matrix(const unsigned int frame_width, const unsigned int frame_height,
                                                      const double alpha) const
   {
-    auto translation = previous.translation.value + (active.translation.value - previous.translation.value) * alpha;
-    auto rotation = previous.rotation.value + (active.rotation.value - previous.rotation.value) * alpha;
-    auto scale = previous.scale.value + (active.scale.value - previous.scale.value) * alpha;
+    auto translation = active.translation.interpolated(previous.translation, alpha);
+    auto rotation = active.rotation.interpolated(previous.rotation, alpha);
+    auto scale = active.scale.interpolated(previous.scale, alpha);
     auto model_matrix{glm::dmat4(1.0)};
     model_matrix =
       glm::translate(model_matrix, {std::floor(translation.x + 0.5), std::floor(translation.y + 0.5), 0.0});
@@ -492,8 +562,8 @@ namespace cse::help
   glm::dmat4 interface_state::calculate_text_matrix(const double width, const double height, const glm::dvec2 &offset,
                                                     const double alpha) const
   {
-    auto translation = previous.translation.value + (active.translation.value - previous.translation.value) * alpha;
-    auto rotation = previous.rotation.value + (active.rotation.value - previous.rotation.value) * alpha;
+    auto translation = active.translation.interpolated(previous.translation, alpha);
+    auto rotation = active.rotation.interpolated(previous.rotation, alpha);
     const auto pixel_width{std::floor(width + 0.5)};
     const auto pixel_height{std::floor(height + 0.5)};
     auto model_matrix{glm::dmat4(1.0)};
