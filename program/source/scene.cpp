@@ -10,12 +10,13 @@
 #include <vector>
 
 #include "SDL3/SDL_events.h"
+#include "glm/ext/vector_double3.hpp"
 #include "glm/geometric.hpp"
 
-#include "core.hpp"
 #include "camera.hpp"
 #include "collision.hpp"
 #include "container.hpp"
+#include "core.hpp"
 #include "exception.hpp"
 #include "game.hpp"
 #include "interface.hpp"
@@ -200,27 +201,30 @@ namespace cse::help::scene
       object_graphics_order.emplace_back(object.get());
     auto camera_translation = camera->active.translation.interpolated(camera->previous.translation, alpha);
     auto camera_forward = glm::normalize(camera->active.forward.interpolated(camera->previous.forward, alpha));
-    std::sort(object_graphics_order.begin(), object_graphics_order.end(),
-              [alpha, &camera_translation, &camera_forward](const auto &left, const auto &right)
-              {
-                double left_depth = glm::dot(left->active.translation.interpolated(left->previous.translation, alpha) -
-                                               camera_translation,
-                                             camera_forward);
-                double right_depth = glm::dot(
-                  right->active.translation.interpolated(right->previous.translation, alpha) - camera_translation,
-                  camera_forward);
-                if (!equal(left_depth, right_depth, 1e-4)) return left_depth > right_depth;
-                if (left->active.priority.rendering != right->active.priority.rendering)
-                  return left->active.priority.rendering < right->active.priority.rendering;
-                const auto left_batch{std::make_tuple(left->active.shader.vertex.data.data(),
-                                                      left->active.shader.fragment.data.data(),
-                                                      left->active.texture.image.data.data())};
-                const auto right_batch{std::make_tuple(right->active.shader.vertex.data.data(),
-                                                       right->active.shader.fragment.data.data(),
-                                                       right->active.texture.image.data.data())};
-                if (left_batch != right_batch) return left_batch < right_batch;
-                return left->name.identifier() < right->name.identifier();
-              });
+    std::sort(
+      object_graphics_order.begin(), object_graphics_order.end(),
+      [alpha, &camera_translation, &camera_forward](const auto &left, const auto &right)
+      {
+        const auto rendered = [](glm::dvec3 vector)
+        { return glm::dvec3{std::floor(vector.x + 0.5), std::floor(vector.y + 0.5), std::floor(vector.z + 0.5)}; };
+        double left_depth = glm::dot(
+          rendered(left->active.translation.interpolated(left->previous.translation, alpha)) - camera_translation,
+          camera_forward);
+        double right_depth = glm::dot(
+          rendered(right->active.translation.interpolated(right->previous.translation, alpha)) - camera_translation,
+          camera_forward);
+        if (!equal(left_depth, right_depth, 1e-4)) return left_depth > right_depth;
+        if (left->active.priority.rendering != right->active.priority.rendering)
+          return left->active.priority.rendering < right->active.priority.rendering;
+        const auto left_batch{std::make_tuple(left->active.shader.vertex.data.data(),
+                                              left->active.shader.fragment.data.data(),
+                                              left->active.texture.image.data.data())};
+        const auto right_batch{std::make_tuple(right->active.shader.vertex.data.data(),
+                                               right->active.shader.fragment.data.data(),
+                                               right->active.texture.image.data.data())};
+        if (left_batch != right_batch) return left_batch < right_batch;
+        return left->name.identifier() < right->name.identifier();
+      });
   }
 }
 
