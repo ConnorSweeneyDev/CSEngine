@@ -58,12 +58,12 @@ namespace cse::help::scene
     }
   }
 
-  void active::render(game::active &active, const double aspect, const double alpha)
+  void active::render(game::active &game_active, const double aspect, const double alpha)
   {
     generate_graphics_order(alpha);
-    active.generate_object_samples_and_batches(object_graphics_order);
-    active.upload_samples();
-    active.draw_batches(camera->render(aspect, alpha));
+    game_active.generate_object_samples_and_batches(object_graphics_order);
+    game_active.upload_samples();
+    game_active.draw_batches(camera->render(aspect, alpha));
   }
 
   void active::generate_simulation_order()

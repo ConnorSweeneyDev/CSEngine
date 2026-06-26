@@ -150,13 +150,13 @@ namespace cse::help::window
       viewport_left = 0.0f;
       viewport_top = (static_cast<float>(height) - viewport_height) / 2.0f;
     }
-    SDL_GPUViewport viewport{.x = viewport_left,
+    SDL_GPUViewport port{.x = viewport_left,
                              .y = viewport_top,
                              .w = viewport_width,
                              .h = viewport_height,
                              .min_depth = 0.0f,
                              .max_depth = 1.0f};
-    SDL_SetGPUViewport(render_pass, &viewport);
+    SDL_SetGPUViewport(render_pass, &port);
   }
 
   void active::end_render_pass()

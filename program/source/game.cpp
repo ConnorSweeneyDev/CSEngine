@@ -457,18 +457,18 @@ namespace cse::help::game
     graphics_object.samples.reserve(object_order.size());
     for (auto *element : object_order)
     {
-      auto &previous{element->previous};
-      auto &active{element->active};
-      auto &current{active.texture.playback.frame};
-      const auto size{active.texture.animation.frames.size()};
+      auto &current{element->active.texture.playback.frame};
+      const auto size{element->active.texture.animation.frames.size()};
       if (size == 0) throw exception("Object '{}' contains no frames", element->name.string());
       if (current >= size) current = size - 1;
-      const auto &coordinates{active.texture.animation.frames[current].coordinates};
-      const auto &flip{active.texture.flip};
-      const auto color{glm::vec4{active.texture.color.interpolated(previous.texture.color, alpha)}};
-      const auto transparency{active.texture.transparency.interpolated(previous.texture.transparency, alpha)};
-      const glm::mat4 model{active.calculate_model_matrix(previous, active.texture.image.frame_width,
-                                                          active.texture.image.frame_height, alpha)};
+      const auto &coordinates{element->active.texture.animation.frames[current].coordinates};
+      const auto &flip{element->active.texture.flip};
+      const auto color{glm::vec4{element->active.texture.color.interpolated(element->previous.texture.color, alpha)}};
+      const auto transparency{
+        element->active.texture.transparency.interpolated(element->previous.texture.transparency, alpha)};
+      const glm::mat4 model{element->active.calculate_model_matrix(element->previous,
+                                                                   element->active.texture.image.frame_width,
+                                                                   element->active.texture.image.frame_height, alpha)};
       graphics_object::sample data{};
       SDL_memcpy(data.model.data(), &model, sizeof(model));
       data.red = color.r;
@@ -480,9 +480,9 @@ namespace cse::help::game
       data.top = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
       data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
       data.transparency = static_cast<float>(transparency);
-      auto &available{require_pipelines(active.shader.vertex, active.shader.fragment)};
+      auto &available{require_pipelines(element->active.shader.vertex, element->active.shader.fragment)};
       auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
-      auto *texture{require_texture(active.texture.image)};
+      auto *texture{require_texture(element->active.texture.image)};
       if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
           graphics_object.batches.back().texture == texture)
         graphics_object.batches.back().count++;
@@ -499,18 +499,18 @@ namespace cse::help::game
     graphics_object.samples.reserve(graphics_interface.order.size());
     for (auto *element : graphics_interface.order)
     {
-      auto &previous{element->previous};
-      auto &active{element->active};
-      auto &current{active.texture.playback.frame};
-      const auto size{active.texture.animation.frames.size()};
+      auto &current{element->active.texture.playback.frame};
+      const auto size{element->active.texture.animation.frames.size()};
       if (size == 0) throw exception("Interface '{}' contains no frames", element->name.string());
       if (current >= size) current = size - 1;
-      const auto &coordinates{active.texture.animation.frames[current].coordinates};
-      const auto &flip{active.texture.flip};
-      const auto color{glm::vec4{active.texture.color.interpolated(previous.texture.color, alpha)}};
-      const auto transparency{active.texture.transparency.interpolated(previous.texture.transparency, alpha)};
-      const glm::mat4 model{element->active.calculate_model_matrix(previous, active.texture.image.frame_width,
-                                                                   active.texture.image.frame_height, alpha)};
+      const auto &coordinates{element->active.texture.animation.frames[current].coordinates};
+      const auto &flip{element->active.texture.flip};
+      const auto color{glm::vec4{element->active.texture.color.interpolated(element->previous.texture.color, alpha)}};
+      const auto transparency{
+        element->active.texture.transparency.interpolated(element->previous.texture.transparency, alpha)};
+      const glm::mat4 model{element->active.calculate_model_matrix(element->previous,
+                                                                   element->active.texture.image.frame_width,
+                                                                   element->active.texture.image.frame_height, alpha)};
       graphics_object::sample data{};
       SDL_memcpy(data.model.data(), &model, sizeof(model));
       data.red = color.r;
@@ -522,9 +522,9 @@ namespace cse::help::game
       data.top = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
       data.bottom = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
       data.transparency = static_cast<float>(transparency);
-      auto &available{require_pipelines(active.shader.vertex, active.shader.fragment)};
+      auto &available{require_pipelines(element->active.shader.vertex, element->active.shader.fragment)};
       auto *pipe{available.interface};
-      auto *texture{require_texture(active.texture.image)};
+      auto *texture{require_texture(element->active.texture.image)};
       if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
           graphics_object.batches.back().texture == texture)
         graphics_object.batches.back().count++;
@@ -532,16 +532,16 @@ namespace cse::help::game
         graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, texture});
       graphics_object.samples.push_back(data);
 
-      const auto &text{active.text};
+      const auto &text{element->active.text};
       if (text.content.empty()) continue;
-      const auto text_alpha{text.color.interpolated(previous.text.color, alpha).a};
+      const auto text_alpha{text.color.interpolated(element->previous.text.color, alpha).a};
       if (static_cast<int>(std::clamp(text_alpha, 0.0, 1.0) * 255.0) <= 0) continue;
       auto &entry{require_label(element)};
       entry.stamp = graphics_interface.stamp;
       const auto &scale{element->active.scale.value};
-      const auto element_width{static_cast<double>(active.texture.image.frame_width) *
+      const auto element_width{static_cast<double>(element->active.texture.image.frame_width) *
                                std::max(1.0, std::floor(scale.x + 0.5))};
-      const auto element_height{static_cast<double>(active.texture.image.frame_height) *
+      const auto element_height{static_cast<double>(element->active.texture.image.frame_height) *
                                 std::max(1.0, std::floor(scale.y + 0.5))};
       const auto texture_width{static_cast<double>(entry.texture_width)};
       const auto texture_height{static_cast<double>(entry.texture_height)};
@@ -549,7 +549,7 @@ namespace cse::help::game
       const auto box_right{element_width / 2.0};
       const auto box_top{-element_height / 2.0};
       const auto box_bottom{element_height / 2.0};
-      const glm::dvec2 shift{text.align.offset.interpolated(previous.text.align.offset, alpha)};
+      const glm::dvec2 shift{text.align.offset.interpolated(element->previous.text.align.offset, alpha)};
       double block_left{-texture_width / 2.0};
       if (text.align.horizontal == cse::align::LEFT)
         block_left = box_left;
@@ -575,7 +575,7 @@ namespace cse::help::game
       }
       if (visible_right <= visible_left || visible_bottom <= visible_top) continue;
       const glm::mat4 text_model{element->active.calculate_text_matrix(
-        previous, visible_right - visible_left, visible_bottom - visible_top,
+        element->previous, visible_right - visible_left, visible_bottom - visible_top,
         {(visible_left + visible_right) / 2.0, (visible_top + visible_bottom) / 2.0}, alpha)};
       graphics_object::sample text_data{};
       SDL_memcpy(text_data.model.data(), &text_model, sizeof(text_model));
