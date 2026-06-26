@@ -1,15 +1,108 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <optional>
 #include <type_traits>
+#include <unordered_set>
+#include <vector>
 
 #include "SDL3/SDL_events.h"
-#include "SDL3/SDL_gpu.h"
-#include "SDL3/SDL_video.h"
 
+#include "collision.hpp"
 #include "core.hpp"
-#include "graphics.hpp"
+#include "mixer.hpp"
 #include "name.hpp"
-#include "state.hpp"
+#include "timer.hpp"
+
+namespace cse::help::scene
+{
+  struct previous
+  {
+  public:
+    previous() = default;
+    ~previous() = default;
+    previous(const previous &) = delete;
+    previous &operator=(const previous &) = delete;
+    previous(previous &&) = delete;
+    previous &operator=(previous &&) = delete;
+
+  public:
+    std::shared_ptr<cse::camera> camera{};
+    std::vector<std::shared_ptr<cse::object>> objects{};
+    std::vector<std::shared_ptr<cse::interface>> interfaces{};
+    std::vector<contact> contacts{};
+    help::timer timer{};
+    help::mixer mixer{};
+    help::phase phase{};
+  };
+
+  struct active
+  {
+    friend class cse::game;
+    friend struct game::active;
+    friend class cse::scene;
+
+  private:
+    struct contact_key
+    {
+      struct hash
+      {
+        std::size_t operator()(const contact_key &key) const;
+      };
+
+      bool operator==(const contact_key &other) const = default;
+
+      std::size_t self;
+      std::size_t target;
+      std::uint64_t self_hitbox;
+      std::uint64_t target_hitbox;
+    };
+
+  public:
+    active() = default;
+    ~active() = default;
+    active(const active &) = delete;
+    active &operator=(const active &) = delete;
+    active(active &&) = delete;
+    active &operator=(active &&) = delete;
+
+  private:
+    void synchronize(previous &last);
+    void render(game::active &active, const double aspect, const double alpha);
+
+    void generate_simulation_order();
+    void generate_contacts();
+
+    void generate_graphics_order(const double alpha);
+
+  public:
+    std::shared_ptr<cse::camera> camera{};
+    std::vector<std::shared_ptr<cse::object>> objects{};
+    std::vector<std::shared_ptr<cse::interface>> interfaces{};
+    std::vector<contact> contacts{};
+    help::timer timer{};
+    help::mixer mixer{};
+    help::phase phase{};
+
+  private:
+    std::unordered_set<cse::name> object_removals{};
+    std::vector<std::shared_ptr<cse::object>> object_additions{};
+    std::vector<cse::object *> object_simulation_order{};
+    std::unordered_set<cse::name> interface_removals{};
+    std::vector<std::shared_ptr<cse::interface>> interface_additions{};
+    std::vector<cse::interface *> interface_simulation_order{};
+
+    std::vector<cse::object *> object_graphics_order{};
+  };
+
+  struct next
+  {
+  public:
+    std::optional<std::shared_ptr<cse::camera>> camera{};
+  };
+}
 
 namespace cse
 {
@@ -18,10 +111,7 @@ namespace cse
     friend class game;
 
   protected:
-    struct initial_state
-    {
-    };
-    struct initial_graphics
+    struct initial
     {
     };
 
@@ -69,16 +159,16 @@ namespace cse
     void event(const SDL_Event &event);
     void simulate(const double tick);
     void collide(const double tick);
-    void render(SDL_Window *instance, SDL_GPUDevice *gpu, SDL_GPUCommandBuffer *command_buffer,
-                SDL_GPURenderPass *render_pass, const double aspect, const double alpha);
+    void render(const double aspect, const double alpha);
     void destroy();
     void clean();
 
   public:
     cse::game *game{};
     cse::name name{};
-    help::scene_state state{};
-    help::scene_graphics graphics{};
+    help::scene::previous previous{};
+    help::scene::active active{};
+    help::scene::next next{};
   };
 }
 

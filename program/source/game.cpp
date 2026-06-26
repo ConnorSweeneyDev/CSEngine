@@ -1,39 +1,1039 @@
 #include "game.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 
+#include "SDL3/SDL_audio.h"
 #include "SDL3/SDL_events.h"
+#include "SDL3/SDL_gpu.h"
+#include "SDL3/SDL_init.h"
+#include "SDL3/SDL_iostream.h"
+#include "SDL3/SDL_log.h"
+#include "SDL3/SDL_mouse.h"
+#include "SDL3/SDL_pixels.h"
+#include "SDL3/SDL_stdinc.h"
+#include "SDL3/SDL_surface.h"
 #include "SDL3/SDL_timer.h"
+#include "SDL3_mixer/SDL_mixer.h"
+#include "SDL3_ttf/SDL_ttf.h"
+#include "csp/csp.hpp"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_double4x4.hpp"
+#include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/vector_double2.hpp"
+#include "glm/ext/vector_double3.hpp"
+#include "glm/ext/vector_float4.hpp"
 
+#include "collision.hpp"
 #include "container.hpp"
+#include "core.hpp"
 #include "exception.hpp"
 #include "interface.hpp"
+#include "mask.hpp"
+#include "mixer.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
-#include "scene.hpp"
-#include "state.hpp"
+#include "object.hpp"
+#include "resource.hpp"
+#include "system.hpp"
+#include "temporal.hpp"
 #include "window.hpp"
+
+namespace cse::help::game
+{
+  previous::previous(const double tick_, const double frame_, const temporal<double> &aspect_,
+                     const unsigned int resolution_, const temporal<glm::dvec3> &clear_,
+                     const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_)
+    : tick(tick_), frame(frame_), aspect(aspect_), resolution(resolution_), clear(clear_), master(master_),
+      sound(sound_), music(music_)
+  {
+  }
+
+  active::active(const double tick_, const double frame_, const temporal<double> &aspect_,
+                 const unsigned int resolution_, const temporal<glm::dvec3> &clear_, const temporal<double> &master_,
+                 const temporal<double> &sound_, const temporal<double> &music_)
+    : tick(tick_), frame(frame_), aspect(aspect_), resolution(resolution_), clear(clear_), master(master_),
+      sound(sound_), music(music_)
+  {
+  }
+
+  void active::prepare()
+  {
+    SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
+      throw sdl_exception("Could not set app metadata type");
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "Connor.Sweeney.Engine"))
+      throw sdl_exception("Could not set app metadata identifier");
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, "CSEngine"))
+      throw sdl_exception("Could not set app metadata name");
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "0.0.0"))
+      throw sdl_exception("Could not set app metadata version");
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
+      throw sdl_exception("Could not set app metadata creator");
+
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be prepared");
+    if (!TTF_Init()) throw sdl_exception("SDL_ttf could not be prepared");
+
+    if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) throw sdl_exception("SDL audio could not be prepared");
+    if (!MIX_Init()) throw sdl_exception("SDL_mixer could not be prepared");
+  }
+
+  void active::create()
+  {
+    const std::array<corner, 4> vertices{
+      {{1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, -1.0f, 1.0f, 0.0f}, {-1.0f, 1.0f, 0.0f, 1.0f}, {-1.0f, -1.0f, 0.0f, 0.0f}}};
+    const std::array<Uint16, 6> indices{3, 1, 0, 3, 0, 2};
+    SDL_GPUBufferCreateInfo vertex_buffer_info{
+      .usage = SDL_GPU_BUFFERUSAGE_VERTEX, .size = sizeof(vertices), .props = 0};
+    graphics_buffer.vertex = SDL_CreateGPUBuffer(window->active.device, &vertex_buffer_info);
+    if (!graphics_buffer.vertex) throw sdl_exception("Could not create vertex buffer for game");
+    SDL_GPUBufferCreateInfo index_buffer_info{.usage = SDL_GPU_BUFFERUSAGE_INDEX, .size = sizeof(indices), .props = 0};
+    graphics_buffer.index = SDL_CreateGPUBuffer(window->active.device, &index_buffer_info);
+    if (!graphics_buffer.index) throw sdl_exception("Could not create index buffer for game");
+    SDL_GPUSamplerCreateInfo sampler_info{};
+    sampler_info.min_filter = SDL_GPU_FILTER_NEAREST;
+    sampler_info.mag_filter = SDL_GPU_FILTER_NEAREST;
+    sampler_info.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+    sampler_info.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+    sampler_info.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+    sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+    graphics_buffer.sample = SDL_CreateGPUSampler(window->active.device, &sampler_info);
+    if (!graphics_buffer.sample) throw sdl_exception("Could not create sampler for game");
+    SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
+      .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = sizeof(vertices) + sizeof(indices), .props = 0};
+    auto *transfer_buffer{SDL_CreateGPUTransferBuffer(window->active.device, &transfer_buffer_info)};
+    if (!transfer_buffer) throw sdl_exception("Could not create transfer buffer for game");
+    auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(window->active.device, transfer_buffer, false))};
+    if (!start) throw sdl_exception("Could not map data for game");
+    SDL_memcpy(start, vertices.data(), sizeof(vertices));
+    SDL_memcpy(start + sizeof(vertices), indices.data(), sizeof(indices));
+    SDL_UnmapGPUTransferBuffer(window->active.device, transfer_buffer);
+    auto *command_buffer{SDL_AcquireGPUCommandBuffer(window->active.device)};
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
+    auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
+    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
+    SDL_GPUTransferBufferLocation vertex_transfer_location{.transfer_buffer = transfer_buffer, .offset = 0};
+    SDL_GPUBufferRegion vertex_buffer_region{.buffer = graphics_buffer.vertex, .offset = 0, .size = sizeof(vertices)};
+    SDL_UploadToGPUBuffer(copy_pass, &vertex_transfer_location, &vertex_buffer_region, false);
+    SDL_GPUTransferBufferLocation index_transfer_location{.transfer_buffer = transfer_buffer,
+                                                          .offset = sizeof(vertices)};
+    SDL_GPUBufferRegion index_buffer_region{.buffer = graphics_buffer.index, .offset = 0, .size = sizeof(indices)};
+    SDL_UploadToGPUBuffer(copy_pass, &index_transfer_location, &index_buffer_region, false);
+    SDL_EndGPUCopyPass(copy_pass);
+    SDL_SubmitGPUCommandBuffer(command_buffer);
+    SDL_ReleaseGPUTransferBuffer(window->active.device, transfer_buffer);
+
+    if (audio_handle = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr); !audio_handle)
+      throw sdl_exception("Could not create audio mixer for game");
+    SDL_AudioSpec spec{};
+    if (!MIX_GetMixerFormat(audio_handle, &spec)) throw sdl_exception("Could not get audio mixer format for game");
+    frequency = spec.freq;
+  }
+
+  void active::synchronize(previous &last)
+  {
+    last.tick = tick;
+    last.frame = frame;
+    last.aspect = aspect;
+    last.resolution = resolution;
+    last.clear = clear;
+    last.master = master;
+    last.sound = sound;
+    last.music = music;
+
+    last.window = window;
+    last.scenes = scenes;
+    last.scene = scene;
+    last.interfaces = interfaces;
+    last.timer = timer;
+    last.mixer = mixer;
+    last.phase = phase;
+
+    for (auto &[name, track] : mixer.sounds)
+    {
+      track.speed.instant = false;
+      track.volume.instant = false;
+    }
+    for (auto &[name, track] : mixer.musics)
+    {
+      track.speed.instant = false;
+      track.volume.instant = false;
+    }
+    aspect.instant = false;
+    clear.instant = false;
+    master.instant = false;
+    sound.instant = false;
+    music.instant = false;
+  }
+
+  void active::render(const temporal<double> previous_aspect)
+  {
+    graphics_interface.stamp++;
+    generate_graphics_order();
+    generate_interface_samples_and_batches();
+    for (auto iterator{graphics_interface.labels.begin()}; iterator != graphics_interface.labels.end();)
+      if (iterator->second.stamp != graphics_interface.stamp)
+      {
+        SDL_ReleaseGPUTexture(window->active.device, iterator->second.texture);
+        iterator = graphics_interface.labels.erase(iterator);
+      }
+      else
+        ++iterator;
+    upload_samples();
+    draw_batches(
+      [&]()
+      {
+        const auto height{static_cast<double>(std::max(1u, resolution))};
+        const auto real_aspect{aspect.interpolated(previous_aspect, alpha)};
+        const auto width{height * real_aspect};
+        const auto projection{glm::ortho(-width / 2.0, width / 2.0, height / 2.0, -height / 2.0, -1.0, 1.0)};
+        const glm::dvec3 origin{std::llround(width) % 2 == 0 ? -0.5 : 0.0, std::llround(height) % 2 == 0 ? -0.5 : 0.0,
+                                0.0};
+        return std::pair<glm::dmat4, glm::dmat4>{projection, glm::translate(glm::dmat4{1.0}, origin)};
+      }());
+    for (auto iterator{graphics_cache.font.begin()}; iterator != graphics_cache.font.end();)
+      if (iterator->second.stamp != graphics_cache.stamp)
+      {
+        TTF_CloseFont(iterator->second.value.font);
+        iterator = graphics_cache.font.erase(iterator);
+      }
+      else
+        ++iterator;
+    for (auto iterator{graphics_cache.texture.begin()}; iterator != graphics_cache.texture.end();)
+      if (iterator->second.stamp != graphics_cache.stamp)
+      {
+        SDL_ReleaseGPUTexture(window->active.device, iterator->second.value);
+        iterator = graphics_cache.texture.erase(iterator);
+      }
+      else
+        ++iterator;
+    for (auto iterator{graphics_cache.pipeline.begin()}; iterator != graphics_cache.pipeline.end();)
+      if (iterator->second.stamp != graphics_cache.stamp)
+      {
+        SDL_ReleaseGPUGraphicsPipeline(window->active.device, iterator->second.value.interface);
+        SDL_ReleaseGPUGraphicsPipeline(window->active.device, iterator->second.value.transparent);
+        SDL_ReleaseGPUGraphicsPipeline(window->active.device, iterator->second.value.opaque);
+        iterator = graphics_cache.pipeline.erase(iterator);
+      }
+      else
+        ++iterator;
+    graphics_cache.stamp++;
+  }
+
+  void active::mix(const help::mixer &previous_mixer, const temporal<double> previous_master,
+                   const temporal<double> previous_sound, const temporal<double> previous_music)
+  {
+    if (!audio_handle) return;
+    master.value = std::clamp(master.value, 0.0, 1.0);
+    sound.value = std::clamp(sound.value, 0.0, 1.0);
+    music.value = std::clamp(music.value, 0.0, 1.0);
+    const auto blend{[this](const temporal<double> &previous_gain, const temporal<double> &active_gain)
+                     { return active_gain.interpolated(previous_gain, alpha); }};
+    const auto sound_bus{gain(blend(previous_sound, sound))};
+    const auto music_bus{gain(blend(previous_music, music))};
+    MIX_SetMixerGain(audio_handle, static_cast<float>(gain(blend(previous_master, master))));
+
+    std::vector<channel> channels{};
+    const auto add{[&channels](auto *source) { channels.push_back({&source->previous.mixer, &source->active.mixer}); }};
+    channels.reserve(3 + interfaces.size());
+    channels.push_back({&previous_mixer, &mixer});
+    add(window.get());
+    for (const auto &element : interfaces) add(element.get());
+    if (scene)
+    {
+      add(scene.get());
+      if (scene->active.camera) add(scene->active.camera.get());
+      for (const auto &element : scene->active.objects) add(element.get());
+      for (const auto &element : scene->active.interfaces) add(element.get());
+    }
+
+    for (auto &[key, audio] : audio_tracks) audio.seen = false;
+    for (const auto &audio : channels)
+    {
+      reconcile_audio<cse::sound>(audio.previous, audio.active, "sound", true, sound_bus);
+      reconcile_audio<cse::music>(audio.previous, audio.active, "music", false, music_bus);
+    }
+    for (auto iterator{audio_tracks.begin()}; iterator != audio_tracks.end();)
+      if (!iterator->second.seen)
+      {
+        if (iterator->second.handle) MIX_DestroyTrack(iterator->second.handle);
+        iterator = audio_tracks.erase(iterator);
+      }
+      else
+        ++iterator;
+    for (auto iterator{audio_cache.begin()}; iterator != audio_cache.end();)
+      if (std::none_of(audio_tracks.begin(), audio_tracks.end(),
+                       [audio = iterator->second](const auto &entry) { return entry.second.audio == audio; }))
+      {
+        if (iterator->second) MIX_DestroyAudio(iterator->second);
+        iterator = audio_cache.erase(iterator);
+      }
+      else
+        ++iterator;
+  }
+
+  void active::destroy()
+  {
+    for (auto &[key, audio] : audio_tracks)
+      if (audio.handle) MIX_DestroyTrack(audio.handle);
+    audio_tracks.clear();
+    for (auto &[key, audio] : audio_cache)
+      if (audio) MIX_DestroyAudio(audio);
+    audio_cache.clear();
+    if (audio_handle) MIX_DestroyMixer(audio_handle);
+    audio_handle = nullptr;
+
+    for (const auto &[key, entry] : graphics_interface.labels)
+      SDL_ReleaseGPUTexture(window->active.device, entry.texture);
+    for (const auto &[key, font] : graphics_cache.font) TTF_CloseFont(font.value.font);
+    SDL_ReleaseGPUTransferBuffer(window->active.device, graphics_object.transfer_buffer);
+    SDL_ReleaseGPUBuffer(window->active.device, graphics_object.buffer);
+    for (const auto &[key, texture] : graphics_cache.texture)
+      SDL_ReleaseGPUTexture(window->active.device, texture.value);
+    for (const auto &[key, available] : graphics_cache.pipeline)
+    {
+      SDL_ReleaseGPUGraphicsPipeline(window->active.device, available.value.interface);
+      SDL_ReleaseGPUGraphicsPipeline(window->active.device, available.value.transparent);
+      SDL_ReleaseGPUGraphicsPipeline(window->active.device, available.value.opaque);
+    }
+    SDL_ReleaseGPUSampler(window->active.device, graphics_buffer.sample);
+    SDL_ReleaseGPUBuffer(window->active.device, graphics_buffer.index);
+    SDL_ReleaseGPUBuffer(window->active.device, graphics_buffer.vertex);
+    graphics_interface.stamp = 0;
+    graphics_interface.labels.clear();
+    graphics_interface.order.clear();
+    graphics_object.transfer_buffer = nullptr;
+    graphics_object.buffer = nullptr;
+    graphics_object.capacity = 0;
+    graphics_object.samples.clear();
+    graphics_object.batches.clear();
+    graphics_cache.font.clear();
+    graphics_cache.texture.clear();
+    graphics_cache.pipeline.clear();
+    graphics_cache.stamp = 0;
+    graphics_buffer.sample = nullptr;
+    graphics_buffer.index = nullptr;
+    graphics_buffer.vertex = nullptr;
+  }
+
+  void active::clean()
+  {
+    MIX_Quit();
+    SDL_QuitSubSystem(SDL_INIT_AUDIO);
+
+    TTF_Quit();
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+
+    SDL_Quit();
+  }
+
+  void active::generate_simulation_order()
+  {
+    interface_order.clear();
+    for (interface_order.reserve(interfaces.size()); const auto &element : interfaces)
+      interface_order.emplace_back(element.get());
+    std::sort(interface_order.begin(), interface_order.end(),
+              [](const cse::interface *left, const cse::interface *right)
+              {
+                if (left->active.priority.simulation != right->active.priority.simulation)
+                  return left->active.priority.simulation > right->active.priority.simulation;
+                return left->name.identifier() < right->name.identifier();
+              });
+  }
+
+  void active::generate_pool()
+  {
+    interface_pool.clear();
+    interface_pool.reserve(scene->active.interface_simulation_order.size() + interface_order.size());
+    interface_pool.insert(interface_pool.end(), scene->active.interface_simulation_order.begin(),
+                          scene->active.interface_simulation_order.end());
+    interface_pool.insert(interface_pool.end(), interface_order.begin(), interface_order.end());
+    std::sort(interface_pool.begin(), interface_pool.end(),
+              [](const cse::interface *left, const cse::interface *right)
+              {
+                if (left->active.priority.simulation != right->active.priority.simulation)
+                  return left->active.priority.simulation > right->active.priority.simulation;
+                if (const auto left_layer{left->scene ? 0 : 1}, right_layer{right->scene ? 0 : 1};
+                    left_layer != right_layer)
+                  return left_layer > right_layer;
+                return left->name.identifier() < right->name.identifier();
+              });
+  }
+
+  bool active::inside(const glm::dvec2 &position)
+  {
+    const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
+    const auto canvas_width{canvas_height * aspect.value};
+    const auto x{position.x - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0)};
+    const auto y{position.y - (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
+    return x >= -canvas_width / 2.0 && x < canvas_width / 2.0 && y >= -canvas_height / 2.0 && y < canvas_height / 2.0;
+  }
+
+  void active::interact()
+  {
+    const auto &event{window->active.event};
+    const auto &mouse{window->active.mouse};
+    if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+    {
+      if (event.button.button > SDL_BUTTON_X2 || !inside(mouse.position)) return;
+      for (auto *element : interface_pool)
+        if (const auto target{collision::hit(element, mouse.position)}; target != hitbox{})
+        {
+          element->active.target.pressed[event.button.button] = target;
+          break;
+        }
+    }
+    else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+    {
+      if (event.button.button > SDL_BUTTON_X2) return;
+      for (auto *element : interface_pool)
+        if (const auto target{element->active.target.pressed[event.button.button]}; target != hitbox{})
+        {
+          element->active.target.clicked[event.button.button] = target;
+          element->active.target.pressed[event.button.button] = {};
+        }
+    }
+  }
+
+  void active::hover()
+  {
+    std::optional<glm::dvec2> position{};
+    const auto &mouse{window->active.mouse};
+    if (SDL_GetMouseFocus() == window->active.instance && inside(mouse.position)) position = mouse.position;
+    cse::interface *hit{};
+    hitbox target{};
+    if (position)
+      for (auto *element : interface_pool)
+        if (target = collision::hit(element, *position); target != hitbox{})
+        {
+          hit = element;
+          break;
+        }
+    for (auto *element : interface_pool) element->active.target.hovered = element == hit ? target : hitbox{};
+  }
+
+  void active::generate_graphics_order()
+  {
+    const auto comparator{[](const cse::interface *left, const cse::interface *right)
+                          {
+                            if (left->active.priority.rendering != right->active.priority.rendering)
+                              return left->active.priority.rendering < right->active.priority.rendering;
+                            if (const auto left_layer{left->scene ? 0 : 1}, right_layer{right->scene ? 0 : 1};
+                                left_layer != right_layer)
+                              return left_layer < right_layer;
+                            const auto left_batch{std::make_tuple(left->active.shader.vertex.data.data(),
+                                                                  left->active.shader.fragment.data.data(),
+                                                                  left->active.texture.image.data.data())};
+                            const auto right_batch{std::make_tuple(right->active.shader.vertex.data.data(),
+                                                                   right->active.shader.fragment.data.data(),
+                                                                   right->active.texture.image.data.data())};
+                            if (left_batch != right_batch) return left_batch < right_batch;
+                            return left->name.identifier() < right->name.identifier();
+                          }};
+    graphics_interface.order.clear();
+    graphics_interface.order.reserve(scene->active.interfaces.size() + interfaces.size());
+    for (const auto &element : scene->active.interfaces) graphics_interface.order.emplace_back(element.get());
+    for (const auto &element : interfaces) graphics_interface.order.emplace_back(element.get());
+    std::sort(graphics_interface.order.begin(), graphics_interface.order.end(), comparator);
+  }
+
+  void active::generate_object_samples_and_batches(const std::vector<cse::object *> &object_order)
+  {
+    graphics_object.samples.clear();
+    graphics_object.batches.clear();
+    graphics_object.samples.reserve(object_order.size());
+    for (auto *element : object_order)
+    {
+      auto &previous{element->previous};
+      auto &active{element->active};
+      auto &current{active.texture.playback.frame};
+      const auto size{active.texture.animation.frames.size()};
+      if (size == 0) throw exception("Object '{}' contains no frames", element->name.string());
+      if (current >= size) current = size - 1;
+      const auto &coordinates{active.texture.animation.frames[current].coordinates};
+      const auto &flip{active.texture.flip};
+      const auto color{glm::vec4{active.texture.color.interpolated(previous.texture.color, alpha)}};
+      const auto transparency{active.texture.transparency.interpolated(previous.texture.transparency, alpha)};
+      const glm::mat4 model{active.calculate_model_matrix(previous, active.texture.image.frame_width,
+                                                          active.texture.image.frame_height, alpha)};
+      graphics_object::sample data{};
+      SDL_memcpy(data.model.data(), &model, sizeof(model));
+      data.red = color.r;
+      data.green = color.g;
+      data.blue = color.b;
+      data.alpha = color.a;
+      data.left = static_cast<float>(flip.horizontal ? coordinates.right : coordinates.left);
+      data.right = static_cast<float>(flip.horizontal ? coordinates.left : coordinates.right);
+      data.top = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
+      data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
+      data.transparency = static_cast<float>(transparency);
+      auto &available{require_pipelines(active.shader.vertex, active.shader.fragment)};
+      auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
+      auto *texture{require_texture(active.texture.image)};
+      if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
+          graphics_object.batches.back().texture == texture)
+        graphics_object.batches.back().count++;
+      else
+        graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, texture});
+      graphics_object.samples.push_back(data);
+    }
+  }
+
+  void active::generate_interface_samples_and_batches()
+  {
+    graphics_object.samples.clear();
+    graphics_object.batches.clear();
+    graphics_object.samples.reserve(graphics_interface.order.size());
+    for (auto *element : graphics_interface.order)
+    {
+      auto &previous{element->previous};
+      auto &active{element->active};
+      auto &current{active.texture.playback.frame};
+      const auto size{active.texture.animation.frames.size()};
+      if (size == 0) throw exception("Interface '{}' contains no frames", element->name.string());
+      if (current >= size) current = size - 1;
+      const auto &coordinates{active.texture.animation.frames[current].coordinates};
+      const auto &flip{active.texture.flip};
+      const auto color{glm::vec4{active.texture.color.interpolated(previous.texture.color, alpha)}};
+      const auto transparency{active.texture.transparency.interpolated(previous.texture.transparency, alpha)};
+      const glm::mat4 model{element->active.calculate_model_matrix(previous, active.texture.image.frame_width,
+                                                                   active.texture.image.frame_height, alpha)};
+      graphics_object::sample data{};
+      SDL_memcpy(data.model.data(), &model, sizeof(model));
+      data.red = color.r;
+      data.green = color.g;
+      data.blue = color.b;
+      data.alpha = color.a;
+      data.left = static_cast<float>(flip.horizontal ? coordinates.right : coordinates.left);
+      data.right = static_cast<float>(flip.horizontal ? coordinates.left : coordinates.right);
+      data.top = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
+      data.bottom = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
+      data.transparency = static_cast<float>(transparency);
+      auto &available{require_pipelines(active.shader.vertex, active.shader.fragment)};
+      auto *pipe{available.interface};
+      auto *texture{require_texture(active.texture.image)};
+      if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
+          graphics_object.batches.back().texture == texture)
+        graphics_object.batches.back().count++;
+      else
+        graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, texture});
+      graphics_object.samples.push_back(data);
+
+      const auto &text{active.text};
+      if (text.content.empty()) continue;
+      const auto text_alpha{text.color.interpolated(previous.text.color, alpha).a};
+      if (static_cast<int>(std::clamp(text_alpha, 0.0, 1.0) * 255.0) <= 0) continue;
+      auto &entry{require_label(element)};
+      entry.stamp = graphics_interface.stamp;
+      const auto &scale{element->active.scale.value};
+      const auto element_width{static_cast<double>(active.texture.image.frame_width) *
+                               std::max(1.0, std::floor(scale.x + 0.5))};
+      const auto element_height{static_cast<double>(active.texture.image.frame_height) *
+                                std::max(1.0, std::floor(scale.y + 0.5))};
+      const auto texture_width{static_cast<double>(entry.texture_width)};
+      const auto texture_height{static_cast<double>(entry.texture_height)};
+      const auto box_left{-element_width / 2.0};
+      const auto box_right{element_width / 2.0};
+      const auto box_top{-element_height / 2.0};
+      const auto box_bottom{element_height / 2.0};
+      const glm::dvec2 shift{text.align.offset.interpolated(previous.text.align.offset, alpha)};
+      double block_left{-texture_width / 2.0};
+      if (text.align.horizontal == cse::align::LEFT)
+        block_left = box_left;
+      else if (text.align.horizontal == cse::align::RIGHT)
+        block_left = box_right - texture_width;
+      block_left += shift.x;
+      double block_top{-texture_height / 2.0};
+      if (text.align.vertical == cse::align::TOP)
+        block_top = box_top;
+      else if (text.align.vertical == cse::align::BOTTOM)
+        block_top = box_bottom - texture_height;
+      block_top += shift.y;
+      auto visible_left{block_left};
+      auto visible_right{block_left + texture_width};
+      auto visible_top{block_top};
+      auto visible_bottom{block_top + texture_height};
+      if (!text.overflow)
+      {
+        visible_left = std::max(visible_left, box_left);
+        visible_right = std::min(visible_right, box_right);
+        visible_top = std::max(visible_top, box_top);
+        visible_bottom = std::min(visible_bottom, box_bottom);
+      }
+      if (visible_right <= visible_left || visible_bottom <= visible_top) continue;
+      const glm::mat4 text_model{element->active.calculate_text_matrix(
+        previous, visible_right - visible_left, visible_bottom - visible_top,
+        {(visible_left + visible_right) / 2.0, (visible_top + visible_bottom) / 2.0}, alpha)};
+      graphics_object::sample text_data{};
+      SDL_memcpy(text_data.model.data(), &text_model, sizeof(text_model));
+      text_data.left = static_cast<float>((visible_left - block_left) / texture_width);
+      text_data.right = static_cast<float>((visible_right - block_left) / texture_width);
+      text_data.top = static_cast<float>((visible_bottom - block_top) / texture_height);
+      text_data.bottom = static_cast<float>((visible_top - block_top) / texture_height);
+      text_data.transparency = static_cast<float>(transparency);
+      graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, entry.texture});
+      graphics_object.samples.push_back(text_data);
+    }
+  }
+
+  void active::upload_samples()
+  {
+    if (graphics_object.samples.empty()) return;
+    if (graphics_object.samples.size() > graphics_object.capacity)
+    {
+      SDL_ReleaseGPUTransferBuffer(window->active.device, graphics_object.transfer_buffer);
+      SDL_ReleaseGPUBuffer(window->active.device, graphics_object.buffer);
+      graphics_object.capacity = std::max<std::size_t>(graphics_object.capacity, 16);
+      while (graphics_object.capacity < graphics_object.samples.size()) graphics_object.capacity *= 2;
+      SDL_GPUBufferCreateInfo instance_buffer_info{
+        .usage = SDL_GPU_BUFFERUSAGE_VERTEX,
+        .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
+        .props = 0};
+      graphics_object.buffer = SDL_CreateGPUBuffer(window->active.device, &instance_buffer_info);
+      if (!graphics_object.buffer) throw sdl_exception("Could not create instance buffer for game");
+      SDL_GPUTransferBufferCreateInfo instance_transfer_buffer_info{
+        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+        .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
+        .props = 0};
+      graphics_object.transfer_buffer =
+        SDL_CreateGPUTransferBuffer(window->active.device, &instance_transfer_buffer_info);
+      if (!graphics_object.transfer_buffer) throw sdl_exception("Could not create instance transfer buffer for game");
+    }
+    auto *start{SDL_MapGPUTransferBuffer(window->active.device, graphics_object.transfer_buffer, true)};
+    if (!start) throw sdl_exception("Could not map instance data for game");
+    SDL_memcpy(start, graphics_object.samples.data(), sizeof(graphics_object::sample) * graphics_object.samples.size());
+    SDL_UnmapGPUTransferBuffer(window->active.device, graphics_object.transfer_buffer);
+    auto *command_buffer{SDL_AcquireGPUCommandBuffer(window->active.device)};
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
+    auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
+    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
+    SDL_GPUTransferBufferLocation instance_transfer_location{.transfer_buffer = graphics_object.transfer_buffer,
+                                                             .offset = 0};
+    SDL_GPUBufferRegion instance_buffer_region{
+      .buffer = graphics_object.buffer,
+      .offset = 0,
+      .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.samples.size())};
+    SDL_UploadToGPUBuffer(copy_pass, &instance_transfer_location, &instance_buffer_region, true);
+    SDL_EndGPUCopyPass(copy_pass);
+    SDL_SubmitGPUCommandBuffer(command_buffer);
+  }
+
+  void active::draw_batches(const std::pair<glm::dmat4, glm::dmat4> &matrices)
+  {
+    if (graphics_object.batches.empty()) return;
+    const auto &[projection_matrix, view_matrix] = matrices;
+    const std::array<glm::mat4, 2> data{glm::mat4{projection_matrix}, glm::mat4{view_matrix}};
+    SDL_PushGPUVertexUniformData(window->active.command_buffer, 0, &data, sizeof(data));
+    const std::array<SDL_GPUBufferBinding, 2> vertex_buffer_bindings{
+      {{.buffer = graphics_buffer.vertex, .offset = 0}, {.buffer = graphics_object.buffer, .offset = 0}}};
+    SDL_BindGPUVertexBuffers(window->active.render_pass, 0, vertex_buffer_bindings.data(), 2);
+    SDL_GPUBufferBinding index_buffer_binding{.buffer = graphics_buffer.index, .offset = 0};
+    SDL_BindGPUIndexBuffer(window->active.render_pass, &index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+    for (const auto &group : graphics_object.batches)
+    {
+      SDL_BindGPUGraphicsPipeline(window->active.render_pass, group.pipeline);
+      SDL_GPUTextureSamplerBinding texture_sampler_binding{.texture = group.texture, .sampler = graphics_buffer.sample};
+      SDL_BindGPUFragmentSamplers(window->active.render_pass, 0, &texture_sampler_binding, 1);
+      SDL_DrawGPUIndexedPrimitives(window->active.render_pass, 6, static_cast<Uint32>(group.count), 0, 0,
+                                   static_cast<Uint32>(group.first));
+    }
+  }
+
+  active::pipeline &active::require_pipelines(const cse::vertex &vertex, const cse::fragment &fragment)
+  {
+    const graphics_cache::pipeline_key key{vertex.data.data(), vertex.data.size(), fragment.data.data(),
+                                           fragment.data.size()};
+    if (const auto iterator{graphics_cache.pipeline.find(key)}; iterator != graphics_cache.pipeline.end())
+    {
+      iterator->second.stamp = graphics_cache.stamp;
+      return iterator->second.value;
+    }
+    csp::verify(vertex.data.data(), vertex.data.size());
+    csp::verify(fragment.data.data(), fragment.data.size());
+    const auto backend_formats{SDL_GetGPUShaderFormats(window->active.device)};
+    if (!has(backend_formats, SDL_GPU_SHADERFORMAT_SPIRV))
+      throw sdl_exception("No supported vulkan shader formats for game");
+    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = vertex.data.size(),
+                                               .code = vertex.data.data(),
+                                               .entrypoint = "main",
+                                               .format = SDL_GPU_SHADERFORMAT_SPIRV,
+                                               .stage = SDL_GPU_SHADERSTAGE_VERTEX,
+                                               .num_samplers = 0,
+                                               .num_storage_textures = 0,
+                                               .num_storage_buffers = 0,
+                                               .num_uniform_buffers = 1,
+                                               .props = 0};
+    auto *vertex_shader{SDL_CreateGPUShader(window->active.device, &vertex_shader_info)};
+    if (!vertex_shader) throw sdl_exception("Could not create vertex shader for game");
+    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = fragment.data.size(),
+                                                 .code = fragment.data.data(),
+                                                 .entrypoint = "main",
+                                                 .format = SDL_GPU_SHADERFORMAT_SPIRV,
+                                                 .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
+                                                 .num_samplers = 1,
+                                                 .num_storage_textures = 0,
+                                                 .num_storage_buffers = 0,
+                                                 .num_uniform_buffers = 0,
+                                                 .props = 0};
+    auto *fragment_shader{SDL_CreateGPUShader(window->active.device, &fragment_shader_info)};
+    if (!fragment_shader) throw sdl_exception("Could not create fragment shader for game");
+    const std::array<SDL_GPUVertexBufferDescription, 2> vertex_buffer_descriptions{
+      {{.slot = 0, .pitch = sizeof(corner), .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX, .instance_step_rate = 0},
+       {.slot = 1,
+        .pitch = sizeof(graphics_object::sample),
+        .input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
+        .instance_step_rate = 0}}};
+    const std::array<SDL_GPUVertexAttribute, 9> vertex_attributes{
+      {{0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(corner, x)},
+       {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(corner, u)},
+       {2, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model)},
+       {3, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 4},
+       {4, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 8},
+       {5, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 12},
+       {6, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, red)},
+       {7, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, left)},
+       {8, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, offsetof(graphics_object::sample, transparency)}}};
+    SDL_GPUVertexInputState vertex_input_state{.vertex_buffer_descriptions = vertex_buffer_descriptions.data(),
+                                               .num_vertex_buffers = 2,
+                                               .vertex_attributes = vertex_attributes.data(),
+                                               .num_vertex_attributes = 9};
+    SDL_GPURasterizerState rasterizer_state{};
+    rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
+    rasterizer_state.cull_mode = SDL_GPU_CULLMODE_BACK;
+    rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+    SDL_GPUColorTargetDescription opaque_color_target_description{};
+    opaque_color_target_description.format =
+      SDL_GetGPUSwapchainTextureFormat(window->active.device, window->active.instance);
+    SDL_GPUDepthStencilState opaque_depth_stencil_state{};
+    opaque_depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+    opaque_depth_stencil_state.enable_depth_test = true;
+    opaque_depth_stencil_state.enable_depth_write = true;
+    const auto type{SDL_GPU_TEXTURETYPE_2D};
+    const std::array<SDL_GPUTextureFormat, 3> potential_formats{
+      SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
+    SDL_GPUGraphicsPipelineTargetInfo opaque_target_info{};
+    opaque_target_info.color_target_descriptions = &opaque_color_target_description;
+    opaque_target_info.num_color_targets = 1;
+    opaque_target_info.depth_stencil_format = [this, &potential_formats]() -> SDL_GPUTextureFormat
+    {
+      for (const auto &potential_format : potential_formats)
+        if (SDL_GPUTextureSupportsFormat(window->active.device, potential_format, type,
+                                         SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET))
+          return potential_format;
+      return {};
+    }();
+    opaque_target_info.has_depth_stencil_target = true;
+    if (opaque_target_info.depth_stencil_format == SDL_GPU_TEXTUREFORMAT_INVALID)
+      throw sdl_exception("No supported depth stencil format found for game");
+    SDL_GPUGraphicsPipelineCreateInfo opaque_pipeline_info{};
+    opaque_pipeline_info.vertex_shader = vertex_shader;
+    opaque_pipeline_info.fragment_shader = fragment_shader;
+    opaque_pipeline_info.vertex_input_state = vertex_input_state;
+    opaque_pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+    opaque_pipeline_info.rasterizer_state = rasterizer_state;
+    opaque_pipeline_info.depth_stencil_state = opaque_depth_stencil_state;
+    opaque_pipeline_info.target_info = opaque_target_info;
+    pipeline available{};
+    available.opaque = SDL_CreateGPUGraphicsPipeline(window->active.device, &opaque_pipeline_info);
+    if (!available.opaque) throw sdl_exception("Could not create graphics pipeline for game");
+    SDL_GPUColorTargetBlendState blend_state{};
+    blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+    blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+    blend_state.color_blend_op = SDL_GPU_BLENDOP_ADD;
+    blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+    blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+    blend_state.alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+    blend_state.color_write_mask = 0;
+    blend_state.enable_blend = true;
+    blend_state.enable_color_write_mask = false;
+    SDL_GPUColorTargetDescription transparent_color_target_description{};
+    transparent_color_target_description.format =
+      SDL_GetGPUSwapchainTextureFormat(window->active.device, window->active.instance);
+    transparent_color_target_description.blend_state = blend_state;
+    SDL_GPUDepthStencilState transparent_depth_stencil_state{};
+    transparent_depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+    transparent_depth_stencil_state.enable_depth_test = true;
+    transparent_depth_stencil_state.enable_depth_write = false;
+    SDL_GPUGraphicsPipelineTargetInfo transparent_target_info{};
+    transparent_target_info.color_target_descriptions = &transparent_color_target_description;
+    transparent_target_info.num_color_targets = 1;
+    transparent_target_info.depth_stencil_format = opaque_target_info.depth_stencil_format;
+    transparent_target_info.has_depth_stencil_target = true;
+    SDL_GPUGraphicsPipelineCreateInfo transparent_pipeline_info{};
+    transparent_pipeline_info.vertex_shader = vertex_shader;
+    transparent_pipeline_info.fragment_shader = fragment_shader;
+    transparent_pipeline_info.vertex_input_state = vertex_input_state;
+    transparent_pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+    transparent_pipeline_info.rasterizer_state = rasterizer_state;
+    transparent_pipeline_info.depth_stencil_state = transparent_depth_stencil_state;
+    transparent_pipeline_info.target_info = transparent_target_info;
+    available.transparent = SDL_CreateGPUGraphicsPipeline(window->active.device, &transparent_pipeline_info);
+    if (!available.transparent) throw sdl_exception("Could not create transparent graphics pipeline for game");
+    SDL_GPURasterizerState interface_rasterizer_state{};
+    interface_rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
+    interface_rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
+    interface_rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+    SDL_GPUDepthStencilState interface_depth_stencil_state{};
+    interface_depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_ALWAYS;
+    interface_depth_stencil_state.enable_depth_test = false;
+    interface_depth_stencil_state.enable_depth_write = false;
+    SDL_GPUGraphicsPipelineCreateInfo interface_pipeline_info{};
+    interface_pipeline_info.vertex_shader = vertex_shader;
+    interface_pipeline_info.fragment_shader = fragment_shader;
+    interface_pipeline_info.vertex_input_state = vertex_input_state;
+    interface_pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+    interface_pipeline_info.rasterizer_state = interface_rasterizer_state;
+    interface_pipeline_info.depth_stencil_state = interface_depth_stencil_state;
+    interface_pipeline_info.target_info = transparent_target_info;
+    available.interface = SDL_CreateGPUGraphicsPipeline(window->active.device, &interface_pipeline_info);
+    if (!available.interface) throw sdl_exception("Could not create interface graphics pipeline for game");
+    SDL_ReleaseGPUShader(window->active.device, fragment_shader);
+    SDL_ReleaseGPUShader(window->active.device, vertex_shader);
+    return graphics_cache.pipeline.emplace(key, graphics_cache::cached<pipeline>{available, graphics_cache.stamp})
+      .first->second.value;
+  }
+
+  SDL_GPUTexture *active::require_texture(const cse::image &image)
+  {
+    const graphics_cache::texture_key key{image.data.data(), image.data.size()};
+    if (const auto iterator{graphics_cache.texture.find(key)}; iterator != graphics_cache.texture.end())
+    {
+      iterator->second.stamp = graphics_cache.stamp;
+      return iterator->second.value;
+    }
+    csp::verify(image.data.data(), image.data.size());
+    const auto type{SDL_GPU_TEXTURETYPE_2D};
+    const auto format{SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM};
+    const auto usage{SDL_GPU_TEXTUREUSAGE_SAMPLER};
+    if (!SDL_GPUTextureSupportsFormat(window->active.device, format, type, usage))
+      throw sdl_exception("No supported texture format found for game");
+    SDL_GPUTextureCreateInfo texture_info{.type = type,
+                                          .format = format,
+                                          .usage = usage,
+                                          .width = image.width,
+                                          .height = image.height,
+                                          .layer_count_or_depth = 1,
+                                          .num_levels = 1,
+                                          .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                          .props = 0};
+    auto *texture{SDL_CreateGPUTexture(window->active.device, &texture_info)};
+    if (!texture) throw sdl_exception("Could not create texture for game");
+    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{
+      .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = image.width * image.height * image.channels, .props = 0};
+    auto *texture_transfer_buffer{SDL_CreateGPUTransferBuffer(window->active.device, &texture_transfer_buffer_info)};
+    if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for game");
+    auto *texture_data{SDL_MapGPUTransferBuffer(window->active.device, texture_transfer_buffer, false)};
+    if (!texture_data) throw sdl_exception("Could not map texture data for game");
+    SDL_memcpy(texture_data, image.data.data(), image.width * image.height * image.channels);
+    SDL_UnmapGPUTransferBuffer(window->active.device, texture_transfer_buffer);
+    auto *command_buffer{SDL_AcquireGPUCommandBuffer(window->active.device)};
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
+    auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
+    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
+    SDL_GPUTextureTransferInfo texture_transfer_info{
+      .transfer_buffer = texture_transfer_buffer, .offset = 0, .pixels_per_row = 0, .rows_per_layer = 0};
+    SDL_GPUTextureRegion texture_region{.texture = texture,
+                                        .mip_level = 0,
+                                        .layer = 0,
+                                        .x = 0,
+                                        .y = 0,
+                                        .z = 0,
+                                        .w = image.width,
+                                        .h = image.height,
+                                        .d = 1};
+    SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
+    SDL_EndGPUCopyPass(copy_pass);
+    SDL_SubmitGPUCommandBuffer(command_buffer);
+    SDL_ReleaseGPUTransferBuffer(window->active.device, texture_transfer_buffer);
+    return graphics_cache.texture.emplace(key, graphics_cache::cached<SDL_GPUTexture *>{texture, graphics_cache.stamp})
+      .first->second.value;
+  }
+
+  active::graphics_cache::typeface &active::require_font(const cse::font &font, const unsigned int size)
+  {
+    const graphics_cache::font_key key{font.data.data(), font.data.size(), size};
+    if (const auto iterator{graphics_cache.font.find(key)}; iterator != graphics_cache.font.end())
+    {
+      iterator->second.stamp = graphics_cache.stamp;
+      return iterator->second.value;
+    }
+    csp::verify(font.data.data(), font.data.size());
+    auto *source{SDL_IOFromConstMem(font.data.data(), font.data.size())};
+    if (!source) throw sdl_exception("Could not open font data for game");
+    auto *opened{TTF_OpenFontIO(source, true, static_cast<float>(size))};
+    if (!opened) throw sdl_exception("Could not open font for game");
+    const graphics_cache::typeface value{opened, TTF_GetFontLineSkip(opened)};
+    return graphics_cache.font
+      .emplace(key, graphics_cache::cached<graphics_cache::typeface>{value, graphics_cache.stamp})
+      .first->second.value;
+  }
+
+  active::graphics_interface::label &active::require_label(const cse::interface *element)
+  {
+    const auto &text{element->active.text};
+    if (!text.font.data.data()) throw exception("Interface '{}' has text but no font", element->name.string());
+    const auto &scale{element->active.scale.value};
+    const auto &prior{element->previous.text};
+    const auto color{text.color.interpolated(prior.color, alpha)};
+    const auto width{static_cast<unsigned int>(static_cast<double>(element->active.texture.image.frame_width) *
+                                               std::max(1.0, std::floor(scale.x + 0.5)))};
+    auto &entry{graphics_interface.labels[element]};
+    auto &face{require_font(text.font, text.size)};
+    const auto skip{std::max(0, static_cast<int>(std::floor(face.skip + text.spacing + 0.5)))};
+    const auto align{text.align.horizontal == cse::align::LEFT    ? TTF_HORIZONTAL_ALIGN_LEFT
+                     : text.align.horizontal == cse::align::RIGHT ? TTF_HORIZONTAL_ALIGN_RIGHT
+                                                                  : TTF_HORIZONTAL_ALIGN_CENTER};
+    int flags{TTF_STYLE_NORMAL};
+    if (text.style.bold) flags |= TTF_STYLE_BOLD;
+    if (text.style.italic) flags |= TTF_STYLE_ITALIC;
+    if (text.style.underline) flags |= TTF_STYLE_UNDERLINE;
+    if (text.style.strikethrough) flags |= TTF_STYLE_STRIKETHROUGH;
+    const auto style{static_cast<TTF_FontStyleFlags>(flags)};
+    if (entry.texture && entry.text == text.content && entry.font == text.font.data.data() && entry.size == text.size &&
+        entry.style == style && entry.color == color && entry.align == align && entry.wrap == text.wrap &&
+        entry.width == width && entry.skip == skip)
+      return entry;
+    if (entry.texture)
+    {
+      SDL_ReleaseGPUTexture(window->active.device, entry.texture);
+      entry.texture = nullptr;
+    }
+    TTF_SetFontStyle(face.font, style);
+    TTF_SetFontWrapAlignment(face.font, align);
+    TTF_SetFontLineSkip(face.font, skip);
+    const SDL_Color sdl_color{static_cast<Uint8>(std::clamp(color.r, 0.0, 1.0) * 255.0),
+                              static_cast<Uint8>(std::clamp(color.g, 0.0, 1.0) * 255.0),
+                              static_cast<Uint8>(std::clamp(color.b, 0.0, 1.0) * 255.0),
+                              static_cast<Uint8>(std::clamp(color.a, 0.0, 1.0) * 255.0)};
+    auto *rendered{TTF_RenderText_Blended_Wrapped(face.font, text.content.c_str(), 0, sdl_color,
+                                                  text.wrap ? static_cast<int>(width) : 0)};
+    if (!rendered) throw sdl_exception("Could not render text for interface '{}'", element->name.string());
+    auto *surface{SDL_ConvertSurface(rendered, SDL_PIXELFORMAT_RGBA32)};
+    SDL_DestroySurface(rendered);
+    if (!surface) throw sdl_exception("Could not convert text surface for interface '{}'", element->name.string());
+    const auto type{SDL_GPU_TEXTURETYPE_2D};
+    const auto format{SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM};
+    const auto usage{SDL_GPU_TEXTUREUSAGE_SAMPLER};
+    SDL_GPUTextureCreateInfo texture_info{.type = type,
+                                          .format = format,
+                                          .usage = usage,
+                                          .width = static_cast<Uint32>(surface->w),
+                                          .height = static_cast<Uint32>(surface->h),
+                                          .layer_count_or_depth = 1,
+                                          .num_levels = 1,
+                                          .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                          .props = 0};
+    auto *texture{SDL_CreateGPUTexture(window->active.device, &texture_info)};
+    if (!texture) throw sdl_exception("Could not create text texture for interface '{}'", element->name.string());
+    SDL_GPUTransferBufferCreateInfo transfer_buffer_info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+                                                         .size = static_cast<Uint32>(surface->pitch) *
+                                                                 static_cast<Uint32>(surface->h),
+                                                         .props = 0};
+    auto *transfer_buffer{SDL_CreateGPUTransferBuffer(window->active.device, &transfer_buffer_info)};
+    if (!transfer_buffer)
+      throw sdl_exception("Could not create transfer buffer for text for interface '{}'", element->name.string());
+    auto *texture_data{SDL_MapGPUTransferBuffer(window->active.device, transfer_buffer, false)};
+    if (!texture_data) throw sdl_exception("Could not map text data for interface '{}'", element->name.string());
+    SDL_memcpy(texture_data, surface->pixels,
+               static_cast<std::size_t>(surface->pitch) * static_cast<std::size_t>(surface->h));
+    SDL_UnmapGPUTransferBuffer(window->active.device, transfer_buffer);
+    auto *command_buffer{SDL_AcquireGPUCommandBuffer(window->active.device)};
+    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
+    auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
+    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
+    SDL_GPUTextureTransferInfo texture_transfer_info{.transfer_buffer = transfer_buffer,
+                                                     .offset = 0,
+                                                     .pixels_per_row = static_cast<Uint32>(surface->pitch) / 4,
+                                                     .rows_per_layer = 0};
+    SDL_GPUTextureRegion texture_region{.texture = texture,
+                                        .mip_level = 0,
+                                        .layer = 0,
+                                        .x = 0,
+                                        .y = 0,
+                                        .z = 0,
+                                        .w = static_cast<Uint32>(surface->w),
+                                        .h = static_cast<Uint32>(surface->h),
+                                        .d = 1};
+    SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
+    SDL_EndGPUCopyPass(copy_pass);
+    SDL_SubmitGPUCommandBuffer(command_buffer);
+    SDL_ReleaseGPUTransferBuffer(window->active.device, transfer_buffer);
+    entry.text = text.content;
+    entry.font = text.font.data.data();
+    entry.size = text.size;
+    entry.style = style;
+    entry.color = color;
+    entry.align = align;
+    entry.wrap = text.wrap;
+    entry.width = width;
+    entry.skip = skip;
+    entry.texture = texture;
+    entry.texture_width = static_cast<unsigned int>(surface->w);
+    entry.texture_height = static_cast<unsigned int>(surface->h);
+    SDL_DestroySurface(surface);
+    return entry;
+  }
+
+  std::int64_t active::seconds_to_frames(const double seconds) const
+  {
+    if (seconds <= 0.0 || frequency <= 0) return 0;
+    return static_cast<std::int64_t>(seconds * static_cast<double>(frequency));
+  }
+
+  double active::frames_to_seconds(const std::int64_t frames) const
+  {
+    if (frames <= 0 || frequency <= 0) return 0.0;
+    return static_cast<double>(frames) / static_cast<double>(frequency);
+  }
+
+  double active::gain(const double volume)
+  {
+    if (volume <= 0.0) return 0.0;
+    return volume * volume;
+  }
+
+  MIX_Audio *active::require_audio(const unsigned char *data, const std::size_t size, const bool predecode)
+  {
+    const audio_track::audio_key key{data, size};
+    if (const auto iterator{audio_cache.find(key)}; iterator != audio_cache.end()) return iterator->second;
+    csp::verify(data, size);
+    auto *source{SDL_IOFromConstMem(data, size)};
+    if (!source) throw sdl_exception("Could not open audio data for game");
+    auto *audio{MIX_LoadAudio_IO(audio_handle, source, predecode, true)};
+    if (!audio) throw sdl_exception("Could not load audio for game");
+    return audio_cache.emplace(key, audio).first->second;
+  }
+}
 
 namespace cse
 {
-  game::game(const initial_state &state_, const initial_graphics &graphics_, const initial_audio &audio_)
-    : state{state_.tick}, graphics{graphics_.frame, graphics_.aspect, graphics_.resolution, graphics_.clear},
-      audio{audio_.master, audio_.sound, audio_.music}
+  game::game(const initial &initial_)
+    : previous{initial_.tick,  initial_.frame,  initial_.aspect, initial_.resolution,
+               initial_.clear, initial_.master, initial_.sound,  initial_.music},
+      active{initial_.tick,  initial_.frame,  initial_.aspect, initial_.resolution,
+             initial_.clear, initial_.master, initial_.sound,  initial_.music}
   {
   }
 
   game &game::current(const name scene_name)
   {
-    auto scene{throw_find(state.active.scenes, scene_name)};
-    if (state.active.phase == help::phase::CREATED)
-      state.next.scene = {scene_name, {}};
+    auto scene{throw_find(active.scenes, scene_name)};
+    if (active.phase == help::phase::CREATED)
+      next.scene = {scene_name, {}};
     else
     {
-      state.active.scene = scene;
-      state.previous.scene = scene;
+      active.scene = scene;
+      previous.scene = scene;
     }
     return *this;
   }
@@ -70,17 +1070,16 @@ namespace cse
   void game::post_prepare() {}
   void game::prepare()
   {
-    if (state.active.phase != help::phase::CLEANED) throw exception("Game must be cleaned before preparation");
-    if (!state.active.window) throw exception("No window has been set for the game");
-    if (state.active.scenes.empty()) throw exception("No scenes have been added to the game");
-    if (!state.active.scene) throw exception("No current scene has been set for the game");
+    if (active.phase != help::phase::CLEANED) throw exception("Game must be cleaned before preparation");
+    if (!active.window) throw exception("No window has been set for the game");
+    if (active.scenes.empty()) throw exception("No scenes have been added to the game");
+    if (!active.scene) throw exception("No current scene has been set for the game");
     pre_prepare();
-    graphics.prepare();
-    audio.prepare();
-    state.active.window->prepare();
-    for (const auto &scene : state.active.scenes) scene->prepare();
-    for (const auto &interface : state.active.interfaces) interface->prepare();
-    state.active.phase = help::phase::PREPARED;
+    active.prepare();
+    active.window->prepare();
+    for (const auto &scene : active.scenes) scene->prepare();
+    for (const auto &interface : active.interfaces) interface->prepare();
+    active.phase = help::phase::PREPARED;
     post_prepare();
   }
 
@@ -88,13 +1087,13 @@ namespace cse
   void game::post_create() {}
   void game::create()
   {
-    if (state.active.phase != help::phase::PREPARED) throw exception("Game must be prepared before creation");
+    if (active.phase != help::phase::PREPARED) throw exception("Game must be prepared before creation");
     pre_create();
-    state.active.window->create();
-    graphics.create(state.active.window->graphics.gpu);
-    state.active.scene->create();
-    for (const auto &interface : state.active.interfaces) interface->create();
-    state.active.phase = help::phase::CREATED;
+    active.window->create();
+    active.create();
+    active.scene->create();
+    for (const auto &interface : active.interfaces) interface->create();
+    active.phase = help::phase::CREATED;
     post_create();
   }
 
@@ -102,82 +1101,79 @@ namespace cse
   void game::post_synchronize() {}
   void game::synchronize()
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before synchronization");
+    if (active.phase != help::phase::CREATED) throw exception("Game must be created before synchronization");
     pre_synchronize();
-    state.synchronize();
-    graphics.synchronize();
-    audio.synchronize();
-    if (state.next.window.has_value())
+    active.synchronize(previous);
+    if (next.window.has_value())
     {
-      if (auto &window{state.next.window.value()})
+      if (auto &window{next.window.value()})
       {
-        for (const auto &interface : state.active.interfaces) interface->destroy();
-        state.active.scene->destroy();
-        graphics.destroy(state.active.window->graphics.gpu);
-        state.active.window->destroy();
-        state.active.window->clean();
-        state.active.window = window;
+        for (const auto &interface : active.interfaces) interface->destroy();
+        active.scene->destroy();
+        active.destroy();
+        active.window->destroy();
+        active.window->clean();
+        active.window = window;
         window->prepare();
         window->create();
-        graphics.create(state.active.window->graphics.gpu);
-        state.active.scene->create();
-        for (const auto &interface : state.active.interfaces) interface->create();
+        active.create();
+        active.scene->create();
+        for (const auto &interface : active.interfaces) interface->create();
       }
       else
         throw exception("Tried to set window to null");
-      state.next.window.reset();
+      next.window.reset();
     }
-    state.active.window->synchronize();
-    if (state.next.scene.has_value())
+    active.window->synchronize();
+    if (next.scene.has_value())
     {
-      if (auto &[name, scene]{state.next.scene.value()}; scene)
+      if (auto &[name, scene]{next.scene.value()}; scene)
       {
-        state.active.scene->destroy();
-        if (name == state.active.scene->name) state.active.scene->clean();
-        set_or_add(state.active.scenes, scene);
-        state.active.scene = scene;
+        active.scene->destroy();
+        if (name == active.scene->name) active.scene->clean();
+        set_or_add(active.scenes, scene);
+        active.scene = scene;
         scene->prepare();
         scene->create();
       }
       else
       {
-        auto next_scene{throw_find(state.active.scenes, name)};
-        if (name != state.active.scene->name)
+        auto next_scene{throw_find(active.scenes, name)};
+        if (name != active.scene->name)
         {
-          state.active.scene->destroy();
-          state.active.scene = next_scene;
+          active.scene->destroy();
+          active.scene = next_scene;
           next_scene->create();
         }
       }
-      state.next.scene.reset();
+      next.scene.reset();
     }
-    state.active.scene->synchronize();
-    if (!state.interface_removals.empty())
+    active.scene->synchronize();
+    if (!active.interface_removals.empty())
     {
-      for (const auto &interface_name : state.interface_removals)
-        if (auto iterator{try_iterate(state.active.interfaces, interface_name)};
-            iterator != state.active.interfaces.end())
+      for (const auto &interface_name : active.interface_removals)
+        if (auto iterator{try_iterate(active.interfaces, interface_name)}; iterator != active.interfaces.end())
         {
           const auto &interface{*iterator};
-          if (interface->state.active.phase == help::phase::CREATED) interface->destroy();
+          if (interface->active.phase == help::phase::CREATED) interface->destroy();
           interface->clean();
-          state.active.interfaces.erase(iterator);
+          active.interfaces.erase(iterator);
         }
-      state.interface_removals.clear();
+      active.interface_removals.clear();
     }
-    if (!state.interface_additions.empty())
+    if (!active.interface_additions.empty())
     {
-      for (auto &interface : state.interface_additions)
+      for (auto &interface : active.interface_additions)
       {
-        set_or_add(state.active.interfaces, interface);
+        set_or_add(active.interfaces, interface);
         interface->prepare();
         interface->create();
       }
-      state.interface_additions.clear();
+      active.interface_additions.clear();
     }
-    state.generate_order(state.active.interfaces);
-    state.generate_pool(state.active.scene->state.interface_order);
-    for (const auto &interface : state.active.interfaces) interface->synchronize();
+    active.generate_simulation_order();
+    active.generate_pool();
+    for (const auto &interface : active.interfaces) interface->synchronize();
     post_synchronize();
   }
 
@@ -185,86 +1181,79 @@ namespace cse
   void game::post_event(const SDL_Event &) {}
   void game::event()
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before processing events");
-    state.active.window->state.poll(state.active.window->graphics.instance, graphics.active.aspect.value,
-                                    graphics.active.resolution);
-    while (SDL_PollEvent(&state.active.window->state.event))
+    if (active.phase != help::phase::CREATED) throw exception("Game must be created before processing events");
+    active.window->active.poll(active.aspect.value, active.resolution);
+    while (SDL_PollEvent(&active.window->active.event))
     {
-      pre_event(state.active.window->state.event);
-      state.interact(state.active.window->state.event, graphics.active.aspect.value, graphics.active.resolution);
-      state.active.window->event();
-      state.active.scene->event(state.active.window->state.event);
-      for (const auto &interface : state.order) interface->event(state.active.window->state.event);
-      post_event(state.active.window->state.event);
+      pre_event(active.window->active.event);
+      active.interact();
+      active.window->event();
+      active.scene->event(active.window->active.event);
+      for (const auto &interface : active.interface_order) interface->event(active.window->active.event);
+      post_event(active.window->active.event);
     }
-    state.hover(state.active.window->graphics.instance, graphics.active.aspect.value, graphics.active.resolution);
+    active.hover();
   }
 
   void game::pre_simulate(const double) {}
   void game::post_simulate(const double) {}
   void game::simulate()
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before simulation");
-    pre_simulate(state.actual_tick);
-    state.active.timer.update(state.actual_tick);
-    state.active.window->simulate(state.actual_tick);
-    state.active.scene->simulate(state.actual_tick);
-    for (const auto &interface : state.order) interface->simulate(state.actual_tick);
-    post_simulate(state.actual_tick);
+    if (active.phase != help::phase::CREATED) throw exception("Game must be created before simulation");
+    pre_simulate(active.actual_tick);
+    active.timer.update(active.actual_tick);
+    active.window->simulate(active.actual_tick);
+    active.scene->simulate(active.actual_tick);
+    for (const auto &interface : active.interface_order) interface->simulate(active.actual_tick);
+    post_simulate(active.actual_tick);
   }
 
   void game::pre_collide(const double) {}
   void game::post_collide(const double) {}
   void game::collide()
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before collision");
-    pre_collide(state.actual_tick);
-    state.active.scene->collide(state.actual_tick);
-    post_collide(state.actual_tick);
+    if (active.phase != help::phase::CREATED) throw exception("Game must be created before collision");
+    pre_collide(active.actual_tick);
+    active.scene->collide(active.actual_tick);
+    post_collide(active.actual_tick);
   }
 
   void game::pre_render(const double) {}
   void game::post_render(const double) {}
   void game::render()
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before rendering");
-    pre_render(state.alpha);
-    const auto clear{graphics.active.clear.interpolated(graphics.previous.clear, state.alpha)};
-    const auto aspect{graphics.active.aspect.interpolated(graphics.previous.aspect, state.alpha)};
-    if (!state.active.window->start_render(clear, aspect, state.alpha)) return;
-    state.active.scene->render(state.active.window->graphics.instance, state.active.window->graphics.gpu,
-                               state.active.window->graphics.command_buffer, state.active.window->graphics.render_pass,
-                               aspect, state.alpha);
-    graphics.render(state.active.scene->state.active.interfaces, state.active.interfaces,
-                    state.active.window->graphics.instance, state.active.window->graphics.gpu,
-                    state.active.window->graphics.command_buffer, state.active.window->graphics.render_pass,
-                    state.alpha);
-    state.active.window->end_render(state.alpha);
-    post_render(state.alpha);
+    if (active.phase != help::phase::CREATED) throw exception("Game must be created before rendering");
+    pre_render(active.alpha);
+    const auto clear{active.clear.interpolated(previous.clear, active.alpha)};
+    const auto aspect{active.aspect.interpolated(previous.aspect, active.alpha)};
+    if (!active.window->start_render(aspect, clear, active.alpha)) return;
+    active.scene->render(aspect, active.alpha);
+    active.render(previous.aspect);
+    active.window->end_render(active.alpha);
+    post_render(active.alpha);
   }
 
   void game::pre_mix(const double) {}
   void game::post_mix(const double) {}
   void game::mix()
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before mixing");
-    pre_mix(state.alpha);
-    audio.mix(state.previous.mixer, state.active.mixer, state.active.window, state.active.interfaces,
-              state.active.scene, state.alpha);
-    post_mix(state.alpha);
+    if (active.phase != help::phase::CREATED) throw exception("Game must be created before mixing");
+    pre_mix(active.alpha);
+    active.mix(previous.mixer, previous.master, previous.sound, previous.music);
+    post_mix(active.alpha);
   }
 
   void game::pre_destroy() {}
   void game::post_destroy() {}
   void game::destroy()
   {
-    if (state.active.phase != help::phase::CREATED) throw exception("Game must be created before destruction");
+    if (active.phase != help::phase::CREATED) throw exception("Game must be created before destruction");
     pre_destroy();
-    for (const auto &interface : state.active.interfaces) interface->destroy();
-    state.active.scene->destroy();
-    graphics.destroy(state.active.window->graphics.gpu);
-    state.active.window->destroy();
-    state.active.phase = help::phase::PREPARED;
+    for (const auto &interface : active.interfaces) interface->destroy();
+    active.scene->destroy();
+    active.destroy();
+    active.window->destroy();
+    active.phase = help::phase::PREPARED;
     post_destroy();
   }
 
@@ -272,47 +1261,46 @@ namespace cse
   void game::post_clean() {}
   void game::clean()
   {
-    if (state.active.phase != help::phase::PREPARED) throw exception("Game must be prepared before cleaning");
+    if (active.phase != help::phase::PREPARED) throw exception("Game must be prepared before cleaning");
     pre_clean();
-    for (const auto &interface : state.active.interfaces) interface->clean();
-    for (const auto &scene : state.active.scenes) scene->clean();
-    state.active.window->clean();
-    audio.clean();
-    graphics.clean();
-    state.active.phase = help::phase::CLEANED;
+    for (const auto &interface : active.interfaces) interface->clean();
+    for (const auto &scene : active.scenes) scene->clean();
+    active.window->clean();
+    active.clean();
+    active.phase = help::phase::CLEANED;
     post_clean();
   }
 
-  void game::time() { state.time = static_cast<double>(SDL_GetTicksNS()) / 1e9; }
+  void game::time() { active.time = static_cast<double>(SDL_GetTicksNS()) / 1e9; }
 
   void game::step()
   {
-    state.active.tick.target = std::max(10.0, state.active.tick.target);
-    graphics.active.frame.target = std::max(1.0, graphics.active.frame.target);
-    const double real_tick = 1.0 / state.active.tick.target;
-    const double real_frame = 1.0 / graphics.active.frame.target;
-    if (!equal(real_tick, state.actual_tick))
+    active.tick.target = std::max(10.0, active.tick.target);
+    active.frame.target = std::max(1.0, active.frame.target);
+    const double real_tick = 1.0 / active.tick.target;
+    const double real_frame = 1.0 / active.frame.target;
+    if (!equal(real_tick, active.actual_tick))
     {
-      state.accumulator = state.accumulator * (real_tick / state.actual_tick);
-      state.actual_tick = real_tick;
+      active.accumulator = active.accumulator * (real_tick / active.actual_tick);
+      active.actual_tick = real_tick;
     }
-    if (!equal(real_frame, graphics.actual_frame)) graphics.actual_frame = real_frame;
+    if (!equal(real_frame, active.actual_frame)) active.actual_frame = real_frame;
 
     time();
     static double simulation_time{};
-    double delta_time{state.time - simulation_time};
-    simulation_time = state.time;
+    double delta_time{active.time - simulation_time};
+    simulation_time = active.time;
     if (delta_time > 0.1) delta_time = 0.1;
-    state.accumulator += delta_time;
+    active.accumulator += delta_time;
   }
 
-  bool game::running() { return state.active.window->state.active.running; }
+  bool game::running() { return active.window->active.running; }
 
   bool game::behind()
   {
-    if (state.accumulator >= state.actual_tick)
+    if (active.accumulator >= active.actual_tick)
     {
-      state.accumulator -= state.actual_tick;
+      active.accumulator -= active.actual_tick;
       return true;
     }
     return false;
@@ -322,11 +1310,11 @@ namespace cse
   {
     time();
     static double deadline{};
-    if (state.time - deadline >= graphics.actual_frame)
+    if (active.time - deadline >= active.actual_frame)
     {
-      deadline += graphics.actual_frame;
-      if (state.time - deadline >= graphics.actual_frame) deadline = state.time;
-      state.alpha = state.accumulator / state.actual_tick;
+      deadline += active.actual_frame;
+      if (active.time - deadline >= active.actual_frame) deadline = active.time;
+      active.alpha = active.accumulator / active.actual_tick;
       return true;
     }
     return false;
@@ -346,11 +1334,11 @@ namespace cse
 
     count++;
     accumulator += (static_cast<double>(SDL_GetTicksNS()) / 1e9) - start.value();
-    if (state.time - deadline >= 1.0)
+    if (active.time - deadline >= 1.0)
     {
-      state.active.tick.count = count;
-      state.active.tick.average = (accumulator / count) * 1000.0;
-      deadline = state.time;
+      active.tick.count = count;
+      active.tick.average = (accumulator / count) * 1000.0;
+      deadline = active.time;
       accumulator = 0.0;
       count = 0;
     }
@@ -371,11 +1359,11 @@ namespace cse
 
     count++;
     accumulator += (static_cast<double>(SDL_GetTicksNS()) / 1e9) - start.value();
-    if (state.time - deadline >= 1.0)
+    if (active.time - deadline >= 1.0)
     {
-      graphics.active.frame.count = count;
-      graphics.active.frame.average = (accumulator / count) * 1000.0;
-      deadline = state.time;
+      active.frame.count = count;
+      active.frame.average = (accumulator / count) * 1000.0;
+      deadline = active.time;
       accumulator = 0.0;
       count = 0;
     }

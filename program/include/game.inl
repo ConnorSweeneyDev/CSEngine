@@ -9,14 +9,136 @@
 #include <type_traits>
 #include <utility>
 
+#include "SDL3/SDL_properties.h"
+#include "SDL3_mixer/SDL_mixer.h"
+
 #include "container.hpp"
 #include "core.hpp"
 #include "exception.hpp"
 #include "function.hpp"
 #include "interface.hpp"
+#include "mixer.hpp"
 #include "name.hpp"
 #include "scene.hpp"
-#include "state.hpp"
+
+namespace cse::help::game
+{
+  template <typename resource> void active::reconcile_audio(const help::mixer *previous_mixer,
+                                                            help::mixer *active_mixer, const char *tag,
+                                                            const bool predecode, const double bus)
+  {
+    if (!previous_mixer) return;
+    auto &entries{active_mixer->select<resource>()};
+    const auto *previous_entries{previous_mixer ? &previous_mixer->select<resource>() : nullptr};
+    for (auto &[entry_name, entry] : entries)
+    {
+      entry.volume.value = std::clamp(entry.volume.value, 0.0, 1.0);
+      const audio_track::handle_key key{static_cast<const void *>(&entries), entry_name.identifier()};
+      auto &audio{audio_tracks[key]};
+      audio.seen = true;
+      if (!audio.handle)
+      {
+        audio.handle = MIX_CreateTrack(audio_handle);
+        if (!audio.handle) throw sdl_exception("Could not create audio track for game");
+        MIX_TagTrack(audio.handle, tag);
+      }
+
+      const auto *data{entry.source.data.data()};
+      const auto size{entry.source.data.size()};
+      if (data != audio.source || size != audio.size)
+      {
+        audio.source = data;
+        audio.size = size;
+        audio.position = entry.position;
+        audio.started = false;
+        audio.finished = false;
+        audio.audio = data ? require_audio(data, size, predecode) : nullptr;
+        MIX_SetTrackAudio(audio.handle, audio.audio);
+      }
+      if (!data) continue;
+
+      if (entry.loop != audio.loop)
+      {
+        MIX_SetTrackLoops(audio.handle, entry.loop ? -1 : 0);
+        audio.loop = entry.loop;
+      }
+      auto volume{entry.volume.value};
+      auto speed{entry.speed.value};
+      if (previous_entries)
+        if (const auto iterator{previous_entries->find(entry_name)}; iterator != previous_entries->end())
+        {
+          volume = entry.volume.interpolated(iterator->second.volume, alpha);
+          speed = entry.speed.interpolated(iterator->second.speed, alpha);
+        }
+      if (const auto target{bus * gain(volume)}; !equal(target, audio.gain))
+      {
+        MIX_SetTrackGain(audio.handle, static_cast<float>(target));
+        audio.gain = target;
+      }
+      if (speed > 0.0 && !equal(speed, audio.speed))
+      {
+        MIX_SetTrackFrequencyRatio(audio.handle, static_cast<float>(speed));
+        audio.speed = speed;
+      }
+
+      if (!equal(entry.position, audio.position))
+      {
+        if (const auto duration{audio.audio ? frames_to_seconds(MIX_GetAudioDuration(audio.audio)) : 0.0};
+            duration > 0.0 && entry.position >= duration)
+          entry.position = entry.loop ? 0.0 : duration;
+        MIX_SetTrackPlaybackPosition(audio.handle, seconds_to_frames(entry.position));
+        audio.position = entry.position;
+        audio.started = false;
+        audio.finished = false;
+      }
+
+      if (entry.playing)
+      {
+        if (audio.finished) {}
+        else if (!audio.started)
+        {
+          const auto options{SDL_CreateProperties()};
+          SDL_SetNumberProperty(options, MIX_PROP_PLAY_LOOPS_NUMBER, entry.loop ? -1 : 0);
+          SDL_SetNumberProperty(options, MIX_PROP_PLAY_START_FRAME_NUMBER, seconds_to_frames(entry.position));
+          MIX_PlayTrack(audio.handle, options);
+          SDL_DestroyProperties(options);
+          audio.started = true;
+          audio.paused = false;
+        }
+        else if (audio.paused)
+        {
+          MIX_ResumeTrack(audio.handle);
+          audio.paused = false;
+        }
+      }
+      else if (audio.started && !audio.paused)
+      {
+        MIX_PauseTrack(audio.handle);
+        audio.paused = true;
+      }
+
+      if (audio.started && !audio.paused && !audio.finished)
+      {
+        if (const auto frames{MIX_GetTrackPlaybackPosition(audio.handle)}; frames >= 0)
+        {
+          const auto seconds{frames_to_seconds(frames)};
+          entry.position = seconds;
+          audio.position = seconds;
+        }
+        if (!entry.loop && !MIX_TrackPlaying(audio.handle))
+        {
+          audio.finished = true;
+          if (audio.audio)
+            if (const auto duration{MIX_GetAudioDuration(audio.audio)}; duration > 0)
+            {
+              entry.position = frames_to_seconds(duration);
+              audio.position = entry.position;
+            }
+        }
+      }
+    }
+  }
+}
 
 namespace cse
 {
@@ -43,12 +165,12 @@ namespace cse
   {
     auto window{std::make_shared<window_type>(std::forward<window_arguments>(arguments)...)};
     window->game = this;
-    if (state.active.phase == help::phase::CREATED)
-      state.next.window = window;
+    if (active.phase == help::phase::CREATED)
+      next.window = window;
     else
     {
-      state.active.window = window;
-      state.previous.window = window;
+      active.window = window;
+      previous.window = window;
     }
     return *this;
   }
@@ -61,18 +183,18 @@ namespace cse
     scene->name = scene_name;
     scene->game = this;
     if (config) config(scene);
-    if (auto target{try_find(state.active.scenes, scene_name)}; state.active.phase == help::phase::CREATED && target)
+    if (auto target{try_find(active.scenes, scene_name)}; active.phase == help::phase::CREATED && target)
     {
-      if (state.active.scene == target)
+      if (active.scene == target)
       {
-        state.next.scene = {scene_name, scene};
+        next.scene = {scene_name, scene};
         return *this;
       }
       else
         target->clean();
     }
-    set_or_add(state.active.scenes, scene);
-    if (state.active.phase == help::phase::CREATED) scene->prepare();
+    set_or_add(active.scenes, scene);
+    if (active.phase == help::phase::CREATED) scene->prepare();
     return *this;
   }
 
@@ -93,13 +215,13 @@ namespace cse
     scene->name = scene_name;
     scene->game = this;
     if (config) config(scene);
-    if (state.active.phase == help::phase::CREATED)
-      state.next.scene = {scene_name, scene};
+    if (active.phase == help::phase::CREATED)
+      next.scene = {scene_name, scene};
     else
     {
-      set_or_add(state.active.scenes, scene);
-      state.active.scene = scene;
-      state.previous.scene = scene;
+      set_or_add(active.scenes, scene);
+      active.scene = scene;
+      previous.scene = scene;
     }
     return *this;
   }
@@ -120,17 +242,17 @@ namespace cse
     interface->name = interface_name;
     interface->game = this;
     interface->scene = std::nullopt;
-    switch (state.active.phase)
+    switch (active.phase)
     {
-      case help::phase::CLEANED: set_or_add(state.active.interfaces, interface); break;
+      case help::phase::CLEANED: set_or_add(active.interfaces, interface); break;
       case help::phase::PREPARED:
-        if (auto existing{try_find(state.active.interfaces, interface_name)}) existing->clean();
-        set_or_add(state.active.interfaces, interface);
+        if (auto existing{try_find(active.interfaces, interface_name)}) existing->clean();
+        set_or_add(active.interfaces, interface);
         interface->prepare();
         break;
       case help::phase::CREATED:
-        if (try_contains(state.active.interfaces, interface_name)) state.interface_removals.insert(interface_name);
-        set_or_add(state.interface_additions, interface);
+        if (try_contains(active.interfaces, interface_name)) active.interface_removals.insert(interface_name);
+        set_or_add(active.interface_additions, interface);
         break;
     }
     return *this;
@@ -141,24 +263,24 @@ namespace cse
   game &game::remove(const name target_name)
   {
     if constexpr (std::is_void_v<target_type> || trait::is_scene<target_type>)
-      if (auto iterator{try_iterate(state.active.scenes, target_name)}; iterator != state.active.scenes.end())
+      if (auto iterator{try_iterate(active.scenes, target_name)}; iterator != active.scenes.end())
       {
         const auto &scene{*iterator};
-        if (state.active.scene == scene || scene->state.active.phase == help::phase::CREATED)
+        if (active.scene == scene || scene->active.phase == help::phase::CREATED)
           throw exception("Tried to remove current or created scene '{}'", target_name.string());
         scene->clean();
-        state.active.scenes.erase(iterator);
+        active.scenes.erase(iterator);
         return *this;
       }
     if constexpr (std::is_void_v<target_type> || trait::is_interface<target_type>)
-      if (auto iterator{try_iterate(state.active.interfaces, target_name)}; iterator != state.active.interfaces.end())
+      if (auto iterator{try_iterate(active.interfaces, target_name)}; iterator != active.interfaces.end())
       {
-        if (auto &interface{*iterator}; state.active.phase == help::phase::CREATED)
-          state.interface_removals.insert(target_name);
+        if (auto &interface{*iterator}; active.phase == help::phase::CREATED)
+          active.interface_removals.insert(target_name);
         else
         {
-          if (interface->state.active.phase == help::phase::PREPARED) interface->clean();
-          state.active.interfaces.erase(iterator);
+          if (interface->active.phase == help::phase::PREPARED) interface->clean();
+          active.interfaces.erase(iterator);
         }
       }
     return *this;

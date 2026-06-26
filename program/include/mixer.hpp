@@ -13,13 +13,12 @@ namespace cse::help
 {
   class mixer
   {
-    friend struct game_audio;
-    friend struct game_state;
-    friend struct window_state;
-    friend struct scene_state;
-    friend struct camera_state;
-    friend struct object_state;
-    friend struct interface_state;
+    friend struct game::active;
+    friend struct window::active;
+    friend struct scene::active;
+    friend struct camera::active;
+    friend struct object::active;
+    friend struct interface::active;
 
   public:
     template <trait::is_audio resource> struct entry

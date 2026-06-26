@@ -12,7 +12,6 @@
 #include "interface.hpp"
 #include "name.hpp"
 #include "object.hpp"
-#include "state.hpp"
 
 namespace cse
 {
@@ -21,18 +20,18 @@ namespace cse
   {
     auto camera{std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...)};
     camera->scene = this;
-    switch (state.active.phase)
+    switch (active.phase)
     {
       case help::phase::CLEANED:
-        state.active.camera = camera;
-        state.previous.camera = camera;
+        active.camera = camera;
+        previous.camera = camera;
         break;
       case help::phase::PREPARED:
-        state.active.camera->clean();
-        state.active.camera = camera;
+        active.camera->clean();
+        active.camera = camera;
         camera->prepare();
         break;
-      case help::phase::CREATED: state.next.camera = camera; break;
+      case help::phase::CREATED: next.camera = camera; break;
     }
     return *this;
   }
@@ -43,17 +42,17 @@ namespace cse
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
     object->name = object_name;
     object->scene = this;
-    switch (state.active.phase)
+    switch (active.phase)
     {
-      case help::phase::CLEANED: set_or_add(state.active.objects, object); break;
+      case help::phase::CLEANED: set_or_add(active.objects, object); break;
       case help::phase::PREPARED:
-        if (auto existing{try_find(state.active.objects, object_name)}) existing->clean();
-        set_or_add(state.active.objects, object);
+        if (auto existing{try_find(active.objects, object_name)}) existing->clean();
+        set_or_add(active.objects, object);
         object->prepare();
         break;
       case help::phase::CREATED:
-        if (try_contains(state.active.objects, object_name)) state.object_removals.insert(object_name);
-        set_or_add(state.object_additions, object);
+        if (try_contains(active.objects, object_name)) active.object_removals.insert(object_name);
+        set_or_add(active.object_additions, object);
         break;
     }
     return *this;
@@ -68,17 +67,17 @@ namespace cse
       throw exception("Scene interface '{}' added before scene was attached to a game", interface_name.string());
     interface->game = game;
     interface->scene = this;
-    switch (state.active.phase)
+    switch (active.phase)
     {
-      case help::phase::CLEANED: set_or_add(state.active.interfaces, interface); break;
+      case help::phase::CLEANED: set_or_add(active.interfaces, interface); break;
       case help::phase::PREPARED:
-        if (auto existing{try_find(state.active.interfaces, interface_name)}) existing->clean();
-        set_or_add(state.active.interfaces, interface);
+        if (auto existing{try_find(active.interfaces, interface_name)}) existing->clean();
+        set_or_add(active.interfaces, interface);
         interface->prepare();
         break;
       case help::phase::CREATED:
-        if (try_contains(state.active.interfaces, interface_name)) state.interface_removals.insert(interface_name);
-        set_or_add(state.interface_additions, interface);
+        if (try_contains(active.interfaces, interface_name)) active.interface_removals.insert(interface_name);
+        set_or_add(active.interface_additions, interface);
         break;
     }
     return *this;
@@ -89,26 +88,26 @@ namespace cse
   scene &scene::remove(const cse::name target_name)
   {
     if constexpr (std::is_void_v<target_type> || trait::is_object<target_type>)
-      if (auto iterator{try_iterate(state.active.objects, target_name)}; iterator != state.active.objects.end())
+      if (auto iterator{try_iterate(active.objects, target_name)}; iterator != active.objects.end())
       {
-        if (auto &object{*iterator}; state.active.phase == help::phase::CREATED)
-          state.object_removals.insert(target_name);
+        if (auto &object{*iterator}; active.phase == help::phase::CREATED)
+          active.object_removals.insert(target_name);
         else
         {
-          if (object->state.active.phase == help::phase::PREPARED) object->clean();
-          state.active.objects.erase(iterator);
+          if (object->active.phase == help::phase::PREPARED) object->clean();
+          active.objects.erase(iterator);
         }
         return *this;
       }
     if constexpr (std::is_void_v<target_type> || trait::is_interface<target_type>)
-      if (auto iterator{try_iterate(state.active.interfaces, target_name)}; iterator != state.active.interfaces.end())
+      if (auto iterator{try_iterate(active.interfaces, target_name)}; iterator != active.interfaces.end())
       {
-        if (auto &interface{*iterator}; state.active.phase == help::phase::CREATED)
-          state.interface_removals.insert(target_name);
+        if (auto &interface{*iterator}; active.phase == help::phase::CREATED)
+          active.interface_removals.insert(target_name);
         else
         {
-          if (interface->state.active.phase == help::phase::PREPARED) interface->clean();
-          state.active.interfaces.erase(iterator);
+          if (interface->active.phase == help::phase::PREPARED) interface->clean();
+          active.interfaces.erase(iterator);
         }
       }
     return *this;

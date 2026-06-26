@@ -22,23 +22,23 @@ namespace cse::help::collision
            first.top > second.bottom;
   }
 
-  std::span<const std::pair<hitbox, rectangle>> hitboxes(const object *object)
+  std::span<const std::pair<hitbox, rectangle>> hitboxes(const cse::object *object)
   {
-    if (!object->state.active.collidable) return {};
-    const auto &animation{object->graphics.active.texture.animation};
-    auto frame{object->graphics.active.texture.playback.frame};
+    if (!object->active.collidable) return {};
+    const auto &animation{object->active.texture.animation};
+    auto frame{object->active.texture.playback.frame};
     if (frame >= animation.frames.size()) return {};
     return animation.frames[frame].hitboxes;
   }
 
-  rectangle bounds(const object *object, const rectangle &bounds)
+  rectangle bounds(const cse::object *object, const rectangle &bounds)
   {
-    auto width{static_cast<double>(object->graphics.active.texture.image.frame_width)};
-    auto height{static_cast<double>(object->graphics.active.texture.image.frame_height)};
-    auto translation{object->state.active.translation.value};
-    auto rotation{static_cast<int>(std::floor(object->state.active.rotation.value + 0.5))};
-    auto scale{object->state.active.scale.value};
-    auto flip{object->graphics.active.texture.flip};
+    auto width{static_cast<double>(object->active.texture.image.frame_width)};
+    auto height{static_cast<double>(object->active.texture.image.frame_height)};
+    auto translation{object->active.translation.value};
+    auto rotation{static_cast<int>(std::floor(object->active.rotation.value + 0.5))};
+    auto scale{object->active.scale.value};
+    auto flip{object->active.texture.flip};
     glm::dvec2 center{width / 2.0, height / 2.0};
     double local_left{bounds.left - center.x};
     double local_right{bounds.right - center.x};
@@ -95,7 +95,7 @@ namespace cse::help::collision
             std::floor(pixel.y + local_bottom * actual_scale.y + 0.5)};
   }
 
-  contact describe(const name self_name, object *target, const hitbox own, const hitbox theirs,
+  contact describe(const name self_name, cse::object *target, const hitbox own, const hitbox theirs,
                    const rectangle &self_bounds, const rectangle &target_bounds)
   {
     glm::dvec2 overlap{
@@ -137,22 +137,22 @@ namespace cse::help::collision
             .penetration = penetration};
   }
 
-  hitbox hit(const interface *interface, const glm::dvec2 &point)
+  hitbox hit(const cse::interface *interface, const glm::dvec2 &point)
   {
-    if (!interface->state.active.interactable) return {};
-    const auto &animation{interface->graphics.active.texture.animation};
-    const auto frame{interface->graphics.active.texture.playback.frame};
+    if (!interface->active.interactable) return {};
+    const auto &animation{interface->active.texture.animation};
+    const auto frame{interface->active.texture.playback.frame};
     if (frame >= animation.frames.size()) return {};
     const auto &hitboxes{animation.frames[frame].hitboxes};
     if (hitboxes.empty()) return {};
-    const auto scale_x{std::floor(interface->state.active.scale.value.x + 0.5)};
-    const auto scale_y{std::floor(interface->state.active.scale.value.y + 0.5)};
+    const auto scale_x{std::floor(interface->active.scale.value.x + 0.5)};
+    const auto scale_y{std::floor(interface->active.scale.value.y + 0.5)};
     if (scale_x <= 0.0 || scale_y <= 0.0) return {};
 
-    const auto &translation{interface->state.active.translation.value};
-    const auto rotation{glm::radians(std::floor(interface->state.active.rotation.value + 0.5) * -90.0)};
-    const auto frame_width{interface->graphics.active.texture.image.frame_width};
-    const auto frame_height{interface->graphics.active.texture.image.frame_height};
+    const auto &translation{interface->active.translation.value};
+    const auto rotation{glm::radians(std::floor(interface->active.rotation.value + 0.5) * -90.0)};
+    const auto frame_width{interface->active.texture.image.frame_width};
+    const auto frame_height{interface->active.texture.image.frame_height};
     glm::dvec2 local{point.x - std::floor(translation.x + 0.5), point.y - std::floor(translation.y + 0.5)};
     const auto sine{std::sin(-rotation)};
     const auto cosine{std::cos(-rotation)};
@@ -160,7 +160,7 @@ namespace cse::help::collision
     local -= glm::dvec2{frame_width % 2 == 0 ? 0.5 : 0.0, frame_height % 2 == 0 ? 0.5 : 0.0};
     local /= glm::dvec2{scale_x, scale_y};
     const glm::dvec2 center{frame_width / 2.0, frame_height / 2.0};
-    const auto &flip{interface->graphics.active.texture.flip};
+    const auto &flip{interface->active.texture.flip};
     for (const auto &[identifier, bounds] : hitboxes)
     {
       auto left{bounds.left - center.x};

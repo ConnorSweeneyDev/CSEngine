@@ -47,10 +47,10 @@ namespace cse
     };
 
     bool overlaps(const rectangle &first, const rectangle &second);
-    std::span<const std::pair<hitbox, rectangle>> hitboxes(const object *object);
-    rectangle bounds(const object *object, const rectangle &bounds);
-    contact describe(const name self_name, object *target, const hitbox own, const hitbox theirs,
+    std::span<const std::pair<hitbox, rectangle>> hitboxes(const cse::object *object);
+    rectangle bounds(const cse::object *object, const rectangle &bounds);
+    contact describe(const name self_name, cse::object *target, const hitbox own, const hitbox theirs,
                      const rectangle &self_bounds, const rectangle &target_bounds);
-    hitbox hit(const interface *interface, const glm::dvec2 &point);
+    hitbox hit(const cse::interface *interface, const glm::dvec2 &point);
   }
 }

@@ -14,19 +14,44 @@ namespace cse
 
 namespace cse::help
 {
-  struct game_state;
-  struct game_graphics;
-  struct game_audio;
-  struct window_state;
-  struct window_graphics;
-  struct scene_state;
-  struct scene_graphics;
-  struct camera_state;
-  struct camera_graphics;
-  struct object_state;
-  struct object_graphics;
-  struct interface_state;
-  struct interface_graphics;
+  enum class phase
+  {
+    CLEANED,
+    PREPARED,
+    CREATED
+  };
+  namespace game
+  {
+    struct previous;
+    struct active;
+    struct next;
+  }
+  namespace window
+  {
+    struct previous;
+    struct active;
+  }
+  namespace scene
+  {
+    struct previous;
+    struct active;
+    struct next;
+  }
+  namespace camera
+  {
+    struct previous;
+    struct active;
+  }
+  namespace object
+  {
+    struct previous;
+    struct active;
+  }
+  namespace interface
+  {
+    struct previous;
+    struct active;
+  }
 }
 
 namespace cse::trait

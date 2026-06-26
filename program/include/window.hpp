@@ -3,13 +3,149 @@
 #include <string>
 
 #include "SDL3/SDL_events.h"
+#include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_video.h"
+#include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
+#include "glm/ext/vector_int2.hpp"
 
 #include "core.hpp"
-#include "graphics.hpp"
 #include "input.hpp"
-#include "state.hpp"
+#include "mixer.hpp"
+#include "timer.hpp"
+
+namespace cse::help::window
+{
+  struct previous
+  {
+  public:
+    previous() = default;
+    previous(const std::string &title_, const SDL_DisplayID display_, const int left_, const int top_,
+             const unsigned int width_, const unsigned int height_, const bool fullscreen_, const bool vsync_,
+             const cse::mouse::initial &mouse_);
+    ~previous() = default;
+    previous(const previous &) = delete;
+    previous &operator=(const previous &) = delete;
+    previous(previous &&) = delete;
+    previous &operator=(previous &&) = delete;
+
+  public:
+    std::string title{};
+    SDL_DisplayID display{};
+    int left{};
+    int top{};
+    unsigned int width{};
+    unsigned int height{};
+    bool fullscreen{};
+    bool vsync{};
+
+    bool running{};
+    cse::keyboard keyboard{};
+    cse::mouse mouse{};
+    help::timer timer{};
+    help::mixer mixer{};
+    help::phase phase{};
+  };
+
+  struct active
+  {
+    friend class cse::game;
+    friend struct game::active;
+    friend class cse::window;
+    friend class cse::scene;
+
+  private:
+    struct viewport
+    {
+      double left{};
+      double top{};
+      double width{};
+      double height{};
+    };
+    struct shadow
+    {
+      std::string title{};
+      SDL_DisplayID display{};
+      int left{};
+      int top{};
+      unsigned int width{};
+      unsigned int height{};
+      bool fullscreen{};
+      bool vsync{};
+      cse::mouse mouse{};
+    };
+
+  public:
+    active() = default;
+    active(const std::string &title_, const SDL_DisplayID display_, const int left_, const int top_,
+           const unsigned int width_, const unsigned int height_, const bool fullscreen_, const bool vsync_,
+           const cse::mouse::initial &mouse_);
+    ~active() = default;
+    active(const active &) = delete;
+    active &operator=(const active &) = delete;
+    active(active &&) = delete;
+    active &operator=(active &&) = delete;
+
+  private:
+    void create(const double aspect, const unsigned int resolution, const SDL_DisplayID PRIMARY, const int CENTER);
+    void synchronize(previous &last);
+    void start_render_pass(const double aspect, const glm::dvec3 &clear);
+    void end_render_pass();
+    void destroy();
+
+    void poll(const double aspect, const unsigned int resolution);
+    viewport letterbox(const double aspect);
+    glm::dvec2 to_virtual(const double x, const double y, const double aspect, const unsigned int resolution);
+    glm::dvec2 to_pixel(const double x, const double y, const double aspect, const unsigned int resolution);
+
+    void reconcile(const SDL_DisplayID PRIMARY, const int CENTER);
+    void generate_depth_texture();
+    bool acquire_swapchain_texture();
+    void handle_title_change();
+    void handle_move();
+    void handle_resize();
+    void handle_manual_display_move(const SDL_DisplayID PRIMARY);
+    void handle_manual_move(const int CENTER);
+    void handle_manual_resize();
+    void handle_fullscreen();
+    void handle_vsync();
+    glm::ivec2 calculate_display_center(const unsigned int w, const unsigned int h);
+    glm::ivec2 relative_to_absolute(const int x, const int y);
+    glm::ivec2 absolute_to_relative(const int x, const int y);
+
+  public:
+    std::string title{};
+    SDL_DisplayID display{};
+    int left{};
+    int top{};
+    unsigned int width{};
+    unsigned int height{};
+    bool fullscreen{};
+    bool vsync{};
+
+    bool running{};
+    cse::keyboard keyboard{};
+    cse::mouse mouse{};
+    help::timer timer{};
+    help::mixer mixer{};
+    help::phase phase{};
+
+  private:
+    active::shadow shadow{};
+    SDL_Event event{};
+
+    SDL_Window *instance{};
+    SDL_GPUDevice *device{};
+    SDL_GPUCommandBuffer *command_buffer{};
+    SDL_GPUTexture *swapchain_texture{};
+    SDL_GPUTexture *depth_texture{};
+    SDL_GPURenderPass *render_pass{};
+    int windowed_left{};
+    int windowed_top{};
+    unsigned int windowed_width{};
+    unsigned int windowed_height{};
+  };
+}
 
 namespace cse
 {
@@ -18,20 +154,17 @@ namespace cse
     friend class game;
 
   protected:
-    struct initial_state
+    struct initial
     {
+      const std::string title{};
       const SDL_DisplayID display{};
       const int left{};
       const int top{};
       const unsigned int width{};
       const unsigned int height{};
-      const cse::mouse::initial mouse{};
-    };
-    struct initial_graphics
-    {
-      const std::string title{};
       const bool fullscreen{};
       const bool vsync{};
+      const cse::mouse::initial mouse{};
     };
 
   public:
@@ -42,7 +175,7 @@ namespace cse
     window &operator=(window &&) = delete;
 
   protected:
-    window(const initial_state &state_, const initial_graphics &graphics_);
+    window(const initial &initial_);
     virtual void on_prepare();
     virtual void on_create();
     virtual void on_synchronize();
@@ -59,15 +192,15 @@ namespace cse
     void synchronize();
     void event();
     void simulate(const double tick);
-    bool start_render(const glm::dvec3 &clear, const double aspect, const double alpha);
+    bool start_render(const double aspect, const glm::dvec3 &clear, const double alpha);
     void end_render(const double alpha);
     void destroy();
     void clean();
 
   public:
     cse::game *game{};
-    help::window_state state{};
-    help::window_graphics graphics{};
+    help::window::previous previous{};
+    help::window::active active{};
 
   protected:
     static constexpr SDL_DisplayID PRIMARY{1000000};

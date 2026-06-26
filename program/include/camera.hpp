@@ -7,27 +7,91 @@
 #include "glm/ext/vector_double3.hpp"
 
 #include "core.hpp"
-#include "graphics.hpp"
-#include "state.hpp"
+#include "mixer.hpp"
 #include "temporal.hpp"
+#include "timer.hpp"
+
+namespace cse::help::camera
+{
+  struct clip
+  {
+    double near{};
+    double far{};
+  };
+
+  struct previous
+  {
+  public:
+    previous() = default;
+    previous(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec3> &forward_,
+             const temporal<glm::dvec3> &up_, const temporal<double> &fov_, const camera::clip &clip_);
+    ~previous() = default;
+    previous(const previous &) = delete;
+    previous &operator=(const previous &) = delete;
+    previous(previous &&) = delete;
+    previous &operator=(previous &&) = delete;
+
+  public:
+    temporal<glm::dvec3> translation{};
+    temporal<glm::dvec3> forward{};
+    temporal<glm::dvec3> up{};
+    temporal<double> fov{};
+    camera::clip clip{};
+
+    help::timer timer{};
+    help::mixer mixer{};
+    help::phase phase{};
+  };
+
+  struct active
+  {
+    friend class cse::scene;
+    friend class cse::camera;
+
+  public:
+    active() = default;
+    active(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec3> &forward_,
+           const temporal<glm::dvec3> &up_, const temporal<double> &fov_, const camera::clip &clip_);
+    ~active() = default;
+    active(const active &) = delete;
+    active &operator=(const active &) = delete;
+    active(active &&) = delete;
+    active &operator=(active &&) = delete;
+
+  private:
+    void synchronize(previous &last);
+
+    glm::dmat4 calculate_view_matrix(const previous &last, const double alpha) const;
+    glm::dmat4 calculate_projection_matrix(const previous &last, const double aspect, const double alpha);
+
+  public:
+    temporal<glm::dvec3> translation{};
+    temporal<glm::dvec3> forward{};
+    temporal<glm::dvec3> up{};
+    temporal<double> fov{};
+    camera::clip clip{};
+
+    help::timer timer{};
+    help::mixer mixer{};
+    help::phase phase{};
+  };
+}
 
 namespace cse
 {
   class camera
   {
     friend class scene;
+    friend struct help::scene::active;
 
   protected:
-    struct initial_state
+    struct initial
     {
       const temporal<glm::dvec3> translation{};
       const temporal<glm::dvec3> forward{};
       const temporal<glm::dvec3> up{};
-    };
-    struct initial_graphics
-    {
       const temporal<double> fov{};
-      const help::camera_graphics::clip clip{};
+      const help::camera::clip clip{};
     };
 
   public:
@@ -38,7 +102,7 @@ namespace cse
     camera &operator=(camera &&) = delete;
 
   protected:
-    camera(const initial_state &state_, const initial_graphics &graphics_);
+    camera(const initial &initial_);
     virtual void on_prepare();
     virtual void on_create();
     virtual void on_synchronize();
@@ -60,7 +124,7 @@ namespace cse
 
   public:
     cse::scene *scene{};
-    help::camera_state state{};
-    help::camera_graphics graphics{};
+    help::camera::previous previous{};
+    help::camera::active active{};
   };
 }
