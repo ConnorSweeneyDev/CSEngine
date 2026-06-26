@@ -16,12 +16,10 @@
 #include "glm/ext/vector_double3.hpp"
 #include "glm/ext/vector_int2.hpp"
 
-#include "exception.hpp"
 #include "core.hpp"
-#include "game.hpp"
+#include "exception.hpp"
 #include "input.hpp"
 #include "mask.hpp"
-#include "system.hpp"
 
 namespace cse::help::window
 {
@@ -41,7 +39,8 @@ namespace cse::help::window
   {
   }
 
-  void active::create(const double aspect, const unsigned int resolution, const SDL_DisplayID PRIMARY, const int CENTER)
+  void active::create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution,
+                      const SDL_DisplayID PRIMARY, const int CENTER)
   {
     instance = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height),
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
@@ -65,15 +64,13 @@ namespace cse::help::window
     windowed_width = width;
     windowed_height = height;
 
-    device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, debug, "vulkan");
-    if (!device) throw sdl_exception("Could not create GPU device");
     if (!SDL_ClaimWindowForGPUDevice(device, instance)) throw sdl_exception("Could not claim window for GPU device");
     if (!SDL_SetGPUSwapchainParameters(device, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
       throw sdl_exception("Could not enable VSYNC");
 
     if (fullscreen) handle_fullscreen();
-    if (!vsync) handle_vsync();
-    if (!depth_texture) generate_depth_texture();
+    if (!vsync) handle_vsync(device);
+    if (!depth_texture) generate_depth_texture(device);
 
     shadow = {.title = title,
               .display = display,
@@ -168,11 +165,10 @@ namespace cse::help::window
     if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
   }
 
-  void active::destroy()
+  void active::destroy(SDL_GPUDevice *device)
   {
     SDL_ReleaseGPUTexture(device, depth_texture);
     SDL_ReleaseWindowFromGPUDevice(device, instance);
-    SDL_DestroyGPUDevice(device);
     SDL_DestroyWindow(instance);
   }
 
@@ -247,16 +243,16 @@ namespace cse::help::window
             (canvas.y + canvas_height / 2.0) / canvas_height * view.height + view.top};
   }
 
-  void active::reconcile(const SDL_DisplayID PRIMARY, const int CENTER)
+  void active::reconcile(SDL_GPUDevice *device, const SDL_DisplayID PRIMARY, const int CENTER)
   {
     if (title != shadow.title) handle_title_change();
     if (display != shadow.display)
       handle_manual_display_move(PRIMARY);
     else if (left != shadow.left || top != shadow.top)
       handle_manual_move(CENTER);
-    if (width != shadow.width || height != shadow.height) handle_manual_resize();
+    if (width != shadow.width || height != shadow.height) handle_manual_resize(device);
     if (fullscreen != shadow.fullscreen) handle_fullscreen();
-    if (vsync != shadow.vsync) handle_vsync();
+    if (vsync != shadow.vsync) handle_vsync(device);
     shadow.title = title;
     shadow.display = display;
     shadow.left = left;
@@ -267,7 +263,7 @@ namespace cse::help::window
     shadow.vsync = vsync;
   }
 
-  void active::generate_depth_texture()
+  void active::generate_depth_texture(SDL_GPUDevice *device)
   {
     if (depth_texture)
     {
@@ -280,7 +276,7 @@ namespace cse::help::window
       SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
     SDL_GPUTextureCreateInfo depth_texture_info{
       .type = type,
-      .format = [this, &potential_formats]() -> SDL_GPUTextureFormat
+      .format = [&device, &potential_formats]() -> SDL_GPUTextureFormat
       {
         for (const auto &potential_format : potential_formats)
           if (SDL_GPUTextureSupportsFormat(device, potential_format, type, usage)) return potential_format;
@@ -299,7 +295,7 @@ namespace cse::help::window
     if (!depth_texture) throw sdl_exception("Could not create depth texture");
   }
 
-  bool active::acquire_swapchain_texture()
+  bool active::acquire_swapchain_texture(SDL_GPUDevice *device)
   {
     command_buffer = SDL_AcquireGPUCommandBuffer(device);
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer");
@@ -336,7 +332,7 @@ namespace cse::help::window
     shadow.top = top;
   }
 
-  void active::handle_resize()
+  void active::handle_resize(SDL_GPUDevice *device)
   {
     if (auto new_display = SDL_GetDisplayForWindow(instance); display != new_display)
     {
@@ -365,7 +361,7 @@ namespace cse::help::window
       windowed_width = width;
       windowed_height = height;
     }
-    generate_depth_texture();
+    generate_depth_texture(device);
     shadow.display = display;
     shadow.left = left;
     shadow.top = top;
@@ -419,7 +415,7 @@ namespace cse::help::window
     }
   }
 
-  void active::handle_manual_resize()
+  void active::handle_manual_resize(SDL_GPUDevice *device)
   {
     if (!fullscreen)
     {
@@ -444,7 +440,7 @@ namespace cse::help::window
         windowed_top = top;
       }
     }
-    generate_depth_texture();
+    generate_depth_texture(device);
   }
 
   void active::handle_fullscreen()
@@ -472,7 +468,7 @@ namespace cse::help::window
       throw sdl_exception("Could not set window position to {}, {}", absolute.x, absolute.y);
   }
 
-  void active::handle_vsync()
+  void active::handle_vsync(SDL_GPUDevice *device)
   {
     if (vsync)
     {
@@ -528,10 +524,10 @@ namespace cse
   }
 
   void window::on_create() {}
-  void window::create()
+  void window::create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution)
   {
     if (active.phase != help::phase::PREPARED) throw exception("Window must be prepared before creation");
-    active.create(game->active.aspect.value, game->active.resolution, PRIMARY, CENTER);
+    active.create(device, aspect, resolution, PRIMARY, CENTER);
     active.phase = help::phase::CREATED;
     on_create();
   }
@@ -545,14 +541,14 @@ namespace cse
   }
 
   void window::on_event(const SDL_Event &) {}
-  void window::event()
+  void window::event(SDL_GPUDevice *device)
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before processing events");
     switch (active.event.type)
     {
       case SDL_EVENT_QUIT: active.running = false; break;
       case SDL_EVENT_WINDOW_MOVED: active.handle_move(); break;
-      case SDL_EVENT_WINDOW_RESIZED: active.handle_resize(); break;
+      case SDL_EVENT_WINDOW_RESIZED: active.handle_resize(device); break;
       case SDL_EVENT_MOUSE_WHEEL:
         active.mouse.wheel += glm::dvec2{active.event.wheel.x, active.event.wheel.y};
         on_event(active.event);
@@ -570,11 +566,11 @@ namespace cse
   }
 
   void window::pre_render(const double) {}
-  bool window::start_render(const double aspect, const glm::dvec3 &clear, const double alpha)
+  bool window::start_render(SDL_GPUDevice *device, const double aspect, const glm::dvec3 &clear, const double alpha)
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
-    active.reconcile(PRIMARY, CENTER);
-    if (!active.acquire_swapchain_texture()) return false;
+    active.reconcile(device, PRIMARY, CENTER);
+    if (!active.acquire_swapchain_texture(device)) return false;
     pre_render(alpha);
     active.start_render_pass(aspect, clear);
     return true;
@@ -589,11 +585,11 @@ namespace cse
   }
 
   void window::on_destroy() {}
-  void window::destroy()
+  void window::destroy(SDL_GPUDevice *device)
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before destruction");
     active.event = {};
-    active.destroy();
+    active.destroy(device);
     active.phase = help::phase::PREPARED;
     on_destroy();
   }

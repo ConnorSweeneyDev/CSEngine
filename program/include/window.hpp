@@ -87,28 +87,29 @@ namespace cse::help::window
     active &operator=(active &&) = delete;
 
   private:
-    void create(const double aspect, const unsigned int resolution, const SDL_DisplayID PRIMARY, const int CENTER);
+    void create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution, const SDL_DisplayID PRIMARY,
+                const int CENTER);
     void synchronize(previous &last);
     void start_render_pass(const double aspect, const glm::dvec3 &clear);
     void end_render_pass();
-    void destroy();
+    void destroy(SDL_GPUDevice *device);
 
     void poll(const double aspect, const unsigned int resolution);
     viewport letterbox(const double aspect);
     glm::dvec2 to_virtual(const double x, const double y, const double aspect, const unsigned int resolution);
     glm::dvec2 to_pixel(const double x, const double y, const double aspect, const unsigned int resolution);
 
-    void reconcile(const SDL_DisplayID PRIMARY, const int CENTER);
-    void generate_depth_texture();
-    bool acquire_swapchain_texture();
+    void reconcile(SDL_GPUDevice *device, const SDL_DisplayID PRIMARY, const int CENTER);
+    void generate_depth_texture(SDL_GPUDevice *device);
+    bool acquire_swapchain_texture(SDL_GPUDevice *device);
     void handle_title_change();
     void handle_move();
-    void handle_resize();
+    void handle_resize(SDL_GPUDevice *device);
     void handle_manual_display_move(const SDL_DisplayID PRIMARY);
     void handle_manual_move(const int CENTER);
-    void handle_manual_resize();
+    void handle_manual_resize(SDL_GPUDevice *device);
     void handle_fullscreen();
-    void handle_vsync();
+    void handle_vsync(SDL_GPUDevice *device);
     glm::ivec2 calculate_display_center(const unsigned int w, const unsigned int h);
     glm::ivec2 relative_to_absolute(const int x, const int y);
     glm::ivec2 absolute_to_relative(const int x, const int y);
@@ -135,7 +136,6 @@ namespace cse::help::window
     SDL_Event event{};
 
     SDL_Window *instance{};
-    SDL_GPUDevice *device{};
     SDL_GPUCommandBuffer *command_buffer{};
     SDL_GPUTexture *swapchain_texture{};
     SDL_GPUTexture *depth_texture{};
@@ -188,13 +188,13 @@ namespace cse
 
   private:
     void prepare();
-    void create();
+    void create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution);
     void synchronize();
-    void event();
+    void event(SDL_GPUDevice *device);
     void simulate(const double tick);
-    bool start_render(const double aspect, const glm::dvec3 &clear, const double alpha);
+    bool start_render(SDL_GPUDevice *device, const double aspect, const glm::dvec3 &clear, const double alpha);
     void end_render(const double alpha);
-    void destroy();
+    void destroy(SDL_GPUDevice *device);
     void clean();
 
   public:

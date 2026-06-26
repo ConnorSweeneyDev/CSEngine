@@ -9,8 +9,8 @@
 #include "glm/ext/vector_double3.hpp"
 #include "glm/trigonometric.hpp"
 
-#include "exception.hpp"
 #include "core.hpp"
+#include "exception.hpp"
 #include "temporal.hpp"
 
 namespace cse::help::camera

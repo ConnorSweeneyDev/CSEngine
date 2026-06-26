@@ -90,15 +90,18 @@ namespace cse::help::game
 
   void active::create()
   {
+    device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, debug, "vulkan");
+    if (!device) throw sdl_exception("Could not create GPU device");
+
     const std::array<corner, 4> vertices{
       {{1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, -1.0f, 1.0f, 0.0f}, {-1.0f, 1.0f, 0.0f, 1.0f}, {-1.0f, -1.0f, 0.0f, 0.0f}}};
     const std::array<Uint16, 6> indices{3, 1, 0, 3, 0, 2};
     SDL_GPUBufferCreateInfo vertex_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_VERTEX, .size = sizeof(vertices), .props = 0};
-    graphics_buffer.vertex = SDL_CreateGPUBuffer(window->active.device, &vertex_buffer_info);
+    graphics_buffer.vertex = SDL_CreateGPUBuffer(device, &vertex_buffer_info);
     if (!graphics_buffer.vertex) throw sdl_exception("Could not create vertex buffer for game");
     SDL_GPUBufferCreateInfo index_buffer_info{.usage = SDL_GPU_BUFFERUSAGE_INDEX, .size = sizeof(indices), .props = 0};
-    graphics_buffer.index = SDL_CreateGPUBuffer(window->active.device, &index_buffer_info);
+    graphics_buffer.index = SDL_CreateGPUBuffer(device, &index_buffer_info);
     if (!graphics_buffer.index) throw sdl_exception("Could not create index buffer for game");
     SDL_GPUSamplerCreateInfo sampler_info{};
     sampler_info.min_filter = SDL_GPU_FILTER_NEAREST;
@@ -107,18 +110,18 @@ namespace cse::help::game
     sampler_info.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_info.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-    graphics_buffer.sample = SDL_CreateGPUSampler(window->active.device, &sampler_info);
+    graphics_buffer.sample = SDL_CreateGPUSampler(device, &sampler_info);
     if (!graphics_buffer.sample) throw sdl_exception("Could not create sampler for game");
     SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = sizeof(vertices) + sizeof(indices), .props = 0};
-    auto *transfer_buffer{SDL_CreateGPUTransferBuffer(window->active.device, &transfer_buffer_info)};
+    auto *transfer_buffer{SDL_CreateGPUTransferBuffer(device, &transfer_buffer_info)};
     if (!transfer_buffer) throw sdl_exception("Could not create transfer buffer for game");
-    auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(window->active.device, transfer_buffer, false))};
+    auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(device, transfer_buffer, false))};
     if (!start) throw sdl_exception("Could not map data for game");
     SDL_memcpy(start, vertices.data(), sizeof(vertices));
     SDL_memcpy(start + sizeof(vertices), indices.data(), sizeof(indices));
-    SDL_UnmapGPUTransferBuffer(window->active.device, transfer_buffer);
-    auto *command_buffer{SDL_AcquireGPUCommandBuffer(window->active.device)};
+    SDL_UnmapGPUTransferBuffer(device, transfer_buffer);
+    auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
     if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
@@ -131,7 +134,7 @@ namespace cse::help::game
     SDL_UploadToGPUBuffer(copy_pass, &index_transfer_location, &index_buffer_region, false);
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(window->active.device, transfer_buffer);
+    SDL_ReleaseGPUTransferBuffer(device, transfer_buffer);
 
     if (audio_handle = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr); !audio_handle)
       throw sdl_exception("Could not create audio mixer for game");
@@ -184,7 +187,7 @@ namespace cse::help::game
     for (auto iterator{graphics_interface.labels.begin()}; iterator != graphics_interface.labels.end();)
       if (iterator->second.stamp != graphics_interface.stamp)
       {
-        SDL_ReleaseGPUTexture(window->active.device, iterator->second.texture);
+        SDL_ReleaseGPUTexture(device, iterator->second.texture);
         iterator = graphics_interface.labels.erase(iterator);
       }
       else
@@ -212,7 +215,7 @@ namespace cse::help::game
     for (auto iterator{graphics_cache.texture.begin()}; iterator != graphics_cache.texture.end();)
       if (iterator->second.stamp != graphics_cache.stamp)
       {
-        SDL_ReleaseGPUTexture(window->active.device, iterator->second.value);
+        SDL_ReleaseGPUTexture(device, iterator->second.value);
         iterator = graphics_cache.texture.erase(iterator);
       }
       else
@@ -220,9 +223,9 @@ namespace cse::help::game
     for (auto iterator{graphics_cache.pipeline.begin()}; iterator != graphics_cache.pipeline.end();)
       if (iterator->second.stamp != graphics_cache.stamp)
       {
-        SDL_ReleaseGPUGraphicsPipeline(window->active.device, iterator->second.value.interface);
-        SDL_ReleaseGPUGraphicsPipeline(window->active.device, iterator->second.value.transparent);
-        SDL_ReleaseGPUGraphicsPipeline(window->active.device, iterator->second.value.opaque);
+        SDL_ReleaseGPUGraphicsPipeline(device, iterator->second.value.interface);
+        SDL_ReleaseGPUGraphicsPipeline(device, iterator->second.value.transparent);
+        SDL_ReleaseGPUGraphicsPipeline(device, iterator->second.value.opaque);
         iterator = graphics_cache.pipeline.erase(iterator);
       }
       else
@@ -293,22 +296,21 @@ namespace cse::help::game
     if (audio_handle) MIX_DestroyMixer(audio_handle);
     audio_handle = nullptr;
 
-    for (const auto &[key, entry] : graphics_interface.labels)
-      SDL_ReleaseGPUTexture(window->active.device, entry.texture);
+    for (const auto &[key, entry] : graphics_interface.labels) SDL_ReleaseGPUTexture(device, entry.texture);
     for (const auto &[key, font] : graphics_cache.font) TTF_CloseFont(font.value.font);
-    SDL_ReleaseGPUTransferBuffer(window->active.device, graphics_object.transfer_buffer);
-    SDL_ReleaseGPUBuffer(window->active.device, graphics_object.buffer);
-    for (const auto &[key, texture] : graphics_cache.texture)
-      SDL_ReleaseGPUTexture(window->active.device, texture.value);
+    SDL_ReleaseGPUTransferBuffer(device, graphics_object.transfer_buffer);
+    SDL_ReleaseGPUBuffer(device, graphics_object.buffer);
+    for (const auto &[key, texture] : graphics_cache.texture) SDL_ReleaseGPUTexture(device, texture.value);
     for (const auto &[key, available] : graphics_cache.pipeline)
     {
-      SDL_ReleaseGPUGraphicsPipeline(window->active.device, available.value.interface);
-      SDL_ReleaseGPUGraphicsPipeline(window->active.device, available.value.transparent);
-      SDL_ReleaseGPUGraphicsPipeline(window->active.device, available.value.opaque);
+      SDL_ReleaseGPUGraphicsPipeline(device, available.value.interface);
+      SDL_ReleaseGPUGraphicsPipeline(device, available.value.transparent);
+      SDL_ReleaseGPUGraphicsPipeline(device, available.value.opaque);
     }
-    SDL_ReleaseGPUSampler(window->active.device, graphics_buffer.sample);
-    SDL_ReleaseGPUBuffer(window->active.device, graphics_buffer.index);
-    SDL_ReleaseGPUBuffer(window->active.device, graphics_buffer.vertex);
+    SDL_ReleaseGPUSampler(device, graphics_buffer.sample);
+    SDL_ReleaseGPUBuffer(device, graphics_buffer.index);
+    SDL_ReleaseGPUBuffer(device, graphics_buffer.vertex);
+    SDL_DestroyGPUDevice(device);
     graphics_interface.stamp = 0;
     graphics_interface.labels.clear();
     graphics_interface.order.clear();
@@ -324,6 +326,7 @@ namespace cse::help::game
     graphics_buffer.sample = nullptr;
     graphics_buffer.index = nullptr;
     graphics_buffer.vertex = nullptr;
+    device = nullptr;
   }
 
   void active::clean()
@@ -591,29 +594,28 @@ namespace cse::help::game
     if (graphics_object.samples.empty()) return;
     if (graphics_object.samples.size() > graphics_object.capacity)
     {
-      SDL_ReleaseGPUTransferBuffer(window->active.device, graphics_object.transfer_buffer);
-      SDL_ReleaseGPUBuffer(window->active.device, graphics_object.buffer);
+      SDL_ReleaseGPUTransferBuffer(device, graphics_object.transfer_buffer);
+      SDL_ReleaseGPUBuffer(device, graphics_object.buffer);
       graphics_object.capacity = std::max<std::size_t>(graphics_object.capacity, 16);
       while (graphics_object.capacity < graphics_object.samples.size()) graphics_object.capacity *= 2;
       SDL_GPUBufferCreateInfo instance_buffer_info{
         .usage = SDL_GPU_BUFFERUSAGE_VERTEX,
         .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
         .props = 0};
-      graphics_object.buffer = SDL_CreateGPUBuffer(window->active.device, &instance_buffer_info);
+      graphics_object.buffer = SDL_CreateGPUBuffer(device, &instance_buffer_info);
       if (!graphics_object.buffer) throw sdl_exception("Could not create instance buffer for game");
       SDL_GPUTransferBufferCreateInfo instance_transfer_buffer_info{
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
         .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
         .props = 0};
-      graphics_object.transfer_buffer =
-        SDL_CreateGPUTransferBuffer(window->active.device, &instance_transfer_buffer_info);
+      graphics_object.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &instance_transfer_buffer_info);
       if (!graphics_object.transfer_buffer) throw sdl_exception("Could not create instance transfer buffer for game");
     }
-    auto *start{SDL_MapGPUTransferBuffer(window->active.device, graphics_object.transfer_buffer, true)};
+    auto *start{SDL_MapGPUTransferBuffer(device, graphics_object.transfer_buffer, true)};
     if (!start) throw sdl_exception("Could not map instance data for game");
     SDL_memcpy(start, graphics_object.samples.data(), sizeof(graphics_object::sample) * graphics_object.samples.size());
-    SDL_UnmapGPUTransferBuffer(window->active.device, graphics_object.transfer_buffer);
-    auto *command_buffer{SDL_AcquireGPUCommandBuffer(window->active.device)};
+    SDL_UnmapGPUTransferBuffer(device, graphics_object.transfer_buffer);
+    auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
     if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
@@ -660,7 +662,7 @@ namespace cse::help::game
     }
     csp::verify(vertex.data.data(), vertex.data.size());
     csp::verify(fragment.data.data(), fragment.data.size());
-    const auto backend_formats{SDL_GetGPUShaderFormats(window->active.device)};
+    const auto backend_formats{SDL_GetGPUShaderFormats(device)};
     if (!has(backend_formats, SDL_GPU_SHADERFORMAT_SPIRV))
       throw sdl_exception("No supported vulkan shader formats for game");
     SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = vertex.data.size(),
@@ -673,7 +675,7 @@ namespace cse::help::game
                                                .num_storage_buffers = 0,
                                                .num_uniform_buffers = 1,
                                                .props = 0};
-    auto *vertex_shader{SDL_CreateGPUShader(window->active.device, &vertex_shader_info)};
+    auto *vertex_shader{SDL_CreateGPUShader(device, &vertex_shader_info)};
     if (!vertex_shader) throw sdl_exception("Could not create vertex shader for game");
     SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = fragment.data.size(),
                                                  .code = fragment.data.data(),
@@ -685,7 +687,7 @@ namespace cse::help::game
                                                  .num_storage_buffers = 0,
                                                  .num_uniform_buffers = 0,
                                                  .props = 0};
-    auto *fragment_shader{SDL_CreateGPUShader(window->active.device, &fragment_shader_info)};
+    auto *fragment_shader{SDL_CreateGPUShader(device, &fragment_shader_info)};
     if (!fragment_shader) throw sdl_exception("Could not create fragment shader for game");
     const std::array<SDL_GPUVertexBufferDescription, 2> vertex_buffer_descriptions{
       {{.slot = 0, .pitch = sizeof(corner), .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX, .instance_step_rate = 0},
@@ -712,8 +714,7 @@ namespace cse::help::game
     rasterizer_state.cull_mode = SDL_GPU_CULLMODE_BACK;
     rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
     SDL_GPUColorTargetDescription opaque_color_target_description{};
-    opaque_color_target_description.format =
-      SDL_GetGPUSwapchainTextureFormat(window->active.device, window->active.instance);
+    opaque_color_target_description.format = SDL_GetGPUSwapchainTextureFormat(device, window->active.instance);
     SDL_GPUDepthStencilState opaque_depth_stencil_state{};
     opaque_depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
     opaque_depth_stencil_state.enable_depth_test = true;
@@ -727,8 +728,7 @@ namespace cse::help::game
     opaque_target_info.depth_stencil_format = [this, &potential_formats]() -> SDL_GPUTextureFormat
     {
       for (const auto &potential_format : potential_formats)
-        if (SDL_GPUTextureSupportsFormat(window->active.device, potential_format, type,
-                                         SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET))
+        if (SDL_GPUTextureSupportsFormat(device, potential_format, type, SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET))
           return potential_format;
       return {};
     }();
@@ -744,7 +744,7 @@ namespace cse::help::game
     opaque_pipeline_info.depth_stencil_state = opaque_depth_stencil_state;
     opaque_pipeline_info.target_info = opaque_target_info;
     pipeline available{};
-    available.opaque = SDL_CreateGPUGraphicsPipeline(window->active.device, &opaque_pipeline_info);
+    available.opaque = SDL_CreateGPUGraphicsPipeline(device, &opaque_pipeline_info);
     if (!available.opaque) throw sdl_exception("Could not create graphics pipeline for game");
     SDL_GPUColorTargetBlendState blend_state{};
     blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
@@ -757,8 +757,7 @@ namespace cse::help::game
     blend_state.enable_blend = true;
     blend_state.enable_color_write_mask = false;
     SDL_GPUColorTargetDescription transparent_color_target_description{};
-    transparent_color_target_description.format =
-      SDL_GetGPUSwapchainTextureFormat(window->active.device, window->active.instance);
+    transparent_color_target_description.format = SDL_GetGPUSwapchainTextureFormat(device, window->active.instance);
     transparent_color_target_description.blend_state = blend_state;
     SDL_GPUDepthStencilState transparent_depth_stencil_state{};
     transparent_depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
@@ -777,7 +776,7 @@ namespace cse::help::game
     transparent_pipeline_info.rasterizer_state = rasterizer_state;
     transparent_pipeline_info.depth_stencil_state = transparent_depth_stencil_state;
     transparent_pipeline_info.target_info = transparent_target_info;
-    available.transparent = SDL_CreateGPUGraphicsPipeline(window->active.device, &transparent_pipeline_info);
+    available.transparent = SDL_CreateGPUGraphicsPipeline(device, &transparent_pipeline_info);
     if (!available.transparent) throw sdl_exception("Could not create transparent graphics pipeline for game");
     SDL_GPURasterizerState interface_rasterizer_state{};
     interface_rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
@@ -795,10 +794,10 @@ namespace cse::help::game
     interface_pipeline_info.rasterizer_state = interface_rasterizer_state;
     interface_pipeline_info.depth_stencil_state = interface_depth_stencil_state;
     interface_pipeline_info.target_info = transparent_target_info;
-    available.interface = SDL_CreateGPUGraphicsPipeline(window->active.device, &interface_pipeline_info);
+    available.interface = SDL_CreateGPUGraphicsPipeline(device, &interface_pipeline_info);
     if (!available.interface) throw sdl_exception("Could not create interface graphics pipeline for game");
-    SDL_ReleaseGPUShader(window->active.device, fragment_shader);
-    SDL_ReleaseGPUShader(window->active.device, vertex_shader);
+    SDL_ReleaseGPUShader(device, fragment_shader);
+    SDL_ReleaseGPUShader(device, vertex_shader);
     return graphics_cache.pipeline.emplace(key, graphics_cache::cached<pipeline>{available, graphics_cache.stamp})
       .first->second.value;
   }
@@ -815,7 +814,7 @@ namespace cse::help::game
     const auto type{SDL_GPU_TEXTURETYPE_2D};
     const auto format{SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM};
     const auto usage{SDL_GPU_TEXTUREUSAGE_SAMPLER};
-    if (!SDL_GPUTextureSupportsFormat(window->active.device, format, type, usage))
+    if (!SDL_GPUTextureSupportsFormat(device, format, type, usage))
       throw sdl_exception("No supported texture format found for game");
     SDL_GPUTextureCreateInfo texture_info{.type = type,
                                           .format = format,
@@ -826,17 +825,17 @@ namespace cse::help::game
                                           .num_levels = 1,
                                           .sample_count = SDL_GPU_SAMPLECOUNT_1,
                                           .props = 0};
-    auto *texture{SDL_CreateGPUTexture(window->active.device, &texture_info)};
+    auto *texture{SDL_CreateGPUTexture(device, &texture_info)};
     if (!texture) throw sdl_exception("Could not create texture for game");
     SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = image.width * image.height * image.channels, .props = 0};
-    auto *texture_transfer_buffer{SDL_CreateGPUTransferBuffer(window->active.device, &texture_transfer_buffer_info)};
+    auto *texture_transfer_buffer{SDL_CreateGPUTransferBuffer(device, &texture_transfer_buffer_info)};
     if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for game");
-    auto *texture_data{SDL_MapGPUTransferBuffer(window->active.device, texture_transfer_buffer, false)};
+    auto *texture_data{SDL_MapGPUTransferBuffer(device, texture_transfer_buffer, false)};
     if (!texture_data) throw sdl_exception("Could not map texture data for game");
     SDL_memcpy(texture_data, image.data.data(), image.width * image.height * image.channels);
-    SDL_UnmapGPUTransferBuffer(window->active.device, texture_transfer_buffer);
-    auto *command_buffer{SDL_AcquireGPUCommandBuffer(window->active.device)};
+    SDL_UnmapGPUTransferBuffer(device, texture_transfer_buffer);
+    auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
     if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
@@ -854,7 +853,7 @@ namespace cse::help::game
     SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(window->active.device, texture_transfer_buffer);
+    SDL_ReleaseGPUTransferBuffer(device, texture_transfer_buffer);
     return graphics_cache.texture.emplace(key, graphics_cache::cached<SDL_GPUTexture *>{texture, graphics_cache.stamp})
       .first->second.value;
   }
@@ -905,7 +904,7 @@ namespace cse::help::game
       return entry;
     if (entry.texture)
     {
-      SDL_ReleaseGPUTexture(window->active.device, entry.texture);
+      SDL_ReleaseGPUTexture(device, entry.texture);
       entry.texture = nullptr;
     }
     TTF_SetFontStyle(face.font, style);
@@ -933,21 +932,21 @@ namespace cse::help::game
                                           .num_levels = 1,
                                           .sample_count = SDL_GPU_SAMPLECOUNT_1,
                                           .props = 0};
-    auto *texture{SDL_CreateGPUTexture(window->active.device, &texture_info)};
+    auto *texture{SDL_CreateGPUTexture(device, &texture_info)};
     if (!texture) throw sdl_exception("Could not create text texture for interface '{}'", element->name.string());
     SDL_GPUTransferBufferCreateInfo transfer_buffer_info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
                                                          .size = static_cast<Uint32>(surface->pitch) *
                                                                  static_cast<Uint32>(surface->h),
                                                          .props = 0};
-    auto *transfer_buffer{SDL_CreateGPUTransferBuffer(window->active.device, &transfer_buffer_info)};
+    auto *transfer_buffer{SDL_CreateGPUTransferBuffer(device, &transfer_buffer_info)};
     if (!transfer_buffer)
       throw sdl_exception("Could not create transfer buffer for text for interface '{}'", element->name.string());
-    auto *texture_data{SDL_MapGPUTransferBuffer(window->active.device, transfer_buffer, false)};
+    auto *texture_data{SDL_MapGPUTransferBuffer(device, transfer_buffer, false)};
     if (!texture_data) throw sdl_exception("Could not map text data for interface '{}'", element->name.string());
     SDL_memcpy(texture_data, surface->pixels,
                static_cast<std::size_t>(surface->pitch) * static_cast<std::size_t>(surface->h));
-    SDL_UnmapGPUTransferBuffer(window->active.device, transfer_buffer);
-    auto *command_buffer{SDL_AcquireGPUCommandBuffer(window->active.device)};
+    SDL_UnmapGPUTransferBuffer(device, transfer_buffer);
+    auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
     if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
@@ -967,7 +966,7 @@ namespace cse::help::game
     SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(window->active.device, transfer_buffer);
+    SDL_ReleaseGPUTransferBuffer(device, transfer_buffer);
     entry.text = text.content;
     entry.font = text.font.data.data();
     entry.size = text.size;
@@ -1089,8 +1088,8 @@ namespace cse
   {
     if (active.phase != help::phase::PREPARED) throw exception("Game must be prepared before creation");
     pre_create();
-    active.window->create();
     active.create();
+    active.window->create(active.device, active.aspect.value, active.resolution);
     active.scene->create();
     for (const auto &interface : active.interfaces) interface->create();
     active.phase = help::phase::CREATED;
@@ -1110,13 +1109,13 @@ namespace cse
       {
         for (const auto &interface : active.interfaces) interface->destroy();
         active.scene->destroy();
+        active.window->destroy(active.device);
         active.destroy();
-        active.window->destroy();
         active.window->clean();
         active.window = window;
         window->prepare();
-        window->create();
         active.create();
+        window->create(active.device, active.aspect.value, active.resolution);
         active.scene->create();
         for (const auto &interface : active.interfaces) interface->create();
       }
@@ -1187,7 +1186,7 @@ namespace cse
     {
       pre_event(active.window->active.event);
       active.interact();
-      active.window->event();
+      active.window->event(active.device);
       active.scene->event(active.window->active.event);
       for (const auto &interface : active.interface_order) interface->event(active.window->active.event);
       post_event(active.window->active.event);
@@ -1226,7 +1225,7 @@ namespace cse
     pre_render(active.alpha);
     const auto clear{active.clear.interpolated(previous.clear, active.alpha)};
     const auto aspect{active.aspect.interpolated(previous.aspect, active.alpha)};
-    if (!active.window->start_render(aspect, clear, active.alpha)) return;
+    if (!active.window->start_render(active.device, aspect, clear, active.alpha)) return;
     active.scene->render(aspect, active.alpha);
     active.render(previous.aspect);
     active.window->end_render(active.alpha);
@@ -1251,8 +1250,8 @@ namespace cse
     pre_destroy();
     for (const auto &interface : active.interfaces) interface->destroy();
     active.scene->destroy();
+    active.window->destroy(active.device);
     active.destroy();
-    active.window->destroy();
     active.phase = help::phase::PREPARED;
     post_destroy();
   }

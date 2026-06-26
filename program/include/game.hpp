@@ -262,6 +262,7 @@ namespace cse::help::game
     std::vector<cse::interface *> interface_pool{};
 
     double actual_frame{1.0 / frame.target};
+    SDL_GPUDevice *device{};
     active::graphics_buffer graphics_buffer{};
     active::graphics_cache graphics_cache{};
     active::graphics_object graphics_object{};
