@@ -13,6 +13,19 @@
 #include "numeric.hpp"
 #include "temporal.hpp"
 
+enum horizontal
+{
+  LEFT,
+  CENTER,
+  RIGHT
+};
+enum vertical
+{
+  TOP,
+  MIDDLE,
+  BOTTOM
+};
+
 namespace cse
 {
   struct vertex
@@ -46,20 +59,8 @@ namespace cse
   };
   struct align
   {
-    enum horizontal
-    {
-      LEFT,
-      CENTER,
-      RIGHT
-    };
-    enum vertical
-    {
-      TOP,
-      MIDDLE,
-      BOTTOM
-    };
-    align::horizontal horizontal{CENTER};
-    align::vertical vertical{MIDDLE};
+    ::horizontal horizontal{CENTER};
+    ::vertical vertical{MIDDLE};
     temporal<glm::dvec2> offset{};
   };
 

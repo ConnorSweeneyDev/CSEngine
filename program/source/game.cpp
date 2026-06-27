@@ -551,15 +551,15 @@ namespace cse::help::game
       const auto box_bottom{element_height / 2.0};
       const glm::dvec2 shift{text.align.offset.interpolated(element->previous.text.align.offset, alpha)};
       double block_left{-texture_width / 2.0};
-      if (text.align.horizontal == cse::align::LEFT)
+      if (text.align.horizontal == LEFT)
         block_left = box_left;
-      else if (text.align.horizontal == cse::align::RIGHT)
+      else if (text.align.horizontal == RIGHT)
         block_left = box_right - texture_width;
       block_left += shift.x;
       double block_top{-texture_height / 2.0};
-      if (text.align.vertical == cse::align::TOP)
+      if (text.align.vertical == TOP)
         block_top = box_top;
-      else if (text.align.vertical == cse::align::BOTTOM)
+      else if (text.align.vertical == BOTTOM)
         block_top = box_bottom - texture_height;
       block_top += shift.y;
       auto visible_left{block_left};
@@ -889,9 +889,9 @@ namespace cse::help::game
     auto &entry{graphics_interface.labels[element]};
     auto &face{require_font(text.font, text.size)};
     const auto skip{std::max(0, static_cast<int>(std::floor(face.skip + text.spacing + 0.5)))};
-    const auto align{text.align.horizontal == cse::align::LEFT    ? TTF_HORIZONTAL_ALIGN_LEFT
-                     : text.align.horizontal == cse::align::RIGHT ? TTF_HORIZONTAL_ALIGN_RIGHT
-                                                                  : TTF_HORIZONTAL_ALIGN_CENTER};
+    const auto align{text.align.horizontal == LEFT    ? TTF_HORIZONTAL_ALIGN_LEFT
+                     : text.align.horizontal == RIGHT ? TTF_HORIZONTAL_ALIGN_RIGHT
+                                                      : TTF_HORIZONTAL_ALIGN_CENTER};
     int flags{TTF_STYLE_NORMAL};
     if (text.style.bold) flags |= TTF_STYLE_BOLD;
     if (text.style.italic) flags |= TTF_STYLE_ITALIC;

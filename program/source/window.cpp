@@ -11,6 +11,7 @@
 #include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_mouse.h"
 #include "SDL3/SDL_rect.h"
+#include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
@@ -24,23 +25,22 @@
 namespace cse::help::window
 {
   previous::previous(const std::string &title_, const SDL_DisplayID display_, const int left_, const int top_,
-                     const unsigned int width_, const unsigned int height_, const bool fullscreen_, const bool vsync_,
+                     const unsigned int width_, const unsigned int height_, const ::mode mode_, const bool vsync_,
                      const cse::mouse::initial &mouse_)
-    : title{title_}, display{display_}, left{left_}, top{top_}, width{width_}, height{height_}, fullscreen{fullscreen_},
+    : title{title_}, display{display_}, left{left_}, top{top_}, width{width_}, height{height_}, mode{mode_},
       vsync{vsync_}, mouse{mouse_.visible, mouse_.position}
   {
   }
 
   active::active(const std::string &title_, const SDL_DisplayID display_, const int left_, const int top_,
-                 const unsigned int width_, const unsigned int height_, const bool fullscreen_, const bool vsync_,
+                 const unsigned int width_, const unsigned int height_, const ::mode mode_, const bool vsync_,
                  const cse::mouse::initial &mouse_)
-    : title{title_}, display{display_}, left{left_}, top{top_}, width{width_}, height{height_}, fullscreen{fullscreen_},
+    : title{title_}, display{display_}, left{left_}, top{top_}, width{width_}, height{height_}, mode{mode_},
       vsync{vsync_}, mouse{mouse_.visible, mouse_.position}
   {
   }
 
-  void active::create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution,
-                      const SDL_DisplayID PRIMARY, const int CENTER)
+  void active::create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution)
   {
     instance = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height),
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
@@ -53,12 +53,12 @@ namespace cse::help::window
 
     auto absolute_center{calculate_display_center(width, height)};
     auto relative_center{absolute_to_relative(absolute_center.x, absolute_center.y)};
-    left = left == CENTER ? relative_center.x : left;
-    top = top == CENTER ? relative_center.y : top;
+    left = left == ORIGIN ? relative_center.x : left;
+    top = top == ORIGIN ? relative_center.y : top;
     windowed_left = left;
     windowed_top = top;
     auto absolute{relative_to_absolute(left, top)};
-    if (!SDL_SetWindowPosition(instance, absolute.x, absolute.y))
+    if (can_move() && !SDL_SetWindowPosition(instance, absolute.x, absolute.y))
       throw sdl_exception("Could not set window position to {}, {}", absolute.x, absolute.y);
 
     windowed_width = width;
@@ -68,7 +68,7 @@ namespace cse::help::window
     if (!SDL_SetGPUSwapchainParameters(device, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
       throw sdl_exception("Could not enable VSYNC");
 
-    if (fullscreen) handle_fullscreen();
+    if (mode != WINDOWED) handle_mode();
     if (!vsync) handle_vsync(device);
     if (!depth_texture) generate_depth_texture(device);
 
@@ -78,7 +78,7 @@ namespace cse::help::window
               .top = top,
               .width = width,
               .height = height,
-              .fullscreen = fullscreen,
+              .mode = mode,
               .vsync = vsync};
     SDL_ShowWindow(instance);
 
@@ -96,7 +96,7 @@ namespace cse::help::window
     last.top = top;
     last.width = width;
     last.height = height;
-    last.fullscreen = fullscreen;
+    last.mode = mode;
     last.vsync = vsync;
 
     last.running = running;
@@ -151,11 +151,11 @@ namespace cse::help::window
       viewport_top = (static_cast<float>(height) - viewport_height) / 2.0f;
     }
     SDL_GPUViewport port{.x = viewport_left,
-                             .y = viewport_top,
-                             .w = viewport_width,
-                             .h = viewport_height,
-                             .min_depth = 0.0f,
-                             .max_depth = 1.0f};
+                         .y = viewport_top,
+                         .w = viewport_width,
+                         .h = viewport_height,
+                         .min_depth = 0.0f,
+                         .max_depth = 1.0f};
     SDL_SetGPUViewport(render_pass, &port);
   }
 
@@ -243,15 +243,15 @@ namespace cse::help::window
             (canvas.y + canvas_height / 2.0) / canvas_height * view.height + view.top};
   }
 
-  void active::reconcile(SDL_GPUDevice *device, const SDL_DisplayID PRIMARY, const int CENTER)
+  void active::reconcile(SDL_GPUDevice *device)
   {
     if (title != shadow.title) handle_title_change();
     if (display != shadow.display)
-      handle_manual_display_move(PRIMARY);
+      handle_manual_display_move();
     else if (left != shadow.left || top != shadow.top)
-      handle_manual_move(CENTER);
+      handle_manual_move();
     if (width != shadow.width || height != shadow.height) handle_manual_resize(device);
-    if (fullscreen != shadow.fullscreen) handle_fullscreen();
+    if (mode != shadow.mode) handle_mode();
     if (vsync != shadow.vsync) handle_vsync(device);
     shadow.title = title;
     shadow.display = display;
@@ -259,7 +259,7 @@ namespace cse::help::window
     shadow.top = top;
     shadow.width = width;
     shadow.height = height;
-    shadow.fullscreen = fullscreen;
+    shadow.mode = mode;
     shadow.vsync = vsync;
   }
 
@@ -309,6 +309,13 @@ namespace cse::help::window
     return true;
   }
 
+  bool active::can_move()
+  {
+    const char *driver{SDL_GetCurrentVideoDriver()};
+    if (!driver) throw sdl_exception("Could not get current video driver");
+    return SDL_strcmp(driver, "wayland") != 0;
+  }
+
   void active::handle_title_change()
   {
     if (!SDL_SetWindowTitle(instance, title.c_str())) throw sdl_exception("Could not set window title");
@@ -316,7 +323,7 @@ namespace cse::help::window
 
   void active::handle_move()
   {
-    if (fullscreen) return;
+    if (mode != WINDOWED) return;
     display = SDL_GetDisplayForWindow(instance);
     if (display == SDL_DisplayID{0}) throw sdl_exception("Could not get window display index");
     glm::ivec2 absolute{};
@@ -344,7 +351,7 @@ namespace cse::help::window
       auto relative{absolute_to_relative(absolute.x, absolute.y)};
       left = relative.x;
       top = relative.y;
-      if (!fullscreen)
+      if (mode == WINDOWED)
       {
         windowed_left = left;
         windowed_top = top;
@@ -356,7 +363,7 @@ namespace cse::help::window
     if (current_height <= 0) current_height = 1;
     width = static_cast<unsigned int>(current_width);
     height = static_cast<unsigned int>(current_height);
-    if (!fullscreen)
+    if (mode == WINDOWED)
     {
       windowed_width = width;
       windowed_height = height;
@@ -369,36 +376,36 @@ namespace cse::help::window
     shadow.height = height;
   }
 
-  void active::handle_manual_display_move(const SDL_DisplayID PRIMARY)
+  void active::handle_manual_display_move()
   {
     if (display == PRIMARY) display = SDL_GetPrimaryDisplay();
     auto absolute_center{calculate_display_center(width, height)};
     auto relative_center(absolute_to_relative(absolute_center.x, absolute_center.y));
     left = relative_center.x;
     top = relative_center.y;
-    if (!fullscreen)
+    if (mode == WINDOWED)
     {
       windowed_left = left;
       windowed_top = top;
     }
     auto absolute{relative_to_absolute(left, top)};
-    if (!SDL_SetWindowPosition(instance, absolute.x, absolute.y))
+    if (can_move() && !SDL_SetWindowPosition(instance, absolute.x, absolute.y))
       throw sdl_exception("Could not set window position centered on display {}", display);
   }
 
-  void active::handle_manual_move(const int CENTER)
+  void active::handle_manual_move()
   {
     auto absolute_center{calculate_display_center(width, height)};
     auto relative_center(absolute_to_relative(absolute_center.x, absolute_center.y));
-    left = left == CENTER ? relative_center.x : left;
-    top = top == CENTER ? relative_center.y : top;
-    if (!fullscreen)
+    left = left == ORIGIN ? relative_center.x : left;
+    top = top == ORIGIN ? relative_center.y : top;
+    if (mode == WINDOWED)
     {
       windowed_left = left;
       windowed_top = top;
     }
     auto absolute{relative_to_absolute(left, top)};
-    if (!SDL_SetWindowPosition(instance, absolute.x, absolute.y))
+    if (can_move() && !SDL_SetWindowPosition(instance, absolute.x, absolute.y))
       throw sdl_exception("Could not set window position to {}, {}", left, top);
     if (auto new_display = SDL_GetDisplayForWindow(instance); display != new_display)
     {
@@ -407,7 +414,7 @@ namespace cse::help::window
       auto relative{absolute_to_relative(absolute.x, absolute.y)};
       left = relative.x;
       top = relative.y;
-      if (!fullscreen)
+      if (mode == WINDOWED)
       {
         windowed_left = left;
         windowed_top = top;
@@ -417,7 +424,7 @@ namespace cse::help::window
 
   void active::handle_manual_resize(SDL_GPUDevice *device)
   {
-    if (!fullscreen)
+    if (mode == WINDOWED)
     {
       windowed_width = width;
       windowed_height = height;
@@ -434,7 +441,7 @@ namespace cse::help::window
       auto relative{absolute_to_relative(absolute.x, absolute.y)};
       left = relative.x;
       top = relative.y;
-      if (!fullscreen)
+      if (mode == WINDOWED)
       {
         windowed_left = left;
         windowed_top = top;
@@ -443,29 +450,35 @@ namespace cse::help::window
     generate_depth_texture(device);
   }
 
-  void active::handle_fullscreen()
+  void active::handle_mode()
   {
-    if (fullscreen)
+    switch (mode)
     {
-      SDL_Rect display_bounds{};
-      if (!SDL_GetDisplayBounds(display, &display_bounds))
-        throw sdl_exception("Could not get bounds for display {}", display);
-      if (!SDL_SetWindowBordered(instance, false)) throw sdl_exception("Could not set window borderless");
-      if (!SDL_SetWindowSize(instance, display_bounds.w, display_bounds.h))
-        throw sdl_exception("Could not set window size to {}, {} on display {}", display_bounds.w, display_bounds.h,
-                            display);
-      if (auto center{calculate_display_center(static_cast<unsigned int>(display_bounds.w),
-                                               static_cast<unsigned int>(display_bounds.h))};
-          !SDL_SetWindowPosition(instance, center.x, center.y))
-        throw sdl_exception("Could not set window position centered on display {}", display);
-      return;
+      case WINDOWED:
+      {
+        if (!SDL_SetWindowFullscreen(instance, false)) throw sdl_exception("Could not leave fullscreen");
+        if (!SDL_SetWindowSize(instance, static_cast<int>(windowed_width), static_cast<int>(windowed_height)))
+          throw sdl_exception("Could not set window size to {}, {}", windowed_width, windowed_height);
+        if (auto absolute{relative_to_absolute(windowed_left, windowed_top)};
+            can_move() && !SDL_SetWindowPosition(instance, absolute.x, absolute.y))
+          throw sdl_exception("Could not set window position to {}, {}", absolute.x, absolute.y);
+        break;
+      }
+      case BORDERLESS:
+        if (!SDL_SetWindowFullscreenMode(instance, nullptr))
+          throw sdl_exception("Could not set borderless fullscreen mode");
+        if (!SDL_SetWindowFullscreen(instance, true)) throw sdl_exception("Could not enter borderless fullscreen");
+        break;
+      case FULLSCREEN:
+      {
+        const SDL_DisplayMode *display_mode{SDL_GetDesktopDisplayMode(display)};
+        if (!display_mode) throw sdl_exception("Could not get desktop display mode for display {}", display);
+        if (!SDL_SetWindowFullscreenMode(instance, display_mode))
+          throw sdl_exception("Could not set exclusive fullscreen mode for display {}", display);
+        if (!SDL_SetWindowFullscreen(instance, true)) throw sdl_exception("Could not enter exclusive fullscreen");
+        break;
+      }
     }
-    if (!SDL_SetWindowBordered(instance, true)) throw sdl_exception("Could not set window bordered");
-    if (!SDL_SetWindowSize(instance, static_cast<int>(windowed_width), static_cast<int>(windowed_height)))
-      throw sdl_exception("Could not set window size to {}, {}", windowed_width, windowed_height);
-    auto absolute{relative_to_absolute(windowed_left, windowed_top)};
-    if (!SDL_SetWindowPosition(instance, absolute.x, absolute.y))
-      throw sdl_exception("Could not set window position to {}, {}", absolute.x, absolute.y);
   }
 
   void active::handle_vsync(SDL_GPUDevice *device)
@@ -507,10 +520,10 @@ namespace cse::help::window
 namespace cse
 {
   window::window(const initial &initial_)
-    : previous{initial_.title,  initial_.display,    initial_.left,  initial_.top,  initial_.width,
-               initial_.height, initial_.fullscreen, initial_.vsync, initial_.mouse},
-      active{initial_.title,  initial_.display,    initial_.left,  initial_.top,  initial_.width,
-             initial_.height, initial_.fullscreen, initial_.vsync, initial_.mouse}
+    : previous{initial_.title,  initial_.display, initial_.left,  initial_.top,  initial_.width,
+               initial_.height, initial_.mode,    initial_.vsync, initial_.mouse},
+      active{initial_.title,  initial_.display, initial_.left,  initial_.top,  initial_.width,
+             initial_.height, initial_.mode,    initial_.vsync, initial_.mouse}
   {
   }
 
@@ -527,7 +540,7 @@ namespace cse
   void window::create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution)
   {
     if (active.phase != help::phase::PREPARED) throw exception("Window must be prepared before creation");
-    active.create(device, aspect, resolution, PRIMARY, CENTER);
+    active.create(device, aspect, resolution);
     active.phase = help::phase::CREATED;
     on_create();
   }
@@ -569,7 +582,7 @@ namespace cse
   bool window::start_render(SDL_GPUDevice *device, const double aspect, const glm::dvec3 &clear, const double alpha)
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
-    active.reconcile(device, PRIMARY, CENTER);
+    active.reconcile(device);
     if (!active.acquire_swapchain_texture(device)) return false;
     pre_render(alpha);
     active.start_render_pass(aspect, clear);

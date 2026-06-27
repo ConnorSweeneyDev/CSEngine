@@ -14,6 +14,15 @@
 #include "mixer.hpp"
 #include "timer.hpp"
 
+inline constexpr SDL_DisplayID PRIMARY{1000000};
+inline constexpr int ORIGIN{2000000};
+enum mode
+{
+  WINDOWED,
+  BORDERLESS,
+  FULLSCREEN
+};
+
 namespace cse::help::window
 {
   struct previous
@@ -21,7 +30,7 @@ namespace cse::help::window
   public:
     previous() = default;
     previous(const std::string &title_, const SDL_DisplayID display_, const int left_, const int top_,
-             const unsigned int width_, const unsigned int height_, const bool fullscreen_, const bool vsync_,
+             const unsigned int width_, const unsigned int height_, const ::mode mode_, const bool vsync_,
              const cse::mouse::initial &mouse_);
     ~previous() = default;
     previous(const previous &) = delete;
@@ -36,7 +45,7 @@ namespace cse::help::window
     int top{};
     unsigned int width{};
     unsigned int height{};
-    bool fullscreen{};
+    ::mode mode{};
     bool vsync{};
 
     bool running{};
@@ -70,7 +79,7 @@ namespace cse::help::window
       int top{};
       unsigned int width{};
       unsigned int height{};
-      bool fullscreen{};
+      ::mode mode{};
       bool vsync{};
       cse::mouse mouse{};
     };
@@ -78,7 +87,7 @@ namespace cse::help::window
   public:
     active() = default;
     active(const std::string &title_, const SDL_DisplayID display_, const int left_, const int top_,
-           const unsigned int width_, const unsigned int height_, const bool fullscreen_, const bool vsync_,
+           const unsigned int width_, const unsigned int height_, const ::mode mode_, const bool vsync_,
            const cse::mouse::initial &mouse_);
     ~active() = default;
     active(const active &) = delete;
@@ -87,8 +96,7 @@ namespace cse::help::window
     active &operator=(active &&) = delete;
 
   private:
-    void create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution, const SDL_DisplayID PRIMARY,
-                const int CENTER);
+    void create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution);
     void synchronize(previous &last);
     void start_render_pass(const double aspect, const glm::dvec3 &clear);
     void end_render_pass();
@@ -99,16 +107,17 @@ namespace cse::help::window
     glm::dvec2 to_virtual(const double x, const double y, const double aspect, const unsigned int resolution);
     glm::dvec2 to_pixel(const double x, const double y, const double aspect, const unsigned int resolution);
 
-    void reconcile(SDL_GPUDevice *device, const SDL_DisplayID PRIMARY, const int CENTER);
+    void reconcile(SDL_GPUDevice *device);
     void generate_depth_texture(SDL_GPUDevice *device);
     bool acquire_swapchain_texture(SDL_GPUDevice *device);
+    bool can_move();
     void handle_title_change();
     void handle_move();
     void handle_resize(SDL_GPUDevice *device);
-    void handle_manual_display_move(const SDL_DisplayID PRIMARY);
-    void handle_manual_move(const int CENTER);
+    void handle_manual_display_move();
+    void handle_manual_move();
     void handle_manual_resize(SDL_GPUDevice *device);
-    void handle_fullscreen();
+    void handle_mode();
     void handle_vsync(SDL_GPUDevice *device);
     glm::ivec2 calculate_display_center(const unsigned int w, const unsigned int h);
     glm::ivec2 relative_to_absolute(const int x, const int y);
@@ -121,7 +130,7 @@ namespace cse::help::window
     int top{};
     unsigned int width{};
     unsigned int height{};
-    bool fullscreen{};
+    ::mode mode{};
     bool vsync{};
 
     bool running{};
@@ -162,7 +171,7 @@ namespace cse
       const int top{};
       const unsigned int width{};
       const unsigned int height{};
-      const bool fullscreen{};
+      const ::mode mode{};
       const bool vsync{};
       const cse::mouse::initial mouse{};
     };
@@ -201,9 +210,5 @@ namespace cse
     cse::game *game{};
     help::window::previous previous{};
     help::window::active active{};
-
-  protected:
-    static constexpr SDL_DisplayID PRIMARY{1000000};
-    static constexpr int CENTER{2000000};
   };
 }
