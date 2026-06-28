@@ -1045,6 +1045,7 @@ namespace cse::help::game
     rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
     rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
     rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+    rasterizer_state.enable_depth_clip = true;
     SDL_GPUColorTargetDescription opaque_color_target_description{};
     opaque_color_target_description.format = SDL_GetGPUSwapchainTextureFormat(device, window->active.instance);
     SDL_GPUDepthStencilState opaque_depth_stencil_state{};

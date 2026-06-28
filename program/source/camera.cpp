@@ -62,7 +62,7 @@ namespace cse::help::camera
   }
 
   glm::dmat4 active::calculate_projection_matrix(const previous &last, const double aspect, const double alpha)
-  { return glm::perspective(glm::radians(fov.interpolated(last.fov, alpha)), aspect, clip.near, clip.far); }
+  { return glm::perspectiveRH_ZO(glm::radians(fov.interpolated(last.fov, alpha)), aspect, clip.near, clip.far); }
 }
 
 namespace cse
