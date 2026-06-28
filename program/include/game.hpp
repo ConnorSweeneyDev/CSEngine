@@ -65,9 +65,9 @@ namespace cse::help::game
     temporal<double> aspect{};
     unsigned int resolution{};
     temporal<glm::dvec3> clear{};
-    temporal<double> master{0.5};
-    temporal<double> sound{0.5};
-    temporal<double> music{0.5};
+    temporal<double> master{};
+    temporal<double> sound{};
+    temporal<double> music{};
 
     std::shared_ptr<cse::window> window{};
     std::vector<std::shared_ptr<cse::scene>> scenes{};
@@ -93,35 +93,14 @@ namespace cse::help::game
     {
       SDL_GPUBuffer *vertex{};
       SDL_GPUBuffer *index{};
-      SDL_GPUSampler *sample{};
+      SDL_GPUSampler *nearest{};
+      SDL_GPUSampler *linear{};
     };
     struct pipeline
     {
       SDL_GPUGraphicsPipeline *opaque{};
       SDL_GPUGraphicsPipeline *transparent{};
       SDL_GPUGraphicsPipeline *interface{};
-    };
-    struct graphics_object
-    {
-      struct batch
-      {
-        std::size_t first{};
-        std::size_t count{};
-        SDL_GPUGraphicsPipeline *pipeline{};
-        SDL_GPUTexture *texture{};
-      };
-      struct sample
-      {
-        std::array<float, 16> model{};
-        float red{}, green{}, blue{}, alpha{};
-        float left{}, bottom{}, right{}, top{};
-        float transparency{};
-      };
-      std::vector<batch> batches{};
-      std::vector<sample> samples{};
-      std::size_t capacity{};
-      SDL_GPUBuffer *buffer{};
-      SDL_GPUTransferBuffer *transfer_buffer{};
     };
     struct graphics_interface
     {
@@ -144,6 +123,63 @@ namespace cse::help::game
       std::vector<cse::interface *> order{};
       std::map<const cse::interface *, label> labels{};
       std::uint64_t stamp{};
+    };
+    struct graphics_object
+    {
+      struct batch
+      {
+        std::size_t first{};
+        std::size_t count{};
+        SDL_GPUGraphicsPipeline *pipeline{};
+        SDL_GPUTexture *texture{};
+      };
+      struct sample
+      {
+        std::array<float, 16> model{};
+        float red{}, green{}, blue{}, alpha{};
+        float left{}, bottom{}, right{}, top{};
+        float lit{}, shadowed{}, brightness{}, transparency{};
+      };
+      std::vector<batch> batches{};
+      std::vector<sample> samples{};
+      std::size_t capacity{};
+      SDL_GPUBuffer *buffer{};
+      SDL_GPUTransferBuffer *transfer_buffer{};
+    };
+    struct graphics_light
+    {
+      struct header
+      {
+        std::array<float, 4> meta{};
+      };
+      struct entry
+      {
+        std::array<float, 4> position{};
+        std::array<float, 4> brightness{};
+        std::array<float, 4> direction{};
+        std::array<float, 4> cone{};
+      };
+      header data{};
+      std::vector<entry> samples{};
+      std::size_t capacity{};
+      SDL_GPUBuffer *buffer{};
+      SDL_GPUTransferBuffer *transfer_buffer{};
+    };
+    struct graphics_occluder
+    {
+      struct entry
+      {
+        std::array<float, 4> rectangle{};
+        std::array<float, 4> frame{};
+        std::array<float, 4> data{};
+      };
+      std::vector<entry> samples{};
+      std::size_t capacity{};
+      SDL_GPUBuffer *buffer{};
+      SDL_GPUTransferBuffer *transfer_buffer{};
+      SDL_GPUTexture *texture{};
+      unsigned int width{}, height{}, layers{};
+      std::vector<const unsigned char *> signature{};
     };
     struct graphics_cache
     {
@@ -217,8 +253,10 @@ namespace cse::help::game
     void hover();
 
     void generate_graphics_order();
-    void generate_object_samples_and_batches(const std::vector<cse::object *> &object_order);
-    void generate_interface_samples_and_batches();
+    void generate_interfaces();
+    void generate_objects(const std::vector<cse::object *> &object_order);
+    void generate_lights(const std::vector<cse::light *> &light_order);
+    void generate_occluders(const std::vector<cse::object *> &object_order);
     void upload_samples();
     void draw_batches(const std::pair<glm::dmat4, glm::dmat4> &matrices);
     pipeline &require_pipelines(const cse::vertex &vertex, const cse::fragment &fragment);
@@ -239,9 +277,9 @@ namespace cse::help::game
     temporal<double> aspect{};
     unsigned int resolution{};
     temporal<glm::dvec3> clear{};
-    temporal<double> master{0.5};
-    temporal<double> sound{0.5};
-    temporal<double> music{0.5};
+    temporal<double> master{};
+    temporal<double> sound{};
+    temporal<double> music{};
 
     std::shared_ptr<cse::window> window{};
     std::vector<std::shared_ptr<cse::scene>> scenes{};
@@ -265,8 +303,10 @@ namespace cse::help::game
     SDL_GPUDevice *device{};
     active::graphics_buffer graphics_buffer{};
     active::graphics_cache graphics_cache{};
-    active::graphics_object graphics_object{};
     active::graphics_interface graphics_interface{};
+    active::graphics_object graphics_object{};
+    active::graphics_light graphics_light{};
+    active::graphics_occluder graphics_occluder{};
 
     int frequency{};
     MIX_Mixer *audio_handle{};
@@ -296,14 +336,14 @@ namespace cse
   protected:
     struct initial
     {
-      const double tick{};
-      const double frame{};
-      const temporal<double> aspect{};
-      const unsigned int resolution{};
+      const double tick{100.0};
+      const double frame{60.0};
+      const temporal<double> aspect{16.0 / 9.0};
+      const unsigned int resolution{240};
       const temporal<glm::dvec3> clear{};
-      const temporal<double> master{};
-      const temporal<double> sound{};
-      const temporal<double> music{};
+      const temporal<double> master{0.5};
+      const temporal<double> sound{0.5};
+      const temporal<double> music{0.5};
     };
 
   public:

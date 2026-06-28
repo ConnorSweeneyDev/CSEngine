@@ -7,7 +7,6 @@
 #include <utility>
 
 #include "glm/ext/vector_double2.hpp"
-#include "glm/ext/vector_double4.hpp"
 
 #include "collision.hpp"
 #include "numeric.hpp"
@@ -94,8 +93,8 @@ namespace cse
   struct playback
   {
     std::size_t frame{};
-    temporal<double> speed{};
-    bool loop{};
+    temporal<double> speed{1.0};
+    bool loop{true};
     double elapsed{};
   };
   struct flip
@@ -103,8 +102,6 @@ namespace cse
     bool horizontal{};
     bool vertical{};
   };
-  using color = glm::dvec4;
-  using transparency = double;
 
   struct sound
   {

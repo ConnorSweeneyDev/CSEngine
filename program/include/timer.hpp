@@ -18,6 +18,7 @@ namespace cse::help
     friend class cse::scene;
     friend class cse::camera;
     friend class cse::object;
+    friend class cse::light;
     friend class cse::interface;
 
   public:

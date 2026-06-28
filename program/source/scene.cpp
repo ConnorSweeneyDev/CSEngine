@@ -20,6 +20,7 @@
 #include "exception.hpp"
 #include "game.hpp"
 #include "interface.hpp"
+#include "light.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
 #include "object.hpp"
@@ -39,8 +40,9 @@ namespace cse::help::scene
   void active::synchronize(previous &last)
   {
     last.camera = camera;
-    last.objects = objects;
     last.interfaces = interfaces;
+    last.objects = objects;
+    last.lights = lights;
     last.contacts = contacts;
     last.timer = timer;
     last.mixer = mixer;
@@ -61,13 +63,25 @@ namespace cse::help::scene
   void active::render(game::active &game_active, const double aspect, const double alpha)
   {
     generate_graphics_order(alpha);
-    game_active.generate_object_samples_and_batches(object_graphics_order);
-    game_active.upload_samples();
+    game_active.generate_objects(object_graphics_order);
+    game_active.generate_lights(light_graphics_order);
+    game_active.generate_occluders(object_graphics_order);
     game_active.draw_batches(camera->render(aspect, alpha));
   }
 
   void active::generate_simulation_order()
   {
+    interface_simulation_order.clear();
+    for (interface_simulation_order.reserve(interfaces.size()); const auto &interface : interfaces)
+      interface_simulation_order.emplace_back(interface.get());
+    std::sort(interface_simulation_order.begin(), interface_simulation_order.end(),
+              [](const cse::interface *left, const cse::interface *right)
+              {
+                if (left->active.priority.simulation != right->active.priority.simulation)
+                  return left->active.priority.simulation > right->active.priority.simulation;
+                return left->name.identifier() < right->name.identifier();
+              });
+
     object_simulation_order.clear();
     for (object_simulation_order.reserve(objects.size()); const auto &object : objects)
       object_simulation_order.emplace_back(object.get());
@@ -79,14 +93,14 @@ namespace cse::help::scene
                 return left->name.identifier() < right->name.identifier();
               });
 
-    interface_simulation_order.clear();
-    for (interface_simulation_order.reserve(interfaces.size()); const auto &interface : interfaces)
-      interface_simulation_order.emplace_back(interface.get());
-    std::sort(interface_simulation_order.begin(), interface_simulation_order.end(),
-              [](const cse::interface *left, const cse::interface *right)
+    light_simulation_order.clear();
+    for (light_simulation_order.reserve(lights.size()); const auto &light : lights)
+      light_simulation_order.emplace_back(light.get());
+    std::sort(light_simulation_order.begin(), light_simulation_order.end(),
+              [](const cse::light *left, const cse::light *right)
               {
-                if (left->active.priority.simulation != right->active.priority.simulation)
-                  return left->active.priority.simulation > right->active.priority.simulation;
+                if (left->active.priority != right->active.priority)
+                  return left->active.priority > right->active.priority;
                 return left->name.identifier() < right->name.identifier();
               });
   }
@@ -225,6 +239,13 @@ namespace cse::help::scene
         if (left_batch != right_batch) return left_batch < right_batch;
         return left->name.identifier() < right->name.identifier();
       });
+
+    light_graphics_order.clear();
+    for (light_graphics_order.reserve(lights.size()); const auto &light : lights)
+      light_graphics_order.emplace_back(light.get());
+    std::sort(light_graphics_order.begin(), light_graphics_order.end(),
+              [](const cse::light *left, const cse::light *right)
+              { return left->name.identifier() < right->name.identifier(); });
   }
 }
 
@@ -238,9 +259,10 @@ namespace cse
       throw exception("Scene '{}' must be cleaned before preparation", name.string());
     pre_prepare();
     if (!active.camera) throw exception("Scene '{}' must have a camera to be prepared", name.string());
+    for (const auto &interface : active.interfaces) interface->prepare();
     active.camera->prepare();
     for (const auto &object : active.objects) object->prepare();
-    for (const auto &interface : active.interfaces) interface->prepare();
+    for (const auto &light : active.lights) light->prepare();
     active.phase = help::phase::PREPARED;
     post_prepare();
   }
@@ -252,9 +274,10 @@ namespace cse
     if (active.phase != help::phase::PREPARED)
       throw exception("Scene '{}' must be prepared before creation", name.string());
     pre_create();
+    for (const auto &interface : active.interfaces) interface->create();
     active.camera->create();
     for (const auto &object : active.objects) object->create();
-    for (const auto &interface : active.interfaces) interface->create();
+    for (const auto &light : active.lights) light->create();
     active.phase = help::phase::CREATED;
     post_create();
   }
@@ -278,6 +301,29 @@ namespace cse
       next.camera.reset();
     }
     active.camera->synchronize();
+    if (!active.interface_removals.empty())
+    {
+      for (const auto &interface_name : active.interface_removals)
+        if (auto iterator{try_iterate(active.interfaces, interface_name)}; iterator != active.interfaces.end())
+        {
+          const auto &interface{*iterator};
+          if (interface->active.phase == help::phase::CREATED) interface->destroy();
+          interface->clean();
+          active.interfaces.erase(iterator);
+        }
+      active.interface_removals.clear();
+    }
+    if (!active.interface_additions.empty())
+    {
+      for (auto &interface : active.interface_additions)
+      {
+        set_or_add(active.interfaces, interface);
+        interface->prepare();
+        interface->create();
+      }
+      active.interface_additions.clear();
+    }
+    for (const auto &interface : active.interfaces) interface->synchronize();
     if (!active.object_removals.empty())
     {
       for (const auto &object_name : active.object_removals)
@@ -301,30 +347,30 @@ namespace cse
       active.object_additions.clear();
     }
     for (const auto &object : active.objects) object->synchronize();
-    if (!active.interface_removals.empty())
+    if (!active.light_removals.empty())
     {
-      for (const auto &interface_name : active.interface_removals)
-        if (auto iterator{try_iterate(active.interfaces, interface_name)}; iterator != active.interfaces.end())
+      for (const auto &light_name : active.light_removals)
+        if (auto iterator{try_iterate(active.lights, light_name)}; iterator != active.lights.end())
         {
-          const auto &interface{*iterator};
-          if (interface->active.phase == help::phase::CREATED) interface->destroy();
-          interface->clean();
-          active.interfaces.erase(iterator);
+          const auto &light{*iterator};
+          if (light->active.phase == help::phase::CREATED) light->destroy();
+          light->clean();
+          active.lights.erase(iterator);
         }
-      active.interface_removals.clear();
+      active.light_removals.clear();
     }
-    if (!active.interface_additions.empty())
+    if (!active.light_additions.empty())
     {
-      for (auto &interface : active.interface_additions)
+      for (auto &light : active.light_additions)
       {
-        set_or_add(active.interfaces, interface);
-        interface->prepare();
-        interface->create();
+        set_or_add(active.lights, light);
+        light->prepare();
+        light->create();
       }
-      active.interface_additions.clear();
+      active.light_additions.clear();
     }
+    for (const auto &light : active.lights) light->synchronize();
     active.generate_simulation_order();
-    for (const auto &interface : active.interfaces) interface->synchronize();
     post_synchronize();
   }
 
@@ -335,9 +381,10 @@ namespace cse
     if (active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before processing events", name.string());
     pre_event(event);
+    for (const auto &interface : active.interface_simulation_order) interface->event(event);
     active.camera->event(event);
     for (const auto &object : active.object_simulation_order) object->event(event);
-    for (const auto &interface : active.interface_simulation_order) interface->event(event);
+    for (const auto &light : active.light_simulation_order) light->event(event);
     post_event(event);
   }
 
@@ -349,9 +396,10 @@ namespace cse
       throw exception("Scene '{}' must be created before simulation", name.string());
     pre_simulate(tick);
     active.timer.update(tick);
+    for (const auto &interface : active.interface_simulation_order) interface->simulate(tick);
     active.camera->simulate(tick);
     for (const auto &object : active.object_simulation_order) object->simulate(tick);
-    for (const auto &interface : active.interface_simulation_order) interface->simulate(tick);
+    for (const auto &light : active.light_simulation_order) light->simulate(tick);
     post_simulate(tick);
   }
 
@@ -384,9 +432,10 @@ namespace cse
     if (active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before destruction", name.string());
     pre_destroy();
-    for (const auto &interface : active.interface_simulation_order) interface->destroy();
+    for (const auto &light : active.light_simulation_order) light->destroy();
     for (const auto &object : active.object_simulation_order) object->destroy();
     active.camera->destroy();
+    for (const auto &interface : active.interface_simulation_order) interface->destroy();
     active.phase = help::phase::PREPARED;
     post_destroy();
   }
@@ -398,9 +447,10 @@ namespace cse
     if (active.phase != help::phase::PREPARED)
       throw exception("Scene '{}' must be prepared before cleaning", name.string());
     pre_clean();
-    for (const auto &interface : active.interface_simulation_order) interface->clean();
+    for (const auto &light : active.light_simulation_order) light->clean();
     for (const auto &object : active.object_simulation_order) object->clean();
     active.camera->clean();
+    for (const auto &interface : active.interface_simulation_order) interface->clean();
     active.phase = help::phase::CLEANED;
     post_clean();
   }

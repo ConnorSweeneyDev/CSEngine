@@ -10,6 +10,7 @@
 #include "core.hpp"
 #include "exception.hpp"
 #include "interface.hpp"
+#include "light.hpp"
 #include "name.hpp"
 #include "object.hpp"
 
@@ -32,28 +33,6 @@ namespace cse
         camera->prepare();
         break;
       case help::phase::CREATED: next.camera = camera; break;
-    }
-    return *this;
-  }
-
-  template <trait::is_object object_type, typename... object_arguments>
-  scene &scene::set(const cse::name object_name, object_arguments &&...arguments)
-  {
-    auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
-    object->name = object_name;
-    object->scene = this;
-    switch (active.phase)
-    {
-      case help::phase::CLEANED: set_or_add(active.objects, object); break;
-      case help::phase::PREPARED:
-        if (auto existing{try_find(active.objects, object_name)}) existing->clean();
-        set_or_add(active.objects, object);
-        object->prepare();
-        break;
-      case help::phase::CREATED:
-        if (try_contains(active.objects, object_name)) active.object_removals.insert(object_name);
-        set_or_add(active.object_additions, object);
-        break;
     }
     return *this;
   }
@@ -83,10 +62,66 @@ namespace cse
     return *this;
   }
 
+  template <trait::is_object object_type, typename... object_arguments>
+  scene &scene::set(const cse::name object_name, object_arguments &&...arguments)
+  {
+    auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
+    object->name = object_name;
+    object->scene = this;
+    switch (active.phase)
+    {
+      case help::phase::CLEANED: set_or_add(active.objects, object); break;
+      case help::phase::PREPARED:
+        if (auto existing{try_find(active.objects, object_name)}) existing->clean();
+        set_or_add(active.objects, object);
+        object->prepare();
+        break;
+      case help::phase::CREATED:
+        if (try_contains(active.objects, object_name)) active.object_removals.insert(object_name);
+        set_or_add(active.object_additions, object);
+        break;
+    }
+    return *this;
+  }
+
+  template <trait::is_light light_type, typename... light_arguments>
+  scene &scene::set(const cse::name light_name, light_arguments &&...arguments)
+  {
+    auto light{std::make_shared<light_type>(std::forward<light_arguments>(arguments)...)};
+    light->name = light_name;
+    light->scene = this;
+    switch (active.phase)
+    {
+      case help::phase::CLEANED: set_or_add(active.lights, light); break;
+      case help::phase::PREPARED:
+        if (auto existing{try_find(active.lights, light_name)}) existing->clean();
+        set_or_add(active.lights, light);
+        light->prepare();
+        break;
+      case help::phase::CREATED:
+        if (try_contains(active.lights, light_name)) active.light_removals.insert(light_name);
+        set_or_add(active.light_additions, light);
+        break;
+    }
+    return *this;
+  }
+
   template <typename target_type>
-    requires(std::is_void_v<target_type> || trait::is_object<target_type> || trait::is_interface<target_type>)
+    requires(std::is_void_v<target_type> || trait::is_object<target_type> || trait::is_light<target_type> ||
+             trait::is_interface<target_type>)
   scene &scene::remove(const cse::name target_name)
   {
+    if constexpr (std::is_void_v<target_type> || trait::is_interface<target_type>)
+      if (auto iterator{try_iterate(active.interfaces, target_name)}; iterator != active.interfaces.end())
+      {
+        if (auto &interface{*iterator}; active.phase == help::phase::CREATED)
+          active.interface_removals.insert(target_name);
+        else
+        {
+          if (interface->active.phase == help::phase::PREPARED) interface->clean();
+          active.interfaces.erase(iterator);
+        }
+      }
     if constexpr (std::is_void_v<target_type> || trait::is_object<target_type>)
       if (auto iterator{try_iterate(active.objects, target_name)}; iterator != active.objects.end())
       {
@@ -99,16 +134,17 @@ namespace cse
         }
         return *this;
       }
-    if constexpr (std::is_void_v<target_type> || trait::is_interface<target_type>)
-      if (auto iterator{try_iterate(active.interfaces, target_name)}; iterator != active.interfaces.end())
+    if constexpr (std::is_void_v<target_type> || trait::is_light<target_type>)
+      if (auto iterator{try_iterate(active.lights, target_name)}; iterator != active.lights.end())
       {
-        if (auto &interface{*iterator}; active.phase == help::phase::CREATED)
-          active.interface_removals.insert(target_name);
+        if (auto &light{*iterator}; active.phase == help::phase::CREATED)
+          active.light_removals.insert(target_name);
         else
         {
-          if (interface->active.phase == help::phase::PREPARED) interface->clean();
-          active.interfaces.erase(iterator);
+          if (light->active.phase == help::phase::PREPARED) light->clean();
+          active.lights.erase(iterator);
         }
+        return *this;
       }
     return *this;
   }

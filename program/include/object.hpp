@@ -4,6 +4,7 @@
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
+#include "glm/ext/vector_double4.hpp"
 
 #include "core.hpp"
 #include "mixer.hpp"
@@ -14,11 +15,6 @@
 
 namespace cse::help::object
 {
-  struct priority
-  {
-    int simulation{};
-    int rendering{};
-  };
   struct shader
   {
     cse::vertex vertex{};
@@ -30,8 +26,25 @@ namespace cse::help::object
     cse::animation animation{};
     cse::playback playback{};
     cse::flip flip{};
-    temporal<cse::color> color{};
-    temporal<cse::transparency> transparency{};
+    temporal<glm::dvec4> color{{1.0, 1.0, 1.0, 1.0}};
+    temporal<double> transparency{1.0};
+  };
+  struct illumination
+  {
+    bool show{true};
+    temporal<double> brightness{1.0};
+  };
+  struct shadow
+  {
+    bool cast{true};
+    bool show{true};
+    temporal<double> darkness{1.0};
+    temporal<double> softness{};
+  };
+  struct priority
+  {
+    int simulation{};
+    int rendering{};
   };
 
   struct previous
@@ -40,7 +53,8 @@ namespace cse::help::object
     previous() = default;
     previous(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
              const temporal<glm::dvec2> &scale_, const bool collidable_, const object::shader &shader_,
-             const object::texture &texture_, const object::priority &priority_);
+             const object::texture &texture_, const object::illumination &illumination_, const object::shadow &shadow_,
+             const object::priority &priority_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;
@@ -54,6 +68,8 @@ namespace cse::help::object
     bool collidable{};
     object::shader shader{};
     object::texture texture{};
+    object::illumination illumination{};
+    object::shadow shadow{};
     object::priority priority{};
 
     help::timer timer{};
@@ -71,7 +87,8 @@ namespace cse::help::object
     active() = default;
     active(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
            const temporal<glm::dvec2> &scale_, const bool collidable_, const object::shader &shader_,
-           const object::texture &texture_, const object::priority &priority_);
+           const object::texture &texture_, const object::illumination &illumination_, const object::shadow &shadow_,
+           const object::priority &priority_);
     ~active() = default;
     active(const active &) = delete;
     active &operator=(const active &) = delete;
@@ -92,6 +109,8 @@ namespace cse::help::object
     bool collidable{};
     object::shader shader{};
     object::texture texture{};
+    object::illumination illumination{};
+    object::shadow shadow{};
     object::priority priority{};
 
     help::timer timer{};
@@ -111,10 +130,12 @@ namespace cse
     {
       const temporal<glm::dvec3> translation{};
       const temporal<double> rotation{};
-      const temporal<glm::dvec2> scale{};
-      const bool collidable{};
+      const temporal<glm::dvec2> scale{{1.0, 1.0}};
+      const bool collidable{true};
       const help::object::shader shader{};
       const help::object::texture texture{};
+      const help::object::illumination illumination{};
+      const help::object::shadow shadow{};
       const help::object::priority priority{};
     };
 

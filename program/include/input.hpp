@@ -14,10 +14,10 @@ namespace cse
   {
     struct initial
     {
-      const bool visible{};
+      const bool visible{true};
       const glm::dvec2 position{};
     };
-    bool visible{};
+    bool visible{true};
     glm::dvec2 position{};
     std::array<bool, SDL_BUTTON_X2 + 1> buttons{};
     glm::dvec2 wheel{};

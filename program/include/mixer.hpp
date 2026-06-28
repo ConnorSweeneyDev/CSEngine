@@ -18,6 +18,7 @@ namespace cse::help
     friend struct scene::active;
     friend struct camera::active;
     friend struct object::active;
+    friend struct light::active;
     friend struct interface::active;
 
   public:

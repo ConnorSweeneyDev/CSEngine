@@ -30,8 +30,9 @@ namespace cse::help::scene
 
   public:
     std::shared_ptr<cse::camera> camera{};
-    std::vector<std::shared_ptr<cse::object>> objects{};
     std::vector<std::shared_ptr<cse::interface>> interfaces{};
+    std::vector<std::shared_ptr<cse::object>> objects{};
+    std::vector<std::shared_ptr<cse::light>> lights{};
     std::vector<contact> contacts{};
     help::timer timer{};
     help::mixer mixer{};
@@ -79,22 +80,27 @@ namespace cse::help::scene
 
   public:
     std::shared_ptr<cse::camera> camera{};
-    std::vector<std::shared_ptr<cse::object>> objects{};
     std::vector<std::shared_ptr<cse::interface>> interfaces{};
+    std::vector<std::shared_ptr<cse::object>> objects{};
+    std::vector<std::shared_ptr<cse::light>> lights{};
     std::vector<contact> contacts{};
     help::timer timer{};
     help::mixer mixer{};
     help::phase phase{};
 
   private:
-    std::unordered_set<cse::name> object_removals{};
-    std::vector<std::shared_ptr<cse::object>> object_additions{};
-    std::vector<cse::object *> object_simulation_order{};
     std::unordered_set<cse::name> interface_removals{};
     std::vector<std::shared_ptr<cse::interface>> interface_additions{};
     std::vector<cse::interface *> interface_simulation_order{};
+    std::unordered_set<cse::name> object_removals{};
+    std::vector<std::shared_ptr<cse::object>> object_additions{};
+    std::vector<cse::object *> object_simulation_order{};
+    std::unordered_set<cse::name> light_removals{};
+    std::vector<std::shared_ptr<cse::light>> light_additions{};
+    std::vector<cse::light *> light_simulation_order{};
 
     std::vector<cse::object *> object_graphics_order{};
+    std::vector<cse::light *> light_graphics_order{};
   };
 
   struct next
@@ -123,12 +129,15 @@ namespace cse
     scene &operator=(scene &&) = delete;
 
     template <trait::is_camera camera_type, typename... camera_arguments> scene &set(camera_arguments &&...arguments);
-    template <trait::is_object object_type, typename... object_arguments>
-    scene &set(const cse::name object_name, object_arguments &&...arguments);
     template <trait::is_interface interface_type, typename... interface_arguments>
     scene &set(const cse::name interface_name, interface_arguments &&...arguments);
+    template <trait::is_object object_type, typename... object_arguments>
+    scene &set(const cse::name object_name, object_arguments &&...arguments);
+    template <trait::is_light light_type, typename... light_arguments>
+    scene &set(const cse::name light_name, light_arguments &&...arguments);
     template <typename target_type = void>
-      requires(std::is_void_v<target_type> || trait::is_object<target_type> || trait::is_interface<target_type>)
+      requires(std::is_void_v<target_type> || trait::is_object<target_type> || trait::is_light<target_type> ||
+               trait::is_interface<target_type>)
     scene &remove(const cse::name target_name);
 
   protected:

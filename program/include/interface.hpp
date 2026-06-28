@@ -8,6 +8,7 @@
 #include "SDL3/SDL_mouse.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
+#include "glm/ext/vector_double4.hpp"
 
 #include "collision.hpp"
 #include "core.hpp"
@@ -19,17 +20,6 @@
 
 namespace cse::help::interface
 {
-  struct priority
-  {
-    int simulation{};
-    int rendering{};
-  };
-  struct target
-  {
-    cse::hitbox hovered{};
-    std::array<cse::hitbox, SDL_BUTTON_X2 + 1> pressed{};
-    std::array<cse::hitbox, SDL_BUTTON_X2 + 1> clicked{};
-  };
   struct shader
   {
     cse::vertex vertex{};
@@ -41,20 +31,31 @@ namespace cse::help::interface
     cse::animation animation{};
     cse::playback playback{};
     cse::flip flip{};
-    temporal<cse::color> color{};
-    temporal<cse::transparency> transparency{};
+    temporal<glm::dvec4> color{{1.0, 1.0, 1.0, 1.0}};
+    temporal<double> transparency{1.0};
   };
   struct text
   {
     std::string content{};
     cse::font font{};
-    unsigned int size{};
+    unsigned int size{12};
     cse::style style{};
-    temporal<cse::color> color{};
+    temporal<glm::dvec4> color{{1.0, 1.0, 1.0, 1.0}};
     cse::align align{};
     double spacing{};
     bool wrap{};
     bool overflow{};
+  };
+  struct priority
+  {
+    int simulation{};
+    int rendering{};
+  };
+  struct target
+  {
+    cse::hitbox hovered{};
+    std::array<cse::hitbox, SDL_BUTTON_X2 + 1> pressed{};
+    std::array<cse::hitbox, SDL_BUTTON_X2 + 1> clicked{};
   };
 
   struct previous
@@ -142,8 +143,8 @@ namespace cse
     {
       const temporal<glm::dvec2> translation{};
       const temporal<double> rotation{};
-      const temporal<glm::dvec2> scale{};
-      const bool interactable{};
+      const temporal<glm::dvec2> scale{{1.0, 1.0}};
+      const bool interactable{true};
       const help::interface::shader shader{};
       const help::interface::texture texture{};
       const help::interface::text text{};

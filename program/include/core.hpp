@@ -7,9 +7,10 @@ namespace cse
   class game;
   class window;
   class scene;
+  class interface;
   class camera;
   class object;
-  class interface;
+  class light;
 }
 
 namespace cse::help
@@ -37,6 +38,11 @@ namespace cse::help
     struct active;
     struct next;
   }
+  namespace interface
+  {
+    struct previous;
+    struct active;
+  }
   namespace camera
   {
     struct previous;
@@ -47,7 +53,7 @@ namespace cse::help
     struct previous;
     struct active;
   }
-  namespace interface
+  namespace light
   {
     struct previous;
     struct active;
@@ -63,9 +69,11 @@ namespace cse::trait
   template <typename type>
   concept is_scene = std::is_base_of_v<scene, type>;
   template <typename type>
+  concept is_interface = std::is_base_of_v<interface, type>;
+  template <typename type>
   concept is_camera = std::is_base_of_v<camera, type>;
   template <typename type>
   concept is_object = std::is_base_of_v<object, type>;
   template <typename type>
-  concept is_interface = std::is_base_of_v<interface, type>;
+  concept is_light = std::is_base_of_v<light, type>;
 }

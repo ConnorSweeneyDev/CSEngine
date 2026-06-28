@@ -165,13 +165,13 @@ namespace cse
   protected:
     struct initial
     {
-      const std::string title{};
-      const SDL_DisplayID display{};
-      const int left{};
-      const int top{};
-      const unsigned int width{};
-      const unsigned int height{};
-      const ::mode mode{};
+      const std::string title{"CSEngine"};
+      const SDL_DisplayID display{PRIMARY};
+      const int left{ORIGIN};
+      const int top{ORIGIN};
+      const unsigned int width{1280};
+      const unsigned int height{720};
+      const ::mode mode{WINDOWED};
       const bool vsync{};
       const cse::mouse::initial mouse{};
     };
