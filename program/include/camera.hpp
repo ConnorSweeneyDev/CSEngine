@@ -15,8 +15,8 @@ namespace cse::help::camera
 {
   struct clip
   {
-    double near{0.01};
-    double far{100.0};
+    double near{};
+    double far{1000.0};
   };
 
   struct previous

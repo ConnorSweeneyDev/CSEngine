@@ -62,7 +62,11 @@ namespace cse::help::camera
   }
 
   glm::dmat4 active::calculate_projection_matrix(const previous &last, const double aspect, const double alpha)
-  { return glm::perspectiveRH_ZO(glm::radians(fov.interpolated(last.fov, alpha)), aspect, clip.near, clip.far); }
+  {
+    if (clip.near < 0.0 || clip.far < 0.0 || clip.far < clip.near)
+      throw exception("Invalid clip values ({}, {}) for camera", clip.near, clip.far);
+    return glm::perspectiveRH_ZO(glm::radians(fov.interpolated(last.fov, alpha)), aspect, clip.near, clip.far);
+  }
 }
 
 namespace cse
