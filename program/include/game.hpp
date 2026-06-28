@@ -139,6 +139,7 @@ namespace cse::help::game
         float red{}, green{}, blue{}, alpha{};
         float left{}, bottom{}, right{}, top{};
         float lit{}, shadowed{}, brightness{}, transparency{};
+        float depth{};
       };
       std::vector<batch> batches{};
       std::vector<sample> samples{};

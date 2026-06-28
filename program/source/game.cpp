@@ -622,6 +622,9 @@ namespace cse::help::game
     graphics_object.samples.clear();
     graphics_object.batches.clear();
     graphics_object.samples.reserve(object_order.size());
+    static constexpr double depth_bias_span{0.001};
+    const auto object_count{static_cast<double>(object_order.size())};
+    const double depth_bias_step{object_order.empty() ? 0.0 : depth_bias_span / object_count};
     for (auto *element : object_order)
     {
       auto &current{element->active.texture.playback.frame};
@@ -643,14 +646,15 @@ namespace cse::help::game
       data.blue = color.b;
       data.alpha = color.a;
       data.left = static_cast<float>(flip.horizontal ? coordinates.right : coordinates.left);
+      data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
       data.right = static_cast<float>(flip.horizontal ? coordinates.left : coordinates.right);
       data.top = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
-      data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
-      data.transparency = static_cast<float>(transparency);
       data.lit = element->active.illumination.show ? 1.0f : 0.0f;
+      data.shadowed = element->active.shadow.show ? 1.0f : 0.0f;
       data.brightness = static_cast<float>(
         element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha));
-      data.shadowed = element->active.shadow.show ? 1.0f : 0.0f;
+      data.transparency = static_cast<float>(transparency);
+      data.depth = static_cast<float>(static_cast<double>(graphics_object.samples.size()) * depth_bias_step);
       auto &available{require_pipelines(element->active.shader.vertex, element->active.shader.fragment)};
       auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
       auto *texture{require_texture(element->active.texture.image)};
@@ -1027,7 +1031,7 @@ namespace cse::help::game
         .pitch = sizeof(graphics_object::sample),
         .input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
         .instance_step_rate = 0}}};
-    const std::array<SDL_GPUVertexAttribute, 9> vertex_attributes{
+    const std::array<SDL_GPUVertexAttribute, 10> vertex_attributes{
       {{0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(corner, x)},
        {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(corner, u)},
        {2, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model)},
@@ -1036,11 +1040,12 @@ namespace cse::help::game
        {5, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 12},
        {6, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, red)},
        {7, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, left)},
-       {8, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, lit)}}};
+       {8, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, lit)},
+       {9, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, offsetof(graphics_object::sample, depth)}}};
     SDL_GPUVertexInputState vertex_input_state{.vertex_buffer_descriptions = vertex_buffer_descriptions.data(),
                                                .num_vertex_buffers = 2,
                                                .vertex_attributes = vertex_attributes.data(),
-                                               .num_vertex_attributes = 9};
+                                               .num_vertex_attributes = 10};
     SDL_GPURasterizerState rasterizer_state{};
     rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
     rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
