@@ -60,9 +60,10 @@ should do the following:
 
 1. **Includes and Library Paths.** All library headers will be copied into `build/include`, and all libraries will be
    copied into `build/[release|debug]`. It is your job to include the headers and link the libraries.
-2. **Compiling Shaders to SPIR-V.** HLSL needs to be compiled (e.g. with dxc: `dxc -spirv -T [vs_6_0|ps_6_0] -E main`)
+2. **Required Compilation Flags.** On MSVC, compile with at least `/std:c++20`, and `/bigobj`, `/Zc:preprocessor`.
+3. **Compiling Shaders to SPIR-V.** HLSL needs to be compiled (e.g. with dxc: `dxc -spirv -T [vs_6_0|ps_6_0] -E main`)
    into `.spv`. Each shader's entry point is `main`.
-3. **Packing & Embedding Assets.** Compiled shaders, fonts, `.aseprite` textures, `.wav` and `.opus` audio are packed
+4. **Packing & Embedding Assets.** Compiled shaders, fonts, `.aseprite` textures, `.wav` and `.opus` audio are packed
    into `.csp` containers (via [CSPack](https://github.com/ConnorSweeneyDev/CSPack)) and a `resource.hpp`/`resource.cpp`
    pair is generated that exposes every asset as a typed C++ symbol in your namespace - the header should be in this
    form:
@@ -367,27 +368,28 @@ temporal.
 
 ### Persistent settings (state)
 A `state` is a JSON-backed settings blob saved under the OS user-data directory. Declare fields with the `ENLIST` macro
-(it builds a plain struct *and* its JSON serializers in one place — add as many fields as you like), expose them with
-`FIELD`, and call `read()`/`write()`:
+(it builds a plain struct *and* its JSON serializers in one place — pass each field as a `(name, type, init)` tuple, add
+as many as you like), expose them with `FIELD`, and call `read()`/`write()`:
 
 ```cpp
 class settings final : public cse::state
 {
 private:
-#define WINDOW(X)                                               \
-  X(display, SDL_DisplayID, {PRIMARY})                          \
-  X(position, (std::pair<int, int>), {ORIGIN, ORIGIN})          \
-  X(size, (std::pair<unsigned int, unsigned int>), {1280, 720}) \
-  X(mode, ::mode, {WINDOWED})                                   \
-  X(vsync, bool, {true})
-  ENLIST(window, WINDOW);
-#undef WINDOW
+  ENLIST(window,
+         (display, SDL_DisplayID, {PRIMARY}),
+         (position, (std::pair<int, int>), {ORIGIN, ORIGIN}),
+         (size, (std::pair<unsigned int, unsigned int>), {1280, 720}),
+         (mode, ::mode, {WINDOWED}),
+         (vsync, bool, {true}));
 
 public:
   settings() : cse::state("CSGame/settings") {}
   FIELD(settings::window, window, {});
 };
 ```
+
+Wrap any field whose `type` or `init` contains a top-level comma in parentheses (as `position` and `size` do above) so
+the preprocessor reads the tuple correctly. `ENLIST` supports a few hundred fields per struct.
 
 Then load and save whenever you want:
 

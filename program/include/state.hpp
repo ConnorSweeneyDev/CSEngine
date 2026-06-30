@@ -83,16 +83,29 @@ namespace cse
 #define CSE_DEPAREN_ESCAPE_(...) CSE_DEPAREN_VANISH##__VA_ARGS__
 #define CSE_DEPAREN_VANISHCSE_DEPAREN_ISH
 
-#define CSE_ENLIST_DECLARE(name, type, ...) CSE_DEPAREN(type) name __VA_ARGS__;
-#define CSE_ENLIST_WRITE(name, type, ...) json[#name] = value.name;
-#define CSE_ENLIST_READ(name, type, ...)                                                                               \
+#define CSE_PARENS ()
+#define CSE_EXPAND(...) CSE_EXPAND3(CSE_EXPAND3(CSE_EXPAND3(CSE_EXPAND3(__VA_ARGS__))))
+#define CSE_EXPAND3(...) CSE_EXPAND2(CSE_EXPAND2(CSE_EXPAND2(CSE_EXPAND2(__VA_ARGS__))))
+#define CSE_EXPAND2(...) CSE_EXPAND1(CSE_EXPAND1(CSE_EXPAND1(CSE_EXPAND1(__VA_ARGS__))))
+#define CSE_EXPAND1(...) __VA_ARGS__
+#define CSE_FOR_EACH(op, ...) __VA_OPT__(CSE_EXPAND(CSE_FOR_EACH_(op, __VA_ARGS__)))
+#define CSE_FOR_EACH_(op, a, ...) op(a) __VA_OPT__(CSE_FOR_EACH_AGAIN CSE_PARENS(op, __VA_ARGS__))
+#define CSE_FOR_EACH_AGAIN() CSE_FOR_EACH_
+
+#define CSE_ENLIST_DECLARE(elem) CSE_ENLIST_DECLARE_ elem
+#define CSE_ENLIST_DECLARE_(name, type, ...) CSE_DEPAREN(type) name __VA_ARGS__;
+#define CSE_ENLIST_WRITE(elem) CSE_ENLIST_WRITE_ elem
+#define CSE_ENLIST_WRITE_(name, type, ...) json[#name] = value.name;
+#define CSE_ENLIST_READ(elem) CSE_ENLIST_READ_ elem
+#define CSE_ENLIST_READ_(name, type, ...)                                                                              \
   if (json.contains(#name)) json.at(#name).get_to(value.name);
-#define ENLIST(identifier, list)                                                                                       \
+#define ENLIST(identifier, ...)                                                                                        \
   struct identifier                                                                                                    \
   {                                                                                                                    \
-    list(CSE_ENLIST_DECLARE) friend void to_json(nlohmann::json &json, const identifier &value)                        \
-    { list(CSE_ENLIST_WRITE) }                                                                                         \
-    friend void from_json(const nlohmann::json &json, identifier &value) { list(CSE_ENLIST_READ) }                     \
+    CSE_FOR_EACH(CSE_ENLIST_DECLARE, __VA_ARGS__)                                                                      \
+    friend void to_json(nlohmann::json &json, const identifier &value) { CSE_FOR_EACH(CSE_ENLIST_WRITE, __VA_ARGS__) } \
+    friend void from_json(const nlohmann::json &json, identifier &value)                                               \
+    { CSE_FOR_EACH(CSE_ENLIST_READ, __VA_ARGS__) }                                                                     \
   }
 
 #define FIELD(type, identifier, ...)                                                                                   \
