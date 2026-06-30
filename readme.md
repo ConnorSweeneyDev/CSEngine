@@ -7,7 +7,7 @@
 <img width="800" alt="Example scene made with CSEngine"
      src="https://github.com/user-attachments/assets/2fe9201a-149b-4b5f-9306-2792ce31ea29" />
 
-<em>A screenshot of a 3d scene with text, a custom cursor, an animated sprite and soft shadows.</em>
+<em>A screenshot of a dimly lit scene with text, a custom cursor, an animated sprite and soft shadows.</em>
 
 </div>
 
