@@ -73,7 +73,7 @@ namespace cse
     {
       throw exception("Could not parse state file '{}': {}", file.string(), parse_error.what());
     }
-    for (const auto &entry : entries) entry.reader(json);
+    for (const auto &object : entries) object.reader(json);
   }
 
   void state::write() const
@@ -85,7 +85,7 @@ namespace cse
     if (error) throw exception("Could not create directory for state file '{}'", file.string());
 
     nlohmann::json json{};
-    for (const auto &entry : entries) entry.writer(json);
+    for (const auto &object : entries) object.writer(json);
     std::ofstream stream{file, std::ios::binary | std::ios::trunc};
     if (!stream) throw exception("Could not open state file '{}' for writing", file.string());
     stream << json.dump(2);
@@ -107,7 +107,7 @@ namespace cse
 #elif defined(__linux__)
     if (const char *data{std::getenv("XDG_DATA_HOME")}; data && *data) return std::filesystem::path{data};
     if (const char *home{std::getenv("HOME")}; home && *home) return std::filesystem::path{home} / ".local" / "share";
-    if (const passwd *entry{getpwuid(getuid())}; entry && entry->pw_dir)
+    if (const passwd *object{getpwuid(getuid())}; object && object->pw_dir)
       return std::filesystem::path{entry->pw_dir} / ".local" / "share";
     throw exception("Could not resolve user data directory");
 #endif
