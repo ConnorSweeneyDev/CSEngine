@@ -43,25 +43,6 @@ your-game/
 However, you are not tied to anything - you can use any build system and layout you like, as long as you satisfy the
 requirements below.
 
-### Assets
-Drop assets into the `program/{vertex,fragment,texture,font,sound,music}` folders; the build packs them and generates
-typed symbols in your namespace that you reference directly in `initial` structs:
-
-| Asset | Folder / format | Generated symbol (CSGame) |
-|-------|------------------|---------------------------|
-| Vertex shader | `program/vertex/*.vert` | `vertex::main` |
-| Fragment shader | `program/fragment/*.frag` | `fragment::main` |
-| Texture (Aseprite) | `program/texture/*.aseprite` | `image::redhood` |
-| Animation clip | (tags inside the `.aseprite`) | `animation::redhood.idle` |
-| Hitbox | (slices inside the `.aseprite`) | `hitbox::box.main` |
-| Font | `program/font/*.ttf` | `font::main` |
-| Sound | `program/sound/*.wav` | `sound::sample1` |
-| Music | `program/music/*.opus` | `music::main` |
-
-Animations and hitboxes are authored directly in Aseprite (tags become clips, slices become named hitboxes) and surface
-as `animation::<sheet>.<tag>` and `hitbox::<sheet>.<slice>`. Subfolders under an asset root select which `.csp` the
-asset is packed into.
-
 ### Build System Jobs
 After pulling in CSEngine, it builds with [CSBuild](https://github.com/ConnorSweeneyDev/CSBuild) (run
 `csb\script\build.bat` on Windows or `./csb/script/build.sh` on Linux from the project directory). Your build system
