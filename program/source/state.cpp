@@ -108,7 +108,7 @@ namespace cse
     if (const char *data{std::getenv("XDG_DATA_HOME")}; data && *data) return std::filesystem::path{data};
     if (const char *home{std::getenv("HOME")}; home && *home) return std::filesystem::path{home} / ".local" / "share";
     if (const passwd *object{getpwuid(getuid())}; object && object->pw_dir)
-      return std::filesystem::path{entry->pw_dir} / ".local" / "share";
+      return std::filesystem::path{object->pw_dir} / ".local" / "share";
     throw exception("Could not resolve user data directory");
 #endif
   }
