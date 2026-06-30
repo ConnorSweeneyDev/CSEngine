@@ -384,7 +384,7 @@ private:
 
 public:
   settings() : cse::state("CSGame/settings") {}
-  FIELD(settings::window, window, {});
+  FIELD(window, settings::window, {});
 };
 ```
 
