@@ -1,6 +1,15 @@
+<div align="center">
+
 # CSEngine
-A game engine for creating 2D/3D hybrid pixel art games with ease.
-<img width="2559" height="1439" alt="CSEngine-demo" src="https://github.com/user-attachments/assets/2fe9201a-149b-4b5f-9306-2792ce31ea29" />
+
+**A game engine for creating 2D/3D hybrid pixel art games with ease.**
+
+<img width="800" alt="Example scene made with CSEngine"
+     src="https://github.com/user-attachments/assets/2fe9201a-149b-4b5f-9306-2792ce31ea29" />
+
+<sub><em>A screenshot of a 3d scene with text, a custom cursor, an animated sprite and soft shadows.</em></sub>
+
+</div>
 
 ## Usage
 CSEngine is a static library (`cse`) that you link into your own executable. You describe your game declaratively as a
