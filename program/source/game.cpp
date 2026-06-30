@@ -78,7 +78,7 @@ namespace cse::help::game
       throw sdl_exception("Could not set app metadata identifier");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, "CSEngine"))
       throw sdl_exception("Could not set app metadata name");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "0.0.0"))
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "1.0.0"))
       throw sdl_exception("Could not set app metadata version");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
       throw sdl_exception("Could not set app metadata creator");
