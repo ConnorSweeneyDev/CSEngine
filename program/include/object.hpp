@@ -168,6 +168,7 @@ namespace cse
     void clean();
 
   public:
+    cse::game *game{};
     cse::scene *scene{};
     cse::name name{};
     help::object::previous previous{};

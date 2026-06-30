@@ -51,9 +51,7 @@ namespace cse
 
   void state::enlist(std::function<void(nlohmann::json &json)> writer,
                      std::function<void(const nlohmann::json &json)> reader)
-  {
-    entries.push_back({std::move(writer), std::move(reader)});
-  }
+  { entries.push_back({std::move(writer), std::move(reader)}); }
 
   void state::read()
   {

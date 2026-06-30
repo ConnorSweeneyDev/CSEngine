@@ -123,6 +123,7 @@ namespace cse
     void clean();
 
   public:
+    cse::game *game{};
     cse::scene *scene{};
     help::camera::previous previous{};
     help::camera::active active{};

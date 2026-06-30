@@ -20,6 +20,8 @@ namespace cse
   scene &scene::set(camera_arguments &&...arguments)
   {
     auto camera{std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...)};
+    if (!game) throw exception("Scene camera added before scene was attached to a game");
+    camera->game = game;
     camera->scene = this;
     switch (active.phase)
     {
@@ -67,6 +69,8 @@ namespace cse
   {
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
     object->name = object_name;
+    if (!game) throw exception("Scene object '{}' added before scene was attached to a game", object_name.string());
+    object->game = game;
     object->scene = this;
     switch (active.phase)
     {
@@ -89,6 +93,8 @@ namespace cse
   {
     auto light{std::make_shared<light_type>(std::forward<light_arguments>(arguments)...)};
     light->name = light_name;
+    if (!game) throw exception("Scene light '{}' added before scene was attached to a game", light_name.string());
+    light->game = game;
     light->scene = this;
     switch (active.phase)
     {

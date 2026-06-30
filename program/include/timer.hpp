@@ -47,8 +47,7 @@ namespace cse::help
     void remove(const name name);
     void reset() noexcept;
     template <typename signature, typename... call_arguments> auto poll(const name name, call_arguments &&...arguments);
-    template <typename signature, typename... call_arguments>
-    auto call(const name name, call_arguments &&...arguments);
+    template <typename signature, typename... call_arguments> auto call(const name name, call_arguments &&...arguments);
     template <typename signature, typename... call_arguments>
     auto try_call(const name name, call_arguments &&...arguments);
 
