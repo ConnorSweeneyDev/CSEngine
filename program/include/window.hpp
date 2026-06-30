@@ -151,8 +151,8 @@ namespace cse::help::window
     SDL_GPURenderPass *render_pass{};
     int windowed_left{};
     int windowed_top{};
-    unsigned int windowed_width{};
-    unsigned int windowed_height{};
+    unsigned int render_width{};
+    unsigned int render_height{};
   };
 }
 

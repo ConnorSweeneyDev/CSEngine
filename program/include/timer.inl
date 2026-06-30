@@ -34,7 +34,7 @@ namespace cse::help
   }
 
   template <typename signature, typename... call_arguments>
-  auto timer::call(const name name, call_arguments &&...arguments)
+  auto timer::poll(const name name, call_arguments &&...arguments)
   {
     using return_type = typename trait::function<signature>::return_type;
     auto iterator{entries.find(name)};
@@ -49,6 +49,28 @@ namespace cse::help
       if constexpr (std::is_void_v<return_type>) return;
       return return_type{};
     }
+    if constexpr (const auto &function{deduce<signature>(name, target)}; std::is_void_v<return_type>)
+    {
+      function(std::forward<call_arguments>(arguments)...);
+      entries.erase(iterator);
+    }
+    else
+    {
+      auto result{function(std::forward<call_arguments>(arguments)...)};
+      entries.erase(iterator);
+      return result;
+    }
+  }
+
+  template <typename signature, typename... call_arguments>
+  auto timer::call(const name name, call_arguments &&...arguments)
+  {
+    using return_type = typename trait::function<signature>::return_type;
+    auto iterator{entries.find(name)};
+    if (iterator == entries.end()) throw exception("Attempted to call non-existent timer '{}'", name.string());
+    auto &target{iterator->second};
+    if (target.time.elapsed < target.time.target)
+      throw exception("Attempted to call timer '{}' before ready", name.string());
     if constexpr (const auto &function{deduce<signature>(name, target)}; std::is_void_v<return_type>)
     {
       function(std::forward<call_arguments>(arguments)...);
@@ -81,28 +103,6 @@ namespace cse::help
     auto result{function(std::forward<call_arguments>(arguments)...)};
     entries.erase(iterator);
     return std::optional<optional_type>{std::move(result)};
-  }
-
-  template <typename signature, typename... call_arguments>
-  auto timer::throw_call(const name name, call_arguments &&...arguments)
-  {
-    using return_type = typename trait::function<signature>::return_type;
-    auto iterator{entries.find(name)};
-    if (iterator == entries.end()) throw exception("Attempted to call non-existent timer '{}'", name.string());
-    auto &target{iterator->second};
-    if (target.time.elapsed < target.time.target)
-      throw exception("Attempted to call timer '{}' before ready", name.string());
-    if constexpr (const auto &function{deduce<signature>(name, target)}; std::is_void_v<return_type>)
-    {
-      function(std::forward<call_arguments>(arguments)...);
-      entries.erase(iterator);
-    }
-    else
-    {
-      auto result{function(std::forward<call_arguments>(arguments)...)};
-      entries.erase(iterator);
-      return result;
-    }
   }
 
   template <typename signature>

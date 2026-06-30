@@ -161,6 +161,16 @@ namespace cse
       std::forward<game_arguments>(arguments)...);
   }
 
+  template <trait::is_state state_type, typename... state_arguments>
+  game &game::set(const name state_name, state_arguments &&...arguments)
+  {
+    auto state{std::make_shared<state_type>(std::forward<state_arguments>(arguments)...)};
+    state->name = state_name;
+    set_or_add(active.states, state);
+    if (active.phase != help::phase::CREATED) set_or_add(previous.states, state);
+    return *this;
+  }
+
   template <trait::is_window window_type, typename... window_arguments> game &game::set(window_arguments &&...arguments)
   {
     auto window{std::make_shared<window_type>(std::forward<window_arguments>(arguments)...)};

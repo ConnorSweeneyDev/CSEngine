@@ -46,11 +46,11 @@ namespace cse::help
     template <typename callable> void set(const name name, const double target, callable &&callback);
     void remove(const name name);
     void reset() noexcept;
-    template <typename signature, typename... call_arguments> auto call(const name name, call_arguments &&...arguments);
+    template <typename signature, typename... call_arguments> auto poll(const name name, call_arguments &&...arguments);
+    template <typename signature, typename... call_arguments>
+    auto call(const name name, call_arguments &&...arguments);
     template <typename signature, typename... call_arguments>
     auto try_call(const name name, call_arguments &&...arguments);
-    template <typename signature, typename... call_arguments>
-    auto throw_call(const name name, call_arguments &&...arguments);
 
   private:
     template <typename signature> const std::function<signature> &deduce(const name name, const entry &target) const;

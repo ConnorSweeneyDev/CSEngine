@@ -49,7 +49,7 @@ namespace cse::help::window
     int display_count{};
     SDL_GetDisplays(&display_count);
     if (display == PRIMARY || display > static_cast<unsigned int>(display_count)) display = SDL_GetPrimaryDisplay();
-    if (display == 0) throw sdl_exception("Invalid display index {}", display);
+    if (display == SDL_DisplayID{0}) throw sdl_exception("Invalid display index {}", display);
 
     auto absolute_center{calculate_display_center(width, height)};
     auto relative_center{absolute_to_relative(absolute_center.x, absolute_center.y)};
@@ -61,8 +61,8 @@ namespace cse::help::window
     if (can_move() && !SDL_SetWindowPosition(instance, absolute.x, absolute.y))
       throw sdl_exception("Could not set window position to {}, {}", absolute.x, absolute.y);
 
-    windowed_width = width;
-    windowed_height = height;
+    render_width = width;
+    render_height = height;
 
     if (!SDL_ClaimWindowForGPUDevice(device, instance)) throw sdl_exception("Could not claim window for GPU device");
     if (!SDL_SetGPUSwapchainParameters(device, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
@@ -136,19 +136,19 @@ namespace cse::help::window
     if (!render_pass) throw sdl_exception("Could not begin GPU render pass");
     float viewport_left{}, viewport_top{}, viewport_width{}, viewport_height{};
     const auto target_aspect{static_cast<float>(aspect)};
-    if ((static_cast<float>(width) / static_cast<float>(height)) > target_aspect)
+    if ((static_cast<float>(render_width) / static_cast<float>(render_height)) > target_aspect)
     {
-      viewport_height = static_cast<float>(height);
+      viewport_height = static_cast<float>(render_height);
       viewport_width = viewport_height * target_aspect;
       viewport_top = 0.0f;
-      viewport_left = (static_cast<float>(width) - viewport_width) / 2.0f;
+      viewport_left = (static_cast<float>(render_width) - viewport_width) / 2.0f;
     }
     else
     {
-      viewport_width = static_cast<float>(width);
+      viewport_width = static_cast<float>(render_width);
       viewport_height = viewport_width / target_aspect;
       viewport_left = 0.0f;
-      viewport_top = (static_cast<float>(height) - viewport_height) / 2.0f;
+      viewport_top = (static_cast<float>(render_height) - viewport_height) / 2.0f;
     }
     SDL_GPUViewport port{.x = viewport_left,
                          .y = viewport_top,
@@ -203,8 +203,8 @@ namespace cse::help::window
 
   active::viewport active::letterbox(const double aspect)
   {
-    const auto window_width{static_cast<double>(width)};
-    const auto window_height{static_cast<double>(height)};
+    const auto window_width{static_cast<double>(render_width)};
+    const auto window_height{static_cast<double>(render_height)};
     viewport result{};
     if (window_width / window_height > aspect)
     {
@@ -246,10 +246,10 @@ namespace cse::help::window
   void active::reconcile(SDL_GPUDevice *device)
   {
     if (title != shadow.title) handle_title_change();
-    if (display != shadow.display)
-      handle_manual_display_move();
-    else if (left != shadow.left || top != shadow.top)
+    if (left != shadow.left || top != shadow.top)
       handle_manual_move();
+    else if (display != shadow.display)
+      handle_manual_display_move();
     if (width != shadow.width || height != shadow.height) handle_manual_resize(device);
     if (mode != shadow.mode) handle_mode();
     if (vsync != shadow.vsync) handle_vsync(device);
@@ -283,8 +283,8 @@ namespace cse::help::window
         return {};
       }(),
       .usage = usage,
-      .width = width,
-      .height = height,
+      .width = render_width,
+      .height = render_height,
       .layer_count_or_depth = 1,
       .num_levels = 1,
       .sample_count = SDL_GPU_SAMPLECOUNT_1,
@@ -361,12 +361,12 @@ namespace cse::help::window
     SDL_GetWindowSize(instance, &current_width, &current_height);
     if (current_width <= 0) current_width = 1;
     if (current_height <= 0) current_height = 1;
-    width = static_cast<unsigned int>(current_width);
-    height = static_cast<unsigned int>(current_height);
+    render_width = static_cast<unsigned int>(current_width);
+    render_height = static_cast<unsigned int>(current_height);
     if (mode == WINDOWED)
     {
-      windowed_width = width;
-      windowed_height = height;
+      width = render_width;
+      height = render_height;
     }
     generate_depth_texture(device);
     shadow.display = display;
@@ -378,7 +378,10 @@ namespace cse::help::window
 
   void active::handle_manual_display_move()
   {
-    if (display == PRIMARY) display = SDL_GetPrimaryDisplay();
+    int display_count{};
+    SDL_GetDisplays(&display_count);
+    if (display == PRIMARY || display > static_cast<unsigned int>(display_count)) display = SDL_GetPrimaryDisplay();
+    if (display == SDL_DisplayID{0}) throw sdl_exception("Invalid display index {}", display);
     auto absolute_center{calculate_display_center(width, height)};
     auto relative_center(absolute_to_relative(absolute_center.x, absolute_center.y));
     left = relative_center.x;
@@ -395,21 +398,24 @@ namespace cse::help::window
 
   void active::handle_manual_move()
   {
+    int display_count{};
+    SDL_GetDisplays(&display_count);
+    if (display == PRIMARY || display > static_cast<unsigned int>(display_count)) display = SDL_GetPrimaryDisplay();
+    if (display == SDL_DisplayID{0}) throw sdl_exception("Invalid display index {}", display);
     auto absolute_center{calculate_display_center(width, height)};
     auto relative_center(absolute_to_relative(absolute_center.x, absolute_center.y));
     left = left == ORIGIN ? relative_center.x : left;
     top = top == ORIGIN ? relative_center.y : top;
-    if (mode == WINDOWED)
-    {
-      windowed_left = left;
-      windowed_top = top;
-    }
+    windowed_left = left;
+    windowed_top = top;
     auto absolute{relative_to_absolute(left, top)};
     if (can_move() && !SDL_SetWindowPosition(instance, absolute.x, absolute.y))
       throw sdl_exception("Could not set window position to {}, {}", left, top);
     if (auto new_display = SDL_GetDisplayForWindow(instance); display != new_display)
     {
       display = new_display;
+      SDL_GetDisplays(&display_count);
+      if (display == PRIMARY || display > static_cast<unsigned int>(display_count)) display = SDL_GetPrimaryDisplay();
       if (display == SDL_DisplayID{0}) throw sdl_exception("Could not get window display index");
       auto relative{absolute_to_relative(absolute.x, absolute.y)};
       left = relative.x;
@@ -424,16 +430,14 @@ namespace cse::help::window
 
   void active::handle_manual_resize(SDL_GPUDevice *device)
   {
-    if (mode == WINDOWED)
-    {
-      windowed_width = width;
-      windowed_height = height;
-    }
     if (!SDL_SetWindowSize(instance, static_cast<int>(width), static_cast<int>(height)))
       throw sdl_exception("Could not set window size to {}, {}", width, height);
     if (auto new_display = SDL_GetDisplayForWindow(instance); display != new_display)
     {
       display = new_display;
+      int display_count{};
+      SDL_GetDisplays(&display_count);
+      if (display == PRIMARY || display > static_cast<unsigned int>(display_count)) display = SDL_GetPrimaryDisplay();
       if (display == SDL_DisplayID{0}) throw sdl_exception("Could not get window display index");
       glm::ivec2 absolute{};
       if (!SDL_GetWindowPosition(instance, &absolute.x, &absolute.y))
@@ -447,18 +451,27 @@ namespace cse::help::window
         windowed_top = top;
       }
     }
+    if (mode == WINDOWED)
+    {
+      render_width = width;
+      render_height = height;
+    }
     generate_depth_texture(device);
   }
 
   void active::handle_mode()
   {
+    int display_count{};
+    SDL_GetDisplays(&display_count);
+    if (display == PRIMARY || display > static_cast<unsigned int>(display_count)) display = SDL_GetPrimaryDisplay();
+    if (display == SDL_DisplayID{0}) throw sdl_exception("Invalid display index {}", display);
     switch (mode)
     {
       case WINDOWED:
       {
         if (!SDL_SetWindowFullscreen(instance, false)) throw sdl_exception("Could not leave fullscreen");
-        if (!SDL_SetWindowSize(instance, static_cast<int>(windowed_width), static_cast<int>(windowed_height)))
-          throw sdl_exception("Could not set window size to {}, {}", windowed_width, windowed_height);
+        if (!SDL_SetWindowSize(instance, static_cast<int>(width), static_cast<int>(height)))
+          throw sdl_exception("Could not set window size to {}, {}", width, height);
         if (auto absolute{relative_to_absolute(windowed_left, windowed_top)};
             can_move() && !SDL_SetWindowPosition(instance, absolute.x, absolute.y))
           throw sdl_exception("Could not set window position to {}, {}", absolute.x, absolute.y);
@@ -543,6 +556,7 @@ namespace cse
     active.create(device, aspect, resolution);
     active.phase = help::phase::CREATED;
     on_create();
+    active.reconcile(device);
   }
 
   void window::on_synchronize() {}

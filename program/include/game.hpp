@@ -69,6 +69,7 @@ namespace cse::help::game
     temporal<double> sound{};
     temporal<double> music{};
 
+    std::vector<std::shared_ptr<cse::state>> states{};
     std::shared_ptr<cse::window> window{};
     std::vector<std::shared_ptr<cse::scene>> scenes{};
     std::shared_ptr<cse::scene> scene{};
@@ -282,6 +283,7 @@ namespace cse::help::game
     temporal<double> sound{};
     temporal<double> music{};
 
+    std::vector<std::shared_ptr<cse::state>> states{};
     std::shared_ptr<cse::window> window{};
     std::vector<std::shared_ptr<cse::scene>> scenes{};
     std::shared_ptr<cse::scene> scene{};
@@ -358,6 +360,8 @@ namespace cse
     create(const std::function<void(const std::shared_ptr<game_type> &)> &config, game_arguments &&...arguments);
     template <trait::is_callable callable, typename... game_arguments>
     static std::shared_ptr<game> create(callable &&config, game_arguments &&...arguments);
+    template <trait::is_state state_type, typename... state_arguments>
+    game &set(const name state_name, state_arguments &&...arguments);
     template <trait::is_window window_type, typename... window_arguments> game &set(window_arguments &&...arguments);
     template <trait::is_scene scene_type, typename... scene_arguments>
     game &set(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,

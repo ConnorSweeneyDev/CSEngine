@@ -201,6 +201,7 @@ namespace cse::help::game
     last.sound = sound;
     last.music = music;
 
+    last.states = states;
     last.window = window;
     last.scenes = scenes;
     last.scene = scene;
@@ -1364,7 +1365,7 @@ namespace cse
 
   game &game::current(const name scene_name)
   {
-    auto scene{throw_find(active.scenes, scene_name)};
+    auto scene{find(active.scenes, scene_name)};
     if (active.phase == help::phase::CREATED)
       next.scene = {scene_name, {}};
     else
@@ -1475,7 +1476,7 @@ namespace cse
       }
       else
       {
-        auto next_scene{throw_find(active.scenes, name)};
+        auto next_scene{find(active.scenes, name)};
         if (name != active.scene->name)
         {
           active.scene->destroy();

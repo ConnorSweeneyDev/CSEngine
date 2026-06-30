@@ -48,6 +48,7 @@ int csb::build()
                                           }},
                                        },
                                        "glm",
+                                       "nlohmann-json",
                                      }},
                                     {"overrides",
                                      {
@@ -66,6 +67,10 @@ int csb::build()
                                        {
                                          {"name", "glm"},
                                          {"version", "1.0.1#3"},
+                                       },
+                                       {
+                                         {"name", "nlohmann-json"},
+                                         {"version", "3.12.0#2"},
                                        },
                                      }}});
 
