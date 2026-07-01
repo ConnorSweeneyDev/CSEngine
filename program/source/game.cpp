@@ -611,7 +611,7 @@ namespace cse::help::game
       text_data.right = static_cast<float>((visible_right - block_left) / texture_width);
       text_data.top = static_cast<float>((visible_bottom - block_top) / texture_height);
       text_data.bottom = static_cast<float>((visible_top - block_top) / texture_height);
-      text_data.transparency = static_cast<float>(transparency);
+      text_data.transparency = 1.0f;
       graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, entry.texture});
       graphics_object.samples.push_back(text_data);
     }
