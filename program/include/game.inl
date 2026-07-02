@@ -70,7 +70,7 @@ namespace cse::help::game
           volume = entry.volume.interpolated(iterator->second.volume, alpha);
           speed = entry.speed.interpolated(iterator->second.speed, alpha);
         }
-      if (const auto target{bus * gain(volume)}; !equal(target, audio.gain))
+      if (const auto target{gain(bus * volume)}; !equal(target, audio.gain))
       {
         MIX_SetTrackGain(audio.handle, static_cast<float>(target));
         audio.gain = target;

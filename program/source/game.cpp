@@ -269,9 +269,9 @@ namespace cse::help::game
     music.value = std::clamp(music.value, 0.0, 1.0);
     const auto blend{[this](const temporal<double> &previous_gain, const temporal<double> &active_gain)
                      { return active_gain.interpolated(previous_gain, alpha); }};
-    const auto sound_bus{gain(blend(previous_sound, sound))};
-    const auto music_bus{gain(blend(previous_music, music))};
-    MIX_SetMixerGain(audio_handle, static_cast<float>(gain(blend(previous_master, master))));
+    const auto master_bus{blend(previous_master, master)};
+    const auto sound_bus{master_bus * blend(previous_sound, sound)};
+    const auto music_bus{master_bus * blend(previous_music, music)};
 
     std::vector<channel> channels{};
     const auto add{[&channels](auto *source) { channels.push_back({&source->previous.mixer, &source->active.mixer}); }};
