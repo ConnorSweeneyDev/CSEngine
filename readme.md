@@ -16,8 +16,8 @@ CSEngine is a static library (`cse`) that you link into your own executable. You
 tree of named entities, override lifecycle hooks to add behaviour, and the engine drives a fixed-timestep simulation
 with an interpolated render loop on top of SDL3 (GPU and Mixer).
 
-The canonical, complete example of everything below is the [CSGame](https://github.com/ConnorSweeneyDev/CSGame) project
-— it is the reference consumer and a good template to copy.
+The canonical, complete example of everything below is the [CSGame](https://github.com/ConnorSweeneyDev/CSGame) project;
+it is the reference consumer and a good template to copy.
 
 ### Mental Model
 - **A `game`** owns a persistent `state`, a `window`, a current `scene`, and a variable amount of `scene`s and
@@ -30,24 +30,27 @@ The canonical, complete example of everything below is the [CSGame](https://gith
 - **Simulation is fixed-timestep** (e.g. 300Hz); **rendering is decoupled and interpolated** (e.g. 144fps). Values that
   change over time are declared as `temporal<T>` so the renderer can smoothly interpolate between the previous and
   current state, and to make it easier to drive them without extra state.
-- **Everything has a current (`active`) and previous (`previous`) snapshot**, so behaviour can compare "this tick vs
-  last tick" (e.g. detecting a hover that just started).
+- **Everything has an `active` and previous snapshot**, so behaviour can compare "this tick vs last tick" (e.g.
+  detecting a hover that just started).
 
 ### Project Layout
 An example project layout could look like this:
 
 ```
-your-game/
-  csb/                   # CSBuild bootstrap (csb.cpp, csb.hpp, script/build.bat|sh)
-  program/
-    include/             # your headers
-    source/              # your sources
-    vertex/   *.vert     # HLSL vertex shaders
-    fragment/ *.frag     # HLSL fragment shaders
-    texture/  *.aseprite # sprite sheets (with animation/hitbox metadata)
-    font/     *.aseprite # bitmap fonts (glyph atlases with slice metadata)
-    sound/    *.wav      # short sound effects
-    music/    *.opus     # streamed music
+game/
+| csb/
+| | script/
+| | csb.hpp
+| | csb.cpp
+| program/
+| | include/  *.[hpp|inl] # your headers
+| | source/   *.cpp       # your sources
+| | vertex/   *.vert      # HLSL vertex shaders
+| | fragment/ *.frag      # HLSL fragment shaders
+| | texture/  *.aseprite  # sprite sheets (with animation/hitbox metadata)
+| | font/     *.aseprite  # bitmap fonts (glyph atlases with slice metadata)
+| | sound/    *.wav       # short sound effects
+| | music/    *.opus      # streamed music
 ```
 
 However, you are not tied to anything - you can use any build system and layout you like, as long as you satisfy the
@@ -154,7 +157,7 @@ should do the following:
    Both can be animated with tags, and a font's frame rectangles apply to the whole atlas.
 
 ### Entry Point
-Define `cse::main` — the engine provides the real `main()` and wraps your code in error handling. Create the game from a
+Define `cse::main` - the engine provides the real `main()` and wraps your code in error handling. Create the game from a
 setup function and run it:
 
 ```cpp
@@ -170,7 +173,7 @@ int cse::main(int argc, char *argv[])
 }
 ```
 
-### Composing the game
+### Composing the Game
 Subclass `cse::game` and set tuning defaults in the constructor (tick rate, frame rate, aspect ratio, virtual pixel
 resolution, clear colour, audio buses):
 
@@ -236,7 +239,7 @@ You can swap scenes at runtime with `game->current("name")` (re-use a registered
 `game->current("name", configFn)` (build it on the fly), and add/remove entities live with `scene->set<...>(...)` /
 `scene->remove("name")`.
 
-### Defining entities
+### Defining Entities
 Every entity type follows the same shape: subclass the engine base, pass an `initial` struct (designated initializers)
 to the base constructor, and override the hooks you care about. An object:
 
@@ -274,7 +277,7 @@ player::player(const glm::dvec3 &translation_)
 `camera`, `light`, `interface` and `window` are defined the same way against their own `initial` structs (see CSGame's
 `camera.cpp`, `light.cpp`, `interface.cpp`, `window.cpp`).
 
-### Lifecycle hooks
+### Lifecycle Hooks
 Hooks are virtual no-ops you override. **Leaf entities** (`window`, `scene`'s camera/objects/lights/interfaces) expose
 `on_*` hooks; **`game` and `scene`** expose `pre_*`/`post_*` hooks that bracket the work of their children.
 
@@ -315,7 +318,7 @@ than game don't necessarily call prepare and create/destroy and clean one after 
 instantiation of the entity in memory, and create is called when the entity becomes active in a scene. A similar
 behaviour describes destroy and clean.
 
-### The temporal value model
+### The Temporal Value Model
 Any value that should animate smoothly is a `temporal<T>`. It carries a `value`, an optional `rate` (first derivative)
 and `curve` (used for acceleration), and an `interpolate` flag the renderer uses to blend between ticks. Drive physics
 by writing the value/rate inside `on_simulate`:
@@ -337,8 +340,8 @@ void player::on_simulate(const double tick)
 
 Set `.instant = true` on a temporal when you want a hard cut (no interpolation) for one frame.
 
-### Accessing state at runtime
-- `active.*` is the current snapshot; `previous.*` is last tick's — compare them to detect transitions.
+### Accessing State at Runtime
+- `active.*` is the current snapshot; `previous.*` is last tick's - compare them to detect transitions.
 - Reach related entities through pointers: every entity has `game`, and scene-owned entities also have `scene`. So
   `scene->game->active.window->active.keyboard`, or from a game-level interface, `game->active.window->active.mouse`.
 - Look entities up by name with the helpers in `cse/container.hpp`:
@@ -350,7 +353,7 @@ Set `.instant = true` on a temporal when you want a hard cut (no interpolation) 
   ```
   Each comes in a throwing form (`find`, `find_as`, `contains`) and a non-throwing `try_` form.
 
-### Timers
+### Starting and Calling Timers
 Schedule one-shot or deferred callbacks on any entity's `active.timer`:
 
 ```cpp
@@ -358,7 +361,7 @@ active.timer.set("hide_text", 0.5, [this]() { active.text.content.clear(); }); /
 active.timer.poll<void()>("hide_text");                                        // run it when due
 ```
 
-### Audio
+### Managing Audio
 Each game, scene and entity has a `mixer`. Load by name, then toggle/seek/pitch:
 
 ```cpp
@@ -377,9 +380,9 @@ Unloading is optional; the mixer will automatically unload when the entity is de
 The game's `master`, `sound` and `music` temporals act as global buses for volume, as well as each track's own `volume`
 temporal.
 
-### Persistent settings (state)
+### Persistent State
 A `state` is a JSON-backed settings blob saved under the OS user-data directory. Declare fields with the `ENLIST` macro
-(it builds a plain struct *and* its JSON serializers in one place — pass each field as a `(name, type, init)` tuple, add
+(it builds a plain struct *and* its JSON serializers in one place - pass each field as a `(name, type, init)` tuple, add
 as many as you like), expose them with `FIELD`, and call `read()`/`write()`:
 
 ```cpp
@@ -424,8 +427,8 @@ void window::on_destroy()
 ## Miscellaneous
 A grab bag of public utilities the engine exposes.
 
-### Strongly-typed enumerations (`cse/enumeration.hpp`)
-`cse::enumeration<derived>` is a CRTP base for building open, strongly-typed enum-like sets of values — handy when a
+### Strongly-Typed, Inheritable Enumerations
+`cse::enumeration<derived>` is a CRTP base for building open, strongly-typed enum-like sets of values - handy when a
 plain `enum` is too rigid (e.g. you want to inherit from an existing enum). Each default-constructed `value` grabs the
 next integer; passing an explicit count reseeds the counter:
 
@@ -449,48 +452,48 @@ int index = chosen;
 
 Values are equality- and `<=>`-comparable, and the `enumeration_value` concept lets you constrain templates to them.
 
-### Observable values (`cse/property.hpp`)
-`cse::property<T>` is a transparent wrapper that behaves exactly like the `T` it holds — every operator
-(`= += * == <=> ++` …), `operator->`/`*`, plus `std::formatter`, `std::hash` and `operator>>` are forwarded — but it
+### Observable Values
+`cse::property<T>` is a transparent wrapper that behaves exactly like the `T` it holds - every operator
+(`= += * == <=> ++` …), `operator->`/`*`, plus `std::formatter`, `std::hash` and `operator>>` are forwarded - but it
 also carries a `std::function<void()> change` callback you can set to react to mutations. Use it when a field needs a
 side effect on assignment without writing a getter/setter pair.
 
-### Names & hitboxes (`cse/name.hpp`)
+### Names & Hitboxes
 Every `"string"` you pass as an entity/timer/asset name becomes a `cse::name`: a 64-bit FNV-1a hash (computed at
 *compile time* in release builds, so lookups and comparisons are integer-cheap; debug builds also keep the original text
 for diagnostics). `cse::hitbox` is just an alias of `cse::name`. You can build one explicitly from a string or a raw
 identifier, and call `.string()` / `.identifier()`.
 
-### Pointer & cast helpers (`cse/pointer.hpp`)
+### Pointer Helpers
 Type-safe helpers for the `shared_ptr` entities the engine hands you:
-- `lock(weak)` / `try_lock(weak)` — promote a weak pointer (throwing vs. null).
-- `is<T...>(ptr)` — exact dynamic-type match (via `typeid`); `is_a<T...>(ptr)` — subclass match (via `dynamic_cast`).
-- `as<T>(ptr)` / `as_a<T>(ptr)` — downcast (throwing); `try_as<T>` / `try_as_a<T>` — downcast (null on mismatch).
+- `lock(weak)` / `try_lock(weak)` - promote a weak pointer (throwing vs. null).
+- `is<T...>(ptr)` - exact dynamic-type match (via `typeid`); `is_a<T...>(ptr)` - subclass match (via `dynamic_cast`).
+- `as<T>(ptr)` / `as_a<T>(ptr)` - downcast (throwing); `try_as<T>` / `try_as_a<T>` - downcast (null on mismatch).
 
 `as`/`is` pair with exact types; `as_a`/`is_a` pair with polymorphic hierarchies.
 
-### Container lookups (`cse/container.hpp`)
-Beyond `find` / `find_as` shown earlier, the same name-keyed helpers cover the whole matrix — each with a throwing form
+### Container Helpers
+Beyond `find` / `find_as` shown earlier, the same name-keyed helpers cover the whole matrix - each with a throwing form
 and a non-throwing `try_` form:
-- `find` / `find_as<T>` — fetch a pointer (optionally downcast).
-- `find_is<T...>` / `find_is_a<T...>` — fetch and type-check in one call.
-- `contains` — membership test; `iterate` — get the raw iterator.
-- `name(container, pointer)` / `try_name(...)` — reverse lookup a pointer (or `weak_ptr`/raw pointer) back to its name.
-- `set_or_add` — insert or replace by name.
+- `find` / `find_as<T>` - fetch a pointer (optionally downcast).
+- `find_is<T...>` / `find_is_a<T...>` - fetch and type-check in one call.
+- `contains` - membership test; `iterate` - get the raw iterator.
+- `name(container, pointer)` / `try_name(...)` - reverse lookup a pointer (or `weak_ptr`/raw pointer) back to its name.
+- `set_or_add` - insert or replace by name.
 
-### Numeric & bitmask helpers (`cse/numeric.hpp`, `cse/mask.hpp`)
-- `equal(a, b, epsilon = 1e-5)` — robust floating-point comparison (relative epsilon). Used heavily for comparing
+### Numeric & Bitmask helpers
+- `equal(a, b, epsilon = 1e-5)` - robust floating-point comparison (relative epsilon). Used heavily for comparing
   `temporal` values, e.g. `if (equal(active.fov.value, 60.0)) ...`.
-- `between(value, min, max)` — inclusive integral range test.
+- `between(value, min, max)` - inclusive integral range test.
 - `cse::axis` (`NONE/X/Y/Z`) and `cse::rectangle` (`left/top/right/bottom`).
-- `has(flags, bits)`, plus `any` / `all` / `none` — readable flag testing against SDL-style bitmasks.
+- `has(flags, bits)`, plus `any` / `all` / `none` - readable flag testing against SDL-style bitmasks.
 
-### Thread-safe printing & exceptions (`cse/print.hpp`, `cse/exception.hpp`)
-- `cse::print<COUT>("hello {}\n", name)` — mutex-guarded, `std::format`-based logging to `COUT` / `CERR` / `CLOG`.
-- `throw cse::exception("bad value {}", x)` — `std::format`-style message; `cse::sdl_exception` appends the current SDL
+### Thread-Safe Printing & Exceptions
+- `cse::print<COUT>("hello {}\n", name)` - mutex-guarded, `std::format`-based logging to `COUT` / `CERR` / `CLOG`.
+- `throw cse::exception("bad value {}", x)` - `std::format`-style message; `cse::sdl_exception` appends the current SDL
   error. The engine's `main()` wrapper catches these and reports them, so you can throw freely from any hook.
 
-### System & shared constants (`cse/system.hpp`)
+### System & Shared Constants
 - `cse::platform` (`WINDOWS` / `LINUX`), `cse::debug` (`bool`), `cse::success` / `cse::failure` return codes.
 - Window/text constants you'll meet in `initial` structs: `PRIMARY` & `ORIGIN` (default display / centered position),
   the `mode` enum (`WINDOWED` / `BORDERLESS` / `FULLSCREEN`), and the text-alignment enums `horizontal`
