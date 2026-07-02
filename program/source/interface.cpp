@@ -10,6 +10,7 @@
 
 #include "core.hpp"
 #include "exception.hpp"
+#include "resource.hpp"
 #include "temporal.hpp"
 
 namespace cse::help::interface
@@ -60,11 +61,16 @@ namespace cse::help::interface
     translation.instant = false;
     rotation.instant = false;
     scale.instant = false;
-    texture.color.instant = false;
-    texture.transparency.instant = false;
     texture.playback.speed.instant = false;
-    text.color.instant = false;
+    texture.color.tint.instant = false;
+    texture.color.alpha.instant = false;
+    text.playback.speed.instant = false;
+    text.align.horizontal.spacing.instant = false;
+    text.align.vertical.spacing.instant = false;
     text.align.offset.instant = false;
+    text.scale.instant = false;
+    text.color.tint.instant = false;
+    text.color.alpha.instant = false;
     target.clicked = {};
   }
 
@@ -99,67 +105,70 @@ namespace cse::help::interface
       model_matrix, {std::floor(interpolated_translation.x + 0.5), std::floor(interpolated_translation.y + 0.5), 0.0});
     model_matrix =
       glm::rotate(model_matrix, glm::radians(std::floor(interpolated_rotation + 0.5) * -90.0), {0.0, 0.0, 1.0});
-    model_matrix = glm::translate(
-      model_matrix, {std::floor(offset.x + 0.5) + (static_cast<int>(pixel_width) % 2 == 0 ? 0.5 : 0.0),
-                     std::floor(offset.y + 0.5) + (static_cast<int>(pixel_height) % 2 == 0 ? 0.5 : 0.0), 0.0});
+    const auto snap{[](const double center, const double size)
+                    { return static_cast<int>(size) % 2 == 0 ? std::floor(center) + 0.5 : std::floor(center + 0.5); }};
+    model_matrix = glm::translate(model_matrix, {snap(offset.x, pixel_width), snap(offset.y, pixel_height), 0.0});
     model_matrix = glm::scale(model_matrix, {pixel_width / 2.0, pixel_height / 2.0, 1.0});
     return model_matrix;
   }
 
   void active::animate(const double tick)
   {
-    auto &animation{texture.animation};
-    auto &playback{texture.playback};
-    auto no_frames{animation.frames.empty()};
-    auto frame_count{animation.frames.size()};
-    if (no_frames)
-      playback.frame = 0;
-    else if (playback.frame >= frame_count)
-      playback.frame = frame_count - 1;
-    if (playback.speed.value > 0.0 && !no_frames)
-    {
-      playback.elapsed += tick * playback.speed.value;
-      while (true)
-      {
-        auto duration = animation.frames[playback.frame].duration;
-        if (duration > 0 && playback.elapsed < duration) break;
-        if (playback.frame < frame_count - 1)
-        {
-          if (duration > 0) playback.elapsed -= duration;
-          playback.frame++;
-        }
-        else if (playback.loop)
-        {
-          if (duration > 0)
-            playback.elapsed -= duration;
-          else
-            break;
-          playback.frame = 0;
-        }
-        else
-          break;
-      }
-    }
-    else if (playback.speed.value < 0.0 && !no_frames)
-    {
-      playback.elapsed += tick * playback.speed.value;
-      while (playback.elapsed < 0)
-        if (playback.frame > 0)
-        {
-          playback.frame--;
-          auto duration = animation.frames[playback.frame].duration;
-          if (duration > 0) playback.elapsed += duration;
-        }
-        else if (playback.loop)
-        {
-          if (animation.frames[0].duration <= 0) break;
-          playback.frame = frame_count - 1;
-          auto duration = animation.frames[playback.frame].duration;
-          if (duration > 0) playback.elapsed += duration;
-        }
-        else
-          break;
-    }
+    const auto step{[tick](const cse::animation &animation, cse::playback &playback)
+                    {
+                      auto no_frames{animation.frames.empty()};
+                      auto frame_count{animation.frames.size()};
+                      if (no_frames)
+                        playback.frame = 0;
+                      else if (playback.frame >= frame_count)
+                        playback.frame = frame_count - 1;
+                      if (playback.speed.value > 0.0 && !no_frames)
+                      {
+                        playback.elapsed += tick * playback.speed.value;
+                        while (true)
+                        {
+                          auto duration = animation.frames[playback.frame].duration;
+                          if (duration > 0 && playback.elapsed < duration) break;
+                          if (playback.frame < frame_count - 1)
+                          {
+                            if (duration > 0) playback.elapsed -= duration;
+                            playback.frame++;
+                          }
+                          else if (playback.loop)
+                          {
+                            if (duration > 0)
+                              playback.elapsed -= duration;
+                            else
+                              break;
+                            playback.frame = 0;
+                          }
+                          else
+                            break;
+                        }
+                      }
+                      else if (playback.speed.value < 0.0 && !no_frames)
+                      {
+                        playback.elapsed += tick * playback.speed.value;
+                        while (playback.elapsed < 0)
+                          if (playback.frame > 0)
+                          {
+                            playback.frame--;
+                            auto duration = animation.frames[playback.frame].duration;
+                            if (duration > 0) playback.elapsed += duration;
+                          }
+                          else if (playback.loop)
+                          {
+                            if (animation.frames[0].duration <= 0) break;
+                            playback.frame = frame_count - 1;
+                            auto duration = animation.frames[playback.frame].duration;
+                            if (duration > 0) playback.elapsed += duration;
+                          }
+                          else
+                            break;
+                      }
+                    }};
+    step(texture.animation, texture.playback);
+    step(text.animation, text.playback);
   }
 }
 

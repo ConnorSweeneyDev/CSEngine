@@ -47,10 +47,22 @@ namespace cse::resource
     static std::unordered_map<std::string, std::vector<std::pair<hitbox, rectangle>>> instance{};
     return instance;
   }
+  struct glyph_record
+  {
+    std::uint64_t character;
+    double left, top, right, bottom;
+    double width, height;
+  };
+  std::unordered_map<std::string, std::vector<font::glyph>> &glyph_storage()
+  {
+    static std::unordered_map<std::string, std::vector<font::glyph>> instance{};
+    return instance;
+  }
 
   loader::loader(const char *name_, const std::uint64_t signature_, const std::uint64_t frames_offset_,
                  const std::uint64_t frames_size_, const std::uint64_t hitboxes_offset_,
-                 const std::uint64_t hitboxes_size_
+                 const std::uint64_t hitboxes_size_, const std::uint64_t glyphs_offset_,
+                 const std::uint64_t glyphs_size_
 #if defined(_DEBUG)
                  ,
                  const std::uint64_t strings_offset_
@@ -66,6 +78,7 @@ namespace cse::resource
 
       if (hitboxes_size_) csp::verify(base + hitboxes_offset_, hitboxes_size_);
       if (frames_size_) csp::verify(base + frames_offset_, frames_size_);
+      if (glyphs_size_) csp::verify(base + glyphs_offset_, glyphs_size_);
 
       auto &hitbox_pool{hitbox_storage()[name_]};
       const std::size_t hitbox_total{static_cast<std::size_t>(hitboxes_size_ / sizeof(hitbox_record))};
@@ -100,6 +113,18 @@ namespace cse::resource
         frame_pool.push_back(
           animation::frame{rectangle{record.left, record.top, record.right, record.bottom}, record.duration, hitboxes});
       }
+
+      auto &glyph_pool{glyph_storage()[name_]};
+      const std::size_t glyph_total{static_cast<std::size_t>(glyphs_size_ / sizeof(glyph_record))};
+      const auto *glyph_records{reinterpret_cast<const glyph_record *>(base + glyphs_offset_)};
+      glyph_pool.reserve(glyph_total);
+      for (std::size_t index{}; index < glyph_total; ++index)
+      {
+        const auto &record{glyph_records[index]};
+        glyph_pool.push_back(font::glyph{record.character,
+                                         rectangle{record.left, record.top, record.right, record.bottom}, record.width,
+                                         record.height});
+      }
     }
     catch (const std::exception &error)
     {
@@ -113,4 +138,7 @@ namespace cse::resource
 
   std::span<const animation::frame> frames(const char *pack, const std::size_t index, const std::size_t count)
   { return {frame_storage().at(pack).data() + index, count}; }
+
+  std::span<const font::glyph> glyphs(const char *pack, const std::size_t index, const std::size_t count)
+  { return {glyph_storage().at(pack).data() + index, count}; }
 }

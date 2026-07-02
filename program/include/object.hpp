@@ -4,7 +4,6 @@
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
-#include "glm/ext/vector_double4.hpp"
 
 #include "core.hpp"
 #include "mixer.hpp"
@@ -26,8 +25,7 @@ namespace cse::help::object
     cse::animation animation{};
     cse::playback playback{};
     cse::flip flip{};
-    temporal<glm::dvec4> color{{1.0, 1.0, 1.0, 1.0}};
-    temporal<double> transparency{1.0};
+    cse::color color{};
   };
   struct illumination
   {

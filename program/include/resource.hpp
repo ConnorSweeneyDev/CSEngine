@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "glm/ext/vector_double2.hpp"
+#include "glm/ext/vector_double4.hpp"
 
 #include "collision.hpp"
 #include "numeric.hpp"
@@ -42,25 +43,31 @@ namespace cse
     std::span<const unsigned char> data{};
   };
 
-  struct font
-  {
-    bool operator==(const font &other) const
-    { return data.data() == other.data.data() && data.size() == other.data.size(); }
-
-    std::span<const unsigned char> data{};
-  };
-  struct style
-  {
-    bool bold{};
-    bool italic{};
-    bool underline{};
-    bool strikethrough{};
-  };
   struct align
   {
-    ::horizontal horizontal{CENTER};
-    ::vertical vertical{MIDDLE};
+    struct horizontal_axis
+    {
+      ::horizontal preset{CENTER};
+      temporal<double> spacing{};
+    };
+    struct vertical_axis
+    {
+      ::vertical preset{MIDDLE};
+      temporal<double> spacing{};
+    };
+    horizontal_axis horizontal{};
+    vertical_axis vertical{};
     temporal<glm::dvec2> offset{};
+  };
+  struct overflow
+  {
+    bool wrap{};
+    bool clip{true};
+  };
+  struct color
+  {
+    temporal<glm::dvec4> tint{{0.5, 0.5, 0.5, 1.0}};
+    temporal<double> alpha{1.0};
   };
 
   struct image
@@ -74,6 +81,21 @@ namespace cse
     unsigned int frame_width{};
     unsigned int frame_height{};
     unsigned int channels{};
+  };
+  struct font
+  {
+    bool operator==(const font &other) const
+    { return image == other.image && glyphs.data() == other.glyphs.data() && glyphs.size() == other.glyphs.size(); }
+
+    struct glyph
+    {
+      std::uint64_t character{};
+      rectangle coordinates{};
+      double width{};
+      double height{};
+    };
+    cse::image image{};
+    std::span<const glyph> glyphs{};
   };
   struct animation
   {
@@ -124,7 +146,8 @@ namespace cse::resource
   struct loader
   {
     loader(const char *name_, const std::uint64_t signature_, const std::uint64_t frames_offset_,
-           const std::uint64_t frames_size_, const std::uint64_t hitboxes_offset_, const std::uint64_t hitboxes_size_
+           const std::uint64_t frames_size_, const std::uint64_t hitboxes_offset_, const std::uint64_t hitboxes_size_,
+           const std::uint64_t glyphs_offset_, const std::uint64_t glyphs_size_
 #if defined(_DEBUG)
            ,
            const std::uint64_t strings_offset_
@@ -134,6 +157,7 @@ namespace cse::resource
 
   std::span<const unsigned char> region(const char *pack, const std::uint64_t offset, const std::uint64_t size);
   std::span<const animation::frame> frames(const char *pack, const std::size_t index, const std::size_t count);
+  std::span<const font::glyph> glyphs(const char *pack, const std::size_t index, const std::size_t count);
 }
 
 namespace cse::trait

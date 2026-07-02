@@ -62,9 +62,9 @@ namespace cse::help::object
     translation.instant = false;
     rotation.instant = false;
     scale.instant = false;
-    texture.color.instant = false;
-    texture.transparency.instant = false;
     texture.playback.speed.instant = false;
+    texture.color.tint.instant = false;
+    texture.color.alpha.instant = false;
     illumination.brightness.instant = false;
     shadow.darkness.instant = false;
     shadow.softness.instant = false;

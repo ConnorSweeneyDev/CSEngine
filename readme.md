@@ -14,7 +14,7 @@
 ## Usage
 CSEngine is a static library (`cse`) that you link into your own executable. You describe your game declaratively as a
 tree of named entities, override lifecycle hooks to add behaviour, and the engine drives a fixed-timestep simulation
-with an interpolated render loop on top of SDL3 (GPU, TTF and Mixer).
+with an interpolated render loop on top of SDL3 (GPU and Mixer).
 
 The canonical, complete example of everything below is the [CSGame](https://github.com/ConnorSweeneyDev/CSGame) project
 — it is the reference consumer and a good template to copy.
@@ -45,7 +45,7 @@ your-game/
     vertex/   *.vert     # HLSL vertex shaders
     fragment/ *.frag     # HLSL fragment shaders
     texture/  *.aseprite # sprite sheets (with animation/hitbox metadata)
-    font/     *.ttf      # fonts
+    font/     *.aseprite # bitmap fonts (glyph atlases with slice metadata)
     sound/    *.wav      # short sound effects
     music/    *.opus     # streamed music
 ```
@@ -63,7 +63,7 @@ should do the following:
 2. **Required Compilation Flags.** On MSVC, compile with at least `/std:c++20`, and `/bigobj`, `/Zc:preprocessor`.
 3. **Compiling Shaders to SPIR-V.** HLSL needs to be compiled (e.g. with dxc: `dxc -spirv -T [vs_6_0|ps_6_0] -E main`)
    into `.spv`. Each shader's entry point is `main`.
-4. **Packing & Embedding Assets.** Compiled shaders, fonts, `.aseprite` textures, `.wav` and `.opus` audio are packed
+4. **Packing & Embedding Assets.** Compiled shaders, `.aseprite` textures and fonts, `.wav` and `.opus` audio are packed
    into `.csp` containers (via [CSPack](https://github.com/ConnorSweeneyDev/CSPack)) and a `resource.hpp`/`resource.cpp`
    pair is generated that exposes every asset as a typed C++ symbol in your namespace - the header should be in this
    form:
@@ -112,7 +112,7 @@ should do the following:
    namespace cse::resource
    {
      const loader loaded_pack{"pack.csp", [signature], [frames_offset], [frames_size], [hitboxes_offset],
-                              [hitboxes_size], [strings_offset]};
+                                          [hitboxes_size], [glyphs_offset], [glyphs_size], [strings_offset]};
      ...
    }
 
@@ -120,7 +120,13 @@ should do the following:
    {
      namespace vertex { const cse::vertex main{cse::resource::region("pack.csp", [offset], [size])}; ... }
      namespace fragment { const cse::fragment main{cse::resource::region("pack.csp", [offset], [size])}; ... }
-     namespace font { const cse::font main{cse::resource::region("pack.csp", [offset], [size])}; ... }
+     namespace font
+     {
+       const cse::font main{{cse::resource::region("pack.csp", [offset], [size]),
+                             [width], [height], [frame_width], [frame_height], [channels]},
+                            cse::resource::glyphs("pack.csp", [glyph_offset], [glyph_count])};
+       ...
+     }
      namespace image
      {
        const cse::image main{cse::resource::region("pack.csp", [offset], [size]),
@@ -141,6 +147,11 @@ should do the following:
 
    The `loader`'s trailing `[strings_offset]` argument exists only in debug builds (where hitbox identifiers are stored
    as readable strings); release builds omit it and hash the identifiers instead.
+
+   Texture `.aseprite` files contain a top-level `image` group (and optionally a `hitbox` group). Font `.aseprite`
+   files contain only an `image` group and mark every glyph with a slice named after its character (e.g. `A`, `!`,
+   ` `); every slice must share one height (the line height) and a slice's width is the exact width of that character.
+   Both can be animated with tags, and a font's frame rectangles apply to the whole atlas.
 
 ### Entry Point
 Define `cse::main` — the engine provides the real `main()` and wraps your code in error handling. Create the game from a
@@ -249,8 +260,8 @@ player::player(const glm::dvec3 &translation_)
                  .texture = {.image = image::redhood,
                              .animation = animation::redhood.idle,
                              .playback = {.frame = 0, .speed = {1.0}, .loop = true},
-                             .color = {.value = {0.5, 0.5, 0.5, 1.0}, .interpolate = true},
-                             .transparency = {.value = 1.0, .interpolate = true}},
+                             .color = {.tint = {.value = {0.5, 0.5, 0.5, 1.0}, .interpolate = true},
+                                       .alpha = {.value = 1.0, .interpolate = true}}},
                  .illumination = {.show = true, .brightness = {.value = 1.0, .interpolate = true}},
                  .shadow = {.cast = true, .show = true,
                             .darkness = {.value = 1.0, .interpolate = true},

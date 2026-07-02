@@ -7,7 +7,6 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <string>
 #include <tuple>
 #include <type_traits>
 #include <unordered_set>
@@ -17,11 +16,9 @@
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3_mixer/SDL_mixer.h"
-#include "SDL3_ttf/SDL_ttf.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
-#include "glm/ext/vector_double4.hpp"
 
 #include "core.hpp"
 #include "function.hpp"
@@ -105,25 +102,7 @@ namespace cse::help::game
     };
     struct graphics_interface
     {
-      struct label
-      {
-        std::string text{};
-        const unsigned char *font{};
-        unsigned int size{};
-        TTF_FontStyleFlags style{};
-        glm::dvec4 color{};
-        TTF_HorizontalAlignment align{};
-        bool wrap{};
-        unsigned int width{};
-        int skip{};
-        SDL_GPUTexture *texture{};
-        unsigned int texture_width{};
-        unsigned int texture_height{};
-        std::uint64_t stamp{};
-      };
       std::vector<cse::interface *> order{};
-      std::map<const cse::interface *, label> labels{};
-      std::uint64_t stamp{};
     };
     struct graphics_object
     {
@@ -187,12 +166,6 @@ namespace cse::help::game
     {
       using pipeline_key = std::tuple<const unsigned char *, std::size_t, const unsigned char *, std::size_t>;
       using texture_key = std::pair<const unsigned char *, std::size_t>;
-      using font_key = std::tuple<const unsigned char *, std::size_t, unsigned int>;
-      struct typeface
-      {
-        TTF_Font *font{};
-        int skip{};
-      };
       template <typename handle> struct cached
       {
         handle value{};
@@ -200,7 +173,6 @@ namespace cse::help::game
       };
       std::map<pipeline_key, cached<active::pipeline>> pipeline{};
       std::map<texture_key, cached<SDL_GPUTexture *>> texture{};
-      std::map<font_key, cached<typeface>> font{};
       std::uint64_t stamp{};
     };
 
@@ -263,8 +235,6 @@ namespace cse::help::game
     void draw_batches(const std::pair<glm::dmat4, glm::dmat4> &matrices);
     pipeline &require_pipelines(const cse::vertex &vertex, const cse::fragment &fragment);
     SDL_GPUTexture *require_texture(const cse::image &image);
-    graphics_cache::typeface &require_font(const cse::font &font, const unsigned int size);
-    graphics_interface::label &require_label(const cse::interface *element);
 
     template <typename resource> void reconcile_audio(const help::mixer *previous_mixer, help::mixer *active_mixer,
                                                       const char *tag, const bool predecode, const double bus);

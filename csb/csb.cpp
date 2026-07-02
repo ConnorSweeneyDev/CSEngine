@@ -38,7 +38,6 @@ int csb::build()
                                             {{"name", "wayland"}, {"platform", "linux"}},
                                           }},
                                        },
-                                       "sdl3-ttf",
                                        {
                                          {"name", "sdl3-mixer"},
                                          {"default-features", false},
@@ -55,10 +54,6 @@ int csb::build()
                                        {
                                          {"name", "sdl3"},
                                          {"version", "3.4.4"},
-                                       },
-                                       {
-                                         {"name", "sdl3-ttf"},
-                                         {"version", "3.2.2#1"},
                                        },
                                        {
                                          {"name", "sdl3-mixer"},

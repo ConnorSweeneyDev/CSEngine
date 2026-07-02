@@ -8,7 +8,6 @@
 #include "SDL3/SDL_mouse.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
-#include "glm/ext/vector_double4.hpp"
 
 #include "collision.hpp"
 #include "core.hpp"
@@ -31,20 +30,18 @@ namespace cse::help::interface
     cse::animation animation{};
     cse::playback playback{};
     cse::flip flip{};
-    temporal<glm::dvec4> color{{1.0, 1.0, 1.0, 1.0}};
-    temporal<double> transparency{1.0};
+    cse::color color{};
   };
   struct text
   {
     std::string content{};
     cse::font font{};
-    unsigned int size{12};
-    cse::style style{};
-    temporal<glm::dvec4> color{{1.0, 1.0, 1.0, 1.0}};
+    cse::animation animation{};
+    cse::playback playback{};
     cse::align align{};
-    double spacing{};
-    bool wrap{};
-    bool overflow{};
+    temporal<glm::dvec2> scale{{1.0, 1.0}};
+    cse::overflow overflow{};
+    cse::color color{};
   };
   struct priority
   {
