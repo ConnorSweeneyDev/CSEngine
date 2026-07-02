@@ -5,7 +5,7 @@
 **A game engine for creating 2D/3D hybrid pixel art games with ease.**
 
 <img width="800" alt="Example scene made with CSEngine"
-     src="https://github.com/user-attachments/assets/2fe9201a-149b-4b5f-9306-2792ce31ea29" />
+     src="https://github.com/user-attachments/assets/abeb218a-f724-4001-a29a-6621662c101d" />
 
 <em>A screenshot of a dimly lit scene with text, a custom cursor, an animated sprite and soft shadows.</em>
 
