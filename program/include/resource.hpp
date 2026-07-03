@@ -28,21 +28,6 @@ enum vertical
 
 namespace cse
 {
-  struct vertex
-  {
-    bool operator==(const vertex &other) const
-    { return data.data() == other.data.data() && data.size() == other.data.size(); }
-
-    std::span<const unsigned char> data{};
-  };
-  struct fragment
-  {
-    bool operator==(const fragment &other) const
-    { return data.data() == other.data.data() && data.size() == other.data.size(); }
-
-    std::span<const unsigned char> data{};
-  };
-
   struct align
   {
     struct horizontal_axis
@@ -162,8 +147,6 @@ namespace cse::resource
 
 namespace cse::trait
 {
-  template <typename type>
-  concept is_shader = std::is_same_v<type, vertex> || std::is_same_v<type, fragment>;
   template <typename type>
   concept is_audio = std::is_same_v<type, sound> || std::is_same_v<type, music>;
 }

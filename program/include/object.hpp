@@ -14,11 +14,6 @@
 
 namespace cse::help::object
 {
-  struct shader
-  {
-    cse::vertex vertex{};
-    cse::fragment fragment{};
-  };
   struct texture
   {
     cse::image image{};
@@ -50,8 +45,8 @@ namespace cse::help::object
   public:
     previous() = default;
     previous(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
-             const temporal<glm::dvec2> &scale_, const bool collidable_, const object::shader &shader_,
-             const object::texture &texture_, const object::illumination &illumination_, const object::shadow &shadow_,
+             const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
+             const object::illumination &illumination_, const object::shadow &shadow_,
              const object::priority &priority_);
     ~previous() = default;
     previous(const previous &) = delete;
@@ -64,7 +59,6 @@ namespace cse::help::object
     temporal<double> rotation{};
     temporal<glm::dvec2> scale{};
     bool collidable{};
-    object::shader shader{};
     object::texture texture{};
     object::illumination illumination{};
     object::shadow shadow{};
@@ -84,9 +78,8 @@ namespace cse::help::object
   public:
     active() = default;
     active(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
-           const temporal<glm::dvec2> &scale_, const bool collidable_, const object::shader &shader_,
-           const object::texture &texture_, const object::illumination &illumination_, const object::shadow &shadow_,
-           const object::priority &priority_);
+           const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
+           const object::illumination &illumination_, const object::shadow &shadow_, const object::priority &priority_);
     ~active() = default;
     active(const active &) = delete;
     active &operator=(const active &) = delete;
@@ -105,7 +98,6 @@ namespace cse::help::object
     temporal<double> rotation{};
     temporal<glm::dvec2> scale{};
     bool collidable{};
-    object::shader shader{};
     object::texture texture{};
     object::illumination illumination{};
     object::shadow shadow{};
@@ -130,7 +122,6 @@ namespace cse
       const temporal<double> rotation{};
       const temporal<glm::dvec2> scale{{1.0, 1.0}};
       const bool collidable{true};
-      const help::object::shader shader{};
       const help::object::texture texture{};
       const help::object::illumination illumination{};
       const help::object::shadow shadow{};

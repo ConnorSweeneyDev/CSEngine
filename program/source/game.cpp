@@ -8,7 +8,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -45,6 +44,7 @@
 #include "numeric.hpp"
 #include "object.hpp"
 #include "resource.hpp"
+#include "shader.hpp"
 #include "system.hpp"
 #include "temporal.hpp"
 #include "window.hpp"
@@ -263,16 +263,6 @@ namespace cse::help::game
       }
       else
         ++iterator;
-    for (auto iterator{graphics_cache.pipeline.begin()}; iterator != graphics_cache.pipeline.end();)
-      if (iterator->second.stamp != graphics_cache.stamp)
-      {
-        SDL_ReleaseGPUGraphicsPipeline(device, iterator->second.value.interface);
-        SDL_ReleaseGPUGraphicsPipeline(device, iterator->second.value.transparent);
-        SDL_ReleaseGPUGraphicsPipeline(device, iterator->second.value.opaque);
-        iterator = graphics_cache.pipeline.erase(iterator);
-      }
-      else
-        ++iterator;
     graphics_cache.stamp++;
   }
 
@@ -348,12 +338,9 @@ namespace cse::help::game
     SDL_ReleaseGPUBuffer(device, graphics_occluder.buffer);
     SDL_ReleaseGPUTexture(device, graphics_occluder.texture);
     for (const auto &[key, texture] : graphics_cache.texture) SDL_ReleaseGPUTexture(device, texture.value);
-    for (const auto &[key, available] : graphics_cache.pipeline)
-    {
-      SDL_ReleaseGPUGraphicsPipeline(device, available.value.interface);
-      SDL_ReleaseGPUGraphicsPipeline(device, available.value.transparent);
-      SDL_ReleaseGPUGraphicsPipeline(device, available.value.opaque);
-    }
+    SDL_ReleaseGPUGraphicsPipeline(device, graphics_pipeline.interface);
+    SDL_ReleaseGPUGraphicsPipeline(device, graphics_pipeline.transparent);
+    SDL_ReleaseGPUGraphicsPipeline(device, graphics_pipeline.opaque);
     SDL_ReleaseGPUSampler(device, graphics_buffer.linear);
     SDL_ReleaseGPUSampler(device, graphics_buffer.nearest);
     SDL_ReleaseGPUBuffer(device, graphics_buffer.index);
@@ -379,8 +366,10 @@ namespace cse::help::game
     graphics_occluder.samples.clear();
     graphics_occluder.signature.clear();
     graphics_cache.texture.clear();
-    graphics_cache.pipeline.clear();
     graphics_cache.stamp = 0;
+    graphics_pipeline.interface = nullptr;
+    graphics_pipeline.transparent = nullptr;
+    graphics_pipeline.opaque = nullptr;
     graphics_buffer.linear = nullptr;
     graphics_buffer.nearest = nullptr;
     graphics_buffer.index = nullptr;
@@ -490,13 +479,10 @@ namespace cse::help::game
                             if (const auto left_layer{left->scene ? 0 : 1}, right_layer{right->scene ? 0 : 1};
                                 left_layer != right_layer)
                               return left_layer < right_layer;
-                            const auto left_batch{std::make_tuple(left->active.shader.vertex.data.data(),
-                                                                  left->active.shader.fragment.data.data(),
-                                                                  left->active.texture.image.data.data())};
-                            const auto right_batch{std::make_tuple(right->active.shader.vertex.data.data(),
-                                                                   right->active.shader.fragment.data.data(),
-                                                                   right->active.texture.image.data.data())};
-                            if (left_batch != right_batch) return left_batch < right_batch;
+                            if (const auto *left_batch{left->active.texture.image.data.data()},
+                                *right_batch{right->active.texture.image.data.data()};
+                                left_batch != right_batch)
+                              return left_batch < right_batch;
                             return left->name.identifier() < right->name.identifier();
                           }};
     graphics_interface.order.clear();
@@ -537,7 +523,7 @@ namespace cse::help::game
       data.top = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
       data.bottom = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
       data.transparency = static_cast<float>(transparency);
-      auto &available{require_pipelines(element->active.shader.vertex, element->active.shader.fragment)};
+      auto &available{require_pipelines()};
       auto *pipe{available.interface};
       auto *texture{require_texture(element->active.texture.image)};
       if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
@@ -839,7 +825,7 @@ namespace cse::help::game
         element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha));
       data.transparency = static_cast<float>(transparency);
       data.depth = static_cast<float>(static_cast<double>(graphics_object.samples.size()) * depth_bias_step);
-      auto &available{require_pipelines(element->active.shader.vertex, element->active.shader.fragment)};
+      auto &available{require_pipelines()};
       auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
       auto *texture{require_texture(element->active.texture.image)};
       if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
@@ -1171,22 +1157,14 @@ namespace cse::help::game
     }
   }
 
-  active::pipeline &active::require_pipelines(const cse::vertex &vertex, const cse::fragment &fragment)
+  struct active::graphics_pipeline &active::require_pipelines()
   {
-    const graphics_cache::pipeline_key key{vertex.data.data(), vertex.data.size(), fragment.data.data(),
-                                           fragment.data.size()};
-    if (const auto iterator{graphics_cache.pipeline.find(key)}; iterator != graphics_cache.pipeline.end())
-    {
-      iterator->second.stamp = graphics_cache.stamp;
-      return iterator->second.value;
-    }
-    csp::verify(vertex.data.data(), vertex.data.size());
-    csp::verify(fragment.data.data(), fragment.data.size());
+    if (graphics_pipeline.opaque) return graphics_pipeline;
     const auto backend_formats{SDL_GetGPUShaderFormats(device)};
     if (!has(backend_formats, SDL_GPU_SHADERFORMAT_SPIRV))
       throw sdl_exception("No supported vulkan shader formats for game");
-    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = vertex.data.size(),
-                                               .code = vertex.data.data(),
+    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader::vertex.size(),
+                                               .code = shader::vertex.data(),
                                                .entrypoint = "main",
                                                .format = SDL_GPU_SHADERFORMAT_SPIRV,
                                                .stage = SDL_GPU_SHADERSTAGE_VERTEX,
@@ -1197,8 +1175,8 @@ namespace cse::help::game
                                                .props = 0};
     auto *vertex_shader{SDL_CreateGPUShader(device, &vertex_shader_info)};
     if (!vertex_shader) throw sdl_exception("Could not create vertex shader for game");
-    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = fragment.data.size(),
-                                                 .code = fragment.data.data(),
+    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader::fragment.size(),
+                                                 .code = shader::fragment.data(),
                                                  .entrypoint = "main",
                                                  .format = SDL_GPU_SHADERFORMAT_SPIRV,
                                                  .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
@@ -1265,9 +1243,8 @@ namespace cse::help::game
     opaque_pipeline_info.rasterizer_state = rasterizer_state;
     opaque_pipeline_info.depth_stencil_state = opaque_depth_stencil_state;
     opaque_pipeline_info.target_info = opaque_target_info;
-    pipeline available{};
-    available.opaque = SDL_CreateGPUGraphicsPipeline(device, &opaque_pipeline_info);
-    if (!available.opaque) throw sdl_exception("Could not create graphics pipeline for game");
+    graphics_pipeline.opaque = SDL_CreateGPUGraphicsPipeline(device, &opaque_pipeline_info);
+    if (!graphics_pipeline.opaque) throw sdl_exception("Could not create graphics pipeline for game");
     SDL_GPUColorTargetBlendState blend_state{};
     blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
     blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
@@ -1298,8 +1275,8 @@ namespace cse::help::game
     transparent_pipeline_info.rasterizer_state = rasterizer_state;
     transparent_pipeline_info.depth_stencil_state = transparent_depth_stencil_state;
     transparent_pipeline_info.target_info = transparent_target_info;
-    available.transparent = SDL_CreateGPUGraphicsPipeline(device, &transparent_pipeline_info);
-    if (!available.transparent) throw sdl_exception("Could not create transparent graphics pipeline for game");
+    graphics_pipeline.transparent = SDL_CreateGPUGraphicsPipeline(device, &transparent_pipeline_info);
+    if (!graphics_pipeline.transparent) throw sdl_exception("Could not create transparent graphics pipeline for game");
     SDL_GPURasterizerState interface_rasterizer_state{};
     interface_rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
     interface_rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
@@ -1316,12 +1293,11 @@ namespace cse::help::game
     interface_pipeline_info.rasterizer_state = interface_rasterizer_state;
     interface_pipeline_info.depth_stencil_state = interface_depth_stencil_state;
     interface_pipeline_info.target_info = transparent_target_info;
-    available.interface = SDL_CreateGPUGraphicsPipeline(device, &interface_pipeline_info);
-    if (!available.interface) throw sdl_exception("Could not create interface graphics pipeline for game");
+    graphics_pipeline.interface = SDL_CreateGPUGraphicsPipeline(device, &interface_pipeline_info);
+    if (!graphics_pipeline.interface) throw sdl_exception("Could not create interface graphics pipeline for game");
     SDL_ReleaseGPUShader(device, fragment_shader);
     SDL_ReleaseGPUShader(device, vertex_shader);
-    return graphics_cache.pipeline.emplace(key, graphics_cache::cached<pipeline>{available, graphics_cache.stamp})
-      .first->second.value;
+    return graphics_pipeline;
   }
 
   SDL_GPUTexture *active::require_texture(const cse::image &image)

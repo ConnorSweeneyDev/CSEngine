@@ -7,7 +7,6 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <tuple>
 #include <type_traits>
 #include <unordered_set>
 #include <utility>
@@ -94,7 +93,7 @@ namespace cse::help::game
       SDL_GPUSampler *nearest{};
       SDL_GPUSampler *linear{};
     };
-    struct pipeline
+    struct graphics_pipeline
     {
       SDL_GPUGraphicsPipeline *opaque{};
       SDL_GPUGraphicsPipeline *transparent{};
@@ -164,14 +163,12 @@ namespace cse::help::game
     };
     struct graphics_cache
     {
-      using pipeline_key = std::tuple<const unsigned char *, std::size_t, const unsigned char *, std::size_t>;
       using texture_key = std::pair<const unsigned char *, std::size_t>;
       template <typename handle> struct cached
       {
         handle value{};
         std::uint64_t stamp{};
       };
-      std::map<pipeline_key, cached<active::pipeline>> pipeline{};
       std::map<texture_key, cached<SDL_GPUTexture *>> texture{};
       std::uint64_t stamp{};
     };
@@ -233,7 +230,7 @@ namespace cse::help::game
     void generate_occluders(const std::vector<cse::object *> &object_order);
     void upload_samples();
     void draw_batches(const std::pair<glm::dmat4, glm::dmat4> &matrices);
-    pipeline &require_pipelines(const cse::vertex &vertex, const cse::fragment &fragment);
+    graphics_pipeline &require_pipelines();
     SDL_GPUTexture *require_texture(const cse::image &image);
 
     template <typename resource> void reconcile_audio(const help::mixer *previous_mixer, help::mixer *active_mixer,
@@ -275,6 +272,7 @@ namespace cse::help::game
     double actual_frame{1.0 / frame.target};
     SDL_GPUDevice *device{};
     active::graphics_buffer graphics_buffer{};
+    active::graphics_pipeline graphics_pipeline{};
     active::graphics_cache graphics_cache{};
     active::graphics_interface graphics_interface{};
     active::graphics_object graphics_object{};

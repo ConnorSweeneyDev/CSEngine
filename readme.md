@@ -45,8 +45,6 @@ game/
 | program/
 | | include/  *.[hpp|inl] # your headers
 | | source/   *.cpp       # your sources
-| | vertex/   *.vert      # HLSL vertex shaders
-| | fragment/ *.frag      # HLSL fragment shaders
 | | texture/  *.aseprite  # sprite sheets (with animation/hitbox metadata)
 | | font/     *.aseprite  # bitmap fonts (glyph atlases with slice metadata)
 | | sound/    *.wav       # short sound effects
@@ -64,18 +62,14 @@ should do the following:
 1. **Includes and Library Paths.** All library headers will be copied into `build/include`, and all libraries will be
    copied into `build/[release|debug]`. It is your job to include the headers and link the libraries.
 2. **Required Compilation Flags.** On MSVC, compile with at least `/std:c++20`, and `/bigobj`, `/Zc:preprocessor`.
-3. **Compiling Shaders to SPIR-V.** HLSL needs to be compiled (e.g. with dxc: `dxc -spirv -T [vs_6_0|ps_6_0] -E main`)
-   into `.spv`. Each shader's entry point is `main`.
-4. **Packing & Embedding Assets.** Compiled shaders, `.aseprite` textures and fonts, `.wav` and `.opus` audio are packed
-   into `.csp` containers (via [CSPack](https://github.com/ConnorSweeneyDev/CSPack)) and a `resource.hpp`/`resource.cpp`
-   pair is generated that exposes every asset as a typed C++ symbol in your namespace - the header should be in this
-   form:
+3. **Packing & Embedding Assets.** `.aseprite` textures and fonts, `.wav` and `.opus` audio are packed into `.csp`
+   containers (via [CSPack](https://github.com/ConnorSweeneyDev/CSPack)) and a `resource.hpp`/`resource.cpp` pair is
+   generated that exposes every asset as a typed C++ symbol in your namespace. Shaders are engine-owned. The header
+   should be in this form:
 
    ```cpp
    namespace csg
    {
-     namespace vertex { extern const cse::vertex main; ... }
-     namespace fragment { extern const cse::fragment main; ... }
      namespace font { extern const cse::font main; ... }
      namespace image { extern const cse::image main; ... }
      namespace animation
@@ -121,8 +115,6 @@ should do the following:
 
    namespace csg
    {
-     namespace vertex { const cse::vertex main{cse::resource::region("pack.csp", [offset], [size])}; ... }
-     namespace fragment { const cse::fragment main{cse::resource::region("pack.csp", [offset], [size])}; ... }
      namespace font
      {
        const cse::font main{{cse::resource::region("pack.csp", [offset], [size]),
@@ -261,7 +253,6 @@ player::player(const glm::dvec3 &translation_)
                  .rotation = {.value = 0.0, .interpolate = true},
                  .scale = {.value = {1.0, 1.0}, .interpolate = true},
                  .collidable = true,
-                 .shader = {.vertex = vertex::main, .fragment = fragment::main},
                  .texture = {.image = image::redhood,
                              .animation = animation::redhood.idle,
                              .playback = {.frame = 0, .speed = {1.0}, .loop = true},

@@ -16,19 +16,18 @@
 namespace cse::help::interface
 {
   previous::previous(const temporal<glm::dvec2> &translation_, const temporal<double> &rotation_,
-                     const temporal<glm::dvec2> &scale_, const bool interactable_, const interface::shader &shader_,
-                     const interface::texture &texture_, const interface::text &text_,
-                     const interface::priority &priority_)
-    : translation{translation_}, rotation{rotation_}, scale{scale_}, interactable{interactable_}, shader{shader_},
-      texture{texture_}, text{text_}, priority{priority_}
+                     const temporal<glm::dvec2> &scale_, const bool interactable_, const interface::texture &texture_,
+                     const interface::text &text_, const interface::priority &priority_)
+    : translation{translation_}, rotation{rotation_}, scale{scale_}, interactable{interactable_}, texture{texture_},
+      text{text_}, priority{priority_}
   {
   }
 
   active::active(const temporal<glm::dvec2> &translation_, const temporal<double> &rotation_,
-                 const temporal<glm::dvec2> &scale_, const bool interactable_, const interface::shader &shader_,
-                 const interface::texture &texture_, const interface::text &text_, const interface::priority &priority_)
-    : translation{translation_}, rotation{rotation_}, scale{scale_}, interactable{interactable_}, shader{shader_},
-      texture{texture_}, text{text_}, priority{priority_}
+                 const temporal<glm::dvec2> &scale_, const bool interactable_, const interface::texture &texture_,
+                 const interface::text &text_, const interface::priority &priority_)
+    : translation{translation_}, rotation{rotation_}, scale{scale_}, interactable{interactable_}, texture{texture_},
+      text{text_}, priority{priority_}
   {
   }
 
@@ -38,7 +37,6 @@ namespace cse::help::interface
     last.rotation = rotation;
     last.scale = scale;
     last.interactable = interactable;
-    last.shader = shader;
     last.texture = texture;
     last.text = text;
     last.priority = priority;
@@ -175,10 +173,10 @@ namespace cse::help::interface
 namespace cse
 {
   interface::interface(const initial &initial_)
-    : previous{initial_.translation, initial_.rotation, initial_.scale, initial_.interactable,
-               initial_.shader,      initial_.texture,  initial_.text,  initial_.priority},
-      active{initial_.translation, initial_.rotation, initial_.scale, initial_.interactable,
-             initial_.shader,      initial_.texture,  initial_.text,  initial_.priority}
+    : previous{initial_.translation, initial_.rotation, initial_.scale,   initial_.interactable,
+               initial_.texture,     initial_.text,     initial_.priority},
+      active{initial_.translation, initial_.rotation, initial_.scale,   initial_.interactable,
+             initial_.texture,     initial_.text,     initial_.priority}
   {
   }
 

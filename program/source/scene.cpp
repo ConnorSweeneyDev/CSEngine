@@ -227,13 +227,10 @@ namespace cse::help::scene
                 if (!equal(left_depth, right_depth, 1e-4)) return left_depth > right_depth;
                 if (left->active.priority.rendering != right->active.priority.rendering)
                   return left->active.priority.rendering < right->active.priority.rendering;
-                const auto left_batch{std::make_tuple(left->active.shader.vertex.data.data(),
-                                                      left->active.shader.fragment.data.data(),
-                                                      left->active.texture.image.data.data())};
-                const auto right_batch{std::make_tuple(right->active.shader.vertex.data.data(),
-                                                       right->active.shader.fragment.data.data(),
-                                                       right->active.texture.image.data.data())};
-                if (left_batch != right_batch) return left_batch < right_batch;
+                if (const auto *left_batch{left->active.texture.image.data.data()},
+                    *right_batch{right->active.texture.image.data.data()};
+                    left_batch != right_batch)
+                  return left_batch < right_batch;
                 return left->name.identifier() < right->name.identifier();
               });
 

@@ -16,20 +16,20 @@
 namespace cse::help::object
 {
   previous::previous(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
-                     const temporal<glm::dvec2> &scale_, const bool collidable_, const object::shader &shader_,
-                     const object::texture &texture_, const object::illumination &illumination_,
-                     const object::shadow &shadow_, const object::priority &priority_)
-    : translation{translation_}, rotation{rotation_}, scale{scale_}, collidable{collidable_}, shader{shader_},
-      texture{texture_}, illumination{illumination_}, shadow{shadow_}, priority{priority_}
+                     const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
+                     const object::illumination &illumination_, const object::shadow &shadow_,
+                     const object::priority &priority_)
+    : translation{translation_}, rotation{rotation_}, scale{scale_}, collidable{collidable_}, texture{texture_},
+      illumination{illumination_}, shadow{shadow_}, priority{priority_}
   {
   }
 
   active::active(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
-                 const temporal<glm::dvec2> &scale_, const bool collidable_, const object::shader &shader_,
-                 const object::texture &texture_, const object::illumination &illumination_,
-                 const object::shadow &shadow_, const object::priority &priority_)
-    : translation{translation_}, rotation{rotation_}, scale{scale_}, collidable{collidable_}, shader{shader_},
-      texture{texture_}, illumination{illumination_}, shadow{shadow_}, priority{priority_}
+                 const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
+                 const object::illumination &illumination_, const object::shadow &shadow_,
+                 const object::priority &priority_)
+    : translation{translation_}, rotation{rotation_}, scale{scale_}, collidable{collidable_}, texture{texture_},
+      illumination{illumination_}, shadow{shadow_}, priority{priority_}
   {
   }
 
@@ -39,7 +39,6 @@ namespace cse::help::object
     last.rotation = rotation;
     last.scale = scale;
     last.collidable = collidable;
-    last.shader = shader;
     last.texture = texture;
     last.illumination = illumination;
     last.shadow = shadow;
@@ -151,9 +150,9 @@ namespace cse::help::object
 namespace cse
 {
   object::object(const initial &initial_)
-    : previous{initial_.translation, initial_.rotation,     initial_.scale,  initial_.collidable, initial_.shader,
+    : previous{initial_.translation, initial_.rotation,     initial_.scale,  initial_.collidable,
                initial_.texture,     initial_.illumination, initial_.shadow, initial_.priority},
-      active{initial_.translation, initial_.rotation,     initial_.scale,  initial_.collidable, initial_.shader,
+      active{initial_.translation, initial_.rotation,     initial_.scale,  initial_.collidable,
              initial_.texture,     initial_.illumination, initial_.shadow, initial_.priority}
   {
   }

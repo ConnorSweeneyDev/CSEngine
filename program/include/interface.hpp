@@ -19,11 +19,6 @@
 
 namespace cse::help::interface
 {
-  struct shader
-  {
-    cse::vertex vertex{};
-    cse::fragment fragment{};
-  };
   struct texture
   {
     cse::image image{};
@@ -60,8 +55,8 @@ namespace cse::help::interface
   public:
     previous() = default;
     previous(const temporal<glm::dvec2> &translation_, const temporal<double> &rotation_,
-             const temporal<glm::dvec2> &scale_, const bool interactable_, const interface::shader &shader_,
-             const interface::texture &texture_, const interface::text &text_, const interface::priority &priority_);
+             const temporal<glm::dvec2> &scale_, const bool interactable_, const interface::texture &texture_,
+             const interface::text &text_, const interface::priority &priority_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;
@@ -73,7 +68,6 @@ namespace cse::help::interface
     temporal<double> rotation{};
     temporal<glm::dvec2> scale{};
     bool interactable{};
-    interface::shader shader{};
     interface::texture texture{};
     interface::text text{};
     interface::priority priority{};
@@ -94,8 +88,8 @@ namespace cse::help::interface
   public:
     active() = default;
     active(const temporal<glm::dvec2> &translation_, const temporal<double> &rotation_,
-           const temporal<glm::dvec2> &scale_, const bool interactable_, const interface::shader &shader_,
-           const interface::texture &texture_, const interface::text &text_, const interface::priority &priority_);
+           const temporal<glm::dvec2> &scale_, const bool interactable_, const interface::texture &texture_,
+           const interface::text &text_, const interface::priority &priority_);
     ~active() = default;
     active(const active &) = delete;
     active &operator=(const active &) = delete;
@@ -116,7 +110,6 @@ namespace cse::help::interface
     temporal<double> rotation{};
     temporal<glm::dvec2> scale{};
     bool interactable{};
-    interface::shader shader{};
     interface::texture texture{};
     interface::text text{};
     interface::priority priority{};
@@ -142,7 +135,6 @@ namespace cse
       const temporal<double> rotation{};
       const temporal<glm::dvec2> scale{{1.0, 1.0}};
       const bool interactable{true};
-      const help::interface::shader shader{};
       const help::interface::texture texture{};
       const help::interface::text text{};
       const help::interface::priority priority{};
