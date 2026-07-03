@@ -104,6 +104,8 @@ namespace cse::help::window
 
     void poll(const double aspect, const unsigned int resolution);
     viewport letterbox(const double aspect);
+    float pixel_density();
+    glm::ivec2 pixel_size();
     glm::dvec2 to_virtual(const double x, const double y, const double aspect, const unsigned int resolution);
     glm::dvec2 to_pixel(const double x, const double y, const double aspect, const unsigned int resolution);
 
@@ -111,6 +113,7 @@ namespace cse::help::window
     void generate_depth_texture(SDL_GPUDevice *device);
     bool acquire_swapchain_texture(SDL_GPUDevice *device);
     bool can_move();
+    bool display_exists(const SDL_DisplayID target);
     void handle_title_change();
     void handle_move();
     void handle_resize(SDL_GPUDevice *device);

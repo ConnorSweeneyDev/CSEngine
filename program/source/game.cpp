@@ -38,6 +38,7 @@
 #include "exception.hpp"
 #include "interface.hpp"
 #include "light.hpp"
+#include "log.hpp"
 #include "mask.hpp"
 #include "mixer.hpp"
 #include "name.hpp"
@@ -70,19 +71,24 @@ namespace cse::help::game
   {
     SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
-      throw sdl_exception("Could not set app metadata type");
+      sdl_log("Could not set app metadata type");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "Connor.Sweeney.Engine"))
-      throw sdl_exception("Could not set app metadata identifier");
+      sdl_log("Could not set app metadata identifier");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, "CSEngine"))
-      throw sdl_exception("Could not set app metadata name");
+      sdl_log("Could not set app metadata name");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "1.0.0"))
-      throw sdl_exception("Could not set app metadata version");
+      sdl_log("Could not set app metadata version");
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
-      throw sdl_exception("Could not set app metadata creator");
+      sdl_log("Could not set app metadata creator");
 
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be prepared");
-    if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) throw sdl_exception("SDL audio could not be prepared");
-    if (!MIX_Init()) throw sdl_exception("SDL_mixer could not be prepared");
+    audio_ready = false;
+    if (!SDL_InitSubSystem(SDL_INIT_AUDIO))
+      sdl_log("SDL audio could not be prepared; continuing without sound");
+    else if (!MIX_Init())
+      sdl_log("SDL_mixer could not be prepared; continuing without sound");
+    else
+      audio_ready = true;
   }
 
   void active::create()
@@ -178,10 +184,20 @@ namespace cse::help::game
     SDL_SubmitGPUCommandBuffer(command_buffer);
     SDL_ReleaseGPUTransferBuffer(device, transfer_buffer);
 
+    if (!audio_ready) return;
     if (audio_handle = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr); !audio_handle)
-      throw sdl_exception("Could not create audio mixer for game");
+    {
+      sdl_log("Could not create audio mixer for game; continuing without sound");
+      return;
+    }
     SDL_AudioSpec spec{};
-    if (!MIX_GetMixerFormat(audio_handle, &spec)) throw sdl_exception("Could not get audio mixer format for game");
+    if (!MIX_GetMixerFormat(audio_handle, &spec))
+    {
+      sdl_log("Could not get audio mixer format for game; continuing without sound");
+      MIX_DestroyMixer(audio_handle);
+      audio_handle = nullptr;
+      return;
+    }
     frequency = spec.freq;
   }
 
@@ -558,15 +574,23 @@ namespace cse::help::game
       const auto box_top{-element_height / 2.0};
       const auto box_bottom{element_height / 2.0};
 
+      constexpr std::uint32_t undefined{0xFFFD};
       const auto find{
         [&](const std::uint32_t character) -> const cse::font::glyph &
         {
-          const auto position{std::lower_bound(
-            text.font.glyphs.begin(), text.font.glyphs.end(), static_cast<std::uint64_t>(character),
-            [](const cse::font::glyph &candidate, const std::uint64_t value) { return candidate.character < value; })};
-          if (position == text.font.glyphs.end() || position->character != character)
-            throw exception("Font for interface '{}' is missing glyph U+{:04X}", element->name.string(), character);
-          return *position;
+          const auto locate{[&](const std::uint32_t value) -> const cse::font::glyph *
+                            {
+                              const auto position{std::lower_bound(
+                                text.font.glyphs.begin(), text.font.glyphs.end(), static_cast<std::uint64_t>(value),
+                                [](const cse::font::glyph &candidate, const std::uint64_t target)
+                                { return candidate.character < target; })};
+                              if (position == text.font.glyphs.end() || position->character != value) return nullptr;
+                              return &*position;
+                            }};
+          if (const auto *glyph{locate(character)}) return *glyph;
+          if (const auto *glyph{locate(undefined)}) return *glyph;
+          throw exception("Font for interface '{}' is missing glyph U+{:04X} and the U+FFFD fallback glyph",
+                          element->name.string(), character);
         }};
       std::vector<std::uint32_t> characters{};
       characters.reserve(text.content.size());
@@ -582,15 +606,32 @@ namespace cse::help::game
         else if (first >= 0xC0)
           length = 2, character = first & 0x1Fu;
         else if (first >= 0x80)
-          throw exception("Interface '{}' has malformed text content", element->name.string());
+        {
+          characters.push_back(undefined);
+          ++index;
+          continue;
+        }
         if (index + length > text.content.size())
-          throw exception("Interface '{}' has malformed text content", element->name.string());
+        {
+          characters.push_back(undefined);
+          break;
+        }
+        bool malformed{false};
         for (std::size_t offset{1}; offset < length; ++offset)
         {
           const auto continuation{static_cast<unsigned char>(text.content[index + offset])};
           if ((continuation & 0xC0u) != 0x80u)
-            throw exception("Interface '{}' has malformed text content", element->name.string());
+          {
+            malformed = true;
+            break;
+          }
           character = (character << 6) | (continuation & 0x3Fu);
+        }
+        if (malformed)
+        {
+          characters.push_back(undefined);
+          ++index;
+          continue;
         }
         characters.push_back(character);
         index += length;
@@ -636,23 +677,22 @@ namespace cse::help::game
                         }};
       std::vector<item> word{};
       double word_width{};
-      const auto flush{
-        [&]()
-        {
-          if (word.empty()) return;
-          if (text.overflow.wrap && !lines.back().items.empty() &&
-              lines.back().width + spacing_x + word_width > element_width)
-            commit();
-          for (const auto &entry : word)
-          {
-            if (text.overflow.wrap && !lines.back().items.empty() &&
-                lines.back().width + spacing_x + entry.glyph->width * scale_x > element_width)
-              commit();
-            append(*entry.glyph, entry.character);
-          }
-          word.clear();
-          word_width = 0.0;
-        }};
+      const auto flush{[&]()
+                       {
+                         if (word.empty()) return;
+                         if (text.overflow.wrap && !lines.back().items.empty() &&
+                             lines.back().width + spacing_x + word_width > element_width)
+                           commit();
+                         for (const auto &entry : word)
+                         {
+                           if (text.overflow.wrap && !lines.back().items.empty() &&
+                               lines.back().width + spacing_x + entry.glyph->width * scale_x > element_width)
+                             commit();
+                           append(*entry.glyph, entry.character);
+                         }
+                         word.clear();
+                         word_width = 0.0;
+                       }};
       for (const auto character : characters)
       {
         if (character == U'\n')

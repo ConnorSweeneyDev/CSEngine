@@ -281,6 +281,7 @@ namespace cse::help::game
     active::graphics_light graphics_light{};
     active::graphics_occluder graphics_occluder{};
 
+    bool audio_ready{};
     int frequency{};
     MIX_Mixer *audio_handle{};
     std::map<audio_track::audio_key, MIX_Audio *> audio_cache{};

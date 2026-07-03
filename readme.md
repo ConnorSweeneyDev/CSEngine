@@ -151,10 +151,12 @@ should do the following:
    The `loader`'s trailing `[strings_offset]` argument exists only in debug builds (where hitbox identifiers are stored
    as readable strings); release builds omit it and hash the identifiers instead.
 
-   Texture `.aseprite` files contain a top-level `image` group (and optionally a `hitbox` group). Font `.aseprite`
-   files contain only an `image` group and mark every glyph with a slice named after its character (e.g. `A`, `!`,
-   ` `); every slice must share one height (the line height) and a slice's width is the exact width of that character.
-   Both can be animated with tags, and a font's frame rectangles apply to the whole atlas.
+   Texture `.aseprite` files contain a top-level `image` group (and optionally a `hitbox` group). Font `.aseprite` files
+   contain only an `image` group and mark every glyph with a slice named after its character (e.g. `A`, `!`, ` `); every
+   slice must share one height (the line height) and a slice's width is the exact width of that character. A slice named
+   `�` (`U+FFFD`) is rendered in place of any character the font doesn't cover (and in place of malformed text content);
+   without it, an uncovered character throws. Both can be animated with tags, and a font's frame rectangles apply to the
+   whole atlas.
 
 ### Entry Point
 Define `cse::main` - the engine provides the real `main()` and wraps your code in error handling. Create the game from a
@@ -405,6 +407,9 @@ public:
 Wrap any field whose `type` or `init` contains a top-level comma in parentheses (as `position` and `size` do above) so
 the preprocessor reads the tuple correctly. `ENLIST` supports a few hundred fields per struct.
 
+State I/O never crashes the game: a file that can't be opened or parsed is renamed to `.bak` and defaults are used, and
+a failed write is skipped - both with a logged warning.
+
 Then load and save whenever you want:
 
 ```cpp
@@ -490,6 +495,9 @@ and a non-throwing `try_` form:
 
 ### Thread-Safe Printing & Exceptions
 - `cse::print<COUT>("hello {}\n", name)` - mutex-guarded, `std::format`-based logging to `COUT` / `CERR` / `CLOG`.
+- `cse::log("lost {} frames", n)` - warning log; prints to `CLOG` and appends to `log.txt` in the working directory
+  (truncated each run). `cse::sdl_log` appends the current SDL error. The engine uses these for every recoverable
+  failure it works around (window management, audio device loss, state I/O, skipped frames).
 - `throw cse::exception("bad value {}", x)` - `std::format`-style message; `cse::sdl_exception` appends the current SDL
   error. The engine's `main()` wrapper catches these and reports them, so you can throw freely from any hook.
 

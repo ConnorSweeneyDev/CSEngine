@@ -12,22 +12,22 @@ namespace cse::help
 {
   template <trait::is_audio resource> auto &mixer::select()
   {
+    static_assert(std::is_same_v<resource, cse::sound> || std::is_same_v<resource, cse::music>,
+                  "Invalid audio resource type");
     if constexpr (std::is_same_v<resource, cse::sound>)
       return sounds;
-    else if constexpr (std::is_same_v<resource, cse::music>)
-      return musics;
     else
-      throw exception("Invalid audio resource type");
+      return musics;
   }
 
   template <trait::is_audio resource> const auto &mixer::select() const
   {
+    static_assert(std::is_same_v<resource, cse::sound> || std::is_same_v<resource, cse::music>,
+                  "Invalid audio resource type");
     if constexpr (std::is_same_v<resource, cse::sound>)
       return sounds;
-    else if constexpr (std::is_same_v<resource, cse::music>)
-      return musics;
     else
-      throw exception("Invalid audio resource type");
+      return musics;
   }
 
   template <trait::is_audio resource> bool mixer::has(const name name) const

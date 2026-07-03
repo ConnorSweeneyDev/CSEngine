@@ -1,5 +1,6 @@
 #include "state.hpp"
 
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -39,6 +40,7 @@
 #include "nlohmann/json_fwd.hpp"
 
 #include "exception.hpp"
+#include "log.hpp"
 
 namespace cse
 {
@@ -55,39 +57,91 @@ namespace cse
 
   void state::read()
   {
-    auto file{directory() / location};
+    std::filesystem::path file{};
+    try
+    {
+      file = directory() / location;
+    }
+    catch (const std::exception &error)
+    {
+      log("Could not read state '{}': {}", location.string(), error.what());
+      return;
+    }
     file += ".json";
     std::error_code error{};
     if (!std::filesystem::exists(file, error) || error) return;
 
-    std::ifstream stream{file, std::ios::binary};
-    if (!stream) throw exception("Could not open state file '{}' for reading", file.string());
+    const auto discard{[&file](const std::string &reason)
+                       {
+                         auto backup{file};
+                         backup += ".bak";
+                         log("Could not read state file '{}' ({}); renaming it to '{}' and using defaults",
+                             file.string(), reason, backup.string());
+                         std::error_code backup_error{};
+                         std::filesystem::remove(backup, backup_error);
+                         std::filesystem::rename(file, backup, backup_error);
+                         if (backup_error) log("Could not rename state file '{}'", file.string());
+                       }};
     nlohmann::json json{};
+    {
+      std::ifstream stream{file, std::ios::binary};
+      if (!stream)
+      {
+        discard("the file could not be opened");
+        return;
+      }
+      try
+      {
+        stream >> json;
+      }
+      catch (const nlohmann::json::exception &parse_error)
+      {
+        stream.close();
+        discard(parse_error.what());
+        return;
+      }
+    }
     try
     {
-      stream >> json;
+      for (const auto &object : entries) object.reader(json);
     }
-    catch (const nlohmann::json::exception &parse_error)
+    catch (const nlohmann::json::exception &read_error)
     {
-      throw exception("Could not parse state file '{}': {}", file.string(), parse_error.what());
+      discard(read_error.what());
     }
-    for (const auto &object : entries) object.reader(json);
   }
 
   void state::write() const
   {
-    auto file{directory() / location};
+    std::filesystem::path file{};
+    try
+    {
+      file = directory() / location;
+    }
+    catch (const std::exception &error)
+    {
+      log("Could not write state '{}': {}", location.string(), error.what());
+      return;
+    }
     file += ".json";
     std::error_code error{};
     std::filesystem::create_directories(file.parent_path(), error);
-    if (error) throw exception("Could not create directory for state file '{}'", file.string());
+    if (error)
+    {
+      log("Could not create directory for state file '{}'; skipping write", file.string());
+      return;
+    }
 
     nlohmann::json json{};
     for (const auto &object : entries) object.writer(json);
     std::ofstream stream{file, std::ios::binary | std::ios::trunc};
-    if (!stream) throw exception("Could not open state file '{}' for writing", file.string());
+    if (!stream)
+    {
+      log("Could not open state file '{}' for writing; skipping write", file.string());
+      return;
+    }
     stream << json.dump(2);
-    if (!stream) throw exception("Could not write state file '{}'", file.string());
+    if (!stream) log("Could not write state file '{}'", file.string());
   }
 
   std::filesystem::path state::directory() const
