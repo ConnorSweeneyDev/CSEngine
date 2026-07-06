@@ -2,7 +2,10 @@
 
 #include "mixer.hpp"
 
+#include <initializer_list>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "exception.hpp"
 #include "name.hpp"
@@ -49,10 +52,47 @@ namespace cse::help
     return iterator->second;
   }
 
-  template <trait::is_audio resource> mixer::entry<resource> &mixer::load(const name name, const resource &source)
+  template <trait::is_audio resource> mixer::entry<resource> &mixer::set(const name name, const resource &source)
   { return select<resource>().insert_or_assign(name, entry<resource>{.source = source}).first->second; }
 
-  template <trait::is_audio resource> void mixer::unload(const name name) { select<resource>().erase(name); }
+  template <trait::is_audio resource, typename callable> void mixer::iterate(callable &&function)
+  {
+    auto &entries{select<resource>()};
+    std::vector<name> names{};
+    names.reserve(entries.size());
+    for (const auto &[name, track] : entries) names.push_back(name);
+    for (const auto name : names)
+      if (auto iterator{entries.find(name)}; iterator != entries.end()) function(name, iterator->second);
+  }
+
+  template <trait::is_audio resource, typename callable> void mixer::iterate(callable &&function) const
+  {
+    const auto &entries{select<resource>()};
+    std::vector<name> names{};
+    names.reserve(entries.size());
+    for (const auto &[name, track] : entries) names.push_back(name);
+    for (const auto name : names)
+      if (auto iterator{entries.find(name)}; iterator != entries.end()) function(name, iterator->second);
+  }
+
+  template <typename callable> void mixer::iterate(callable &&function)
+  {
+    iterate<cse::sound>(function);
+    iterate<cse::music>(std::forward<callable>(function));
+  }
+
+  template <typename callable> void mixer::iterate(callable &&function) const
+  {
+    iterate<cse::sound>(function);
+    iterate<cse::music>(std::forward<callable>(function));
+  }
+
+  template <trait::is_audio resource> void mixer::remove(const name name) { select<resource>().erase(name); }
+
+  template <trait::is_audio resource> void mixer::remove(std::initializer_list<name> names)
+  {
+    for (const auto name : names) select<resource>().erase(name);
+  }
 
   template <trait::is_audio resource> void mixer::clear() noexcept { select<resource>().clear(); }
 }

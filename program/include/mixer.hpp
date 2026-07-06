@@ -40,15 +40,22 @@ namespace cse::help
     };
 
   public:
+    bool has(const name name) const;
     template <trait::is_audio resource> bool has(const name name) const;
     template <trait::is_audio resource> entry<resource> &get(const name name);
     template <trait::is_audio resource> const entry<resource> &get(const name name) const;
-    template <trait::is_audio resource> entry<resource> &load(const name name, const resource &source);
-    void load(std::initializer_list<request> requests);
-    template <trait::is_audio resource> void unload(const name name);
-    void unload(const name name);
-    template <trait::is_audio resource> void clear() noexcept;
+    template <trait::is_audio resource> entry<resource> &set(const name name, const resource &source);
+    void set(std::initializer_list<request> requests);
+    template <trait::is_audio resource, typename callable> void iterate(callable &&function);
+    template <trait::is_audio resource, typename callable> void iterate(callable &&function) const;
+    template <typename callable> void iterate(callable &&function);
+    template <typename callable> void iterate(callable &&function) const;
+    void remove(const name name);
+    void remove(std::initializer_list<name> names);
+    template <trait::is_audio resource> void remove(const name name);
+    template <trait::is_audio resource> void remove(std::initializer_list<name> names);
     void clear() noexcept;
+    template <trait::is_audio resource> void clear() noexcept;
 
   private:
     template <trait::is_audio resource> auto &select();

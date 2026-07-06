@@ -2,7 +2,7 @@
 
 #include <any>
 #include <functional>
-#include <optional>
+#include <initializer_list>
 #include <typeindex>
 #include <unordered_map>
 
@@ -22,10 +22,11 @@ namespace cse::help
     friend class cse::interface;
 
   public:
-    struct time
+    struct state
     {
       double elapsed{};
       double target{};
+      bool running{true};
     };
 
   private:
@@ -33,19 +34,25 @@ namespace cse::help
     {
       std::any callback{};
       std::type_index type{typeid(void)};
-      timer::time time{};
+      timer::state state{};
     };
 
   public:
     bool has(const name name) const;
     template <typename signature> bool has(const name name) const;
-    bool ready(const name name) const;
-    std::optional<time> check(const name name) const;
-    template <typename signature>
-    void set(const name name, const double target, const std::function<signature> &callback);
-    template <typename callable> void set(const name name, const double target, callable &&callback);
+    state &get(const name name);
+    const state &get(const name name) const;
+    template <typename signature> void set(const name name, const double elapsed, const double target,
+                                           const bool running, const std::function<signature> &callback);
+    template <typename callable>
+    void set(const name name, const double elapsed, const double target, const bool running, callable &&callback);
+    template <typename callable> void iterate(callable &&function);
+    template <typename callable> void iterate(callable &&function) const;
     void remove(const name name);
-    void reset() noexcept;
+    void remove(std::initializer_list<name> names);
+    void clear() noexcept;
+
+    bool ready(const name name) const;
     template <typename signature, typename... call_arguments> auto poll(const name name, call_arguments &&...arguments);
     template <typename signature, typename... call_arguments> auto call(const name name, call_arguments &&...arguments);
     template <typename signature, typename... call_arguments>

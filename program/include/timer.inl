@@ -9,6 +9,7 @@
 #include <typeindex>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include "exception.hpp"
 #include "function.hpp"
@@ -23,14 +24,33 @@ namespace cse::help
     return iterator->second.type == std::type_index(typeid(signature));
   }
 
-  template <typename signature>
-  void timer::set(const name name, const double target, const std::function<signature> &callback)
-  { entries.insert_or_assign(name, entry{callback, std::type_index(typeid(signature)), {0.0, target}}); }
+  template <typename signature> void timer::set(const name name, const double elapsed, const double target,
+                                                const bool running, const std::function<signature> &callback)
+  { entries.insert_or_assign(name, entry{callback, std::type_index(typeid(signature)), {elapsed, target, running}}); }
 
-  template <typename callable> void timer::set(const name name, const double target, callable &&callback)
+  template <typename callable>
+  void timer::set(const name name, const double elapsed, const double target, const bool running, callable &&callback)
   {
     using signature = typename trait::callable<callable>::signature;
-    set<signature>(name, target, std::function<signature>(std::forward<callable>(callback)));
+    set<signature>(name, elapsed, target, running, std::function<signature>(std::forward<callable>(callback)));
+  }
+
+  template <typename callable> void timer::iterate(callable &&function)
+  {
+    std::vector<name> names{};
+    names.reserve(entries.size());
+    for (const auto &[name, target] : entries) names.push_back(name);
+    for (const auto name : names)
+      if (auto iterator{entries.find(name)}; iterator != entries.end()) function(name, iterator->second.state);
+  }
+
+  template <typename callable> void timer::iterate(callable &&function) const
+  {
+    std::vector<name> names{};
+    names.reserve(entries.size());
+    for (const auto &[name, target] : entries) names.push_back(name);
+    for (const auto name : names)
+      if (auto iterator{entries.find(name)}; iterator != entries.end()) function(name, iterator->second.state);
   }
 
   template <typename signature, typename... call_arguments>
@@ -44,7 +64,7 @@ namespace cse::help
       return return_type{};
     }
     auto &target{iterator->second};
-    if (target.time.elapsed < target.time.target)
+    if (target.state.elapsed < target.state.target)
     {
       if constexpr (std::is_void_v<return_type>) return;
       return return_type{};
@@ -69,7 +89,7 @@ namespace cse::help
     auto iterator{entries.find(name)};
     if (iterator == entries.end()) throw exception("Attempted to call non-existent timer '{}'", name.string());
     auto &target{iterator->second};
-    if (target.time.elapsed < target.time.target)
+    if (target.state.elapsed < target.state.target)
       throw exception("Attempted to call timer '{}' before ready", name.string());
     if constexpr (const auto &function{deduce<signature>(name, target)}; std::is_void_v<return_type>)
     {
@@ -92,7 +112,7 @@ namespace cse::help
     auto iterator{entries.find(name)};
     if (iterator == entries.end()) return std::optional<optional_type>{std::nullopt};
     auto &target{iterator->second};
-    if (target.time.elapsed < target.time.target) return std::optional<optional_type>{std::nullopt};
+    if (target.state.elapsed < target.state.target) return std::optional<optional_type>{std::nullopt};
     const auto &function{deduce<signature>(name, target)};
     if constexpr (std::is_void_v<return_type>)
     {
