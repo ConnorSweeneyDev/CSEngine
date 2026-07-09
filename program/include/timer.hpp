@@ -1,6 +1,7 @@
 #pragma once
 
 #include <any>
+#include <cstddef>
 #include <functional>
 #include <initializer_list>
 #include <typeindex>
@@ -26,6 +27,7 @@ namespace cse::help
     {
       double elapsed{};
       double target{};
+      bool repeat{};
       bool running{true};
     };
 
@@ -38,14 +40,13 @@ namespace cse::help
     };
 
   public:
+    std::size_t count() const noexcept;
     bool has(const name name) const;
     template <typename signature> bool has(const name name) const;
     state &get(const name name);
     const state &get(const name name) const;
-    template <typename signature> void set(const name name, const double elapsed, const double target,
-                                           const bool running, const std::function<signature> &callback);
-    template <typename callable>
-    void set(const name name, const double elapsed, const double target, const bool running, callable &&callback);
+    template <typename signature> state &set(const name name, const std::function<signature> &callback);
+    template <typename callable> state &set(const name name, callable &&callback);
     template <typename callable> void iterate(callable &&function);
     template <typename callable> void iterate(callable &&function) const;
     void remove(const name name);
@@ -53,13 +54,13 @@ namespace cse::help
     void clear() noexcept;
 
     bool ready(const name name) const;
-    template <typename signature, typename... call_arguments> auto poll(const name name, call_arguments &&...arguments);
-    template <typename signature, typename... call_arguments> auto call(const name name, call_arguments &&...arguments);
+    template <typename signature, typename... call_arguments> bool call(const name name, call_arguments &&...arguments);
     template <typename signature, typename... call_arguments>
-    auto try_call(const name name, call_arguments &&...arguments);
+    auto capture(const name name, call_arguments &&...arguments);
 
   private:
     template <typename signature> const std::function<signature> &deduce(const name name, const entry &target) const;
+    void finish(typename std::unordered_map<name, entry>::iterator iterator);
     void update(const double tick);
 
   private:

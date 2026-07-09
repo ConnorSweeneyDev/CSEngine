@@ -1,5 +1,6 @@
 #include "mixer.hpp"
 
+#include <cstddef>
 #include <initializer_list>
 #include <variant>
 
@@ -7,6 +8,8 @@
 
 namespace cse::help
 {
+  std::size_t mixer::count() const noexcept { return sounds.size() + musics.size(); }
+
   bool mixer::has(const name name) const { return sounds.contains(name) || musics.contains(name); }
 
   void mixer::set(std::initializer_list<request> requests)

@@ -2,6 +2,7 @@
 
 #include "mixer.hpp"
 
+#include <cstddef>
 #include <initializer_list>
 #include <type_traits>
 #include <utility>
@@ -13,6 +14,8 @@
 
 namespace cse::help
 {
+  template <trait::is_audio resource> std::size_t mixer::count() const noexcept { return select<resource>().size(); }
+
   template <trait::is_audio resource> auto &mixer::select()
   {
     static_assert(std::is_same_v<resource, cse::sound> || std::is_same_v<resource, cse::music>,

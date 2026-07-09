@@ -347,31 +347,45 @@ Set `.instant = true` on a temporal when you want a hard cut (no interpolation) 
   Each comes in a throwing form (`find`, `find_as`, `contains`) and a non-throwing `try_` form.
 
 ### Starting and Calling Timers
-Schedule one-shot or deferred callbacks on any entity's `active.timer`:
+Schedule one-shot or repeating callbacks on any entity's `active.timer`. `set` returns the timer's modifiable `state`.
+`call` returns whether it fired (discards any callback return). `capture` is for non-void callbacks and returns
+`optional<return_type>`:
 
 ```cpp
-active.timer.set("hide_text", 0.5, [this]() { active.text.content.clear(); }); // fire after 0.5s
-active.timer.poll<void()>("hide_text");                                        // run it when due
+// Set a timer for 0.5 seconds that clears the text content when it fires
+auto &hide = active.timer.set("hide_text", [this]() { active.text.content.clear(); });
+hide.target = 0.5;
+if (active.timer.call<void()>("hide_text")) { /* fired */ }
+
+// Set a timer for every 1 second that repeats indefinitely
+auto &tick = active.timer.set("heartbeat", [this]() { /* ... */ });
+tick.target = 1.0;
+tick.repeat = true;
+
+// Use the return value of a timer callback
+if (auto result = active.timer.capture<int()>("roll"))
+  use(*result);
 ```
 
 ### Managing Audio
-Each game, scene and entity has a `mixer`. Load by name, then toggle/seek/pitch:
+Each game, scene and entity has a `mixer`. Set tracks by name, then toggle/seek/pitch:
 
 ```cpp
-auto &song = active.mixer.load("main", music::main);
-song.playing = true;
+auto &song = active.mixer.set("main", music::main);
 song.loop = true;
 song.speed.value = 0.80;
+song.playing = true;
 
-active.mixer.load({{"sample1", sound::sample1}, {"sample2", sound::sample2}});
+active.mixer.set({{"sample1", sound::sample1}, {"sample2", sound::sample2}});
 auto &sfx = active.mixer.get<cse::sound>("sample1");
-sfx.position = 0; sfx.playing = true;
-active.mixer.unload<cse::music>("main");
+sfx.position = 0;
+sfx.playing = true;
+active.mixer.remove<cse::music>("main");
 ```
 
-Unloading is optional; the mixer will automatically unload when the entity is destroyed.
-The game's `master`, `sound` and `music` temporals act as global buses for volume, as well as each track's own `volume`
-temporal.
+Removing is optional; the mixer will automatically clear tracks when the entity is destroyed.\
+The game's `master`, `sound` and `music` temporals act as global buses for volume, all affecting each track's own
+`volume` temporal.
 
 ### Persistent State
 A `state` is a JSON-backed settings blob saved under the OS user-data directory. Declare fields with the `ENLIST` macro

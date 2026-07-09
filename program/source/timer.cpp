@@ -1,12 +1,16 @@
 #include "timer.hpp"
 
+#include <cstddef>
 #include <initializer_list>
+#include <unordered_map>
 
 #include "exception.hpp"
 #include "name.hpp"
 
 namespace cse::help
 {
+  std::size_t timer::count() const noexcept { return entries.size(); }
+
   bool timer::has(const name name) const { return entries.contains(name); }
 
   timer::state &timer::get(const name name)
@@ -37,6 +41,14 @@ namespace cse::help
     if (auto iterator{entries.find(name)}; iterator != entries.end())
       return iterator->second.state.elapsed >= iterator->second.state.target;
     return false;
+  }
+
+  void timer::finish(typename std::unordered_map<name, entry>::iterator iterator)
+  {
+    if (iterator->second.state.repeat)
+      iterator->second.state.elapsed = 0.0;
+    else
+      entries.erase(iterator);
   }
 
   void timer::update(const double tick)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <initializer_list>
 #include <unordered_map>
 #include <variant>
@@ -26,10 +27,10 @@ namespace cse::help
     {
       resource source{};
       double position{};
-      bool playing{};
       bool loop{};
       temporal<double> speed{1.0};
       temporal<double> volume{0.5};
+      bool playing{};
     };
     struct request
     {
@@ -40,6 +41,8 @@ namespace cse::help
     };
 
   public:
+    std::size_t count() const noexcept;
+    template <trait::is_audio resource> std::size_t count() const noexcept;
     bool has(const name name) const;
     template <trait::is_audio resource> bool has(const name name) const;
     template <trait::is_audio resource> entry<resource> &get(const name name);
