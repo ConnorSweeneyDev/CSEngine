@@ -17,7 +17,7 @@
 namespace cse
 {
   template <trait::is_camera camera_type, typename... camera_arguments>
-  scene &scene::set(camera_arguments &&...arguments)
+  camera_type &scene::set(camera_arguments &&...arguments)
   {
     auto camera{std::make_shared<camera_type>(std::forward<camera_arguments>(arguments)...)};
     if (!game) throw exception("Scene camera added before scene was attached to a game");
@@ -36,11 +36,11 @@ namespace cse
         break;
       case help::phase::CREATED: next.camera = camera; break;
     }
-    return *this;
+    return *camera;
   }
 
   template <trait::is_interface interface_type, typename... interface_arguments>
-  scene &scene::set(const cse::name interface_name, interface_arguments &&...arguments)
+  interface_type &scene::set(const cse::name interface_name, interface_arguments &&...arguments)
   {
     auto interface{std::make_shared<interface_type>(std::forward<interface_arguments>(arguments)...)};
     interface->name = interface_name;
@@ -61,11 +61,11 @@ namespace cse
         set_or_add(active.interface_additions, interface);
         break;
     }
-    return *this;
+    return *interface;
   }
 
   template <trait::is_object object_type, typename... object_arguments>
-  scene &scene::set(const cse::name object_name, object_arguments &&...arguments)
+  object_type &scene::set(const cse::name object_name, object_arguments &&...arguments)
   {
     auto object{std::make_shared<object_type>(std::forward<object_arguments>(arguments)...)};
     object->name = object_name;
@@ -85,11 +85,11 @@ namespace cse
         set_or_add(active.object_additions, object);
         break;
     }
-    return *this;
+    return *object;
   }
 
   template <trait::is_light light_type, typename... light_arguments>
-  scene &scene::set(const cse::name light_name, light_arguments &&...arguments)
+  light_type &scene::set(const cse::name light_name, light_arguments &&...arguments)
   {
     auto light{std::make_shared<light_type>(std::forward<light_arguments>(arguments)...)};
     light->name = light_name;
@@ -109,15 +109,20 @@ namespace cse
         set_or_add(active.light_additions, light);
         break;
     }
-    return *this;
+    return *light;
   }
 
-  template <typename target_type>
-    requires(std::is_void_v<target_type> || trait::is_object<target_type> || trait::is_light<target_type> ||
-             trait::is_interface<target_type>)
-  scene &scene::remove(const cse::name target_name)
+  template <typename... target_types>
+    requires((sizeof...(target_types) == 0) || ((std::is_void_v<target_types> || trait::is_object<target_types> ||
+                                                 trait::is_light<target_types> || trait::is_interface<target_types>) &&
+                                                ...))
+  void scene::remove(const cse::name target_name)
   {
-    if constexpr (std::is_void_v<target_type> || trait::is_interface<target_type>)
+    constexpr bool all{sizeof...(target_types) == 0 || (std::is_void_v<target_types> || ...)};
+    constexpr bool interfaces{all || (trait::is_interface<target_types> || ...)};
+    constexpr bool objects{all || (trait::is_object<target_types> || ...)};
+    constexpr bool lights{all || (trait::is_light<target_types> || ...)};
+    if constexpr (interfaces)
       if (auto iterator{try_iterate(active.interfaces, target_name)}; iterator != active.interfaces.end())
       {
         if (auto &interface{*iterator}; active.phase == help::phase::CREATED)
@@ -128,7 +133,7 @@ namespace cse
           active.interfaces.erase(iterator);
         }
       }
-    if constexpr (std::is_void_v<target_type> || trait::is_object<target_type>)
+    if constexpr (objects)
       if (auto iterator{try_iterate(active.objects, target_name)}; iterator != active.objects.end())
       {
         if (auto &object{*iterator}; active.phase == help::phase::CREATED)
@@ -138,9 +143,8 @@ namespace cse
           if (object->active.phase == help::phase::PREPARED) object->clean();
           active.objects.erase(iterator);
         }
-        return *this;
       }
-    if constexpr (std::is_void_v<target_type> || trait::is_light<target_type>)
+    if constexpr (lights)
       if (auto iterator{try_iterate(active.lights, target_name)}; iterator != active.lights.end())
       {
         if (auto &light{*iterator}; active.phase == help::phase::CREATED)
@@ -150,8 +154,6 @@ namespace cse
           if (light->active.phase == help::phase::PREPARED) light->clean();
           active.lights.erase(iterator);
         }
-        return *this;
       }
-    return *this;
   }
 }

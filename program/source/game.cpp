@@ -1397,7 +1397,7 @@ namespace cse
   {
   }
 
-  game &game::current(const name scene_name)
+  scene &game::current(const name scene_name)
   {
     auto scene{find(active.scenes, scene_name)};
     if (active.phase == help::phase::CREATED)
@@ -1407,7 +1407,7 @@ namespace cse
       active.scene = scene;
       previous.scene = scene;
     }
-    return *this;
+    return *scene;
   }
 
   void game::run()

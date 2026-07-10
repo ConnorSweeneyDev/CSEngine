@@ -162,16 +162,17 @@ namespace cse
   }
 
   template <trait::is_state state_type, typename... state_arguments>
-  game &game::set(const name state_name, state_arguments &&...arguments)
+  state_type &game::set(const name state_name, state_arguments &&...arguments)
   {
     auto state{std::make_shared<state_type>(std::forward<state_arguments>(arguments)...)};
     state->name = state_name;
     set_or_add(active.states, state);
     if (active.phase != help::phase::CREATED) set_or_add(previous.states, state);
-    return *this;
+    return *state;
   }
 
-  template <trait::is_window window_type, typename... window_arguments> game &game::set(window_arguments &&...arguments)
+  template <trait::is_window window_type, typename... window_arguments>
+  window_type &game::set(window_arguments &&...arguments)
   {
     auto window{std::make_shared<window_type>(std::forward<window_arguments>(arguments)...)};
     window->game = this;
@@ -182,12 +183,12 @@ namespace cse
       active.window = window;
       previous.window = window;
     }
-    return *this;
+    return *window;
   }
 
   template <trait::is_scene scene_type, typename... scene_arguments>
-  game &game::set(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
-                  scene_arguments &&...arguments)
+  scene_type &game::set(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
+                        scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     scene->name = scene_name;
@@ -198,18 +199,19 @@ namespace cse
       if (active.scene == target)
       {
         next.scene = {scene_name, scene};
-        return *this;
+        return *scene;
       }
       else
         target->clean();
     }
     set_or_add(active.scenes, scene);
     if (active.phase == help::phase::CREATED) scene->prepare();
-    return *this;
+    return *scene;
   }
 
   template <trait::is_callable callable, typename... scene_arguments>
-  game &game::set(const name scene_name, callable &&config, scene_arguments &&...arguments)
+  auto game::set(const name scene_name, callable &&config, scene_arguments &&...arguments) ->
+    typename trait::callable_smart_inner<callable>::type &
   {
     using scene_type = typename trait::callable_smart_inner<callable>::type;
     return set<scene_type, scene_arguments...>(
@@ -218,8 +220,9 @@ namespace cse
   }
 
   template <trait::is_scene scene_type, typename... scene_arguments>
-  game &game::current(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
-                      scene_arguments &&...arguments)
+  scene_type &game::current(const name scene_name,
+                            const std::function<void(const std::shared_ptr<scene_type> &)> &config,
+                            scene_arguments &&...arguments)
   {
     auto scene{std::make_shared<scene_type>(std::forward<scene_arguments>(arguments)...)};
     scene->name = scene_name;
@@ -233,11 +236,11 @@ namespace cse
       active.scene = scene;
       previous.scene = scene;
     }
-    return *this;
+    return *scene;
   }
 
-  template <trait::is_callable callable, typename... scene_arguments>
-  game &game::current(const name scene_name, callable &&config, scene_arguments &&...arguments)
+  template <trait::is_callable callable, typename... scene_arguments> trait::callable_smart_inner<callable>::type &
+  game::current(const name scene_name, callable &&config, scene_arguments &&...arguments)
   {
     using scene_type = typename trait::callable_smart_inner<callable>::type;
     return current<scene_type, scene_arguments...>(
@@ -246,7 +249,7 @@ namespace cse
   }
 
   template <trait::is_interface interface_type, typename... interface_arguments>
-  game &game::set(const name interface_name, interface_arguments &&...arguments)
+  interface_type &game::set(const name interface_name, interface_arguments &&...arguments)
   {
     auto interface{std::make_shared<interface_type>(std::forward<interface_arguments>(arguments)...)};
     interface->name = interface_name;
@@ -265,14 +268,19 @@ namespace cse
         set_or_add(active.interface_additions, interface);
         break;
     }
-    return *this;
+    return *interface;
   }
 
-  template <typename target_type>
-    requires(std::is_void_v<target_type> || trait::is_scene<target_type> || trait::is_interface<target_type>)
-  game &game::remove(const name target_name)
+  template <typename... target_types>
+    requires((sizeof...(target_types) == 0) ||
+             ((std::is_void_v<target_types> || trait::is_scene<target_types> || trait::is_interface<target_types>) &&
+              ...))
+  void game::remove(const name target_name)
   {
-    if constexpr (std::is_void_v<target_type> || trait::is_scene<target_type>)
+    constexpr bool all{sizeof...(target_types) == 0 || (std::is_void_v<target_types> || ...)};
+    constexpr bool scenes{all || (trait::is_scene<target_types> || ...)};
+    constexpr bool interfaces{all || (trait::is_interface<target_types> || ...)};
+    if constexpr (scenes)
       if (auto iterator{try_iterate(active.scenes, target_name)}; iterator != active.scenes.end())
       {
         const auto &scene{*iterator};
@@ -280,9 +288,8 @@ namespace cse
           throw exception("Tried to remove current or created scene '{}'", target_name.string());
         scene->clean();
         active.scenes.erase(iterator);
-        return *this;
       }
-    if constexpr (std::is_void_v<target_type> || trait::is_interface<target_type>)
+    if constexpr (interfaces)
       if (auto iterator{try_iterate(active.interfaces, target_name)}; iterator != active.interfaces.end())
       {
         if (auto &interface{*iterator}; active.phase == help::phase::CREATED)
@@ -293,6 +300,5 @@ namespace cse
           active.interfaces.erase(iterator);
         }
       }
-    return *this;
   }
 }

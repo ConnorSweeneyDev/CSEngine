@@ -330,24 +330,28 @@ namespace cse
     template <trait::is_callable callable, typename... game_arguments>
     static std::shared_ptr<game> create(callable &&config, game_arguments &&...arguments);
     template <trait::is_state state_type, typename... state_arguments>
-    game &set(const name state_name, state_arguments &&...arguments);
-    template <trait::is_window window_type, typename... window_arguments> game &set(window_arguments &&...arguments);
+    state_type &set(const name state_name, state_arguments &&...arguments);
+    template <trait::is_window window_type, typename... window_arguments>
+    window_type &set(window_arguments &&...arguments);
     template <trait::is_scene scene_type, typename... scene_arguments>
-    game &set(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
-              scene_arguments &&...arguments);
+    scene_type &set(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
+                    scene_arguments &&...arguments);
     template <trait::is_callable callable, typename... scene_arguments>
-    game &set(const name scene_name, callable &&config, scene_arguments &&...arguments);
+    auto set(const name scene_name, callable &&config, scene_arguments &&...arguments) ->
+      typename trait::callable_smart_inner<callable>::type &;
     template <trait::is_scene scene_type, typename... scene_arguments>
-    game &current(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
-                  scene_arguments &&...arguments);
-    template <trait::is_callable callable, typename... scene_arguments>
-    game &current(const name scene_name, callable &&config, scene_arguments &&...arguments);
-    game &current(const name scene_name);
+    scene_type &current(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
+                        scene_arguments &&...arguments);
+    template <trait::is_callable callable, typename... scene_arguments> trait::callable_smart_inner<callable>::type &
+    current(const name scene_name, callable &&config, scene_arguments &&...arguments);
+    scene &current(const name scene_name);
     template <trait::is_interface interface_type, typename... interface_arguments>
-    game &set(const name interface_name, interface_arguments &&...arguments);
-    template <typename target_type = void>
-      requires(std::is_void_v<target_type> || trait::is_scene<target_type> || trait::is_interface<target_type>)
-    game &remove(const name target_name);
+    interface_type &set(const name interface_name, interface_arguments &&...arguments);
+    template <typename... target_types>
+      requires((sizeof...(target_types) == 0) ||
+               ((std::is_void_v<target_types> || trait::is_scene<target_types> || trait::is_interface<target_types>) &&
+                ...))
+    void remove(const name target_name);
 
     void run();
 

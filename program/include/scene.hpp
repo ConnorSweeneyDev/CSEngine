@@ -128,17 +128,20 @@ namespace cse
     scene(scene &&) = delete;
     scene &operator=(scene &&) = delete;
 
-    template <trait::is_camera camera_type, typename... camera_arguments> scene &set(camera_arguments &&...arguments);
+    template <trait::is_camera camera_type, typename... camera_arguments>
+    camera_type &set(camera_arguments &&...arguments);
     template <trait::is_interface interface_type, typename... interface_arguments>
-    scene &set(const cse::name interface_name, interface_arguments &&...arguments);
+    interface_type &set(const cse::name interface_name, interface_arguments &&...arguments);
     template <trait::is_object object_type, typename... object_arguments>
-    scene &set(const cse::name object_name, object_arguments &&...arguments);
+    object_type &set(const cse::name object_name, object_arguments &&...arguments);
     template <trait::is_light light_type, typename... light_arguments>
-    scene &set(const cse::name light_name, light_arguments &&...arguments);
-    template <typename target_type = void>
-      requires(std::is_void_v<target_type> || trait::is_object<target_type> || trait::is_light<target_type> ||
-               trait::is_interface<target_type>)
-    scene &remove(const cse::name target_name);
+    light_type &set(const cse::name light_name, light_arguments &&...arguments);
+    template <typename... target_types>
+      requires((sizeof...(target_types) == 0) ||
+               ((std::is_void_v<target_types> || trait::is_object<target_types> || trait::is_light<target_types> ||
+                 trait::is_interface<target_types>) &&
+                ...))
+    void remove(const cse::name target_name);
 
   protected:
     scene() = default;
