@@ -250,8 +250,8 @@ namespace cse::help::game
         const auto height{static_cast<double>(std::max(1u, resolution))};
         const auto real_aspect{aspect.interpolated(previous_aspect, alpha)};
         const auto width{height * real_aspect};
-        const auto projection{glm::ortho(-width / 2.0, width / 2.0, height / 2.0, -height / 2.0, -1.0, 1.0)};
-        const glm::dvec3 origin{std::llround(width) % 2 == 0 ? -0.5 : 0.0, std::llround(height) % 2 == 0 ? -0.5 : 0.0,
+        const auto projection{glm::ortho(-width / 2.0, width / 2.0, -height / 2.0, height / 2.0, -1.0, 1.0)};
+        const glm::dvec3 origin{std::llround(width) % 2 == 0 ? -0.5 : 0.0, std::llround(height) % 2 == 0 ? 0.5 : 0.0,
                                 0.0};
         return std::pair<glm::dmat4, glm::dmat4>{projection, glm::translate(glm::dmat4{1.0}, origin)};
       }());
@@ -423,8 +423,8 @@ namespace cse::help::game
     const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
     const auto canvas_width{canvas_height * aspect.value};
     const auto x{position.x - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0)};
-    const auto y{position.y - (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
-    return x >= -canvas_width / 2.0 && x < canvas_width / 2.0 && y >= -canvas_height / 2.0 && y < canvas_height / 2.0;
+    const auto y{position.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
+    return x >= -canvas_width / 2.0 && x < canvas_width / 2.0 && y > -canvas_height / 2.0 && y <= canvas_height / 2.0;
   }
 
   void active::interact()
@@ -520,8 +520,8 @@ namespace cse::help::game
       data.alpha = color.a;
       data.left = static_cast<float>(flip.horizontal ? coordinates.right : coordinates.left);
       data.right = static_cast<float>(flip.horizontal ? coordinates.left : coordinates.right);
-      data.top = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
-      data.bottom = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
+      data.top = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
+      data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
       data.transparency = static_cast<float>(transparency);
       auto &available{require_pipelines()};
       auto *pipe{available.interface};
@@ -557,8 +557,8 @@ namespace cse::help::game
                                 std::max(1.0, std::floor(scale.y + 0.5))};
       const auto box_left{-element_width / 2.0};
       const auto box_right{element_width / 2.0};
-      const auto box_top{-element_height / 2.0};
-      const auto box_bottom{element_height / 2.0};
+      const auto box_top{element_height / 2.0};
+      const auto box_bottom{-element_height / 2.0};
 
       constexpr std::uint32_t undefined{0xFFFD};
       const auto find{
@@ -711,11 +711,11 @@ namespace cse::help::game
       else if (text.align.horizontal.preset == RIGHT)
         block_left = box_right - block_width;
       block_left += shift.x;
-      double block_top{-block_height / 2.0};
+      double block_top{block_height / 2.0};
       if (text.align.vertical.preset == TOP)
         block_top = box_top;
       else if (text.align.vertical.preset == BOTTOM)
-        block_top = box_bottom - block_height;
+        block_top = box_bottom + block_height;
       block_top += shift.y;
 
       auto *atlas{require_texture(text.font.image)};
@@ -727,7 +727,7 @@ namespace cse::help::game
           pen = block_left + (block_width - entry.width) / 2.0;
         else if (text.align.horizontal.preset == RIGHT)
           pen = block_left + (block_width - entry.width);
-        const auto top{block_top + static_cast<double>(row) * (line_height + spacing_y)};
+        const auto top{block_top - static_cast<double>(row) * (line_height + spacing_y)};
         for (const auto &placed : entry.items)
         {
           const auto width{placed.glyph->width * scale_x};
@@ -738,15 +738,15 @@ namespace cse::help::game
           auto visible_left{left};
           auto visible_right{left + width};
           auto visible_top{top};
-          auto visible_bottom{top + height};
+          auto visible_bottom{top - height};
           if (text.overflow.clip)
           {
             visible_left = std::max(visible_left, box_left);
             visible_right = std::min(visible_right, box_right);
-            visible_top = std::max(visible_top, box_top);
-            visible_bottom = std::min(visible_bottom, box_bottom);
+            visible_top = std::min(visible_top, box_top);
+            visible_bottom = std::max(visible_bottom, box_bottom);
           }
-          if (visible_right <= visible_left || visible_bottom <= visible_top) continue;
+          if (visible_right <= visible_left || visible_top <= visible_bottom) continue;
           const auto &glyph_coordinates{placed.glyph->coordinates};
           const auto uv_left{text_coordinates.left +
                              (text_coordinates.right - text_coordinates.left) * glyph_coordinates.left};
@@ -758,10 +758,10 @@ namespace cse::help::game
                                (text_coordinates.top - text_coordinates.bottom) * glyph_coordinates.bottom};
           const auto fraction_left{(visible_left - left) / width};
           const auto fraction_right{(visible_right - left) / width};
-          const auto fraction_top{(visible_top - top) / height};
-          const auto fraction_bottom{(visible_bottom - top) / height};
+          const auto fraction_top{(top - visible_top) / height};
+          const auto fraction_bottom{(top - visible_bottom) / height};
           const glm::mat4 text_model{element->active.calculate_text_matrix(
-            element->previous, visible_right - visible_left, visible_bottom - visible_top,
+            element->previous, visible_right - visible_left, visible_top - visible_bottom,
             {(visible_left + visible_right) / 2.0, (visible_top + visible_bottom) / 2.0}, alpha)};
           graphics_object::sample text_data{};
           SDL_memcpy(text_data.model.data(), &text_model, sizeof(text_model));
@@ -771,8 +771,8 @@ namespace cse::help::game
           text_data.alpha = text_color.a;
           text_data.left = static_cast<float>(uv_left + (uv_right - uv_left) * fraction_left);
           text_data.right = static_cast<float>(uv_left + (uv_right - uv_left) * fraction_right);
-          text_data.top = static_cast<float>(uv_top + (uv_bottom - uv_top) * fraction_bottom);
-          text_data.bottom = static_cast<float>(uv_top + (uv_bottom - uv_top) * fraction_top);
+          text_data.top = static_cast<float>(uv_top + (uv_bottom - uv_top) * fraction_top);
+          text_data.bottom = static_cast<float>(uv_top + (uv_bottom - uv_top) * fraction_bottom);
           text_data.transparency = static_cast<float>(text_alpha);
           if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
               graphics_object.batches.back().texture == atlas)

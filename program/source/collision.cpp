@@ -64,10 +64,10 @@ namespace cse::help::collision
       switch (steps)
       {
         case 1:
-          local_left = -top;
-          local_right = -bottom;
-          local_bottom = left;
-          local_top = right;
+          local_left = bottom;
+          local_right = top;
+          local_bottom = -right;
+          local_top = -left;
           break;
         case 2:
           local_left = -right;
@@ -76,10 +76,10 @@ namespace cse::help::collision
           local_top = -bottom;
           break;
         case 3:
-          local_left = bottom;
-          local_right = top;
-          local_bottom = -right;
-          local_top = -left;
+          local_left = -top;
+          local_right = -bottom;
+          local_bottom = left;
+          local_top = right;
           break;
       }
       if (local_left > local_right) std::swap(local_left, local_right);
@@ -157,7 +157,7 @@ namespace cse::help::collision
     const auto sine{std::sin(-rotation)};
     const auto cosine{std::cos(-rotation)};
     local = {local.x * cosine - local.y * sine, local.x * sine + local.y * cosine};
-    local -= glm::dvec2{frame_width % 2 == 0 ? 0.5 : 0.0, frame_height % 2 == 0 ? 0.5 : 0.0};
+    local -= glm::dvec2{frame_width % 2 == 0 ? 0.5 : 0.0, frame_height % 2 == 0 ? -0.5 : 0.0};
     local /= glm::dvec2{scale_x, scale_y};
     const glm::dvec2 center{frame_width / 2.0, frame_height / 2.0};
     const auto &flip{interface->active.texture.flip};
@@ -165,8 +165,8 @@ namespace cse::help::collision
     {
       auto left{bounds.left - center.x};
       auto right{bounds.right - center.x};
-      auto top{bounds.top - center.y};
-      auto bottom{bounds.bottom - center.y};
+      auto top{center.y - bounds.top};
+      auto bottom{center.y - bounds.bottom};
       if (flip.horizontal)
       {
         auto temporary{-left};
@@ -179,7 +179,7 @@ namespace cse::help::collision
         top = -bottom;
         bottom = temporary;
       }
-      if (local.x >= left && local.x < right && local.y >= top && local.y < bottom) return identifier;
+      if (local.x >= left && local.x < right && local.y <= top && local.y > bottom) return identifier;
     }
     return {};
   }

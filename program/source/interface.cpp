@@ -84,7 +84,7 @@ namespace cse::help::interface
     model_matrix =
       glm::rotate(model_matrix, glm::radians(std::floor(interpolated_rotation + 0.5) * -90.0), {0.0, 0.0, 1.0});
     model_matrix =
-      glm::translate(model_matrix, {frame_width % 2 == 0 ? 0.5 : 0.0, frame_height % 2 == 0 ? 0.5 : 0.0, 0.0});
+      glm::translate(model_matrix, {frame_width % 2 == 0 ? 0.5 : 0.0, frame_height % 2 == 0 ? -0.5 : 0.0, 0.0});
     model_matrix =
       glm::scale(model_matrix, {std::floor(interpolated_scale.x + 0.5) * static_cast<double>(frame_width) / 2.0,
                                 std::floor(interpolated_scale.y + 0.5) * static_cast<double>(frame_height) / 2.0, 1.0});
@@ -103,9 +103,11 @@ namespace cse::help::interface
       model_matrix, {std::floor(interpolated_translation.x + 0.5), std::floor(interpolated_translation.y + 0.5), 0.0});
     model_matrix =
       glm::rotate(model_matrix, glm::radians(std::floor(interpolated_rotation + 0.5) * -90.0), {0.0, 0.0, 1.0});
-    const auto snap{[](const double center, const double size)
-                    { return static_cast<int>(size) % 2 == 0 ? std::floor(center) + 0.5 : std::floor(center + 0.5); }};
-    model_matrix = glm::translate(model_matrix, {snap(offset.x, pixel_width), snap(offset.y, pixel_height), 0.0});
+    const auto snap_x{[](const double center, const double size)
+                      { return static_cast<int>(size) % 2 == 0 ? std::floor(center) + 0.5 : std::floor(center + 0.5); }};
+    const auto snap_y{[](const double center, const double size)
+                      { return static_cast<int>(size) % 2 == 0 ? std::ceil(center) - 0.5 : std::ceil(center - 0.5); }};
+    model_matrix = glm::translate(model_matrix, {snap_x(offset.x, pixel_width), snap_y(offset.y, pixel_height), 0.0});
     model_matrix = glm::scale(model_matrix, {pixel_width / 2.0, pixel_height / 2.0, 1.0});
     return model_matrix;
   }

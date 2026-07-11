@@ -252,7 +252,7 @@ namespace cse::help::window
     const glm::dvec2 canvas{(x - view.left) / view.width * canvas_width - canvas_width / 2.0,
                             (y - view.top) / view.height * canvas_height - canvas_height / 2.0};
     return {canvas.x + (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
-            canvas.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
+            -(canvas.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0))};
   }
 
   glm::dvec2 active::to_pixel(const double x, const double y, const double aspect, const unsigned int resolution)
@@ -261,7 +261,7 @@ namespace cse::help::window
     const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
     const auto canvas_width{canvas_height * aspect};
     const glm::dvec2 canvas{x - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
-                            y - (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
+                            -y - (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
     return {(canvas.x + canvas_width / 2.0) / canvas_width * view.width + view.left,
             (canvas.y + canvas_height / 2.0) / canvas_height * view.height + view.top};
   }

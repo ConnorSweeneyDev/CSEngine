@@ -84,7 +84,7 @@ namespace cse::help::object
     model_matrix = glm::rotate(model_matrix, 0.0, {1.0, 0.0, 0.0});
     model_matrix = glm::rotate(model_matrix, 0.0, {0.0, 1.0, 0.0});
     model_matrix =
-      glm::rotate(model_matrix, glm::radians(std::floor(interpolated_rotation + 0.5) * 90.0), {0.0, 0.0, 1.0});
+      glm::rotate(model_matrix, glm::radians(std::floor(interpolated_rotation + 0.5) * -90.0), {0.0, 0.0, 1.0});
     model_matrix =
       glm::scale(model_matrix, {std::floor(interpolated_scale.x + 0.5) * static_cast<double>(frame_width) / 2.0,
                                 std::floor(interpolated_scale.y + 0.5) * static_cast<double>(frame_height) / 2.0, 1.0});
