@@ -26,11 +26,12 @@ namespace cse::help::object
   {
     bool show{true};
     temporal<double> brightness{1.0};
+    temporal<double> penetration{1.0};
   };
   struct shadow
   {
-    bool cast{true};
     bool show{true};
+    bool cast{true};
     temporal<double> darkness{1.0};
     temporal<double> softness{1.0};
   };

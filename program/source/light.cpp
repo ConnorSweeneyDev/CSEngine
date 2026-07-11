@@ -52,6 +52,7 @@ namespace cse::help::light
     translation.instant = false;
     rotation.instant = false;
     illumination.brightness.instant = false;
+    illumination.penetration.instant = false;
     illumination.softness.instant = false;
     illumination.range.instant = false;
     illumination.angle.instant = false;

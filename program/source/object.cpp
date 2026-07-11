@@ -65,6 +65,7 @@ namespace cse::help::object
     texture.color.tint.instant = false;
     texture.color.alpha.instant = false;
     illumination.brightness.instant = false;
+    illumination.penetration.instant = false;
     shadow.darkness.instant = false;
     shadow.softness.instant = false;
   }

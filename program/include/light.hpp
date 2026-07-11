@@ -17,6 +17,7 @@ namespace cse::help::light
   {
     bool global{};
     temporal<glm::dvec4> brightness{{1.0, 1.0, 1.0, 1.0}};
+    temporal<double> penetration{1.0};
     temporal<double> softness{};
     temporal<double> range{20};
     temporal<double> angle{360};

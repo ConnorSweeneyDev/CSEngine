@@ -258,8 +258,11 @@ player::player(const glm::dvec3 &translation_)
                              .playback = {.frame = 0, .speed = {1.0}, .loop = true},
                              .color = {.tint = {.value = {0.5, 0.5, 0.5, 1.0}, .interpolate = true},
                                        .alpha = {.value = 1.0, .interpolate = true}}},
-                 .illumination = {.show = true, .brightness = {.value = 1.0, .interpolate = true}},
-                 .shadow = {.cast = true, .show = true,
+                 .illumination = {.show = true,
+                                  .brightness = {.value = 1.0, .interpolate = true},
+                                  .penetration = {.value = 1.0, .interpolate = true}},
+                 .shadow = {.show = true,
+                            .cast = true,
                             .darkness = {.value = 1.0, .interpolate = true},
                             .softness = {.value = 1.0, .interpolate = true}},
                  .priority = {.simulation = 0, .rendering = 1}})

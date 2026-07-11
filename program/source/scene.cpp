@@ -62,9 +62,9 @@ namespace cse::help::scene
   void active::render(game::active &game_active, const double aspect, const double alpha)
   {
     generate_graphics_order(alpha);
-    game_active.generate_objects(object_graphics_order);
     game_active.generate_lights(light_graphics_order);
     game_active.generate_occluders(object_graphics_order);
+    game_active.generate_objects(object_graphics_order);
     game_active.draw_batches(camera->render(aspect, alpha));
   }
 

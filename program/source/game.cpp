@@ -794,8 +794,9 @@ namespace cse::help::game
     static constexpr double depth_bias_span{0.001};
     const auto object_count{static_cast<double>(object_order.size())};
     const double depth_bias_step{object_order.empty() ? 0.0 : depth_bias_span / object_count};
-    for (auto *element : object_order)
+    for (std::size_t position{}; position < object_order.size(); ++position)
     {
+      auto *element{object_order[position]};
       auto &current{element->active.texture.playback.frame};
       const auto size{element->active.texture.animation.frames.size()};
       if (size == 0) throw exception("Object '{}' contains no frames", element->name.string());
@@ -825,6 +826,7 @@ namespace cse::help::game
         element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha));
       data.transparency = static_cast<float>(transparency);
       data.depth = static_cast<float>(static_cast<double>(graphics_object.samples.size()) * depth_bias_step);
+      data.occluder = position < graphics_occluder.indices.size() ? graphics_occluder.indices[position] : -1.0f;
       auto &available{require_pipelines()};
       auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
       auto *texture{require_texture(element->active.texture.image)};
@@ -851,6 +853,8 @@ namespace cse::help::game
       const auto direction{element->active.calculate_direction(element->previous, alpha)};
       const auto brightness{
         element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha)};
+      const auto penetration{std::max(
+        0.0, element->active.illumination.penetration.interpolated(element->previous.illumination.penetration, alpha))};
       const auto range{element->active.illumination.range.interpolated(element->previous.illumination.range, alpha)};
       const auto angle{element->active.illumination.angle.interpolated(element->previous.illumination.angle, alpha)};
       const auto softness{std::clamp(
@@ -874,8 +878,8 @@ namespace cse::help::game
       const auto half{angle / 2.0};
       entry.cone[0] = static_cast<float>(std::cos(glm::radians(half)));
       entry.cone[1] = static_cast<float>(std::cos(glm::radians(half * (1.0 - softness))));
-      entry.cone[2] = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
-      entry.cone[3] = 1.0f / std::max(entry.cone[1] - entry.cone[0], 1e-4f);
+      entry.cone[2] = static_cast<float>(penetration);
+      entry.cone[3] = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
       graphics_light.samples.push_back(entry);
     }
 
@@ -934,9 +938,21 @@ namespace cse::help::game
                           return static_cast<int>(signature.size() - 1);
                         }};
 
-    for (auto *element : object_order)
+    bool penetrating{false};
+    for (const auto &sample : graphics_light.samples)
+      if (sample.direction[3] < 0.5f && std::abs(sample.cone[2] - 1.0f) > 1e-3f)
+      {
+        penetrating = true;
+        break;
+      }
+
+    graphics_occluder.indices.assign(object_order.size(), -1.0f);
+    for (std::size_t position{}; position < object_order.size(); ++position)
     {
-      if (!element->active.shadow.cast) continue;
+      auto *element{object_order[position]};
+      const auto penetration{std::max(
+        0.0, element->active.illumination.penetration.interpolated(element->previous.illumination.penetration, alpha))};
+      if (!element->active.shadow.cast && !penetrating && std::abs(penetration - 1.0) < 1e-6) continue;
       const auto &image{element->active.texture.image};
       const auto frame_count{element->active.texture.animation.frames.size()};
       if (!image.data.data() || frame_count == 0) continue;
@@ -968,10 +984,15 @@ namespace cse::help::game
         element->active.shadow.darkness.interpolated(element->previous.shadow.darkness, alpha)};
       const auto shadow_softness{
         element->active.shadow.softness.interpolated(element->previous.shadow.softness, alpha)};
-      entry.data[0] = static_cast<float>(cz);
-      entry.data[1] = static_cast<float>(transparency * std::max(0.0, shadow_darkness));
-      entry.data[2] = static_cast<float>(layer_of(image));
-      entry.data[3] = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
+      entry.surface[0] = static_cast<float>(cz);
+      entry.surface[1] = static_cast<float>(layer_of(image));
+      entry.surface[2] = static_cast<float>(transparency);
+      entry.surface[3] = static_cast<float>(penetration);
+      entry.shadow[0] = element->active.shadow.show ? 1.0f : 0.0f;
+      entry.shadow[1] = element->active.shadow.cast ? 1.0f : 0.0f;
+      entry.shadow[2] = static_cast<float>(std::max(0.0, shadow_darkness));
+      entry.shadow[3] = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
+      graphics_occluder.indices[position] = static_cast<float>(graphics_occluder.samples.size());
       graphics_occluder.samples.push_back(entry);
     }
     graphics_light.data.meta[1] = static_cast<float>(graphics_occluder.samples.size());
@@ -987,7 +1008,7 @@ namespace cse::help::game
       }
       for (auto &entry : graphics_occluder.samples)
       {
-        const auto *image{images[static_cast<std::size_t>(entry.data[2])]};
+        const auto *image{images[static_cast<std::size_t>(entry.surface[1])]};
         const float scale_u{static_cast<float>(image->width) / static_cast<float>(max_width)};
         const float scale_v{static_cast<float>(image->height) / static_cast<float>(max_height)};
         entry.frame[0] *= scale_u;
@@ -1193,21 +1214,20 @@ namespace cse::help::game
         .pitch = sizeof(graphics_object::sample),
         .input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
         .instance_step_rate = 0}}};
-    const std::array<SDL_GPUVertexAttribute, 10> vertex_attributes{
-      {{0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(corner, x)},
-       {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(corner, u)},
-       {2, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model)},
-       {3, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 4},
-       {4, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 8},
-       {5, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 12},
-       {6, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, red)},
-       {7, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, left)},
-       {8, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, lit)},
-       {9, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, offsetof(graphics_object::sample, depth)}}};
+    const std::array<SDL_GPUVertexAttribute, 9> vertex_attributes{
+      {{0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(corner, x)},
+       {1, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model)},
+       {2, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 4},
+       {3, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 8},
+       {4, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 12},
+       {5, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, red)},
+       {6, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, left)},
+       {7, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, lit)},
+       {8, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(graphics_object::sample, depth)}}};
     SDL_GPUVertexInputState vertex_input_state{.vertex_buffer_descriptions = vertex_buffer_descriptions.data(),
                                                .num_vertex_buffers = 2,
                                                .vertex_attributes = vertex_attributes.data(),
-                                               .num_vertex_attributes = 10};
+                                               .num_vertex_attributes = 9};
     SDL_GPURasterizerState rasterizer_state{};
     rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
     rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;

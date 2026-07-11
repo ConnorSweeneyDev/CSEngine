@@ -119,6 +119,7 @@ namespace cse::help::game
         float left{}, bottom{}, right{}, top{};
         float lit{}, shadowed{}, brightness{}, transparency{};
         float depth{};
+        float occluder{-1.0f};
       };
       std::vector<batch> batches{};
       std::vector<sample> samples{};
@@ -151,9 +152,11 @@ namespace cse::help::game
       {
         std::array<float, 4> rectangle{};
         std::array<float, 4> frame{};
-        std::array<float, 4> data{};
+        std::array<float, 4> surface{};
+        std::array<float, 4> shadow{};
       };
       std::vector<entry> samples{};
+      std::vector<float> indices{};
       std::size_t capacity{};
       SDL_GPUBuffer *buffer{};
       SDL_GPUTransferBuffer *transfer_buffer{};
