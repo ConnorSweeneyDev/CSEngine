@@ -25,7 +25,7 @@ namespace cse::help
 
   void mixer::remove(std::initializer_list<name> names)
   {
-    for (const auto name : names) remove(name);
+    for (const auto &name : names) remove(name);
   }
 
   void mixer::clear() noexcept

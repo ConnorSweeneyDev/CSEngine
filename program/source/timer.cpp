@@ -31,7 +31,7 @@ namespace cse::help
 
   void timer::remove(std::initializer_list<name> names)
   {
-    for (const auto name : names) entries.erase(name);
+    for (const auto &name : names) entries.erase(name);
   }
 
   void timer::clear() noexcept { entries.clear(); }
