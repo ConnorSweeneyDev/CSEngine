@@ -969,11 +969,11 @@ namespace cse::help::game
       const bool rotated{steps % 2 == 1};
       const double width{static_cast<double>(image.frame_width)};
       const double height{static_cast<double>(image.frame_height)};
-      const double cx{std::floor(translation.x + 0.5) - (image.frame_width % 2 == 1 ? 0.5 : 0.0)};
-      const double cy{std::floor(translation.y + 0.5) - (image.frame_height % 2 == 1 ? 0.5 : 0.0)};
-      const double cz{std::floor(translation.z + 0.5)};
       const double hx{rotated ? std::floor(scale.y + 0.5) * height / 2.0 : std::floor(scale.x + 0.5) * width / 2.0};
       const double hy{rotated ? std::floor(scale.x + 0.5) * width / 2.0 : std::floor(scale.y + 0.5) * height / 2.0};
+      const double cx{std::floor(translation.x + 0.5) - (std::llround(hx * 2.0) % 2 != 0 ? 0.5 : 0.0)};
+      const double cy{std::floor(translation.y + 0.5) - (std::llround(hy * 2.0) % 2 != 0 ? 0.5 : 0.0)};
+      const double cz{std::floor(translation.z + 0.5)};
       graphics_occluder::entry entry{};
       entry.rectangle[0] = static_cast<float>(cx - hx);
       entry.rectangle[1] = static_cast<float>(cy - hy);

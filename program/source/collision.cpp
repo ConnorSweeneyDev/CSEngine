@@ -87,8 +87,12 @@ namespace cse::help::collision
     }
 
     glm::dvec2 actual_scale{std::floor(scale.x + 0.5), std::floor(scale.y + 0.5)};
-    glm::dvec2 pixel{std::floor(translation.x + 0.5) - (static_cast<unsigned int>(width) % 2 == 1 ? 0.5 : 0.0),
-                     std::floor(translation.y + 0.5) - (static_cast<unsigned int>(height) % 2 == 1 ? 0.5 : 0.0)};
+    const bool rotated{steps % 2 == 1};
+    if (rotated) std::swap(actual_scale.x, actual_scale.y);
+    const auto size_x{std::llround(actual_scale.x * (rotated ? height : width))};
+    const auto size_y{std::llround(actual_scale.y * (rotated ? width : height))};
+    glm::dvec2 pixel{std::floor(translation.x + 0.5) - (size_x % 2 != 0 ? 0.5 : 0.0),
+                     std::floor(translation.y + 0.5) - (size_y % 2 != 0 ? 0.5 : 0.0)};
     return {std::floor(pixel.x + local_left * actual_scale.x + 0.5),
             std::floor(pixel.y + local_top * actual_scale.y + 0.5),
             std::floor(pixel.x + local_right * actual_scale.x + 0.5),
@@ -157,7 +161,8 @@ namespace cse::help::collision
     const auto sine{std::sin(-rotation)};
     const auto cosine{std::cos(-rotation)};
     local = {local.x * cosine - local.y * sine, local.x * sine + local.y * cosine};
-    local -= glm::dvec2{frame_width % 2 == 0 ? 0.5 : 0.0, frame_height % 2 == 0 ? -0.5 : 0.0};
+    local -= glm::dvec2{std::llround(scale_x * frame_width) % 2 == 0 ? 0.5 : 0.0,
+                        std::llround(scale_y * frame_height) % 2 == 0 ? -0.5 : 0.0};
     local /= glm::dvec2{scale_x, scale_y};
     const glm::dvec2 center{frame_width / 2.0, frame_height / 2.0};
     const auto &flip{interface->active.texture.flip};

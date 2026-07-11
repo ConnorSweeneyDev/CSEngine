@@ -78,16 +78,18 @@ namespace cse::help::interface
     auto interpolated_translation = translation.interpolated(last.translation, alpha);
     auto interpolated_rotation = rotation.interpolated(last.rotation, alpha);
     auto interpolated_scale = scale.interpolated(last.scale, alpha);
+    const auto scale_x{std::floor(interpolated_scale.x + 0.5)};
+    const auto scale_y{std::floor(interpolated_scale.y + 0.5)};
+    const auto size_x{std::llround(scale_x * frame_width)};
+    const auto size_y{std::llround(scale_y * frame_height)};
     auto model_matrix{glm::dmat4(1.0)};
     model_matrix = glm::translate(
       model_matrix, {std::floor(interpolated_translation.x + 0.5), std::floor(interpolated_translation.y + 0.5), 0.0});
     model_matrix =
       glm::rotate(model_matrix, glm::radians(std::floor(interpolated_rotation + 0.5) * -90.0), {0.0, 0.0, 1.0});
-    model_matrix =
-      glm::translate(model_matrix, {frame_width % 2 == 0 ? 0.5 : 0.0, frame_height % 2 == 0 ? -0.5 : 0.0, 0.0});
-    model_matrix =
-      glm::scale(model_matrix, {std::floor(interpolated_scale.x + 0.5) * static_cast<double>(frame_width) / 2.0,
-                                std::floor(interpolated_scale.y + 0.5) * static_cast<double>(frame_height) / 2.0, 1.0});
+    model_matrix = glm::translate(model_matrix, {size_x % 2 == 0 ? 0.5 : 0.0, size_y % 2 == 0 ? -0.5 : 0.0, 0.0});
+    model_matrix = glm::scale(model_matrix, {scale_x * static_cast<double>(frame_width) / 2.0,
+                                             scale_y * static_cast<double>(frame_height) / 2.0, 1.0});
     return model_matrix;
   }
 
