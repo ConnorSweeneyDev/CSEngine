@@ -27,31 +27,6 @@ int csb::clean()
 
 int csb::build()
 {
-  if (!csb::is_subproject)
-  {
-    csb::generate_clang_format({{"BasedOnStyle", "LLVM"},
-                                {"ColumnLimit", "120"},
-                                {"IndentWidth", "2"},
-                                {"ConstructorInitializerIndentWidth", "2"},
-                                {"ContinuationIndentWidth", "2"},
-                                {"Language", "Cpp"},
-                                {"BreakBeforeBraces", "Allman"},
-                                {"AllowShortBlocksOnASingleLine", "true"},
-                                {"AllowShortIfStatementsOnASingleLine", "true"},
-                                {"AllowShortCaseLabelsOnASingleLine", "true"},
-                                {"AllowShortLoopsOnASingleLine", "true"},
-                                {"AllowShortFunctionsOnASingleLine", "true"},
-                                {"AllowShortLambdasOnASingleLine", "true"},
-                                {"AllowShortEnumsOnASingleLine", "true"},
-                                {"AllowShortNamespacesOnASingleLine", "true"},
-                                {"BreakTemplateDeclarations", "No"},
-                                {"IndentPPDirectives", "BeforeHash"},
-                                {"IndentCaseLabels", "true"},
-                                {"NamespaceIndentation", "All"},
-                                {"FixNamespaceComments", "false"}});
-    csb::format("22.1.5", csb::choose_files({"program/vertex", "program/fragment"}));
-  }
-
   csb::vcpkg_install("2026.04.27", {{"builtin-baseline", "56bb2411609227288b70117ead2c47585ba07713"},
                                     {"dependencies",
                                      {
@@ -97,6 +72,31 @@ int csb::build()
                                      }}});
 
   csb::subproject_install({"ConnorSweeneyDev/CSPack", "1.0.0", HEADER_LIBRARY});
+
+  if (!csb::is_subproject)
+  {
+    csb::generate_clang_format({{"BasedOnStyle", "LLVM"},
+                                {"ColumnLimit", "120"},
+                                {"IndentWidth", "2"},
+                                {"ConstructorInitializerIndentWidth", "2"},
+                                {"ContinuationIndentWidth", "2"},
+                                {"Language", "Cpp"},
+                                {"BreakBeforeBraces", "Allman"},
+                                {"AllowShortBlocksOnASingleLine", "true"},
+                                {"AllowShortIfStatementsOnASingleLine", "true"},
+                                {"AllowShortCaseLabelsOnASingleLine", "true"},
+                                {"AllowShortLoopsOnASingleLine", "true"},
+                                {"AllowShortFunctionsOnASingleLine", "true"},
+                                {"AllowShortLambdasOnASingleLine", "true"},
+                                {"AllowShortEnumsOnASingleLine", "true"},
+                                {"AllowShortNamespacesOnASingleLine", "true"},
+                                {"BreakTemplateDeclarations", "No"},
+                                {"IndentPPDirectives", "BeforeHash"},
+                                {"IndentCaseLabels", "true"},
+                                {"NamespaceIndentation", "All"},
+                                {"FixNamespaceComments", "false"}});
+    csb::format("22.1.5", csb::choose_files({"program/vertex", "program/fragment"}));
+  }
 
   csb::archive_install(
     {csb::host_platform == WINDOWS

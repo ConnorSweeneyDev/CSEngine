@@ -848,8 +848,8 @@ namespace cse::help::game
     for (auto *element : light_order)
     {
       const auto interpolated{element->active.translation.interpolated(element->previous.translation, alpha)};
-      const glm::dvec3 position{std::floor(interpolated.x + 0.5), std::floor(interpolated.y + 0.5),
-                                std::floor(interpolated.z + 0.5)};
+      const glm::dvec3 position{std::floor(interpolated.x * 2.0 + 0.5) / 2.0,
+                                std::floor(interpolated.y * 2.0 + 0.5) / 2.0, std::floor(interpolated.z + 0.5)};
       const auto direction{element->active.calculate_direction(element->previous, alpha)};
       const auto brightness{
         element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha)};
