@@ -32,7 +32,7 @@ namespace cse::help::object
     bool cast{true};
     bool show{true};
     temporal<double> darkness{1.0};
-    temporal<double> softness{};
+    temporal<double> softness{1.0};
   };
   struct priority
   {
