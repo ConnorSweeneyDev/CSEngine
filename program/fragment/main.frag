@@ -39,9 +39,10 @@ float occluder_sharp(Occluder occluder, float2 uv)
 {
   float2 lo = min(occluder.frame.xy, occluder.frame.zw);
   float2 hi = max(occluder.frame.xy, occluder.frame.zw);
-  if (uv.x < lo.x || uv.x > hi.x || uv.y < lo.y || uv.y > hi.y) return 0.0f;
   float2 texel = layer_texel();
-  float2 snapped = (floor(uv / texel) + 0.5f) * texel;
+  float2 inset = 0.5f * texel;
+  if (uv.x < lo.x - inset.x || uv.x > hi.x + inset.x || uv.y < lo.y - inset.y || uv.y > hi.y + inset.y) return 0.0f;
+  float2 snapped = clamp((floor(uv / texel) + 0.5f) * texel, lo + inset, hi - inset);
   return occluder_buffers.SampleLevel(occluder_sampler, float3(snapped, occluder.surface.y), 0).a;
 }
 float occluder_soft(Occluder occluder, float2 uv)
@@ -213,7 +214,7 @@ float4 main(Input input, bool front : SV_IsFrontFace) : SV_Target0
                       0.0f);
         attenuation = saturate(1.0f - reach / range);
         attenuation *= attenuation;
-        float3 to_pixel = distance > 0.0f ? offset / distance : light.direction.xyz;
+        float3 to_pixel = distance > 1e-3f ? offset / distance : light.direction.xyz;
         float alignment = dot(to_pixel, light.direction.xyz);
         float cone = saturate((alignment - light.cone.x) / max(light.cone.y - light.cone.x, 1e-4f));
         attenuation *= cone * cone * (3.0f - 2.0f * cone);
