@@ -28,38 +28,10 @@ enum vertical
 
 namespace cse
 {
-  struct align
-  {
-    struct horizontal_axis
-    {
-      ::horizontal preset{CENTER};
-      temporal<double> spacing{};
-    };
-    struct vertical_axis
-    {
-      ::vertical preset{MIDDLE};
-      temporal<double> spacing{};
-    };
-    horizontal_axis horizontal{};
-    vertical_axis vertical{};
-    temporal<glm::dvec2> offset{};
-  };
-  struct overflow
-  {
-    bool wrap{};
-    bool clip{true};
-  };
-  struct color
-  {
-    temporal<glm::dvec4> tint{{0.5, 0.5, 0.5, 1.0}};
-    temporal<double> alpha{1.0};
-  };
-
   struct image
   {
     bool operator==(const image &other) const
     { return data.data() == other.data.data() && data.size() == other.data.size(); }
-
     std::span<const unsigned char> data{};
     unsigned int width{};
     unsigned int height{};
@@ -71,7 +43,6 @@ namespace cse
   {
     bool operator==(const font &other) const
     { return image == other.image && glyphs.data() == other.glyphs.data() && glyphs.size() == other.glyphs.size(); }
-
     struct glyph
     {
       std::uint64_t character{};
@@ -82,11 +53,36 @@ namespace cse
     cse::image image{};
     std::span<const glyph> glyphs{};
   };
+  struct color
+  {
+    temporal<glm::dvec4> tint{{0.5, 0.5, 0.5, 1.0}};
+    temporal<double> alpha{1.0};
+  };
+  struct align
+  {
+    struct horizontal
+    {
+      ::horizontal preset{CENTER};
+      temporal<double> spacing{};
+    };
+    struct vertical
+    {
+      ::vertical preset{MIDDLE};
+      temporal<double> spacing{};
+    };
+    align::horizontal horizontal{};
+    align::vertical vertical{};
+    temporal<glm::dvec2> offset{};
+  };
+  struct overflow
+  {
+    bool wrap{};
+    bool clip{true};
+  };
   struct animation
   {
     bool operator==(const animation &other) const
     { return frames.data() == other.frames.data() && frames.size() == other.frames.size(); }
-
     struct frame
     {
       const rectangle coordinates{};
@@ -114,14 +110,12 @@ namespace cse
   {
     bool operator==(const sound &other) const
     { return data.data() == other.data.data() && data.size() == other.data.size(); }
-
     std::span<const unsigned char> data{};
   };
   struct music
   {
     bool operator==(const music &other) const
     { return data.data() == other.data.data() && data.size() == other.data.size(); }
-
     std::span<const unsigned char> data{};
   };
 }
