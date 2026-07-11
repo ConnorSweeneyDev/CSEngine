@@ -19,7 +19,7 @@ struct Output
   float4 material : TEXCOORD3;   // x = lit, y = shadowed, z = brightness, w = transparency
 };
 
-cbuffer Matrices : register(b0, space1)
+cbuffer matrices : register(b0, space1)
 {
   float4x4 projection_matrix;
   float4x4 view_matrix;

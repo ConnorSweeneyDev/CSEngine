@@ -961,25 +961,34 @@ namespace cse::help::game
       const auto &coordinates{element->active.texture.animation.frames[frame_index].coordinates};
       const auto &flip{element->active.texture.flip};
       const auto translation{element->active.translation.interpolated(element->previous.translation, alpha)};
+      const auto rotation{element->active.rotation.interpolated(element->previous.rotation, alpha)};
       const auto scale{element->active.scale.interpolated(element->previous.scale, alpha)};
       const auto transparency{std::clamp(
         element->active.texture.color.alpha.interpolated(element->previous.texture.color.alpha, alpha), 0.0, 1.0)};
+      const int steps{((static_cast<int>(std::floor(rotation + 0.5)) % 4) + 4) % 4};
+      const bool rotated{steps % 2 == 1};
       const double width{static_cast<double>(image.frame_width)};
       const double height{static_cast<double>(image.frame_height)};
       const double cx{std::floor(translation.x + 0.5) - (image.frame_width % 2 == 1 ? 0.5 : 0.0)};
       const double cy{std::floor(translation.y + 0.5) - (image.frame_height % 2 == 1 ? 0.5 : 0.0)};
       const double cz{std::floor(translation.z + 0.5)};
-      const double hx{std::floor(scale.x + 0.5) * width / 2.0};
-      const double hy{std::floor(scale.y + 0.5) * height / 2.0};
+      const double hx{rotated ? std::floor(scale.y + 0.5) * height / 2.0 : std::floor(scale.x + 0.5) * width / 2.0};
+      const double hy{rotated ? std::floor(scale.x + 0.5) * width / 2.0 : std::floor(scale.y + 0.5) * height / 2.0};
       graphics_occluder::entry entry{};
       entry.rectangle[0] = static_cast<float>(cx - hx);
       entry.rectangle[1] = static_cast<float>(cy - hy);
       entry.rectangle[2] = static_cast<float>(cx + hx);
       entry.rectangle[3] = static_cast<float>(cy + hy);
-      entry.frame[0] = static_cast<float>(flip.horizontal ? coordinates.right : coordinates.left);
-      entry.frame[1] = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
-      entry.frame[2] = static_cast<float>(flip.horizontal ? coordinates.left : coordinates.right);
-      entry.frame[3] = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
+      const auto first_u{flip.horizontal ? coordinates.right : coordinates.left};
+      const auto second_u{flip.horizontal ? coordinates.left : coordinates.right};
+      const auto first_v{flip.vertical ? coordinates.top : coordinates.bottom};
+      const auto second_v{flip.vertical ? coordinates.bottom : coordinates.top};
+      const bool swap_u{steps == 1 || steps == 2};
+      const bool swap_v{steps == 2 || steps == 3};
+      entry.frame[0] = static_cast<float>(swap_u ? second_u : first_u);
+      entry.frame[1] = static_cast<float>(swap_v ? second_v : first_v);
+      entry.frame[2] = static_cast<float>(swap_u ? first_u : second_u);
+      entry.frame[3] = static_cast<float>(swap_v ? first_v : second_v);
       const auto shadow_darkness{
         element->active.shadow.darkness.interpolated(element->previous.shadow.darkness, alpha)};
       const auto shadow_softness{
@@ -987,8 +996,8 @@ namespace cse::help::game
       entry.surface[0] = static_cast<float>(cz);
       entry.surface[1] = static_cast<float>(layer_of(image));
       entry.surface[2] = static_cast<float>(transparency);
-      entry.surface[3] = static_cast<float>(penetration);
-      entry.shadow[0] = element->active.shadow.show ? 1.0f : 0.0f;
+      entry.surface[3] = rotated ? 1.0f : 0.0f;
+      entry.shadow[0] = static_cast<float>(penetration);
       entry.shadow[1] = element->active.shadow.cast ? 1.0f : 0.0f;
       entry.shadow[2] = static_cast<float>(std::max(0.0, shadow_darkness));
       entry.shadow[3] = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));

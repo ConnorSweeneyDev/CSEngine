@@ -103,8 +103,9 @@ namespace cse::help::interface
       model_matrix, {std::floor(interpolated_translation.x + 0.5), std::floor(interpolated_translation.y + 0.5), 0.0});
     model_matrix =
       glm::rotate(model_matrix, glm::radians(std::floor(interpolated_rotation + 0.5) * -90.0), {0.0, 0.0, 1.0});
-    const auto snap_x{[](const double center, const double size)
-                      { return static_cast<int>(size) % 2 == 0 ? std::floor(center) + 0.5 : std::floor(center + 0.5); }};
+    const auto snap_x{
+      [](const double center, const double size)
+      { return static_cast<int>(size) % 2 == 0 ? std::floor(center) + 0.5 : std::floor(center + 0.5); }};
     const auto snap_y{[](const double center, const double size)
                       { return static_cast<int>(size) % 2 == 0 ? std::ceil(center) - 0.5 : std::ceil(center - 0.5); }};
     model_matrix = glm::translate(model_matrix, {snap_x(offset.x, pixel_width), snap_y(offset.y, pixel_height), 0.0});
