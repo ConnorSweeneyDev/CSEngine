@@ -4,7 +4,7 @@
 
 **A game engine for creating 2D/3D hybrid pixel art games with ease.**
 
-<video src="https://github.com/user-attachments/assets/4aec7a39-614f-448f-8a55-f4d76f9b3eb5" controls autoplay loop playsinline></video>
+<video src="https://github.com/user-attachments/assets/4aec7a39-614f-448f-8a55-f4d76f9b3eb5" controls unmuted autoplay loop playsinline></video>
 <em>A video of a dimly lit scene with text, audio, a custom cursor, an animated sprite and soft shadows.</em>
 
 </div>
