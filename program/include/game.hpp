@@ -83,6 +83,12 @@ namespace cse::help::game
     friend struct scene::active;
 
   private:
+    template <typename handle> struct cached
+    {
+      handle value{};
+      double stamp{};
+    };
+
     struct corner
     {
       float x{}, y{};
@@ -160,25 +166,24 @@ namespace cse::help::game
         std::array<float, 4> surface{};
         std::array<float, 4> shadow{};
       };
+      struct layer
+      {
+        cse::image image{};
+        double stamp{};
+      };
       std::vector<entry> samples{};
       std::vector<float> indices{};
+      std::vector<layer> layers{};
       std::size_t capacity{};
       SDL_GPUBuffer *buffer{};
       SDL_GPUTransferBuffer *transfer_buffer{};
       SDL_GPUTexture *texture{};
-      unsigned int width{}, height{}, layers{};
-      std::vector<const unsigned char *> signature{};
+      unsigned int width{}, height{};
     };
     struct graphics_cache
     {
       using texture_key = std::pair<const unsigned char *, std::size_t>;
-      template <typename handle> struct cached
-      {
-        handle value{};
-        std::uint64_t stamp{};
-      };
       std::map<texture_key, cached<SDL_GPUTexture *>> texture{};
-      std::uint64_t stamp{};
     };
 
     struct channel
@@ -188,8 +193,6 @@ namespace cse::help::game
     };
     struct audio_track
     {
-      using handle_key = std::pair<const void *, std::uint64_t>;
-      using audio_key = std::pair<const unsigned char *, std::size_t>;
       MIX_Track *handle{};
       MIX_Audio *audio{};
       const unsigned char *source{};
@@ -202,6 +205,13 @@ namespace cse::help::game
       bool finished{};
       bool loop{};
       bool seen{};
+    };
+    struct audio_cache
+    {
+      using source_key = std::pair<const unsigned char *, std::size_t>;
+      using track_key = std::pair<const void *, std::uint64_t>;
+      std::map<source_key, cached<MIX_Audio *>> sources{};
+      std::map<track_key, audio_track> tracks{};
     };
 
   public:
@@ -277,8 +287,10 @@ namespace cse::help::game
     std::vector<cse::interface *> interface_order{};
     std::vector<cse::interface *> interface_pool{};
 
+    static constexpr double cache_lifetime{1.0};
+
     double actual_frame{1.0 / frame.target};
-    SDL_GPUDevice *device{};
+    SDL_GPUDevice *video{};
     active::graphics_buffer graphics_buffer{};
     active::graphics_pipeline graphics_pipeline{};
     active::graphics_cache graphics_cache{};
@@ -290,9 +302,8 @@ namespace cse::help::game
 
     bool audio_ready{};
     int frequency{};
-    MIX_Mixer *audio_handle{};
-    std::map<audio_track::audio_key, MIX_Audio *> audio_cache{};
-    std::map<audio_track::handle_key, audio_track> audio_tracks{};
+    MIX_Mixer *soundboard{};
+    active::audio_cache audio_cache{};
   };
 
   struct next

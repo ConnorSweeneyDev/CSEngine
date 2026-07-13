@@ -33,12 +33,12 @@ namespace cse::help::game
     for (auto &[entry_name, entry] : entries)
     {
       entry.volume.value = std::clamp(entry.volume.value, 0.0, 1.0);
-      const audio_track::handle_key key{static_cast<const void *>(&entries), entry_name.identifier()};
-      auto &audio{audio_tracks[key]};
+      const audio_cache::track_key key{static_cast<const void *>(&entries), entry_name.identifier()};
+      auto &audio{audio_cache.tracks[key]};
       audio.seen = true;
       if (!audio.handle)
       {
-        audio.handle = MIX_CreateTrack(audio_handle);
+        audio.handle = MIX_CreateTrack(soundboard);
         if (!audio.handle) throw sdl_exception("Could not create audio track for game");
         MIX_TagTrack(audio.handle, tag);
       }

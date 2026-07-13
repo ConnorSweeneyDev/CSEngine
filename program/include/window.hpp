@@ -96,10 +96,10 @@ namespace cse::help::window
     active &operator=(active &&) = delete;
 
   private:
-    void create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution);
+    void create(SDL_GPUDevice *video, const double aspect, const unsigned int resolution);
     void synchronize(previous &last);
     void render(const help::game::active &game_active, const double aspect, const glm::dvec3 &clear);
-    void destroy(SDL_GPUDevice *device);
+    void destroy(SDL_GPUDevice *video);
 
     void poll(const double aspect, const unsigned int resolution);
     viewport letterbox(const double aspect);
@@ -108,19 +108,19 @@ namespace cse::help::window
     glm::dvec2 to_virtual(const double x, const double y, const double aspect, const unsigned int resolution);
     glm::dvec2 to_pixel(const double x, const double y, const double aspect, const unsigned int resolution);
 
-    void reconcile(SDL_GPUDevice *device);
-    void generate_depth_texture(SDL_GPUDevice *device);
-    bool acquire_swapchain_texture(SDL_GPUDevice *device);
+    void reconcile(SDL_GPUDevice *video);
+    void generate_depth_texture(SDL_GPUDevice *video);
+    bool acquire_swapchain_texture(SDL_GPUDevice *video);
     bool can_move();
     bool display_exists(const SDL_DisplayID target);
     void handle_title_change();
     void handle_move();
-    void handle_resize(SDL_GPUDevice *device);
+    void handle_resize(SDL_GPUDevice *video);
     void handle_manual_display_move();
     void handle_manual_move();
-    void handle_manual_resize(SDL_GPUDevice *device);
+    void handle_manual_resize(SDL_GPUDevice *video);
     void handle_mode();
-    void handle_vsync(SDL_GPUDevice *device);
+    void handle_vsync(SDL_GPUDevice *video);
     glm::ivec2 calculate_display_center(const unsigned int w, const unsigned int h);
     glm::ivec2 relative_to_absolute(const int x, const int y);
     glm::ivec2 absolute_to_relative(const int x, const int y);
@@ -198,15 +198,15 @@ namespace cse
 
   private:
     void prepare();
-    void create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution);
+    void create(SDL_GPUDevice *video, const double aspect, const unsigned int resolution);
     void synchronize();
-    void event(SDL_GPUDevice *device);
+    void event(SDL_GPUDevice *video);
     void simulate(const double tick);
     void render(const double aspect, const glm::dvec3 &clear, const double alpha);
-    void destroy(SDL_GPUDevice *device);
+    void destroy(SDL_GPUDevice *video);
     void clean();
 
-    bool available(SDL_GPUDevice *device);
+    bool available(SDL_GPUDevice *video);
 
   public:
     cse::game *game{};

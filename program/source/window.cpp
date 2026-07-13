@@ -43,7 +43,7 @@ namespace cse::help::window
   {
   }
 
-  void active::create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution)
+  void active::create(SDL_GPUDevice *video, const double aspect, const unsigned int resolution)
   {
     instance = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height),
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
@@ -66,13 +66,13 @@ namespace cse::help::window
     render_width = static_cast<unsigned int>(pixels.x);
     render_height = static_cast<unsigned int>(pixels.y);
 
-    if (!SDL_ClaimWindowForGPUDevice(device, instance)) throw sdl_exception("Could not claim window for GPU device");
-    if (!SDL_SetGPUSwapchainParameters(device, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
+    if (!SDL_ClaimWindowForGPUDevice(video, instance)) throw sdl_exception("Could not claim window for GPU device");
+    if (!SDL_SetGPUSwapchainParameters(video, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
       sdl_log("Could not enable VSYNC");
 
     if (mode != WINDOWED) handle_mode();
-    if (!vsync) handle_vsync(device);
-    if (!depth_texture) generate_depth_texture(device);
+    if (!vsync) handle_vsync(video);
+    if (!depth_texture) generate_depth_texture(video);
 
     shadow = {.title = title,
               .display = display,
@@ -227,10 +227,10 @@ namespace cse::help::window
     if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
   }
 
-  void active::destroy(SDL_GPUDevice *device)
+  void active::destroy(SDL_GPUDevice *video)
   {
-    SDL_ReleaseGPUTexture(device, depth_texture);
-    SDL_ReleaseWindowFromGPUDevice(device, instance);
+    SDL_ReleaseGPUTexture(video, depth_texture);
+    SDL_ReleaseWindowFromGPUDevice(video, instance);
     SDL_DestroyWindow(instance);
   }
 
@@ -327,16 +327,16 @@ namespace cse::help::window
             (canvas.y + canvas_height / 2.0) / canvas_height * view.height + view.top};
   }
 
-  void active::reconcile(SDL_GPUDevice *device)
+  void active::reconcile(SDL_GPUDevice *video)
   {
     if (title != shadow.title) handle_title_change();
     if (left != shadow.left || top != shadow.top)
       handle_manual_move();
     else if (display != shadow.display)
       handle_manual_display_move();
-    if (width != shadow.width || height != shadow.height) handle_manual_resize(device);
+    if (width != shadow.width || height != shadow.height) handle_manual_resize(video);
     if (mode != shadow.mode) handle_mode();
-    if (vsync != shadow.vsync) handle_vsync(device);
+    if (vsync != shadow.vsync) handle_vsync(video);
     shadow.title = title;
     shadow.display = display;
     shadow.left = left;
@@ -347,11 +347,11 @@ namespace cse::help::window
     shadow.vsync = vsync;
   }
 
-  void active::generate_depth_texture(SDL_GPUDevice *device)
+  void active::generate_depth_texture(SDL_GPUDevice *video)
   {
     if (depth_texture)
     {
-      SDL_ReleaseGPUTexture(device, depth_texture);
+      SDL_ReleaseGPUTexture(video, depth_texture);
       depth_texture = nullptr;
     }
     const auto type{SDL_GPU_TEXTURETYPE_2D};
@@ -360,10 +360,10 @@ namespace cse::help::window
       SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
     SDL_GPUTextureCreateInfo depth_texture_info{
       .type = type,
-      .format = [&device, &potential_formats]() -> SDL_GPUTextureFormat
+      .format = [&video, &potential_formats]() -> SDL_GPUTextureFormat
       {
         for (const auto &potential_format : potential_formats)
-          if (SDL_GPUTextureSupportsFormat(device, potential_format, type, usage)) return potential_format;
+          if (SDL_GPUTextureSupportsFormat(video, potential_format, type, usage)) return potential_format;
         return {};
       }(),
       .usage = usage,
@@ -375,13 +375,13 @@ namespace cse::help::window
       .props = 0};
     if (depth_texture_info.format == SDL_GPU_TEXTUREFORMAT_INVALID)
       throw sdl_exception("No supported depth texture format found");
-    depth_texture = SDL_CreateGPUTexture(device, &depth_texture_info);
+    depth_texture = SDL_CreateGPUTexture(video, &depth_texture_info);
     if (!depth_texture) throw sdl_exception("Could not create depth texture");
   }
 
-  bool active::acquire_swapchain_texture(SDL_GPUDevice *device)
+  bool active::acquire_swapchain_texture(SDL_GPUDevice *video)
   {
-    command_buffer = SDL_AcquireGPUCommandBuffer(device);
+    command_buffer = SDL_AcquireGPUCommandBuffer(video);
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer");
     if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, nullptr, nullptr))
     {
@@ -456,7 +456,7 @@ namespace cse::help::window
     shadow.top = top;
   }
 
-  void active::handle_resize(SDL_GPUDevice *device)
+  void active::handle_resize(SDL_GPUDevice *video)
   {
     if (auto new_display = SDL_GetDisplayForWindow(instance); display != new_display)
     {
@@ -493,7 +493,7 @@ namespace cse::help::window
     const auto pixels{pixel_size()};
     render_width = static_cast<unsigned int>(pixels.x);
     render_height = static_cast<unsigned int>(pixels.y);
-    generate_depth_texture(device);
+    generate_depth_texture(video);
     shadow.display = display;
     shadow.left = left;
     shadow.top = top;
@@ -564,7 +564,7 @@ namespace cse::help::window
     }
   }
 
-  void active::handle_manual_resize(SDL_GPUDevice *device)
+  void active::handle_manual_resize(SDL_GPUDevice *video)
   {
     if (!SDL_SetWindowSize(instance, static_cast<int>(width), static_cast<int>(height)))
     {
@@ -607,7 +607,7 @@ namespace cse::help::window
       render_width = static_cast<unsigned int>(pixels.x);
       render_height = static_cast<unsigned int>(pixels.y);
     }
-    generate_depth_texture(device);
+    generate_depth_texture(video);
   }
 
   void active::handle_mode()
@@ -652,24 +652,24 @@ namespace cse::help::window
       sdl_log("Could not set window position to {}, {}", absolute.x, absolute.y);
   }
 
-  void active::handle_vsync(SDL_GPUDevice *device)
+  void active::handle_vsync(SDL_GPUDevice *video)
   {
     if (vsync)
     {
-      if (!SDL_SetGPUSwapchainParameters(device, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
+      if (!SDL_SetGPUSwapchainParameters(video, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC))
         sdl_log("Could not enable VSYNC");
       return;
     }
-    if (SDL_WindowSupportsGPUPresentMode(device, instance, SDL_GPU_PRESENTMODE_IMMEDIATE))
+    if (SDL_WindowSupportsGPUPresentMode(video, instance, SDL_GPU_PRESENTMODE_IMMEDIATE))
     {
-      if (!SDL_SetGPUSwapchainParameters(device, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
+      if (!SDL_SetGPUSwapchainParameters(video, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
                                          SDL_GPU_PRESENTMODE_IMMEDIATE))
         sdl_log("Could not disable VSYNC");
       return;
     }
-    if (SDL_WindowSupportsGPUPresentMode(device, instance, SDL_GPU_PRESENTMODE_MAILBOX))
+    if (SDL_WindowSupportsGPUPresentMode(video, instance, SDL_GPU_PRESENTMODE_MAILBOX))
     {
-      if (!SDL_SetGPUSwapchainParameters(device, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
+      if (!SDL_SetGPUSwapchainParameters(video, instance, SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
                                          SDL_GPU_PRESENTMODE_MAILBOX))
         sdl_log("Could not disable VSYNC");
       return;
@@ -731,13 +731,13 @@ namespace cse
   }
 
   void window::on_create() {}
-  void window::create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution)
+  void window::create(SDL_GPUDevice *video, const double aspect, const unsigned int resolution)
   {
     if (active.phase != help::phase::PREPARED) throw exception("Window must be prepared before creation");
-    active.create(device, aspect, resolution);
+    active.create(video, aspect, resolution);
     active.phase = help::phase::CREATED;
     on_create();
-    active.reconcile(device);
+    active.reconcile(video);
   }
 
   void window::on_synchronize() {}
@@ -749,15 +749,15 @@ namespace cse
   }
 
   void window::on_event(const SDL_Event &) {}
-  void window::event(SDL_GPUDevice *device)
+  void window::event(SDL_GPUDevice *video)
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before processing events");
     switch (active.event.type)
     {
       case SDL_EVENT_QUIT: active.running = false; break;
       case SDL_EVENT_WINDOW_MOVED: active.handle_move(); break;
-      case SDL_EVENT_WINDOW_RESIZED: active.handle_resize(device); break;
-      case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: active.handle_resize(device); break;
+      case SDL_EVENT_WINDOW_RESIZED: active.handle_resize(video); break;
+      case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: active.handle_resize(video); break;
       case SDL_EVENT_MOUSE_WHEEL:
         active.mouse.wheel += glm::dvec2{active.event.wheel.x, active.event.wheel.y};
         on_event(active.event);
@@ -783,11 +783,11 @@ namespace cse
   }
 
   void window::on_destroy() {}
-  void window::destroy(SDL_GPUDevice *device)
+  void window::destroy(SDL_GPUDevice *video)
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before destruction");
     active.event = {};
-    active.destroy(device);
+    active.destroy(video);
     active.phase = help::phase::PREPARED;
     on_destroy();
   }
@@ -800,11 +800,11 @@ namespace cse
     on_clean();
   }
 
-  bool window::available(SDL_GPUDevice *device)
+  bool window::available(SDL_GPUDevice *video)
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
-    active.reconcile(device);
-    if (!active.acquire_swapchain_texture(device)) return false;
+    active.reconcile(video);
+    if (!active.acquire_swapchain_texture(video)) return false;
     return true;
   }
 }

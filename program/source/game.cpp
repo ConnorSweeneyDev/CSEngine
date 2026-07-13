@@ -95,18 +95,18 @@ namespace cse::help::game
 
   void active::create()
   {
-    device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, debug, "vulkan");
-    if (!device) throw sdl_exception("Could not create GPU device");
+    video = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, debug, "vulkan");
+    if (!video) throw sdl_exception("Could not create GPU device");
 
     const std::array<corner, 4> vertices{
       {{1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, -1.0f, 1.0f, 0.0f}, {-1.0f, 1.0f, 0.0f, 1.0f}, {-1.0f, -1.0f, 0.0f, 0.0f}}};
     const std::array<Uint16, 6> indices{3, 1, 0, 3, 0, 2};
     SDL_GPUBufferCreateInfo vertex_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_VERTEX, .size = sizeof(vertices), .props = 0};
-    graphics_buffer.vertex = SDL_CreateGPUBuffer(device, &vertex_buffer_info);
+    graphics_buffer.vertex = SDL_CreateGPUBuffer(video, &vertex_buffer_info);
     if (!graphics_buffer.vertex) throw sdl_exception("Could not create vertex buffer for game");
     SDL_GPUBufferCreateInfo index_buffer_info{.usage = SDL_GPU_BUFFERUSAGE_INDEX, .size = sizeof(indices), .props = 0};
-    graphics_buffer.index = SDL_CreateGPUBuffer(device, &index_buffer_info);
+    graphics_buffer.index = SDL_CreateGPUBuffer(video, &index_buffer_info);
     if (!graphics_buffer.index) throw sdl_exception("Could not create index buffer for game");
     SDL_GPUSamplerCreateInfo sampler_info{};
     sampler_info.min_filter = SDL_GPU_FILTER_NEAREST;
@@ -115,38 +115,38 @@ namespace cse::help::game
     sampler_info.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_info.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-    graphics_buffer.nearest = SDL_CreateGPUSampler(device, &sampler_info);
+    graphics_buffer.nearest = SDL_CreateGPUSampler(video, &sampler_info);
     if (!graphics_buffer.nearest) throw sdl_exception("Could not create nearest sampler for game");
     SDL_GPUSamplerCreateInfo linear_sampler_info{sampler_info};
     linear_sampler_info.min_filter = SDL_GPU_FILTER_LINEAR;
     linear_sampler_info.mag_filter = SDL_GPU_FILTER_LINEAR;
-    graphics_buffer.linear = SDL_CreateGPUSampler(device, &linear_sampler_info);
+    graphics_buffer.linear = SDL_CreateGPUSampler(video, &linear_sampler_info);
     if (!graphics_buffer.linear) throw sdl_exception("Could not create linear sampler for game");
     graphics_light.capacity = 16;
     SDL_GPUBufferCreateInfo light_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
       .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
       .props = 0};
-    graphics_light.buffer = SDL_CreateGPUBuffer(device, &light_buffer_info);
+    graphics_light.buffer = SDL_CreateGPUBuffer(video, &light_buffer_info);
     if (!graphics_light.buffer) throw sdl_exception("Could not create light storage buffer for game");
     SDL_GPUTransferBufferCreateInfo light_transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
       .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
       .props = 0};
-    graphics_light.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &light_transfer_buffer_info);
+    graphics_light.transfer_buffer = SDL_CreateGPUTransferBuffer(video, &light_transfer_buffer_info);
     if (!graphics_light.transfer_buffer) throw sdl_exception("Could not create light transfer buffer for game");
     graphics_occluder.capacity = 16;
     SDL_GPUBufferCreateInfo occluder_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
       .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
       .props = 0};
-    graphics_occluder.buffer = SDL_CreateGPUBuffer(device, &occluder_buffer_info);
+    graphics_occluder.buffer = SDL_CreateGPUBuffer(video, &occluder_buffer_info);
     if (!graphics_occluder.buffer) throw sdl_exception("Could not create occluder storage buffer for game");
     SDL_GPUTransferBufferCreateInfo occluder_transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
       .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
       .props = 0};
-    graphics_occluder.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &occluder_transfer_buffer_info);
+    graphics_occluder.transfer_buffer = SDL_CreateGPUTransferBuffer(video, &occluder_transfer_buffer_info);
     if (!graphics_occluder.transfer_buffer) throw sdl_exception("Could not create occluder transfer buffer for game");
     SDL_GPUTextureCreateInfo occluder_array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
                                                  .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
@@ -157,21 +157,20 @@ namespace cse::help::game
                                                  .num_levels = 1,
                                                  .sample_count = SDL_GPU_SAMPLECOUNT_1,
                                                  .props = 0};
-    graphics_occluder.texture = SDL_CreateGPUTexture(device, &occluder_array_info);
+    graphics_occluder.texture = SDL_CreateGPUTexture(video, &occluder_array_info);
     if (!graphics_occluder.texture) throw sdl_exception("Could not create occluder texture array for game");
     graphics_occluder.width = 1;
     graphics_occluder.height = 1;
-    graphics_occluder.layers = 1;
     SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = sizeof(vertices) + sizeof(indices), .props = 0};
-    auto *transfer_buffer{SDL_CreateGPUTransferBuffer(device, &transfer_buffer_info)};
+    auto *transfer_buffer{SDL_CreateGPUTransferBuffer(video, &transfer_buffer_info)};
     if (!transfer_buffer) throw sdl_exception("Could not create transfer buffer for game");
-    auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(device, transfer_buffer, false))};
+    auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(video, transfer_buffer, false))};
     if (!start) throw sdl_exception("Could not map data for game");
     SDL_memcpy(start, vertices.data(), sizeof(vertices));
     SDL_memcpy(start + sizeof(vertices), indices.data(), sizeof(indices));
-    SDL_UnmapGPUTransferBuffer(device, transfer_buffer);
-    auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
+    SDL_UnmapGPUTransferBuffer(video, transfer_buffer);
+    auto *command_buffer{SDL_AcquireGPUCommandBuffer(video)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
     if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
@@ -184,20 +183,20 @@ namespace cse::help::game
     SDL_UploadToGPUBuffer(copy_pass, &index_transfer_location, &index_buffer_region, false);
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(device, transfer_buffer);
+    SDL_ReleaseGPUTransferBuffer(video, transfer_buffer);
 
     if (!audio_ready) return;
-    if (audio_handle = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr); !audio_handle)
+    if (soundboard = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr); !soundboard)
     {
       sdl_log("Could not create audio mixer for game; continuing without sound");
       return;
     }
     SDL_AudioSpec spec{};
-    if (!MIX_GetMixerFormat(audio_handle, &spec))
+    if (!MIX_GetMixerFormat(soundboard, &spec))
     {
       sdl_log("Could not get audio mixer format for game; continuing without sound");
-      MIX_DestroyMixer(audio_handle);
-      audio_handle = nullptr;
+      MIX_DestroyMixer(soundboard);
+      soundboard = nullptr;
       return;
     }
     frequency = spec.freq;
@@ -255,14 +254,13 @@ namespace cse::help::game
       return std::pair<glm::dmat4, glm::dmat4>{projection, glm::translate(glm::dmat4{1.0}, origin)};
     }();
     for (auto iterator{graphics_cache.texture.begin()}; iterator != graphics_cache.texture.end();)
-      if (iterator->second.stamp != graphics_cache.stamp)
+      if (time - iterator->second.stamp >= cache_lifetime)
       {
-        SDL_ReleaseGPUTexture(device, iterator->second.value);
+        SDL_ReleaseGPUTexture(video, iterator->second.value);
         iterator = graphics_cache.texture.erase(iterator);
       }
       else
         ++iterator;
-    graphics_cache.stamp++;
 
     const auto lights{static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.samples.size())};
     const auto occluders{static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.samples.size())};
@@ -270,81 +268,81 @@ namespace cse::help::game
     if (lights == 0 && occluders == 0 && objects == 0) return;
     if (graphics_light.samples.size() > graphics_light.capacity)
     {
-      SDL_ReleaseGPUTransferBuffer(device, graphics_light.transfer_buffer);
-      SDL_ReleaseGPUBuffer(device, graphics_light.buffer);
+      SDL_ReleaseGPUTransferBuffer(video, graphics_light.transfer_buffer);
+      SDL_ReleaseGPUBuffer(video, graphics_light.buffer);
       graphics_light.capacity = std::max<std::size_t>(graphics_light.capacity, 16);
       while (graphics_light.capacity < graphics_light.samples.size()) graphics_light.capacity *= 2;
       SDL_GPUBufferCreateInfo buffer_info{
         .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
         .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
         .props = 0};
-      graphics_light.buffer = SDL_CreateGPUBuffer(device, &buffer_info);
+      graphics_light.buffer = SDL_CreateGPUBuffer(video, &buffer_info);
       if (!graphics_light.buffer) throw sdl_exception("Could not create light storage buffer for game");
       SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
         .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
         .props = 0};
-      graphics_light.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &transfer_buffer_info);
+      graphics_light.transfer_buffer = SDL_CreateGPUTransferBuffer(video, &transfer_buffer_info);
       if (!graphics_light.transfer_buffer) throw sdl_exception("Could not create light transfer buffer for game");
     }
     if (graphics_occluder.samples.size() > graphics_occluder.capacity)
     {
-      SDL_ReleaseGPUTransferBuffer(device, graphics_occluder.transfer_buffer);
-      SDL_ReleaseGPUBuffer(device, graphics_occluder.buffer);
+      SDL_ReleaseGPUTransferBuffer(video, graphics_occluder.transfer_buffer);
+      SDL_ReleaseGPUBuffer(video, graphics_occluder.buffer);
       graphics_occluder.capacity = std::max<std::size_t>(graphics_occluder.capacity, 16);
       while (graphics_occluder.capacity < graphics_occluder.samples.size()) graphics_occluder.capacity *= 2;
       SDL_GPUBufferCreateInfo buffer_info{
         .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
         .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
         .props = 0};
-      graphics_occluder.buffer = SDL_CreateGPUBuffer(device, &buffer_info);
+      graphics_occluder.buffer = SDL_CreateGPUBuffer(video, &buffer_info);
       if (!graphics_occluder.buffer) throw sdl_exception("Could not create occluder storage buffer for game");
       SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
         .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
         .props = 0};
-      graphics_occluder.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &transfer_buffer_info);
+      graphics_occluder.transfer_buffer = SDL_CreateGPUTransferBuffer(video, &transfer_buffer_info);
       if (!graphics_occluder.transfer_buffer) throw sdl_exception("Could not create occluder transfer buffer for game");
     }
     if (graphics_object.samples.size() > graphics_object.capacity)
     {
-      SDL_ReleaseGPUTransferBuffer(device, graphics_object.transfer_buffer);
-      SDL_ReleaseGPUBuffer(device, graphics_object.buffer);
+      SDL_ReleaseGPUTransferBuffer(video, graphics_object.transfer_buffer);
+      SDL_ReleaseGPUBuffer(video, graphics_object.buffer);
       graphics_object.capacity = std::max<std::size_t>(graphics_object.capacity, 16);
       while (graphics_object.capacity < graphics_object.samples.size()) graphics_object.capacity *= 2;
       SDL_GPUBufferCreateInfo buffer_info{
         .usage = SDL_GPU_BUFFERUSAGE_VERTEX,
         .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
         .props = 0};
-      graphics_object.buffer = SDL_CreateGPUBuffer(device, &buffer_info);
+      graphics_object.buffer = SDL_CreateGPUBuffer(video, &buffer_info);
       if (!graphics_object.buffer) throw sdl_exception("Could not create instance buffer for game");
       SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
         .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
         .props = 0};
-      graphics_object.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &transfer_buffer_info);
+      graphics_object.transfer_buffer = SDL_CreateGPUTransferBuffer(video, &transfer_buffer_info);
       if (!graphics_object.transfer_buffer) throw sdl_exception("Could not create instance transfer buffer for game");
     }
     if (lights > 0)
     {
-      auto *start{SDL_MapGPUTransferBuffer(device, graphics_light.transfer_buffer, true)};
+      auto *start{SDL_MapGPUTransferBuffer(video, graphics_light.transfer_buffer, true)};
       if (!start) throw sdl_exception("Could not map light data for game");
       SDL_memcpy(start, graphics_light.samples.data(), lights);
-      SDL_UnmapGPUTransferBuffer(device, graphics_light.transfer_buffer);
+      SDL_UnmapGPUTransferBuffer(video, graphics_light.transfer_buffer);
     }
     if (occluders > 0)
     {
-      auto *start{SDL_MapGPUTransferBuffer(device, graphics_occluder.transfer_buffer, true)};
+      auto *start{SDL_MapGPUTransferBuffer(video, graphics_occluder.transfer_buffer, true)};
       if (!start) throw sdl_exception("Could not map occluder data for game");
       SDL_memcpy(start, graphics_occluder.samples.data(), occluders);
-      SDL_UnmapGPUTransferBuffer(device, graphics_occluder.transfer_buffer);
+      SDL_UnmapGPUTransferBuffer(video, graphics_occluder.transfer_buffer);
     }
     if (objects > 0)
     {
-      auto *start{SDL_MapGPUTransferBuffer(device, graphics_object.transfer_buffer, true)};
+      auto *start{SDL_MapGPUTransferBuffer(video, graphics_object.transfer_buffer, true)};
       if (!start) throw sdl_exception("Could not map instance data for game");
       SDL_memcpy(start, graphics_object.samples.data(), objects);
-      SDL_UnmapGPUTransferBuffer(device, graphics_object.transfer_buffer);
+      SDL_UnmapGPUTransferBuffer(video, graphics_object.transfer_buffer);
     }
     auto *copy_pass{SDL_BeginGPUCopyPass(window->active.command_buffer)};
     if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
@@ -373,7 +371,7 @@ namespace cse::help::game
   void active::mix(const help::mixer &previous_mixer, const temporal<double> previous_master,
                    const temporal<double> previous_sound, const temporal<double> previous_music)
   {
-    if (!audio_handle) return;
+    if (!soundboard) return;
     master.value = std::clamp(master.value, 0.0, 1.0);
     sound.value = std::clamp(sound.value, 0.0, 1.0);
     music.value = std::clamp(music.value, 0.0, 1.0);
@@ -398,26 +396,29 @@ namespace cse::help::game
     }
     for (const auto &element : interfaces) add(element.get());
 
-    for (auto &[key, audio] : audio_tracks) audio.seen = false;
+    for (auto &[key, audio] : audio_cache.tracks) audio.seen = false;
     for (const auto &audio : channels)
     {
       reconcile_audio<cse::sound>(audio.previous, audio.active, "sound", true, sound_bus);
       reconcile_audio<cse::music>(audio.previous, audio.active, "music", false, music_bus);
     }
-    for (auto iterator{audio_tracks.begin()}; iterator != audio_tracks.end();)
+    for (auto iterator{audio_cache.tracks.begin()}; iterator != audio_cache.tracks.end();)
       if (!iterator->second.seen)
       {
         if (iterator->second.handle) MIX_DestroyTrack(iterator->second.handle);
-        iterator = audio_tracks.erase(iterator);
+        iterator = audio_cache.tracks.erase(iterator);
       }
       else
         ++iterator;
-    for (auto iterator{audio_cache.begin()}; iterator != audio_cache.end();)
-      if (std::none_of(audio_tracks.begin(), audio_tracks.end(),
-                       [audio = iterator->second](const auto &entry) { return entry.second.audio == audio; }))
+    for (auto &[key, audio] : audio_cache.sources)
+      if (std::any_of(audio_cache.tracks.begin(), audio_cache.tracks.end(),
+                      [value = audio.value](const auto &entry) { return entry.second.audio == value; }))
+        audio.stamp = time;
+    for (auto iterator{audio_cache.sources.begin()}; iterator != audio_cache.sources.end();)
+      if (time - iterator->second.stamp >= cache_lifetime)
       {
-        if (iterator->second) MIX_DestroyAudio(iterator->second);
-        iterator = audio_cache.erase(iterator);
+        if (iterator->second.value) MIX_DestroyAudio(iterator->second.value);
+        iterator = audio_cache.sources.erase(iterator);
       }
       else
         ++iterator;
@@ -425,31 +426,31 @@ namespace cse::help::game
 
   void active::destroy()
   {
-    for (auto &[key, audio] : audio_tracks)
+    for (auto &[key, audio] : audio_cache.tracks)
       if (audio.handle) MIX_DestroyTrack(audio.handle);
-    audio_tracks.clear();
-    for (auto &[key, audio] : audio_cache)
-      if (audio) MIX_DestroyAudio(audio);
-    audio_cache.clear();
-    if (audio_handle) MIX_DestroyMixer(audio_handle);
-    audio_handle = nullptr;
+    audio_cache.tracks.clear();
+    for (auto &[key, audio] : audio_cache.sources)
+      if (audio.value) MIX_DestroyAudio(audio.value);
+    audio_cache.sources.clear();
+    if (soundboard) MIX_DestroyMixer(soundboard);
+    soundboard = nullptr;
 
-    SDL_ReleaseGPUTransferBuffer(device, graphics_object.transfer_buffer);
-    SDL_ReleaseGPUBuffer(device, graphics_object.buffer);
-    SDL_ReleaseGPUTransferBuffer(device, graphics_occluder.transfer_buffer);
-    SDL_ReleaseGPUBuffer(device, graphics_occluder.buffer);
-    SDL_ReleaseGPUTexture(device, graphics_occluder.texture);
-    SDL_ReleaseGPUTransferBuffer(device, graphics_light.transfer_buffer);
-    SDL_ReleaseGPUBuffer(device, graphics_light.buffer);
-    for (const auto &[key, texture] : graphics_cache.texture) SDL_ReleaseGPUTexture(device, texture.value);
-    SDL_ReleaseGPUGraphicsPipeline(device, graphics_pipeline.interface);
-    SDL_ReleaseGPUGraphicsPipeline(device, graphics_pipeline.transparent);
-    SDL_ReleaseGPUGraphicsPipeline(device, graphics_pipeline.opaque);
-    SDL_ReleaseGPUSampler(device, graphics_buffer.linear);
-    SDL_ReleaseGPUSampler(device, graphics_buffer.nearest);
-    SDL_ReleaseGPUBuffer(device, graphics_buffer.index);
-    SDL_ReleaseGPUBuffer(device, graphics_buffer.vertex);
-    SDL_DestroyGPUDevice(device);
+    SDL_ReleaseGPUTransferBuffer(video, graphics_object.transfer_buffer);
+    SDL_ReleaseGPUBuffer(video, graphics_object.buffer);
+    SDL_ReleaseGPUTransferBuffer(video, graphics_occluder.transfer_buffer);
+    SDL_ReleaseGPUBuffer(video, graphics_occluder.buffer);
+    SDL_ReleaseGPUTexture(video, graphics_occluder.texture);
+    SDL_ReleaseGPUTransferBuffer(video, graphics_light.transfer_buffer);
+    SDL_ReleaseGPUBuffer(video, graphics_light.buffer);
+    for (const auto &[key, texture] : graphics_cache.texture) SDL_ReleaseGPUTexture(video, texture.value);
+    SDL_ReleaseGPUGraphicsPipeline(video, graphics_pipeline.interface);
+    SDL_ReleaseGPUGraphicsPipeline(video, graphics_pipeline.transparent);
+    SDL_ReleaseGPUGraphicsPipeline(video, graphics_pipeline.opaque);
+    SDL_ReleaseGPUSampler(video, graphics_buffer.linear);
+    SDL_ReleaseGPUSampler(video, graphics_buffer.nearest);
+    SDL_ReleaseGPUBuffer(video, graphics_buffer.index);
+    SDL_ReleaseGPUBuffer(video, graphics_buffer.vertex);
+    SDL_DestroyGPUDevice(video);
     graphics_interface.order.clear();
     graphics_object.transfer_buffer = nullptr;
     graphics_object.buffer = nullptr;
@@ -463,15 +464,13 @@ namespace cse::help::game
     graphics_occluder.capacity = 0;
     graphics_occluder.width = 0;
     graphics_occluder.height = 0;
-    graphics_occluder.layers = 0;
     graphics_occluder.samples.clear();
-    graphics_occluder.signature.clear();
+    graphics_occluder.layers.clear();
     graphics_light.transfer_buffer = nullptr;
     graphics_light.buffer = nullptr;
     graphics_light.capacity = 0;
     graphics_light.samples.clear();
     graphics_cache.texture.clear();
-    graphics_cache.stamp = 0;
     graphics_pipeline.interface = nullptr;
     graphics_pipeline.transparent = nullptr;
     graphics_pipeline.opaque = nullptr;
@@ -479,7 +478,7 @@ namespace cse::help::game
     graphics_buffer.nearest = nullptr;
     graphics_buffer.index = nullptr;
     graphics_buffer.vertex = nullptr;
-    device = nullptr;
+    video = nullptr;
   }
 
   void active::clean()
@@ -660,17 +659,18 @@ namespace cse::help::game
   {
     graphics_occluder.samples.clear();
 
-    static std::vector<const cse::image *> images{};
-    static std::vector<const unsigned char *> signature{};
-    images.clear();
-    signature.clear();
+    bool additions{false};
     const auto layer_of{[&](const cse::image &image) -> int
                         {
-                          for (std::size_t index{}; index < signature.size(); ++index)
-                            if (signature[index] == image.data.data()) return static_cast<int>(index);
-                          signature.push_back(image.data.data());
-                          images.push_back(&image);
-                          return static_cast<int>(signature.size() - 1);
+                          for (std::size_t index{}; index < graphics_occluder.layers.size(); ++index)
+                            if (graphics_occluder.layers[index].image == image)
+                            {
+                              graphics_occluder.layers[index].stamp = time;
+                              return static_cast<int>(index);
+                            }
+                          graphics_occluder.layers.push_back({image, time});
+                          additions = true;
+                          return static_cast<int>(graphics_occluder.layers.size() - 1);
                         }};
 
     bool penetrating{false};
@@ -741,78 +741,93 @@ namespace cse::help::game
     }
     graphics_light.data.meta[1] = static_cast<float>(graphics_occluder.samples.size());
 
-    if (!images.empty())
+    const auto expired{[this](const graphics_occluder::layer &entry) { return time - entry.stamp >= cache_lifetime; }};
+    const bool pruned{std::any_of(graphics_occluder.layers.begin(), graphics_occluder.layers.end(), expired)};
+    if (pruned)
+    {
+      std::vector<float> remap(graphics_occluder.layers.size(), -1.0f);
+      float next{};
+      for (std::size_t index{}; index < graphics_occluder.layers.size(); ++index)
+        if (!expired(graphics_occluder.layers[index])) remap[index] = next++;
+      std::erase_if(graphics_occluder.layers, expired);
+      for (auto &entry : graphics_occluder.samples)
+        entry.surface[1] = remap[static_cast<std::size_t>(entry.surface[1])];
+    }
+    if ((additions || pruned) && !graphics_occluder.layers.empty())
     {
       unsigned int max_width{1};
       unsigned int max_height{1};
-      for (const auto *image : images)
+      Uint32 total{};
+      for (const auto &entry : graphics_occluder.layers)
       {
-        max_width = std::max(max_width, image->width);
-        max_height = std::max(max_height, image->height);
+        max_width = std::max(max_width, entry.image.width);
+        max_height = std::max(max_height, entry.image.height);
+        total += entry.image.width * entry.image.height * entry.image.channels;
       }
-      for (auto &entry : graphics_occluder.samples)
+      SDL_ReleaseGPUTexture(video, graphics_occluder.texture);
+      SDL_GPUTextureCreateInfo array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
+                                          .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+                                          .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+                                          .width = max_width,
+                                          .height = max_height,
+                                          .layer_count_or_depth = static_cast<Uint32>(graphics_occluder.layers.size()),
+                                          .num_levels = 1,
+                                          .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                          .props = 0};
+      graphics_occluder.texture = SDL_CreateGPUTexture(video, &array_info);
+      if (!graphics_occluder.texture) throw sdl_exception("Could not create occluder texture array for game");
+      SDL_GPUTransferBufferCreateInfo transfer_info{
+        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = total, .props = 0};
+      auto *transfer{SDL_CreateGPUTransferBuffer(video, &transfer_info)};
+      if (!transfer) throw sdl_exception("Could not create occluder layer transfer buffer for game");
+      auto *pixels{static_cast<char *>(SDL_MapGPUTransferBuffer(video, transfer, false))};
+      if (!pixels) throw sdl_exception("Could not map occluder layer data for game");
+      Uint32 offset{};
+      for (const auto &entry : graphics_occluder.layers)
       {
-        const auto *image{images[static_cast<std::size_t>(entry.surface[1])]};
-        const float scale_u{static_cast<float>(image->width) / static_cast<float>(max_width)};
-        const float scale_v{static_cast<float>(image->height) / static_cast<float>(max_height)};
-        entry.frame[0] *= scale_u;
-        entry.frame[2] *= scale_u;
-        entry.frame[1] *= scale_v;
-        entry.frame[3] *= scale_v;
+        const auto bytes{entry.image.width * entry.image.height * entry.image.channels};
+        SDL_memcpy(pixels + offset, entry.image.data.data(), bytes);
+        offset += bytes;
       }
-      if (signature != graphics_occluder.signature || max_width != graphics_occluder.width ||
-          max_height != graphics_occluder.height)
+      SDL_UnmapGPUTransferBuffer(video, transfer);
+      auto *command_buffer{SDL_AcquireGPUCommandBuffer(video)};
+      if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
+      auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
+      if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
+      offset = 0;
+      for (std::size_t layer{}; layer < graphics_occluder.layers.size(); ++layer)
       {
-        SDL_ReleaseGPUTexture(device, graphics_occluder.texture);
-        SDL_GPUTextureCreateInfo array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
-                                            .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-                                            .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
-                                            .width = max_width,
-                                            .height = max_height,
-                                            .layer_count_or_depth = static_cast<Uint32>(images.size()),
-                                            .num_levels = 1,
-                                            .sample_count = SDL_GPU_SAMPLECOUNT_1,
-                                            .props = 0};
-        graphics_occluder.texture = SDL_CreateGPUTexture(device, &array_info);
-        if (!graphics_occluder.texture) throw sdl_exception("Could not create occluder texture array for game");
-        for (std::size_t layer{}; layer < images.size(); ++layer)
-        {
-          const auto *image{images[layer]};
-          SDL_GPUTransferBufferCreateInfo transfer_info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-                                                        .size = image->width * image->height * image->channels,
-                                                        .props = 0};
-          auto *transfer{SDL_CreateGPUTransferBuffer(device, &transfer_info)};
-          if (!transfer) throw sdl_exception("Could not create occluder layer transfer buffer for game");
-          auto *pixels{SDL_MapGPUTransferBuffer(device, transfer, false)};
-          if (!pixels) throw sdl_exception("Could not map occluder layer data for game");
-          SDL_memcpy(pixels, image->data.data(), image->width * image->height * image->channels);
-          SDL_UnmapGPUTransferBuffer(device, transfer);
-          auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
-          if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
-          auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
-          if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
-          SDL_GPUTextureTransferInfo source{
-            .transfer_buffer = transfer, .offset = 0, .pixels_per_row = 0, .rows_per_layer = 0};
-          SDL_GPUTextureRegion region{.texture = graphics_occluder.texture,
-                                      .mip_level = 0,
-                                      .layer = static_cast<Uint32>(layer),
-                                      .x = 0,
-                                      .y = 0,
-                                      .z = 0,
-                                      .w = image->width,
-                                      .h = image->height,
-                                      .d = 1};
-          SDL_UploadToGPUTexture(copy_pass, &source, &region, false);
-          SDL_EndGPUCopyPass(copy_pass);
-          SDL_SubmitGPUCommandBuffer(command_buffer);
-          SDL_ReleaseGPUTransferBuffer(device, transfer);
-        }
-        graphics_occluder.width = max_width;
-        graphics_occluder.height = max_height;
-        graphics_occluder.layers = static_cast<unsigned int>(images.size());
+        const auto &image{graphics_occluder.layers[layer].image};
+        SDL_GPUTextureTransferInfo source{
+          .transfer_buffer = transfer, .offset = offset, .pixels_per_row = 0, .rows_per_layer = 0};
+        SDL_GPUTextureRegion region{.texture = graphics_occluder.texture,
+                                    .mip_level = 0,
+                                    .layer = static_cast<Uint32>(layer),
+                                    .x = 0,
+                                    .y = 0,
+                                    .z = 0,
+                                    .w = image.width,
+                                    .h = image.height,
+                                    .d = 1};
+        SDL_UploadToGPUTexture(copy_pass, &source, &region, false);
+        offset += image.width * image.height * image.channels;
       }
+      SDL_EndGPUCopyPass(copy_pass);
+      SDL_SubmitGPUCommandBuffer(command_buffer);
+      SDL_ReleaseGPUTransferBuffer(video, transfer);
+      graphics_occluder.width = max_width;
+      graphics_occluder.height = max_height;
     }
-    graphics_occluder.signature = signature;
+    for (auto &entry : graphics_occluder.samples)
+    {
+      const auto &image{graphics_occluder.layers[static_cast<std::size_t>(entry.surface[1])].image};
+      const float scale_u{static_cast<float>(image.width) / static_cast<float>(graphics_occluder.width)};
+      const float scale_v{static_cast<float>(image.height) / static_cast<float>(graphics_occluder.height)};
+      entry.frame[0] *= scale_u;
+      entry.frame[2] *= scale_u;
+      entry.frame[1] *= scale_v;
+      entry.frame[3] *= scale_v;
+    }
     graphics_light.data.meta[2] = static_cast<float>(graphics_occluder.width);
     graphics_light.data.meta[3] = static_cast<float>(graphics_occluder.height);
 
@@ -869,7 +884,7 @@ namespace cse::help::game
         const auto &image{element->active.texture.image};
         if (const auto iterator{graphics_cache.texture.find({image.data.data(), image.data.size()})};
             iterator != graphics_cache.texture.end())
-          iterator->second.stamp = graphics_cache.stamp;
+          iterator->second.stamp = time;
       }
     }
 
@@ -1221,7 +1236,7 @@ namespace cse::help::game
   struct active::graphics_pipeline &active::require_pipelines()
   {
     if (graphics_pipeline.opaque) return graphics_pipeline;
-    const auto backend_formats{SDL_GetGPUShaderFormats(device)};
+    const auto backend_formats{SDL_GetGPUShaderFormats(video)};
     if (!has(backend_formats, SDL_GPU_SHADERFORMAT_SPIRV))
       throw sdl_exception("No supported vulkan shader formats for game");
     SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader::vertex.size(),
@@ -1234,7 +1249,7 @@ namespace cse::help::game
                                                .num_storage_buffers = 0,
                                                .num_uniform_buffers = 1,
                                                .props = 0};
-    auto *vertex_shader{SDL_CreateGPUShader(device, &vertex_shader_info)};
+    auto *vertex_shader{SDL_CreateGPUShader(video, &vertex_shader_info)};
     if (!vertex_shader) throw sdl_exception("Could not create vertex shader for game");
     SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader::fragment.size(),
                                                  .code = shader::fragment.data(),
@@ -1246,7 +1261,7 @@ namespace cse::help::game
                                                  .num_storage_buffers = 2,
                                                  .num_uniform_buffers = 1,
                                                  .props = 0};
-    auto *fragment_shader{SDL_CreateGPUShader(device, &fragment_shader_info)};
+    auto *fragment_shader{SDL_CreateGPUShader(video, &fragment_shader_info)};
     if (!fragment_shader) throw sdl_exception("Could not create fragment shader for game");
     const std::array<SDL_GPUVertexBufferDescription, 2> vertex_buffer_descriptions{
       {{.slot = 0, .pitch = sizeof(corner), .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX, .instance_step_rate = 0},
@@ -1274,7 +1289,7 @@ namespace cse::help::game
     rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
     rasterizer_state.enable_depth_clip = true;
     SDL_GPUColorTargetDescription opaque_color_target_description{};
-    opaque_color_target_description.format = SDL_GetGPUSwapchainTextureFormat(device, window->active.instance);
+    opaque_color_target_description.format = SDL_GetGPUSwapchainTextureFormat(video, window->active.instance);
     SDL_GPUDepthStencilState opaque_depth_stencil_state{};
     opaque_depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
     opaque_depth_stencil_state.enable_depth_test = true;
@@ -1288,7 +1303,7 @@ namespace cse::help::game
     opaque_target_info.depth_stencil_format = [this, &potential_formats]() -> SDL_GPUTextureFormat
     {
       for (const auto &potential_format : potential_formats)
-        if (SDL_GPUTextureSupportsFormat(device, potential_format, type, SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET))
+        if (SDL_GPUTextureSupportsFormat(video, potential_format, type, SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET))
           return potential_format;
       return {};
     }();
@@ -1303,7 +1318,7 @@ namespace cse::help::game
     opaque_pipeline_info.rasterizer_state = rasterizer_state;
     opaque_pipeline_info.depth_stencil_state = opaque_depth_stencil_state;
     opaque_pipeline_info.target_info = opaque_target_info;
-    graphics_pipeline.opaque = SDL_CreateGPUGraphicsPipeline(device, &opaque_pipeline_info);
+    graphics_pipeline.opaque = SDL_CreateGPUGraphicsPipeline(video, &opaque_pipeline_info);
     if (!graphics_pipeline.opaque) throw sdl_exception("Could not create graphics pipeline for game");
     SDL_GPUColorTargetBlendState blend_state{};
     blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
@@ -1316,7 +1331,7 @@ namespace cse::help::game
     blend_state.enable_blend = true;
     blend_state.enable_color_write_mask = false;
     SDL_GPUColorTargetDescription transparent_color_target_description{};
-    transparent_color_target_description.format = SDL_GetGPUSwapchainTextureFormat(device, window->active.instance);
+    transparent_color_target_description.format = SDL_GetGPUSwapchainTextureFormat(video, window->active.instance);
     transparent_color_target_description.blend_state = blend_state;
     SDL_GPUDepthStencilState transparent_depth_stencil_state{};
     transparent_depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
@@ -1335,7 +1350,7 @@ namespace cse::help::game
     transparent_pipeline_info.rasterizer_state = rasterizer_state;
     transparent_pipeline_info.depth_stencil_state = transparent_depth_stencil_state;
     transparent_pipeline_info.target_info = transparent_target_info;
-    graphics_pipeline.transparent = SDL_CreateGPUGraphicsPipeline(device, &transparent_pipeline_info);
+    graphics_pipeline.transparent = SDL_CreateGPUGraphicsPipeline(video, &transparent_pipeline_info);
     if (!graphics_pipeline.transparent) throw sdl_exception("Could not create transparent graphics pipeline for game");
     SDL_GPURasterizerState interface_rasterizer_state{};
     interface_rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
@@ -1353,10 +1368,10 @@ namespace cse::help::game
     interface_pipeline_info.rasterizer_state = interface_rasterizer_state;
     interface_pipeline_info.depth_stencil_state = interface_depth_stencil_state;
     interface_pipeline_info.target_info = transparent_target_info;
-    graphics_pipeline.interface = SDL_CreateGPUGraphicsPipeline(device, &interface_pipeline_info);
+    graphics_pipeline.interface = SDL_CreateGPUGraphicsPipeline(video, &interface_pipeline_info);
     if (!graphics_pipeline.interface) throw sdl_exception("Could not create interface graphics pipeline for game");
-    SDL_ReleaseGPUShader(device, fragment_shader);
-    SDL_ReleaseGPUShader(device, vertex_shader);
+    SDL_ReleaseGPUShader(video, fragment_shader);
+    SDL_ReleaseGPUShader(video, vertex_shader);
     return graphics_pipeline;
   }
 
@@ -1365,14 +1380,14 @@ namespace cse::help::game
     const graphics_cache::texture_key key{image.data.data(), image.data.size()};
     if (const auto iterator{graphics_cache.texture.find(key)}; iterator != graphics_cache.texture.end())
     {
-      iterator->second.stamp = graphics_cache.stamp;
+      iterator->second.stamp = time;
       return iterator->second.value;
     }
     csp::verify(image.data.data(), image.data.size());
     const auto type{SDL_GPU_TEXTURETYPE_2D};
     const auto format{SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM};
     const auto usage{SDL_GPU_TEXTUREUSAGE_SAMPLER};
-    if (!SDL_GPUTextureSupportsFormat(device, format, type, usage))
+    if (!SDL_GPUTextureSupportsFormat(video, format, type, usage))
       throw sdl_exception("No supported texture format found for game");
     SDL_GPUTextureCreateInfo texture_info{.type = type,
                                           .format = format,
@@ -1383,17 +1398,17 @@ namespace cse::help::game
                                           .num_levels = 1,
                                           .sample_count = SDL_GPU_SAMPLECOUNT_1,
                                           .props = 0};
-    auto *texture{SDL_CreateGPUTexture(device, &texture_info)};
+    auto *texture{SDL_CreateGPUTexture(video, &texture_info)};
     if (!texture) throw sdl_exception("Could not create texture for game");
     SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = image.width * image.height * image.channels, .props = 0};
-    auto *texture_transfer_buffer{SDL_CreateGPUTransferBuffer(device, &texture_transfer_buffer_info)};
+    auto *texture_transfer_buffer{SDL_CreateGPUTransferBuffer(video, &texture_transfer_buffer_info)};
     if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for game");
-    auto *texture_data{SDL_MapGPUTransferBuffer(device, texture_transfer_buffer, false)};
+    auto *texture_data{SDL_MapGPUTransferBuffer(video, texture_transfer_buffer, false)};
     if (!texture_data) throw sdl_exception("Could not map texture data for game");
     SDL_memcpy(texture_data, image.data.data(), image.width * image.height * image.channels);
-    SDL_UnmapGPUTransferBuffer(device, texture_transfer_buffer);
-    auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
+    SDL_UnmapGPUTransferBuffer(video, texture_transfer_buffer);
+    auto *command_buffer{SDL_AcquireGPUCommandBuffer(video)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
     if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
@@ -1411,9 +1426,8 @@ namespace cse::help::game
     SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(device, texture_transfer_buffer);
-    return graphics_cache.texture.emplace(key, graphics_cache::cached<SDL_GPUTexture *>{texture, graphics_cache.stamp})
-      .first->second.value;
+    SDL_ReleaseGPUTransferBuffer(video, texture_transfer_buffer);
+    return graphics_cache.texture.emplace(key, cached<SDL_GPUTexture *>{texture, time}).first->second.value;
   }
 
   std::int64_t active::seconds_to_frames(const double seconds) const
@@ -1436,14 +1450,18 @@ namespace cse::help::game
 
   MIX_Audio *active::require_audio(const unsigned char *data, const std::size_t size, const bool predecode)
   {
-    const audio_track::audio_key key{data, size};
-    if (const auto iterator{audio_cache.find(key)}; iterator != audio_cache.end()) return iterator->second;
+    const audio_cache::source_key key{data, size};
+    if (const auto iterator{audio_cache.sources.find(key)}; iterator != audio_cache.sources.end())
+    {
+      iterator->second.stamp = time;
+      return iterator->second.value;
+    }
     csp::verify(data, size);
     auto *source{SDL_IOFromConstMem(data, size)};
     if (!source) throw sdl_exception("Could not open audio data for game");
-    auto *audio{MIX_LoadAudio_IO(audio_handle, source, predecode, true)};
+    auto *audio{MIX_LoadAudio_IO(soundboard, source, predecode, true)};
     if (!audio) throw sdl_exception("Could not load audio for game");
-    return audio_cache.emplace(key, audio).first->second;
+    return audio_cache.sources.emplace(key, cached<MIX_Audio *>{audio, time}).first->second.value;
   }
 }
 
@@ -1522,7 +1540,7 @@ namespace cse
     if (active.phase != help::phase::PREPARED) throw exception("Game must be prepared before creation");
     pre_create();
     active.create();
-    active.window->create(active.device, active.aspect.value, active.resolution);
+    active.window->create(active.video, active.aspect.value, active.resolution);
     active.scene->create();
     for (const auto &interface : active.interfaces) interface->create();
     active.phase = help::phase::CREATED;
@@ -1542,13 +1560,13 @@ namespace cse
       {
         for (const auto &interface : active.interfaces) interface->destroy();
         active.scene->destroy();
-        active.window->destroy(active.device);
+        active.window->destroy(active.video);
         active.destroy();
         active.window->clean();
         active.window = window;
         window->prepare();
         active.create();
-        window->create(active.device, active.aspect.value, active.resolution);
+        window->create(active.video, active.aspect.value, active.resolution);
         active.scene->create();
         for (const auto &interface : active.interfaces) interface->create();
       }
@@ -1619,7 +1637,7 @@ namespace cse
     {
       pre_event(active.window->active.event);
       active.interact();
-      active.window->event(active.device);
+      active.window->event(active.video);
       active.scene->event(active.window->active.event);
       for (const auto &interface : active.interface_order) interface->event(active.window->active.event);
       post_event(active.window->active.event);
@@ -1658,7 +1676,7 @@ namespace cse
     pre_render(active.alpha);
     const auto clear{active.clear.interpolated(previous.clear, active.alpha)};
     const auto aspect{active.aspect.interpolated(previous.aspect, active.alpha)};
-    if (!active.window->available(active.device)) return;
+    if (!active.window->available(active.video)) return;
     active.scene->render(aspect, active.alpha);
     active.render(previous.aspect);
     active.window->render(aspect, clear, active.alpha);
@@ -1683,7 +1701,7 @@ namespace cse
     pre_destroy();
     for (const auto &interface : active.interfaces) interface->destroy();
     active.scene->destroy();
-    active.window->destroy(active.device);
+    active.window->destroy(active.video);
     active.destroy();
     active.phase = help::phase::PREPARED;
     post_destroy();
