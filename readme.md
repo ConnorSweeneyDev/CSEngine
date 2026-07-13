@@ -18,9 +18,9 @@ The canonical, complete example of everything below is the [CSGame](https://gith
 it is the reference consumer and a good template to copy.
 
 ### Mental Model
-- **A `game`** owns a persistent `state`, a `window`, a current `scene`, and a variable amount of `scene`s and
-  `interface`s.
-- **A `scene`** owns one `camera`, and a variable amount of `interface`s, `object`s and `light`s.
+- **A `game`** owns a persistent `state`, a `window`, a current `scene`, and a variable amount of `scenes` and
+  `interfaces`.
+- **A `scene`** owns one `camera`, and a variable amount of `interfaces`, `objects` and `lights`.
 - **An `interface`** is a 2D overlay (HUD, menu, etc.), whereas a `camera`/`object`/`light` is a 3D entity in the scene.
 - **Entities are added by name** (`"player"`, `"button1"`, …) and looked up by name later.
 - **You never write a `main` loop.** You subclass the engine types, override `on_*`/`pre_*`/`post_*` hooks, and the
@@ -41,12 +41,12 @@ game/
 | | csb.hpp
 | | csb.cpp
 | program/
-| | include/  *.[hpp|inl] # your headers
-| | source/   *.cpp       # your sources
-| | texture/  *.aseprite  # sprite sheets (with animation/hitbox metadata)
-| | font/     *.aseprite  # bitmap fonts (glyph atlases with slice metadata)
-| | sound/    *.wav       # short sound effects
-| | music/    *.opus      # streamed music
+| | include/*.[hpp|inl] # headers
+| | source/*.cpp        # sources
+| | texture/*.aseprite  # sprite sheets (with animation/hitbox metadata)
+| | font/*.aseprite     # bitmap fonts (glyph atlases with slice metadata)
+| | sound/*.wav         # short sound effects
+| | music/*.opus        # streamed music
 ```
 
 However, you are not tied to anything - you can use any build system and layout you like, as long as you satisfy the
@@ -66,7 +66,7 @@ should do the following:
    should be in this form:
 
    ```cpp
-   namespace csg
+   namespace custom
    {
      namespace font { extern const cse::font main; ... }
      namespace image { extern const cse::image main; ... }
@@ -111,7 +111,7 @@ should do the following:
      ...
    }
 
-   namespace csg
+   namespace custom
    {
      namespace font
      {
@@ -138,8 +138,8 @@ should do the following:
    }
    ```
 
-   The `loader`'s trailing `[strings_offset]` argument exists only in debug builds (where hitbox identifiers are stored
-   as readable strings); release builds omit it and hash the identifiers instead.
+   The loader's trailing `[strings_offset]` argument exists only in debug builds (where hitbox identifiers are stored as
+   readable strings); release builds omit it and hash the identifiers instead.
 
    Texture `.aseprite` files contain a top-level `image` group (and optionally a `hitbox` group). Font `.aseprite` files
    contain only an `image` group and mark every glyph with a slice named after its character (e.g. `A`, `!`, ` `); every
@@ -160,7 +160,7 @@ setup function and run it:
 int cse::main(int argc, char *argv[])
 {
   if (argc > 1 || !argv[0]) throw exception("Expected 1 argument, got {}", argc);
-  game::create(csg::game::setup)->run();
+  game::create(custom::game::setup)->run();
   return success;
 }
 ```
@@ -170,7 +170,7 @@ Subclass `cse::game` and set tuning defaults in the constructor (tick rate, fram
 resolution, clear colour, audio buses):
 
 ```cpp
-namespace csg
+namespace custom
 {
   class game final : public cse::game
   {
@@ -272,7 +272,7 @@ player::player(const glm::dvec3 &translation_)
 `camera.cpp`, `light.cpp`, `interface.cpp`, `window.cpp`).
 
 ### Lifecycle Hooks
-Hooks are virtual no-ops you override. **Leaf entities** (`window`, `scene`'s camera/objects/lights/interfaces) expose
+Hooks are virtual no-ops you override. **Leaf entities** (`window`, `interface`, `camera`, `object`, `light`) expose
 `on_*` hooks; **`game` and `scene`** expose `pre_*`/`post_*` hooks that bracket the work of their children.
 
 The best way to describe the lifecycle of an entity is to show you the game's main loop:
@@ -341,9 +341,9 @@ Set `.instant = true` on a temporal when you want a hard cut (no interpolation) 
 - Look entities up by name with the helpers in `cse/container.hpp`:
   ```cpp
   find(active.interfaces, "tick")->active.text.content = "TPS:" + std::to_string(active.tick.count);
-  auto player = try_find(active.objects, "player");                  // nullptr if absent
-  auto settings = find_as<csg::settings>(active.states, "settings"); // find + downcast
-  if (is<player>(contact.target.pointer)) { ... }                    // exact-type check
+  auto player = try_find(active.objects, "player");                     // nullptr if absent
+  auto settings = find_as<custom::settings>(active.states, "settings"); // find + downcast
+  if (is<player>(contact.target.pointer)) { ... }                       // exact-type check
   ```
   Each comes in a throwing form (`find`, `find_as`, `contains`) and a non-throwing `try_` form.
 
