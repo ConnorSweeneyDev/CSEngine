@@ -13,12 +13,14 @@
 #include "SDL3/SDL_rect.h"
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
+#include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
 #include "glm/ext/vector_int2.hpp"
 
 #include "core.hpp"
 #include "exception.hpp"
+#include "game.hpp"
 #include "input.hpp"
 #include "log.hpp"
 #include "mask.hpp"
@@ -120,7 +122,7 @@ namespace cse::help::window
     mouse.wheel = {};
   }
 
-  void active::start_render_pass(const double aspect, const glm::dvec3 &clear)
+  void active::render(const help::game::active &game_active, const double aspect, const glm::dvec3 &clear)
   {
     SDL_GPUColorTargetInfo color_target_info{};
     color_target_info.texture = swapchain_texture;
@@ -132,7 +134,10 @@ namespace cse::help::window
     depth_stencil_target_info.texture = depth_texture;
     depth_stencil_target_info.clear_depth = 1.0f;
     depth_stencil_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
-    depth_stencil_target_info.store_op = SDL_GPU_STOREOP_STORE;
+    depth_stencil_target_info.store_op = SDL_GPU_STOREOP_DONT_CARE;
+    depth_stencil_target_info.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
+    depth_stencil_target_info.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
+    depth_stencil_target_info.cycle = true;
     render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, &depth_stencil_target_info);
     if (!render_pass) throw sdl_exception("Could not begin GPU render pass");
     float viewport_left{}, viewport_top{}, viewport_width{}, viewport_height{};
@@ -158,10 +163,66 @@ namespace cse::help::window
                          .min_depth = 0.0f,
                          .max_depth = 1.0f};
     SDL_SetGPUViewport(render_pass, &port);
-  }
 
-  void active::end_render_pass()
-  {
+    if (!game_active.graphics_object.batches.empty())
+    {
+      const std::array<SDL_GPUBufferBinding, 2> vertex_buffer_bindings{
+        {{.buffer = game_active.graphics_buffer.vertex, .offset = 0},
+         {.buffer = game_active.graphics_object.buffer, .offset = 0}}};
+      SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffer_bindings.data(), 2);
+      SDL_GPUBufferBinding index_buffer_binding{.buffer = game_active.graphics_buffer.index, .offset = 0};
+      SDL_BindGPUIndexBuffer(render_pass, &index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+      const std::array<SDL_GPUBuffer *, 2> storage_buffers{game_active.graphics_light.buffer,
+                                                           game_active.graphics_occluder.buffer};
+      SDL_BindGPUFragmentStorageBuffers(render_pass, 0, storage_buffers.data(), 2);
+      SDL_GPUTextureSamplerBinding occluder_binding{.texture = game_active.graphics_occluder.texture,
+                                                    .sampler = game_active.graphics_buffer.linear};
+      SDL_BindGPUFragmentSamplers(render_pass, 1, &occluder_binding, 1);
+      SDL_GPUGraphicsPipeline *pipeline{};
+      SDL_GPUTexture *texture{};
+      const auto draw_range{[&](const std::size_t first, const std::size_t last)
+                            {
+                              for (std::size_t index{first}; index < last; ++index)
+                              {
+                                const auto &group{game_active.graphics_object.batches[index]};
+                                if (group.pipeline != pipeline)
+                                {
+                                  SDL_BindGPUGraphicsPipeline(render_pass, group.pipeline);
+                                  pipeline = group.pipeline;
+                                }
+                                if (group.texture != texture)
+                                {
+                                  SDL_GPUTextureSamplerBinding texture_binding{
+                                    .texture = group.texture, .sampler = game_active.graphics_buffer.nearest};
+                                  SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_binding, 1);
+                                  texture = group.texture;
+                                }
+                                SDL_DrawGPUIndexedPrimitives(render_pass, 6, static_cast<Uint32>(group.count), 0, 0,
+                                                             static_cast<Uint32>(group.first));
+                              }
+                            }};
+      if (game_active.graphics_object.split > 0)
+      {
+        const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.world.first},
+                                                glm::mat4{game_active.graphics_object.world.second}};
+        SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
+        SDL_PushGPUFragmentUniformData(command_buffer, 0, &game_active.graphics_light.data,
+                                       sizeof(game_active.graphics_light.data));
+        draw_range(0, game_active.graphics_object.split);
+      }
+      if (game_active.graphics_object.split < game_active.graphics_object.batches.size())
+      {
+        const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.overlay.first},
+                                                glm::mat4{game_active.graphics_object.overlay.second}};
+        auto overlay_data{game_active.graphics_light.data};
+        overlay_data.meta[0] = 0.0f;
+        overlay_data.meta[1] = 0.0f;
+        SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
+        SDL_PushGPUFragmentUniformData(command_buffer, 0, &overlay_data, sizeof(overlay_data));
+        draw_range(game_active.graphics_object.split, game_active.graphics_object.batches.size());
+      }
+    }
+
     SDL_EndGPURenderPass(render_pass);
     if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
   }
@@ -713,23 +774,12 @@ namespace cse
     on_simulate(tick);
   }
 
-  void window::pre_render(const double) {}
-  bool window::start_render(SDL_GPUDevice *device, const double aspect, const glm::dvec3 &clear, const double alpha)
-  {
-    if (active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
-    active.reconcile(device);
-    if (!active.acquire_swapchain_texture(device)) return false;
-    pre_render(alpha);
-    active.start_render_pass(aspect, clear);
-    return true;
-  }
-
-  void window::post_render(const double) {}
-  void window::end_render(const double alpha)
+  void window::on_render(const double) {}
+  void window::render(const double aspect, const glm::dvec3 &clear, const double alpha)
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before post-rendering");
-    active.end_render_pass();
-    post_render(alpha);
+    active.render(game->active, aspect, clear);
+    on_render(alpha);
   }
 
   void window::on_destroy() {}
@@ -748,5 +798,13 @@ namespace cse
     if (active.phase != help::phase::PREPARED) throw exception("Window must be prepared before cleaning");
     active.phase = help::phase::CLEANED;
     on_clean();
+  }
+
+  bool window::available(SDL_GPUDevice *device)
+  {
+    if (active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
+    active.reconcile(device);
+    if (!active.acquire_swapchain_texture(device)) return false;
+    return true;
   }
 }

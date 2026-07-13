@@ -98,8 +98,7 @@ namespace cse::help::window
   private:
     void create(SDL_GPUDevice *device, const double aspect, const unsigned int resolution);
     void synchronize(previous &last);
-    void start_render_pass(const double aspect, const glm::dvec3 &clear);
-    void end_render_pass();
+    void render(const help::game::active &game_active, const double aspect, const glm::dvec3 &clear);
     void destroy(SDL_GPUDevice *device);
 
     void poll(const double aspect, const unsigned int resolution);
@@ -193,8 +192,7 @@ namespace cse
     virtual void on_synchronize();
     virtual void on_event(const SDL_Event &event);
     virtual void on_simulate(const double tick);
-    virtual void pre_render(const double alpha);
-    virtual void post_render(const double alpha);
+    virtual void on_render(const double alpha);
     virtual void on_destroy();
     virtual void on_clean();
 
@@ -204,10 +202,11 @@ namespace cse
     void synchronize();
     void event(SDL_GPUDevice *device);
     void simulate(const double tick);
-    bool start_render(SDL_GPUDevice *device, const double aspect, const glm::dvec3 &clear, const double alpha);
-    void end_render(const double alpha);
+    void render(const double aspect, const glm::dvec3 &clear, const double alpha);
     void destroy(SDL_GPUDevice *device);
     void clean();
+
+    bool available(SDL_GPUDevice *device);
 
   public:
     cse::game *game{};

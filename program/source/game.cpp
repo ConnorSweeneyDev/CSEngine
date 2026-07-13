@@ -28,7 +28,9 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
+#include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_float4.hpp"
+#include "glm/geometric.hpp"
 #include "glm/trigonometric.hpp"
 
 #include "collision.hpp"
@@ -240,21 +242,18 @@ namespace cse::help::game
 
   void active::render(const temporal<double> previous_aspect)
   {
-    graphics_light.data.meta[0] = 0.0f;
-    graphics_light.data.meta[1] = 0.0f;
     generate_graphics_order();
     generate_interfaces();
-    draw_batches(
-      [&]()
-      {
-        const auto height{static_cast<double>(std::max(1u, resolution))};
-        const auto real_aspect{aspect.interpolated(previous_aspect, alpha)};
-        const auto width{height * real_aspect};
-        const auto projection{glm::ortho(-width / 2.0, width / 2.0, -height / 2.0, height / 2.0, -1.0, 1.0)};
-        const glm::dvec3 origin{std::llround(width) % 2 == 0 ? -0.5 : 0.0, std::llround(height) % 2 == 0 ? 0.5 : 0.0,
-                                0.0};
-        return std::pair<glm::dmat4, glm::dmat4>{projection, glm::translate(glm::dmat4{1.0}, origin)};
-      }());
+    graphics_object.overlay = [&]()
+    {
+      const auto height{static_cast<double>(std::max(1u, resolution))};
+      const auto real_aspect{aspect.interpolated(previous_aspect, alpha)};
+      const auto width{height * real_aspect};
+      const auto projection{glm::ortho(-width / 2.0, width / 2.0, -height / 2.0, height / 2.0, -1.0, 1.0)};
+      const glm::dvec3 origin{std::llround(width) % 2 == 0 ? -0.5 : 0.0, std::llround(height) % 2 == 0 ? 0.5 : 0.0,
+                              0.0};
+      return std::pair<glm::dmat4, glm::dmat4>{projection, glm::translate(glm::dmat4{1.0}, origin)};
+    }();
     for (auto iterator{graphics_cache.texture.begin()}; iterator != graphics_cache.texture.end();)
       if (iterator->second.stamp != graphics_cache.stamp)
       {
@@ -264,6 +263,111 @@ namespace cse::help::game
       else
         ++iterator;
     graphics_cache.stamp++;
+
+    const auto lights{static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.samples.size())};
+    const auto occluders{static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.samples.size())};
+    const auto objects{static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.samples.size())};
+    if (lights == 0 && occluders == 0 && objects == 0) return;
+    if (graphics_light.samples.size() > graphics_light.capacity)
+    {
+      SDL_ReleaseGPUTransferBuffer(device, graphics_light.transfer_buffer);
+      SDL_ReleaseGPUBuffer(device, graphics_light.buffer);
+      graphics_light.capacity = std::max<std::size_t>(graphics_light.capacity, 16);
+      while (graphics_light.capacity < graphics_light.samples.size()) graphics_light.capacity *= 2;
+      SDL_GPUBufferCreateInfo buffer_info{
+        .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
+        .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
+        .props = 0};
+      graphics_light.buffer = SDL_CreateGPUBuffer(device, &buffer_info);
+      if (!graphics_light.buffer) throw sdl_exception("Could not create light storage buffer for game");
+      SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
+        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+        .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
+        .props = 0};
+      graphics_light.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &transfer_buffer_info);
+      if (!graphics_light.transfer_buffer) throw sdl_exception("Could not create light transfer buffer for game");
+    }
+    if (graphics_occluder.samples.size() > graphics_occluder.capacity)
+    {
+      SDL_ReleaseGPUTransferBuffer(device, graphics_occluder.transfer_buffer);
+      SDL_ReleaseGPUBuffer(device, graphics_occluder.buffer);
+      graphics_occluder.capacity = std::max<std::size_t>(graphics_occluder.capacity, 16);
+      while (graphics_occluder.capacity < graphics_occluder.samples.size()) graphics_occluder.capacity *= 2;
+      SDL_GPUBufferCreateInfo buffer_info{
+        .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
+        .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
+        .props = 0};
+      graphics_occluder.buffer = SDL_CreateGPUBuffer(device, &buffer_info);
+      if (!graphics_occluder.buffer) throw sdl_exception("Could not create occluder storage buffer for game");
+      SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
+        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+        .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
+        .props = 0};
+      graphics_occluder.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &transfer_buffer_info);
+      if (!graphics_occluder.transfer_buffer) throw sdl_exception("Could not create occluder transfer buffer for game");
+    }
+    if (graphics_object.samples.size() > graphics_object.capacity)
+    {
+      SDL_ReleaseGPUTransferBuffer(device, graphics_object.transfer_buffer);
+      SDL_ReleaseGPUBuffer(device, graphics_object.buffer);
+      graphics_object.capacity = std::max<std::size_t>(graphics_object.capacity, 16);
+      while (graphics_object.capacity < graphics_object.samples.size()) graphics_object.capacity *= 2;
+      SDL_GPUBufferCreateInfo buffer_info{
+        .usage = SDL_GPU_BUFFERUSAGE_VERTEX,
+        .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
+        .props = 0};
+      graphics_object.buffer = SDL_CreateGPUBuffer(device, &buffer_info);
+      if (!graphics_object.buffer) throw sdl_exception("Could not create instance buffer for game");
+      SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
+        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+        .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
+        .props = 0};
+      graphics_object.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &transfer_buffer_info);
+      if (!graphics_object.transfer_buffer) throw sdl_exception("Could not create instance transfer buffer for game");
+    }
+    if (lights > 0)
+    {
+      auto *start{SDL_MapGPUTransferBuffer(device, graphics_light.transfer_buffer, true)};
+      if (!start) throw sdl_exception("Could not map light data for game");
+      SDL_memcpy(start, graphics_light.samples.data(), lights);
+      SDL_UnmapGPUTransferBuffer(device, graphics_light.transfer_buffer);
+    }
+    if (occluders > 0)
+    {
+      auto *start{SDL_MapGPUTransferBuffer(device, graphics_occluder.transfer_buffer, true)};
+      if (!start) throw sdl_exception("Could not map occluder data for game");
+      SDL_memcpy(start, graphics_occluder.samples.data(), occluders);
+      SDL_UnmapGPUTransferBuffer(device, graphics_occluder.transfer_buffer);
+    }
+    if (objects > 0)
+    {
+      auto *start{SDL_MapGPUTransferBuffer(device, graphics_object.transfer_buffer, true)};
+      if (!start) throw sdl_exception("Could not map instance data for game");
+      SDL_memcpy(start, graphics_object.samples.data(), objects);
+      SDL_UnmapGPUTransferBuffer(device, graphics_object.transfer_buffer);
+    }
+    auto *copy_pass{SDL_BeginGPUCopyPass(window->active.command_buffer)};
+    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
+    if (lights > 0)
+    {
+      SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = graphics_light.transfer_buffer, .offset = 0};
+      SDL_GPUBufferRegion buffer_region{.buffer = graphics_light.buffer, .offset = 0, .size = lights};
+      SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, true);
+    }
+    if (occluders > 0)
+    {
+      SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = graphics_occluder.transfer_buffer,
+                                                      .offset = 0};
+      SDL_GPUBufferRegion buffer_region{.buffer = graphics_occluder.buffer, .offset = 0, .size = occluders};
+      SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, true);
+    }
+    if (objects > 0)
+    {
+      SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = graphics_object.transfer_buffer, .offset = 0};
+      SDL_GPUBufferRegion buffer_region{.buffer = graphics_object.buffer, .offset = 0, .size = objects};
+      SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, true);
+    }
+    SDL_EndGPUCopyPass(copy_pass);
   }
 
   void active::mix(const help::mixer &previous_mixer, const temporal<double> previous_master,
@@ -332,11 +436,11 @@ namespace cse::help::game
 
     SDL_ReleaseGPUTransferBuffer(device, graphics_object.transfer_buffer);
     SDL_ReleaseGPUBuffer(device, graphics_object.buffer);
-    SDL_ReleaseGPUTransferBuffer(device, graphics_light.transfer_buffer);
-    SDL_ReleaseGPUBuffer(device, graphics_light.buffer);
     SDL_ReleaseGPUTransferBuffer(device, graphics_occluder.transfer_buffer);
     SDL_ReleaseGPUBuffer(device, graphics_occluder.buffer);
     SDL_ReleaseGPUTexture(device, graphics_occluder.texture);
+    SDL_ReleaseGPUTransferBuffer(device, graphics_light.transfer_buffer);
+    SDL_ReleaseGPUBuffer(device, graphics_light.buffer);
     for (const auto &[key, texture] : graphics_cache.texture) SDL_ReleaseGPUTexture(device, texture.value);
     SDL_ReleaseGPUGraphicsPipeline(device, graphics_pipeline.interface);
     SDL_ReleaseGPUGraphicsPipeline(device, graphics_pipeline.transparent);
@@ -350,12 +454,9 @@ namespace cse::help::game
     graphics_object.transfer_buffer = nullptr;
     graphics_object.buffer = nullptr;
     graphics_object.capacity = 0;
+    graphics_object.split = 0;
     graphics_object.samples.clear();
     graphics_object.batches.clear();
-    graphics_light.transfer_buffer = nullptr;
-    graphics_light.buffer = nullptr;
-    graphics_light.capacity = 0;
-    graphics_light.samples.clear();
     graphics_occluder.transfer_buffer = nullptr;
     graphics_occluder.buffer = nullptr;
     graphics_occluder.texture = nullptr;
@@ -365,6 +466,10 @@ namespace cse::help::game
     graphics_occluder.layers = 0;
     graphics_occluder.samples.clear();
     graphics_occluder.signature.clear();
+    graphics_light.transfer_buffer = nullptr;
+    graphics_light.buffer = nullptr;
+    graphics_light.capacity = 0;
+    graphics_light.samples.clear();
     graphics_cache.texture.clear();
     graphics_cache.stamp = 0;
     graphics_pipeline.interface = nullptr;
@@ -492,11 +597,332 @@ namespace cse::help::game
     std::sort(graphics_interface.order.begin(), graphics_interface.order.end(), comparator);
   }
 
-  void active::generate_interfaces()
+  void active::generate_frustum()
+  {
+    const auto matrix{graphics_object.world.first * graphics_object.world.second};
+    const auto row{[&matrix](const int index)
+                   { return glm::dvec4{matrix[0][index], matrix[1][index], matrix[2][index], matrix[3][index]}; }};
+    graphics_frustum[0] = row(3) + row(0);
+    graphics_frustum[1] = row(3) - row(0);
+    graphics_frustum[2] = row(3) + row(1);
+    graphics_frustum[3] = row(3) - row(1);
+    graphics_frustum[4] = row(2);
+    graphics_frustum[5] = row(3) - row(2);
+    for (auto &plane : graphics_frustum)
+      if (const auto length{glm::length(glm::dvec3{plane})}; length > 0.0) plane /= length;
+  }
+
+  void active::generate_lights(const std::vector<cse::light *> &light_order)
+  {
+    graphics_light.data.meta[0] = static_cast<float>(light_order.size());
+    graphics_light.samples.clear();
+    graphics_light.samples.reserve(light_order.size());
+    for (auto *element : light_order)
+    {
+      const auto interpolated{element->active.translation.interpolated(element->previous.translation, alpha)};
+      const glm::dvec3 position{std::floor(interpolated.x * 2.0 + 0.5) / 2.0,
+                                std::floor(interpolated.y * 2.0 + 0.5) / 2.0, std::floor(interpolated.z + 0.5)};
+      const auto direction{element->active.calculate_direction(element->previous, alpha)};
+      const auto brightness{
+        element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha)};
+      const auto penetration{std::max(
+        0.0, element->active.illumination.penetration.interpolated(element->previous.illumination.penetration, alpha))};
+      const auto range{element->active.illumination.range.interpolated(element->previous.illumination.range, alpha)};
+      const auto angle{element->active.illumination.angle.interpolated(element->previous.illumination.angle, alpha)};
+      const auto half{angle / 2.0};
+      const auto softness{std::clamp(
+        element->active.illumination.softness.interpolated(element->previous.illumination.softness, alpha), 0.0, 1.0)};
+      const auto &shadow{element->active.shadow};
+      const auto shadow_darkness{shadow.darkness.interpolated(element->previous.shadow.darkness, alpha)};
+      const auto shadow_softness{shadow.softness.interpolated(element->previous.shadow.softness, alpha)};
+      graphics_light::entry entry{};
+      entry.position[0] = static_cast<float>(position.x);
+      entry.position[1] = static_cast<float>(position.y);
+      entry.position[2] = static_cast<float>(position.z);
+      entry.position[3] = static_cast<float>(range);
+      entry.brightness[0] = static_cast<float>(brightness.x * brightness.w);
+      entry.brightness[1] = static_cast<float>(brightness.y * brightness.w);
+      entry.brightness[2] = static_cast<float>(brightness.z * brightness.w);
+      entry.brightness[3] = shadow.cast ? static_cast<float>(std::max(0.0, shadow_darkness)) : 0.0f;
+      entry.direction[0] = static_cast<float>(direction.x);
+      entry.direction[1] = static_cast<float>(direction.y);
+      entry.direction[2] = static_cast<float>(direction.z);
+      entry.direction[3] = element->active.illumination.global ? 1.0f : 0.0f;
+      entry.cone[0] = static_cast<float>(std::cos(glm::radians(half)));
+      entry.cone[1] = static_cast<float>(std::cos(glm::radians(half * (1.0 - softness))));
+      entry.cone[2] = static_cast<float>(penetration);
+      entry.cone[3] = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
+      graphics_light.samples.push_back(entry);
+    }
+  }
+
+  void active::generate_occluders(const std::vector<cse::object *> &object_order)
+  {
+    graphics_occluder.samples.clear();
+
+    static std::vector<const cse::image *> images{};
+    static std::vector<const unsigned char *> signature{};
+    images.clear();
+    signature.clear();
+    const auto layer_of{[&](const cse::image &image) -> int
+                        {
+                          for (std::size_t index{}; index < signature.size(); ++index)
+                            if (signature[index] == image.data.data()) return static_cast<int>(index);
+                          signature.push_back(image.data.data());
+                          images.push_back(&image);
+                          return static_cast<int>(signature.size() - 1);
+                        }};
+
+    bool penetrating{false};
+    for (const auto &sample : graphics_light.samples)
+      if (sample.direction[3] < 0.5f && std::abs(sample.cone[2] - 1.0f) > 1e-3f)
+      {
+        penetrating = true;
+        break;
+      }
+
+    graphics_occluder.indices.assign(object_order.size(), -1.0f);
+    for (std::size_t position{}; position < object_order.size(); ++position)
+    {
+      auto *element{object_order[position]};
+      const auto penetration{std::max(
+        0.0, element->active.illumination.penetration.interpolated(element->previous.illumination.penetration, alpha))};
+      if (!element->active.shadow.cast && !penetrating && std::abs(penetration - 1.0) < 1e-6) continue;
+      const auto &image{element->active.texture.image};
+      const auto frame_count{element->active.texture.animation.frames.size()};
+      if (!image.data.data() || frame_count == 0) continue;
+      auto frame_index{element->active.texture.playback.frame};
+      if (frame_index >= frame_count) frame_index = frame_count - 1;
+      const auto &coordinates{element->active.texture.animation.frames[frame_index].coordinates};
+      const auto &flip{element->active.texture.flip};
+      const auto translation{element->active.translation.interpolated(element->previous.translation, alpha)};
+      const auto rotation{element->active.rotation.interpolated(element->previous.rotation, alpha)};
+      const auto scale{element->active.scale.interpolated(element->previous.scale, alpha)};
+      const auto transparency{std::clamp(
+        element->active.texture.color.alpha.interpolated(element->previous.texture.color.alpha, alpha), 0.0, 1.0)};
+      const int steps{((static_cast<int>(std::floor(rotation + 0.5)) % 4) + 4) % 4};
+      const bool rotated{steps % 2 == 1};
+      const double width{static_cast<double>(image.frame_width)};
+      const double height{static_cast<double>(image.frame_height)};
+      const double hx{rotated ? std::floor(scale.y + 0.5) * height / 2.0 : std::floor(scale.x + 0.5) * width / 2.0};
+      const double hy{rotated ? std::floor(scale.x + 0.5) * width / 2.0 : std::floor(scale.y + 0.5) * height / 2.0};
+      const double cx{std::floor(translation.x + 0.5) - (std::llround(hx * 2.0) % 2 != 0 ? 0.5 : 0.0)};
+      const double cy{std::floor(translation.y + 0.5) - (std::llround(hy * 2.0) % 2 != 0 ? 0.5 : 0.0)};
+      const double cz{std::floor(translation.z + 0.5)};
+      graphics_occluder::entry entry{};
+      entry.rectangle[0] = static_cast<float>(cx - hx);
+      entry.rectangle[1] = static_cast<float>(cy - hy);
+      entry.rectangle[2] = static_cast<float>(cx + hx);
+      entry.rectangle[3] = static_cast<float>(cy + hy);
+      const auto first_u{flip.horizontal ? coordinates.right : coordinates.left};
+      const auto second_u{flip.horizontal ? coordinates.left : coordinates.right};
+      const auto first_v{flip.vertical ? coordinates.top : coordinates.bottom};
+      const auto second_v{flip.vertical ? coordinates.bottom : coordinates.top};
+      const bool swap_u{steps == 1 || steps == 2};
+      const bool swap_v{steps == 2 || steps == 3};
+      entry.frame[0] = static_cast<float>(swap_u ? second_u : first_u);
+      entry.frame[1] = static_cast<float>(swap_v ? second_v : first_v);
+      entry.frame[2] = static_cast<float>(swap_u ? first_u : second_u);
+      entry.frame[3] = static_cast<float>(swap_v ? first_v : second_v);
+      const auto shadow_darkness{
+        element->active.shadow.darkness.interpolated(element->previous.shadow.darkness, alpha)};
+      const auto shadow_softness{
+        element->active.shadow.softness.interpolated(element->previous.shadow.softness, alpha)};
+      entry.surface[0] = static_cast<float>(cz);
+      entry.surface[1] = static_cast<float>(layer_of(image));
+      entry.surface[2] = static_cast<float>(transparency);
+      entry.surface[3] = rotated ? 1.0f : 0.0f;
+      entry.shadow[0] = static_cast<float>(penetration);
+      entry.shadow[1] = element->active.shadow.cast ? 1.0f : 0.0f;
+      entry.shadow[2] = static_cast<float>(std::max(0.0, shadow_darkness));
+      entry.shadow[3] = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
+      graphics_occluder.indices[position] = static_cast<float>(graphics_occluder.samples.size());
+      graphics_occluder.samples.push_back(entry);
+    }
+    graphics_light.data.meta[1] = static_cast<float>(graphics_occluder.samples.size());
+
+    if (!images.empty())
+    {
+      unsigned int max_width{1};
+      unsigned int max_height{1};
+      for (const auto *image : images)
+      {
+        max_width = std::max(max_width, image->width);
+        max_height = std::max(max_height, image->height);
+      }
+      for (auto &entry : graphics_occluder.samples)
+      {
+        const auto *image{images[static_cast<std::size_t>(entry.surface[1])]};
+        const float scale_u{static_cast<float>(image->width) / static_cast<float>(max_width)};
+        const float scale_v{static_cast<float>(image->height) / static_cast<float>(max_height)};
+        entry.frame[0] *= scale_u;
+        entry.frame[2] *= scale_u;
+        entry.frame[1] *= scale_v;
+        entry.frame[3] *= scale_v;
+      }
+      if (signature != graphics_occluder.signature || max_width != graphics_occluder.width ||
+          max_height != graphics_occluder.height)
+      {
+        SDL_ReleaseGPUTexture(device, graphics_occluder.texture);
+        SDL_GPUTextureCreateInfo array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
+                                            .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+                                            .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+                                            .width = max_width,
+                                            .height = max_height,
+                                            .layer_count_or_depth = static_cast<Uint32>(images.size()),
+                                            .num_levels = 1,
+                                            .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                            .props = 0};
+        graphics_occluder.texture = SDL_CreateGPUTexture(device, &array_info);
+        if (!graphics_occluder.texture) throw sdl_exception("Could not create occluder texture array for game");
+        for (std::size_t layer{}; layer < images.size(); ++layer)
+        {
+          const auto *image{images[layer]};
+          SDL_GPUTransferBufferCreateInfo transfer_info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+                                                        .size = image->width * image->height * image->channels,
+                                                        .props = 0};
+          auto *transfer{SDL_CreateGPUTransferBuffer(device, &transfer_info)};
+          if (!transfer) throw sdl_exception("Could not create occluder layer transfer buffer for game");
+          auto *pixels{SDL_MapGPUTransferBuffer(device, transfer, false)};
+          if (!pixels) throw sdl_exception("Could not map occluder layer data for game");
+          SDL_memcpy(pixels, image->data.data(), image->width * image->height * image->channels);
+          SDL_UnmapGPUTransferBuffer(device, transfer);
+          auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
+          if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
+          auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
+          if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
+          SDL_GPUTextureTransferInfo source{
+            .transfer_buffer = transfer, .offset = 0, .pixels_per_row = 0, .rows_per_layer = 0};
+          SDL_GPUTextureRegion region{.texture = graphics_occluder.texture,
+                                      .mip_level = 0,
+                                      .layer = static_cast<Uint32>(layer),
+                                      .x = 0,
+                                      .y = 0,
+                                      .z = 0,
+                                      .w = image->width,
+                                      .h = image->height,
+                                      .d = 1};
+          SDL_UploadToGPUTexture(copy_pass, &source, &region, false);
+          SDL_EndGPUCopyPass(copy_pass);
+          SDL_SubmitGPUCommandBuffer(command_buffer);
+          SDL_ReleaseGPUTransferBuffer(device, transfer);
+        }
+        graphics_occluder.width = max_width;
+        graphics_occluder.height = max_height;
+        graphics_occluder.layers = static_cast<unsigned int>(images.size());
+      }
+    }
+    graphics_occluder.signature = signature;
+    graphics_light.data.meta[2] = static_cast<float>(graphics_occluder.width);
+    graphics_light.data.meta[3] = static_cast<float>(graphics_occluder.height);
+
+    static constexpr double cull_margin{2.0};
+    auto amplification{0.0};
+    for (const auto &entry : graphics_occluder.samples)
+      amplification = std::max(amplification, static_cast<double>(entry.shadow[0]));
+    std::erase_if(graphics_light.samples,
+                  [this, amplification](const graphics_light::entry &entry)
+                  {
+                    if (entry.direction[3] > 0.5f) return false;
+                    if (static_cast<double>(entry.cone[2]) * amplification > 1.0) return false;
+                    const glm::dvec3 center{entry.position[0], entry.position[1], entry.position[2]};
+                    const auto range{std::max(static_cast<double>(entry.position[3]), 1e-4)};
+                    return !inside_frustum(center, range + cull_margin);
+                  });
+    graphics_light.data.meta[0] = static_cast<float>(graphics_light.samples.size());
+  }
+
+  void active::generate_objects(const std::vector<cse::object *> &object_order)
   {
     graphics_object.samples.clear();
     graphics_object.batches.clear();
-    graphics_object.samples.reserve(graphics_interface.order.size());
+    graphics_object.samples.reserve(object_order.size());
+    static constexpr double depth_bias_span{0.001};
+    static constexpr double cull_margin{2.0};
+    const auto object_count{static_cast<double>(object_order.size())};
+    const double depth_bias_step{object_order.empty() ? 0.0 : depth_bias_span / object_count};
+
+    static std::vector<double> transparencies{};
+    static std::vector<char> shown{};
+    transparencies.clear();
+    shown.clear();
+    transparencies.reserve(object_order.size());
+    shown.reserve(object_order.size());
+    for (auto *element : object_order)
+    {
+      auto &current{element->active.texture.playback.frame};
+      const auto size{element->active.texture.animation.frames.size()};
+      if (size == 0) throw exception("Object '{}' contains no frames", element->name.string());
+      if (current >= size) current = size - 1;
+      transparencies.push_back(
+        element->active.texture.color.alpha.interpolated(element->previous.texture.color.alpha, alpha));
+      const auto translation{element->active.translation.interpolated(element->previous.translation, alpha)};
+      const auto scale{element->active.scale.interpolated(element->previous.scale, alpha)};
+      const auto width{std::floor(scale.x + 0.5) * static_cast<double>(element->active.texture.image.frame_width)};
+      const auto height{std::floor(scale.y + 0.5) * static_cast<double>(element->active.texture.image.frame_height)};
+      const glm::dvec3 center{std::floor(translation.x + 0.5), std::floor(translation.y + 0.5),
+                              std::floor(translation.z + 0.5)};
+      const auto radius{0.5 * std::sqrt(width * width + height * height) + cull_margin};
+      shown.push_back(inside_frustum(center, radius) ? 1 : 0);
+      if (!shown.back())
+      {
+        const auto &image{element->active.texture.image};
+        if (const auto iterator{graphics_cache.texture.find({image.data.data(), image.data.size()})};
+            iterator != graphics_cache.texture.end())
+          iterator->second.stamp = graphics_cache.stamp;
+      }
+    }
+
+    const auto emit{
+      [&](const std::size_t position)
+      {
+        auto *element{object_order[position]};
+        const auto &coordinates{
+          element->active.texture.animation.frames[element->active.texture.playback.frame].coordinates};
+        const auto &flip{element->active.texture.flip};
+        const auto color{
+          glm::vec4{element->active.texture.color.tint.interpolated(element->previous.texture.color.tint, alpha)}};
+        const auto transparency{transparencies[position]};
+        const glm::mat4 model{
+          element->active.calculate_model_matrix(element->previous, element->active.texture.image.frame_width,
+                                                 element->active.texture.image.frame_height, alpha)};
+        graphics_object::sample data{};
+        SDL_memcpy(data.model.data(), &model, sizeof(model));
+        data.red = color.r;
+        data.green = color.g;
+        data.blue = color.b;
+        data.alpha = color.a;
+        data.left = static_cast<float>(flip.horizontal ? coordinates.right : coordinates.left);
+        data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
+        data.right = static_cast<float>(flip.horizontal ? coordinates.left : coordinates.right);
+        data.top = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
+        data.lit = element->active.illumination.show ? 1.0f : 0.0f;
+        data.shadowed = element->active.shadow.show ? 1.0f : 0.0f;
+        data.brightness = static_cast<float>(
+          element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha));
+        data.transparency = static_cast<float>(transparency);
+        data.depth = static_cast<float>(static_cast<double>(position) * depth_bias_step);
+        data.occluder = position < graphics_occluder.indices.size() ? graphics_occluder.indices[position] : -1.0f;
+        auto &available{require_pipelines()};
+        auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
+        auto *texture{require_texture(element->active.texture.image)};
+        if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
+            graphics_object.batches.back().texture == texture)
+          graphics_object.batches.back().count++;
+        else
+          graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, texture});
+        graphics_object.samples.push_back(data);
+      }};
+    for (std::size_t position{object_order.size()}; position-- > 0;)
+      if (shown[position] && transparencies[position] >= 1.0) emit(position);
+    for (std::size_t position{}; position < object_order.size(); ++position)
+      if (shown[position] && transparencies[position] < 1.0) emit(position);
+  }
+
+  void active::generate_interfaces()
+  {
+    graphics_object.split = graphics_object.batches.size();
+    graphics_object.samples.reserve(graphics_object.samples.size() + graphics_interface.order.size());
     for (auto *element : graphics_interface.order)
     {
       auto &current{element->active.texture.playback.frame};
@@ -783,408 +1209,13 @@ namespace cse::help::game
         }
       }
     }
-    upload_samples();
   }
 
-  void active::generate_objects(const std::vector<cse::object *> &object_order)
+  bool active::inside_frustum(const glm::dvec3 &center, const double radius) const
   {
-    graphics_object.samples.clear();
-    graphics_object.batches.clear();
-    graphics_object.samples.reserve(object_order.size());
-    static constexpr double depth_bias_span{0.001};
-    const auto object_count{static_cast<double>(object_order.size())};
-    const double depth_bias_step{object_order.empty() ? 0.0 : depth_bias_span / object_count};
-    for (std::size_t position{}; position < object_order.size(); ++position)
-    {
-      auto *element{object_order[position]};
-      auto &current{element->active.texture.playback.frame};
-      const auto size{element->active.texture.animation.frames.size()};
-      if (size == 0) throw exception("Object '{}' contains no frames", element->name.string());
-      if (current >= size) current = size - 1;
-      const auto &coordinates{element->active.texture.animation.frames[current].coordinates};
-      const auto &flip{element->active.texture.flip};
-      const auto color{
-        glm::vec4{element->active.texture.color.tint.interpolated(element->previous.texture.color.tint, alpha)}};
-      const auto transparency{
-        element->active.texture.color.alpha.interpolated(element->previous.texture.color.alpha, alpha)};
-      const glm::mat4 model{element->active.calculate_model_matrix(element->previous,
-                                                                   element->active.texture.image.frame_width,
-                                                                   element->active.texture.image.frame_height, alpha)};
-      graphics_object::sample data{};
-      SDL_memcpy(data.model.data(), &model, sizeof(model));
-      data.red = color.r;
-      data.green = color.g;
-      data.blue = color.b;
-      data.alpha = color.a;
-      data.left = static_cast<float>(flip.horizontal ? coordinates.right : coordinates.left);
-      data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
-      data.right = static_cast<float>(flip.horizontal ? coordinates.left : coordinates.right);
-      data.top = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
-      data.lit = element->active.illumination.show ? 1.0f : 0.0f;
-      data.shadowed = element->active.shadow.show ? 1.0f : 0.0f;
-      data.brightness = static_cast<float>(
-        element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha));
-      data.transparency = static_cast<float>(transparency);
-      data.depth = static_cast<float>(static_cast<double>(graphics_object.samples.size()) * depth_bias_step);
-      data.occluder = position < graphics_occluder.indices.size() ? graphics_occluder.indices[position] : -1.0f;
-      auto &available{require_pipelines()};
-      auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
-      auto *texture{require_texture(element->active.texture.image)};
-      if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
-          graphics_object.batches.back().texture == texture)
-        graphics_object.batches.back().count++;
-      else
-        graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, texture});
-      graphics_object.samples.push_back(data);
-    }
-    upload_samples();
-  }
-
-  void active::generate_lights(const std::vector<cse::light *> &light_order)
-  {
-    graphics_light.data.meta[0] = static_cast<float>(light_order.size());
-    graphics_light.samples.clear();
-    graphics_light.samples.reserve(light_order.size());
-    for (auto *element : light_order)
-    {
-      const auto interpolated{element->active.translation.interpolated(element->previous.translation, alpha)};
-      const glm::dvec3 position{std::floor(interpolated.x * 2.0 + 0.5) / 2.0,
-                                std::floor(interpolated.y * 2.0 + 0.5) / 2.0, std::floor(interpolated.z + 0.5)};
-      const auto direction{element->active.calculate_direction(element->previous, alpha)};
-      const auto brightness{
-        element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha)};
-      const auto penetration{std::max(
-        0.0, element->active.illumination.penetration.interpolated(element->previous.illumination.penetration, alpha))};
-      const auto range{element->active.illumination.range.interpolated(element->previous.illumination.range, alpha)};
-      const auto angle{element->active.illumination.angle.interpolated(element->previous.illumination.angle, alpha)};
-      const auto softness{std::clamp(
-        element->active.illumination.softness.interpolated(element->previous.illumination.softness, alpha), 0.0, 1.0)};
-      const auto &shadow{element->active.shadow};
-      const auto shadow_darkness{shadow.darkness.interpolated(element->previous.shadow.darkness, alpha)};
-      const auto shadow_softness{shadow.softness.interpolated(element->previous.shadow.softness, alpha)};
-      graphics_light::entry entry{};
-      entry.position[0] = static_cast<float>(position.x);
-      entry.position[1] = static_cast<float>(position.y);
-      entry.position[2] = static_cast<float>(position.z);
-      entry.position[3] = static_cast<float>(range);
-      entry.brightness[0] = static_cast<float>(brightness.x * brightness.w);
-      entry.brightness[1] = static_cast<float>(brightness.y * brightness.w);
-      entry.brightness[2] = static_cast<float>(brightness.z * brightness.w);
-      entry.brightness[3] = shadow.cast ? static_cast<float>(std::max(0.0, shadow_darkness)) : 0.0f;
-      entry.direction[0] = static_cast<float>(direction.x);
-      entry.direction[1] = static_cast<float>(direction.y);
-      entry.direction[2] = static_cast<float>(direction.z);
-      entry.direction[3] = element->active.illumination.global ? 1.0f : 0.0f;
-      const auto half{angle / 2.0};
-      entry.cone[0] = static_cast<float>(std::cos(glm::radians(half)));
-      entry.cone[1] = static_cast<float>(std::cos(glm::radians(half * (1.0 - softness))));
-      entry.cone[2] = static_cast<float>(penetration);
-      entry.cone[3] = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
-      graphics_light.samples.push_back(entry);
-    }
-
-    if (graphics_light.samples.empty()) return;
-    if (graphics_light.samples.size() > graphics_light.capacity)
-    {
-      SDL_ReleaseGPUTransferBuffer(device, graphics_light.transfer_buffer);
-      SDL_ReleaseGPUBuffer(device, graphics_light.buffer);
-      graphics_light.capacity = std::max<std::size_t>(graphics_light.capacity, 16);
-      while (graphics_light.capacity < graphics_light.samples.size()) graphics_light.capacity *= 2;
-      SDL_GPUBufferCreateInfo buffer_info{
-        .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
-        .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
-        .props = 0};
-      graphics_light.buffer = SDL_CreateGPUBuffer(device, &buffer_info);
-      if (!graphics_light.buffer) throw sdl_exception("Could not create light storage buffer for game");
-      SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
-        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-        .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
-        .props = 0};
-      graphics_light.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &transfer_buffer_info);
-      if (!graphics_light.transfer_buffer) throw sdl_exception("Could not create light transfer buffer for game");
-    }
-    auto *start{SDL_MapGPUTransferBuffer(device, graphics_light.transfer_buffer, true)};
-    if (!start) throw sdl_exception("Could not map light data for game");
-    SDL_memcpy(start, graphics_light.samples.data(), sizeof(graphics_light::entry) * graphics_light.samples.size());
-    SDL_UnmapGPUTransferBuffer(device, graphics_light.transfer_buffer);
-    auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
-    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
-    auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
-    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
-    SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = graphics_light.transfer_buffer, .offset = 0};
-    SDL_GPUBufferRegion buffer_region{
-      .buffer = graphics_light.buffer,
-      .offset = 0,
-      .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.samples.size())};
-    SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, true);
-    SDL_EndGPUCopyPass(copy_pass);
-    SDL_SubmitGPUCommandBuffer(command_buffer);
-  }
-
-  void active::generate_occluders(const std::vector<cse::object *> &object_order)
-  {
-    graphics_occluder.samples.clear();
-
-    static std::vector<const cse::image *> images{};
-    static std::vector<const unsigned char *> signature{};
-    images.clear();
-    signature.clear();
-    const auto layer_of{[&](const cse::image &image) -> int
-                        {
-                          for (std::size_t index{}; index < signature.size(); ++index)
-                            if (signature[index] == image.data.data()) return static_cast<int>(index);
-                          signature.push_back(image.data.data());
-                          images.push_back(&image);
-                          return static_cast<int>(signature.size() - 1);
-                        }};
-
-    bool penetrating{false};
-    for (const auto &sample : graphics_light.samples)
-      if (sample.direction[3] < 0.5f && std::abs(sample.cone[2] - 1.0f) > 1e-3f)
-      {
-        penetrating = true;
-        break;
-      }
-
-    graphics_occluder.indices.assign(object_order.size(), -1.0f);
-    for (std::size_t position{}; position < object_order.size(); ++position)
-    {
-      auto *element{object_order[position]};
-      const auto penetration{std::max(
-        0.0, element->active.illumination.penetration.interpolated(element->previous.illumination.penetration, alpha))};
-      if (!element->active.shadow.cast && !penetrating && std::abs(penetration - 1.0) < 1e-6) continue;
-      const auto &image{element->active.texture.image};
-      const auto frame_count{element->active.texture.animation.frames.size()};
-      if (!image.data.data() || frame_count == 0) continue;
-      auto frame_index{element->active.texture.playback.frame};
-      if (frame_index >= frame_count) frame_index = frame_count - 1;
-      const auto &coordinates{element->active.texture.animation.frames[frame_index].coordinates};
-      const auto &flip{element->active.texture.flip};
-      const auto translation{element->active.translation.interpolated(element->previous.translation, alpha)};
-      const auto rotation{element->active.rotation.interpolated(element->previous.rotation, alpha)};
-      const auto scale{element->active.scale.interpolated(element->previous.scale, alpha)};
-      const auto transparency{std::clamp(
-        element->active.texture.color.alpha.interpolated(element->previous.texture.color.alpha, alpha), 0.0, 1.0)};
-      const int steps{((static_cast<int>(std::floor(rotation + 0.5)) % 4) + 4) % 4};
-      const bool rotated{steps % 2 == 1};
-      const double width{static_cast<double>(image.frame_width)};
-      const double height{static_cast<double>(image.frame_height)};
-      const double hx{rotated ? std::floor(scale.y + 0.5) * height / 2.0 : std::floor(scale.x + 0.5) * width / 2.0};
-      const double hy{rotated ? std::floor(scale.x + 0.5) * width / 2.0 : std::floor(scale.y + 0.5) * height / 2.0};
-      const double cx{std::floor(translation.x + 0.5) - (std::llround(hx * 2.0) % 2 != 0 ? 0.5 : 0.0)};
-      const double cy{std::floor(translation.y + 0.5) - (std::llround(hy * 2.0) % 2 != 0 ? 0.5 : 0.0)};
-      const double cz{std::floor(translation.z + 0.5)};
-      graphics_occluder::entry entry{};
-      entry.rectangle[0] = static_cast<float>(cx - hx);
-      entry.rectangle[1] = static_cast<float>(cy - hy);
-      entry.rectangle[2] = static_cast<float>(cx + hx);
-      entry.rectangle[3] = static_cast<float>(cy + hy);
-      const auto first_u{flip.horizontal ? coordinates.right : coordinates.left};
-      const auto second_u{flip.horizontal ? coordinates.left : coordinates.right};
-      const auto first_v{flip.vertical ? coordinates.top : coordinates.bottom};
-      const auto second_v{flip.vertical ? coordinates.bottom : coordinates.top};
-      const bool swap_u{steps == 1 || steps == 2};
-      const bool swap_v{steps == 2 || steps == 3};
-      entry.frame[0] = static_cast<float>(swap_u ? second_u : first_u);
-      entry.frame[1] = static_cast<float>(swap_v ? second_v : first_v);
-      entry.frame[2] = static_cast<float>(swap_u ? first_u : second_u);
-      entry.frame[3] = static_cast<float>(swap_v ? first_v : second_v);
-      const auto shadow_darkness{
-        element->active.shadow.darkness.interpolated(element->previous.shadow.darkness, alpha)};
-      const auto shadow_softness{
-        element->active.shadow.softness.interpolated(element->previous.shadow.softness, alpha)};
-      entry.surface[0] = static_cast<float>(cz);
-      entry.surface[1] = static_cast<float>(layer_of(image));
-      entry.surface[2] = static_cast<float>(transparency);
-      entry.surface[3] = rotated ? 1.0f : 0.0f;
-      entry.shadow[0] = static_cast<float>(penetration);
-      entry.shadow[1] = element->active.shadow.cast ? 1.0f : 0.0f;
-      entry.shadow[2] = static_cast<float>(std::max(0.0, shadow_darkness));
-      entry.shadow[3] = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
-      graphics_occluder.indices[position] = static_cast<float>(graphics_occluder.samples.size());
-      graphics_occluder.samples.push_back(entry);
-    }
-    graphics_light.data.meta[1] = static_cast<float>(graphics_occluder.samples.size());
-
-    if (!images.empty())
-    {
-      unsigned int max_width{1};
-      unsigned int max_height{1};
-      for (const auto *image : images)
-      {
-        max_width = std::max(max_width, image->width);
-        max_height = std::max(max_height, image->height);
-      }
-      for (auto &entry : graphics_occluder.samples)
-      {
-        const auto *image{images[static_cast<std::size_t>(entry.surface[1])]};
-        const float scale_u{static_cast<float>(image->width) / static_cast<float>(max_width)};
-        const float scale_v{static_cast<float>(image->height) / static_cast<float>(max_height)};
-        entry.frame[0] *= scale_u;
-        entry.frame[2] *= scale_u;
-        entry.frame[1] *= scale_v;
-        entry.frame[3] *= scale_v;
-      }
-      if (signature != graphics_occluder.signature || max_width != graphics_occluder.width ||
-          max_height != graphics_occluder.height)
-      {
-        SDL_ReleaseGPUTexture(device, graphics_occluder.texture);
-        SDL_GPUTextureCreateInfo array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
-                                            .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-                                            .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
-                                            .width = max_width,
-                                            .height = max_height,
-                                            .layer_count_or_depth = static_cast<Uint32>(images.size()),
-                                            .num_levels = 1,
-                                            .sample_count = SDL_GPU_SAMPLECOUNT_1,
-                                            .props = 0};
-        graphics_occluder.texture = SDL_CreateGPUTexture(device, &array_info);
-        if (!graphics_occluder.texture) throw sdl_exception("Could not create occluder texture array for game");
-        for (std::size_t layer{}; layer < images.size(); ++layer)
-        {
-          const auto *image{images[layer]};
-          SDL_GPUTransferBufferCreateInfo transfer_info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-                                                        .size = image->width * image->height * image->channels,
-                                                        .props = 0};
-          auto *transfer{SDL_CreateGPUTransferBuffer(device, &transfer_info)};
-          if (!transfer) throw sdl_exception("Could not create occluder layer transfer buffer for game");
-          auto *pixels{SDL_MapGPUTransferBuffer(device, transfer, false)};
-          if (!pixels) throw sdl_exception("Could not map occluder layer data for game");
-          SDL_memcpy(pixels, image->data.data(), image->width * image->height * image->channels);
-          SDL_UnmapGPUTransferBuffer(device, transfer);
-          auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
-          if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
-          auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
-          if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
-          SDL_GPUTextureTransferInfo source{
-            .transfer_buffer = transfer, .offset = 0, .pixels_per_row = 0, .rows_per_layer = 0};
-          SDL_GPUTextureRegion region{.texture = graphics_occluder.texture,
-                                      .mip_level = 0,
-                                      .layer = static_cast<Uint32>(layer),
-                                      .x = 0,
-                                      .y = 0,
-                                      .z = 0,
-                                      .w = image->width,
-                                      .h = image->height,
-                                      .d = 1};
-          SDL_UploadToGPUTexture(copy_pass, &source, &region, false);
-          SDL_EndGPUCopyPass(copy_pass);
-          SDL_SubmitGPUCommandBuffer(command_buffer);
-          SDL_ReleaseGPUTransferBuffer(device, transfer);
-        }
-        graphics_occluder.width = max_width;
-        graphics_occluder.height = max_height;
-        graphics_occluder.layers = static_cast<unsigned int>(images.size());
-      }
-    }
-    graphics_occluder.signature = signature;
-    graphics_light.data.meta[2] = static_cast<float>(graphics_occluder.width);
-    graphics_light.data.meta[3] = static_cast<float>(graphics_occluder.height);
-
-    if (graphics_occluder.samples.empty()) return;
-    if (graphics_occluder.samples.size() > graphics_occluder.capacity)
-    {
-      SDL_ReleaseGPUTransferBuffer(device, graphics_occluder.transfer_buffer);
-      SDL_ReleaseGPUBuffer(device, graphics_occluder.buffer);
-      graphics_occluder.capacity = std::max<std::size_t>(graphics_occluder.capacity, 16);
-      while (graphics_occluder.capacity < graphics_occluder.samples.size()) graphics_occluder.capacity *= 2;
-      SDL_GPUBufferCreateInfo buffer_info{
-        .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
-        .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
-        .props = 0};
-      graphics_occluder.buffer = SDL_CreateGPUBuffer(device, &buffer_info);
-      if (!graphics_occluder.buffer) throw sdl_exception("Could not create occluder storage buffer for game");
-      SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
-        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-        .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
-        .props = 0};
-      graphics_occluder.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &transfer_buffer_info);
-      if (!graphics_occluder.transfer_buffer) throw sdl_exception("Could not create occluder transfer buffer for game");
-    }
-    auto *start{SDL_MapGPUTransferBuffer(device, graphics_occluder.transfer_buffer, true)};
-    if (!start) throw sdl_exception("Could not map occluder data for game");
-    SDL_memcpy(start, graphics_occluder.samples.data(),
-               sizeof(graphics_occluder::entry) * graphics_occluder.samples.size());
-    SDL_UnmapGPUTransferBuffer(device, graphics_occluder.transfer_buffer);
-    auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
-    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
-    auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
-    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
-    SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = graphics_occluder.transfer_buffer, .offset = 0};
-    SDL_GPUBufferRegion buffer_region{
-      .buffer = graphics_occluder.buffer,
-      .offset = 0,
-      .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.samples.size())};
-    SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, true);
-    SDL_EndGPUCopyPass(copy_pass);
-    SDL_SubmitGPUCommandBuffer(command_buffer);
-  }
-
-  void active::upload_samples()
-  {
-    if (graphics_object.samples.empty()) return;
-    if (graphics_object.samples.size() > graphics_object.capacity)
-    {
-      SDL_ReleaseGPUTransferBuffer(device, graphics_object.transfer_buffer);
-      SDL_ReleaseGPUBuffer(device, graphics_object.buffer);
-      graphics_object.capacity = std::max<std::size_t>(graphics_object.capacity, 16);
-      while (graphics_object.capacity < graphics_object.samples.size()) graphics_object.capacity *= 2;
-      SDL_GPUBufferCreateInfo instance_buffer_info{
-        .usage = SDL_GPU_BUFFERUSAGE_VERTEX,
-        .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
-        .props = 0};
-      graphics_object.buffer = SDL_CreateGPUBuffer(device, &instance_buffer_info);
-      if (!graphics_object.buffer) throw sdl_exception("Could not create instance buffer for game");
-      SDL_GPUTransferBufferCreateInfo instance_transfer_buffer_info{
-        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-        .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
-        .props = 0};
-      graphics_object.transfer_buffer = SDL_CreateGPUTransferBuffer(device, &instance_transfer_buffer_info);
-      if (!graphics_object.transfer_buffer) throw sdl_exception("Could not create instance transfer buffer for game");
-    }
-    auto *start{SDL_MapGPUTransferBuffer(device, graphics_object.transfer_buffer, true)};
-    if (!start) throw sdl_exception("Could not map instance data for game");
-    SDL_memcpy(start, graphics_object.samples.data(), sizeof(graphics_object::sample) * graphics_object.samples.size());
-    SDL_UnmapGPUTransferBuffer(device, graphics_object.transfer_buffer);
-    auto *command_buffer{SDL_AcquireGPUCommandBuffer(device)};
-    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
-    auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
-    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
-    SDL_GPUTransferBufferLocation instance_transfer_location{.transfer_buffer = graphics_object.transfer_buffer,
-                                                             .offset = 0};
-    SDL_GPUBufferRegion instance_buffer_region{
-      .buffer = graphics_object.buffer,
-      .offset = 0,
-      .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.samples.size())};
-    SDL_UploadToGPUBuffer(copy_pass, &instance_transfer_location, &instance_buffer_region, true);
-    SDL_EndGPUCopyPass(copy_pass);
-    SDL_SubmitGPUCommandBuffer(command_buffer);
-  }
-
-  void active::draw_batches(const std::pair<glm::dmat4, glm::dmat4> &matrices)
-  {
-    if (graphics_object.batches.empty()) return;
-    const auto &[projection_matrix, view_matrix] = matrices;
-    const std::array<glm::mat4, 2> data{glm::mat4{projection_matrix}, glm::mat4{view_matrix}};
-    SDL_PushGPUVertexUniformData(window->active.command_buffer, 0, &data, sizeof(data));
-    SDL_PushGPUFragmentUniformData(window->active.command_buffer, 0, &graphics_light.data, sizeof(graphics_light.data));
-    const std::array<SDL_GPUBufferBinding, 2> vertex_buffer_bindings{
-      {{.buffer = graphics_buffer.vertex, .offset = 0}, {.buffer = graphics_object.buffer, .offset = 0}}};
-    SDL_BindGPUVertexBuffers(window->active.render_pass, 0, vertex_buffer_bindings.data(), 2);
-    SDL_GPUBufferBinding index_buffer_binding{.buffer = graphics_buffer.index, .offset = 0};
-    SDL_BindGPUIndexBuffer(window->active.render_pass, &index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-    const std::array<SDL_GPUBuffer *, 2> storage_buffers{graphics_light.buffer, graphics_occluder.buffer};
-    SDL_BindGPUFragmentStorageBuffers(window->active.render_pass, 0, storage_buffers.data(), 2);
-    for (const auto &group : graphics_object.batches)
-    {
-      SDL_BindGPUGraphicsPipeline(window->active.render_pass, group.pipeline);
-      const std::array<SDL_GPUTextureSamplerBinding, 2> texture_sampler_bindings{
-        {{.texture = group.texture, .sampler = graphics_buffer.nearest},
-         {.texture = graphics_occluder.texture, .sampler = graphics_buffer.linear}}};
-      SDL_BindGPUFragmentSamplers(window->active.render_pass, 0, texture_sampler_bindings.data(), 2);
-      SDL_DrawGPUIndexedPrimitives(window->active.render_pass, 6, static_cast<Uint32>(group.count), 0, 0,
-                                   static_cast<Uint32>(group.first));
-    }
+    for (const auto &plane : graphics_frustum)
+      if (glm::dot(glm::dvec3{plane}, center) + plane.w < -radius) return false;
+    return true;
   }
 
   struct active::graphics_pipeline &active::require_pipelines()
@@ -1627,10 +1658,10 @@ namespace cse
     pre_render(active.alpha);
     const auto clear{active.clear.interpolated(previous.clear, active.alpha)};
     const auto aspect{active.aspect.interpolated(previous.aspect, active.alpha)};
-    if (!active.window->start_render(active.device, aspect, clear, active.alpha)) return;
+    if (!active.window->available(active.device)) return;
     active.scene->render(aspect, active.alpha);
     active.render(previous.aspect);
-    active.window->end_render(active.alpha);
+    active.window->render(aspect, clear, active.alpha);
     post_render(active.alpha);
   }
 

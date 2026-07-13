@@ -67,7 +67,7 @@ float2 occluder_uv(Occluder occluder, float2 hit)
   }
   return lerp(occluder.frame.xy, occluder.frame.zw, float2(u, v));
 }
-float transmittance(float3 pixel, float3 towards, int count, float light_shadow, float light_softness)
+float transmittance(float3 pixel, float3 towards, int count, float shadow, float softness)
 {
   float transmission = 1.0f;
   float denominator = towards.z - pixel.z;
@@ -80,8 +80,8 @@ float transmittance(float3 pixel, float3 towards, int count, float light_shadow,
     float t = (occluder.surface.x - pixel.z) / denominator;
     if (t <= 0.0f || t >= 1.0f - 1e-4f) continue;
     float2 hit = lerp(pixel.xy, towards.xy, t);
-    float softness = saturate(occluder.shadow.w * light_softness);
-    float world_blur = softness * SHADOW_RADIUS;
+    float world_softness = saturate(occluder.shadow.w * softness);
+    float world_blur = world_softness * SHADOW_RADIUS;
     if (hit.x < occluder.rectangle.x - world_blur || hit.x > occluder.rectangle.z + world_blur ||
         hit.y < occluder.rectangle.y - world_blur || hit.y > occluder.rectangle.w + world_blur)
       continue;
@@ -107,25 +107,36 @@ float transmittance(float3 pixel, float3 towards, int count, float light_shadow,
       }
       alpha = sum / taps;
     }
-    transmission *= 1.0f - saturate(alpha * occluder.surface.z * occluder.shadow.z * light_shadow);
+    transmission *= 1.0f - saturate(alpha * occluder.surface.z * occluder.shadow.z * shadow);
   }
   return transmission;
 }
-float penetration(float3 pixel, float3 source, int count, float light_penetration, float light_softness, float self)
+float penetration(float3 pixel, float3 source, int count, float strength, float softness, float self, bool beyond)
 {
   float extra = 0.0f;
   float2 delta = pixel.xy - source.xy;
   float span = length(delta);
   if (span <= 1e-4f) return extra;
+  if (beyond)
+  {
+    bool amplifying = false;
+    for (int index = 0; index < count; ++index)
+      if (strength * occluders[index].shadow.x > 1.0f)
+      {
+        amplifying = true;
+        break;
+      }
+    if (!amplifying) return extra;
+  }
   float2 normal = float2(-delta.y, delta.x) / span;
   for (int index = 0; index < count; ++index)
   {
     Occluder occluder = occluders[index];
     if (occluder.shadow.y < 0.5f && abs((float)index - self) > 0.5f) continue;
     if (abs(occluder.surface.x - pixel.z) > 1e-3f) continue;
-    float combined = light_penetration * occluder.shadow.x;
+    float combined = strength * occluder.shadow.x;
     if (abs(combined - 1.0f) < 1e-3f || occluder.surface.z <= 0.0f) continue;
-    float world_blur = saturate(occluder.shadow.w * light_softness) * SHADOW_RADIUS;
+    float world_blur = saturate(occluder.shadow.w * softness) * SHADOW_RADIUS;
     float enter = 0.0f;
     float exit = 1.0f;
     if (abs(delta.x) < 1e-6f)
@@ -207,11 +218,14 @@ float4 main(Input input, bool front : SV_IsFrontFace) : SV_Target0
         float3 offset = pixel - light.position.xyz;
         float distance = length(offset);
         float range = max(light.position.w, 1e-4f);
+        bool beyond = distance >= range;
         float reach = distance;
         if (occluder_count > 0 && abs(light.position.z - pixel.z) < 1e-3f)
           reach = max(distance + penetration(pixel, light.position.xyz, occluder_count, light.cone.z, light.cone.w,
-                                             input.world.w),
+                                             input.world.w, beyond),
                       0.0f);
+        else if (beyond)
+          continue;
         attenuation = saturate(1.0f - reach / range);
         attenuation *= attenuation;
         float3 to_pixel = distance > 1e-3f ? offset / distance : light.direction.xyz;
@@ -222,9 +236,9 @@ float4 main(Input input, bool front : SV_IsFrontFace) : SV_Target0
       }
       float facing = (front ? 1.0f : -1.0f) * (towards.z - pixel.z);
       if (facing < -1e-4f) attenuation = 0.0f;
-      float light_shadow = light.brightness.w;
-      if (light_shadow > 0.0f && occluder_count > 0 && attenuation > 0.0f)
-        attenuation *= transmittance(pixel, towards, occluder_count, light_shadow, light.cone.w);
+      float shadow = light.brightness.w;
+      if (shadow > 0.0f && occluder_count > 0 && attenuation > 0.0f)
+        attenuation *= transmittance(pixel, towards, occluder_count, shadow, light.cone.w);
       illumination += light.brightness.rgb * attenuation;
     }
     illumination *= input.material.z;

@@ -18,6 +18,7 @@
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
+#include "glm/ext/vector_double4.hpp"
 
 #include "core.hpp"
 #include "function.hpp"
@@ -78,6 +79,7 @@ namespace cse::help::game
   struct active
   {
     friend class cse::game;
+    friend struct window::active;
     friend struct scene::active;
 
   private:
@@ -123,6 +125,9 @@ namespace cse::help::game
       };
       std::vector<batch> batches{};
       std::vector<sample> samples{};
+      std::size_t split{};
+      std::pair<glm::dmat4, glm::dmat4> world{};
+      std::pair<glm::dmat4, glm::dmat4> overlay{};
       std::size_t capacity{};
       SDL_GPUBuffer *buffer{};
       SDL_GPUTransferBuffer *transfer_buffer{};
@@ -227,12 +232,12 @@ namespace cse::help::game
     void hover();
 
     void generate_graphics_order();
-    void generate_interfaces();
-    void generate_objects(const std::vector<cse::object *> &object_order);
+    void generate_frustum();
     void generate_lights(const std::vector<cse::light *> &light_order);
     void generate_occluders(const std::vector<cse::object *> &object_order);
-    void upload_samples();
-    void draw_batches(const std::pair<glm::dmat4, glm::dmat4> &matrices);
+    void generate_objects(const std::vector<cse::object *> &object_order);
+    void generate_interfaces();
+    bool inside_frustum(const glm::dvec3 &center, const double radius) const;
     graphics_pipeline &require_pipelines();
     SDL_GPUTexture *require_texture(const cse::image &image);
 
@@ -277,10 +282,11 @@ namespace cse::help::game
     active::graphics_buffer graphics_buffer{};
     active::graphics_pipeline graphics_pipeline{};
     active::graphics_cache graphics_cache{};
-    active::graphics_interface graphics_interface{};
-    active::graphics_object graphics_object{};
+    std::array<glm::dvec4, 6> graphics_frustum{};
     active::graphics_light graphics_light{};
     active::graphics_occluder graphics_occluder{};
+    active::graphics_object graphics_object{};
+    active::graphics_interface graphics_interface{};
 
     bool audio_ready{};
     int frequency{};
