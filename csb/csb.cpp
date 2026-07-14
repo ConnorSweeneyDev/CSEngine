@@ -95,7 +95,8 @@ int csb::build()
                                 {"IndentCaseLabels", "true"},
                                 {"NamespaceIndentation", "All"},
                                 {"FixNamespaceComments", "false"}});
-    csb::format("22.1.5", csb::choose_files({"program/vertex", "program/fragment"}));
+    csb::format("22.1.5", csb::choose_files({"program/vertex", "program/fragment"}),
+                {"program/include/shader.hpp", "program/source/shader.cpp"});
   }
 
   csb::archive_install(

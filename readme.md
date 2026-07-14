@@ -32,7 +32,7 @@ it is the reference consumer and a good template to copy.
   detecting a hover that just started).
 
 ### Project Layout
-An example project layout could look like this:
+It is highly recommended to use CSBuild as your build system. An example project layout could look like this:
 
 ```
 game/
@@ -49,8 +49,12 @@ game/
 | | music/*.opus        # streamed music
 ```
 
-However, you are not tied to anything - you can use any build system and layout you like, as long as you satisfy the
-requirements below.
+In relation to the asset metadata required, `.aseprite` files are the only special case. Textures should contain a
+top-level `image` group (and optionally a `hitbox` group). Fonts should contain only an `image` group and mark every
+glyph with a slice named after its character (e.g. `A`, `!`, ` `); every slice must share one height (the line height)
+and a slice's width is the exact width of that character. A slice named `�` (`U+FFFD`) is rendered in place of any
+character the font doesn't cover (and in place of malformed text content); without it, an uncovered character throws.
+Both can be animated with tags, and a font's frame rectangles apply to the whole atlas.
 
 ### Build System Jobs
 After pulling in CSEngine, it builds with [CSBuild](https://github.com/ConnorSweeneyDev/CSBuild) (run
@@ -62,91 +66,20 @@ should do the following:
 2. **Required Compilation Flags.** On MSVC, compile with at least `/std:c++20`, and `/bigobj`, `/Zc:preprocessor`.
 3. **Packing & Embedding Assets.** `.aseprite` textures and fonts, `.wav` and `.opus` audio are packed into `.csp`
    containers (via [CSPack](https://github.com/ConnorSweeneyDev/CSPack)) and a `resource.hpp`/`resource.cpp` pair is
-   generated that exposes every asset as a typed C++ symbol in your namespace. Shaders are engine-owned. The header
-   should be in this form:
-
+   generated that exposes every asset as a typed C++ symbol in your namespace. Shaders are engine-owned. In csb this can
+   be done like so:
    ```cpp
-   namespace custom
-   {
-     namespace font { extern const cse::font main; ... }
-     namespace image { extern const cse::image main; ... }
-     namespace animation
-     {
-       namespace detail
-       {
-         struct main_animation
-         {
-           const cse::animation idle;
-           ...
-         };
-         ...
-       }
-       extern const detail::main_animation main;
-     }
-     namespace hitbox
-     {
-       namespace detail
-       {
-         struct main_hitbox
-         {
-           const cse::hitbox body;
-           ...
-         };
-         ...
-       }
-       extern const detail::main_hitbox main;
-     }
-     namespace sound { extern const cse::sound main; ... }
-     namespace music { extern const cse::music main; ... }
-   }
+   csb::subproject_install({"ConnorSweeneyDev/CSEngine", "1.0.0", COMPILED_LIBRARY});
+   csb::pack(csb::choose_files({"program/texture"}), csb::choose_files({"program/font"}),
+             csb::choose_files({"program/sound"}), csb::choose_files({"program/music"}),
+             [](const std::filesystem::path &file) -> std::string
+             {
+               const auto parent{file.parent_path().filename().string()};
+               if (parent == "texture" || parent == "font" || parent == "sound" || parent == "music") return "CSGame";
+               return parent;
+             },
+             "csg", {"program/include/resource.hpp", "program/source/resource.cpp"});
    ```
-
-   The source should be in this form:
-
-   ```cpp
-   namespace cse::resource
-   {
-     const loader loaded_pack{"pack.csp", [signature], [frames_offset], [frames_size], [hitboxes_offset],
-                                          [hitboxes_size], [glyphs_offset], [glyphs_size], [strings_offset]};
-     ...
-   }
-
-   namespace custom
-   {
-     namespace font
-     {
-       const cse::font main{{cse::resource::region("pack.csp", [offset], [size]),
-                             [width], [height], [frame_width], [frame_height], [channels]},
-                            cse::resource::glyphs("pack.csp", [glyph_offset], [glyph_count])};
-       ...
-     }
-     namespace image
-     {
-       const cse::image main{cse::resource::region("pack.csp", [offset], [size]),
-                             [width], [height], [frame_width], [frame_height], [channels]};
-       ...
-     }
-     namespace animation
-     {
-       const detail::main_animation main{{cse::resource::frames("pack.csp", [frame_offset], [frame_count),
-                                          [from], [to]}};
-       ...
-     }
-     namespace hitbox { const detail::main_hitbox main{"main.body", ...}; ... }
-     namespace sound { const cse::sound main{cse::resource::region("pack.csp", [offset], [size])}; ... }
-     namespace music { const cse::music main{cse::resource::region("pack.csp", [offset], [size])}; ... }
-   }
-   ```
-
-   The loader's trailing `[strings_offset]` argument exists only in debug builds (where hitbox identifiers are stored as
-   readable strings); release builds omit it and hash the identifiers instead.
-
-   Texture `.aseprite` files contain a top-level `image` group (and optionally a `hitbox` group). Font `.aseprite` files
-   contain only an `image` group and mark every glyph with a slice named after its character (e.g. `A`, `!`, ` `); every
-   slice must share one height (the line height) and a slice's width is the exact width of that character. A slice named
-   `�` (`U+FFFD`) is rendered in place of any character the font doesn't cover (and in place of malformed text content);
-   without it, an uncovered character throws. Both can be animated with tags, and a font's frame rectangles apply to the
-   whole atlas.
 
 ### Entry Point
 Define `cse::main` - the engine provides the real `main()` and wraps your code in error handling. Create the game from a
