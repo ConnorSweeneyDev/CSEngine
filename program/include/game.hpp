@@ -237,7 +237,7 @@ namespace cse::help::game
 
     void generate_simulation_order();
     void generate_pool();
-    bool inside(const glm::dvec2 &position);
+    bool inside(const glm::dvec2 &position) const;
     void interact();
     void hover();
 
@@ -357,8 +357,8 @@ namespace cse
     scene_type &set(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
                     scene_arguments &&...arguments);
     template <trait::is_callable callable, typename... scene_arguments>
-    auto set(const name scene_name, callable &&config, scene_arguments &&...arguments) ->
-      typename trait::callable_smart_inner<callable>::type &;
+    auto set(const name scene_name, callable &&config, scene_arguments &&...arguments)
+      -> trait::callable_smart_inner<callable>::type &;
     template <trait::is_scene scene_type, typename... scene_arguments>
     scene_type &current(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
                         scene_arguments &&...arguments);
@@ -376,7 +376,7 @@ namespace cse
     void run();
 
   protected:
-    game(const initial &initial_);
+    explicit game(const initial &initial_);
     virtual void pre_prepare();
     virtual void post_prepare();
     virtual void pre_create();
@@ -413,7 +413,7 @@ namespace cse
     void time();
     void step();
 
-    bool running();
+    bool running() const;
     bool behind();
     bool ready();
 

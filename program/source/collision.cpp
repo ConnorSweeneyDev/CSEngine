@@ -39,7 +39,7 @@ namespace cse::help::collision
     auto rotation{static_cast<int>(std::floor(object->active.rotation.value + 0.5))};
     auto scale{object->active.scale.value};
     auto flip{object->active.texture.flip};
-    glm::dvec2 center{width / 2.0, height / 2.0};
+    const glm::dvec2 center{width / 2.0, height / 2.0};
     double local_left{bounds.left - center.x};
     double local_right{bounds.right - center.x};
     double local_top{center.y - bounds.top};
@@ -57,10 +57,10 @@ namespace cse::help::collision
       local_top = -local_bottom;
       local_bottom = temporary;
     }
-    int steps{((rotation % 4) + 4) % 4};
+    const int steps{((rotation % 4) + 4) % 4};
     if (steps != 0)
     {
-      double left{local_left}, right{local_right}, top{local_top}, bottom{local_bottom};
+      const double left{local_left}, right{local_right}, top{local_top}, bottom{local_bottom};
       switch (steps)
       {
         case 1:
@@ -81,6 +81,7 @@ namespace cse::help::collision
           local_bottom = left;
           local_top = right;
           break;
+        default: break;
       }
       if (local_left > local_right) std::swap(local_left, local_right);
       if (local_bottom > local_top) std::swap(local_bottom, local_top);
@@ -91,24 +92,25 @@ namespace cse::help::collision
     if (rotated) std::swap(actual_scale.x, actual_scale.y);
     const auto size_x{std::llround(actual_scale.x * (rotated ? height : width))};
     const auto size_y{std::llround(actual_scale.y * (rotated ? width : height))};
-    glm::dvec2 pixel{std::floor(translation.x + 0.5) - (size_x % 2 != 0 ? 0.5 : 0.0),
-                     std::floor(translation.y + 0.5) - (size_y % 2 != 0 ? 0.5 : 0.0)};
-    return {std::floor(pixel.x + local_left * actual_scale.x + 0.5),
-            std::floor(pixel.y + local_top * actual_scale.y + 0.5),
-            std::floor(pixel.x + local_right * actual_scale.x + 0.5),
-            std::floor(pixel.y + local_bottom * actual_scale.y + 0.5)};
+    const glm::dvec2 pixel{std::floor(translation.x + 0.5) - (size_x % 2 != 0 ? 0.5 : 0.0),
+                           std::floor(translation.y + 0.5) - (size_y % 2 != 0 ? 0.5 : 0.0)};
+    return {std::floor(pixel.x + (local_left * actual_scale.x) + 0.5),
+            std::floor(pixel.y + (local_top * actual_scale.y) + 0.5),
+            std::floor(pixel.x + (local_right * actual_scale.x) + 0.5),
+            std::floor(pixel.y + (local_bottom * actual_scale.y) + 0.5)};
   }
 
   contact describe(const name self_name, cse::object *target, const hitbox own, const hitbox theirs,
                    const rectangle &self_bounds, const rectangle &target_bounds)
   {
-    glm::dvec2 overlap{
+    const glm::dvec2 overlap{
       std::min(self_bounds.right, target_bounds.right) - std::max(self_bounds.left, target_bounds.left),
       std::min(self_bounds.top, target_bounds.top) - std::max(self_bounds.bottom, target_bounds.bottom)};
-    glm::dvec2 self_center{(self_bounds.left + self_bounds.right) * 0.5, (self_bounds.top + self_bounds.bottom) * 0.5};
-    glm::dvec2 target_center{(target_bounds.left + target_bounds.right) * 0.5,
-                             (target_bounds.top + target_bounds.bottom) * 0.5};
-    glm::dvec2 center_delta{target_center.x - self_center.x, target_center.y - self_center.y};
+    const glm::dvec2 self_center{(self_bounds.left + self_bounds.right) * 0.5,
+                                 (self_bounds.top + self_bounds.bottom) * 0.5};
+    const glm::dvec2 target_center{(target_bounds.left + target_bounds.right) * 0.5,
+                                   (target_bounds.top + target_bounds.bottom) * 0.5};
+    const glm::dvec2 center_delta{target_center.x - self_center.x, target_center.y - self_center.y};
 
     constexpr double epsilon{1e-9};
     auto axis{axis::NONE};
@@ -160,7 +162,7 @@ namespace cse::help::collision
     glm::dvec2 local{point.x - std::floor(translation.x + 0.5), point.y - std::floor(translation.y + 0.5)};
     const auto sine{std::sin(-rotation)};
     const auto cosine{std::cos(-rotation)};
-    local = {local.x * cosine - local.y * sine, local.x * sine + local.y * cosine};
+    local = {(local.x * cosine) - (local.y * sine), (local.x * sine) + (local.y * cosine)};
     local -= glm::dvec2{std::llround(scale_x * frame_width) % 2 == 0 ? 0.5 : 0.0,
                         std::llround(scale_y * frame_height) % 2 == 0 ? -0.5 : 0.0};
     local /= glm::dvec2{scale_x, scale_y};

@@ -8,7 +8,8 @@ namespace cse
   class exception : public std::exception
   {
   public:
-    template <typename... message_arguments> exception(const std::string &message_, message_arguments &&...arguments_);
+    template <typename... message_arguments>
+    explicit exception(const std::string &message_, message_arguments &&...arguments_);
 
     const char *what() const noexcept override;
     static void report(const std::exception &error);
@@ -21,7 +22,7 @@ namespace cse
   {
   public:
     template <typename... message_arguments>
-    sdl_exception(const std::string &message_, message_arguments &&...arguments_);
+    explicit sdl_exception(const std::string &message_, message_arguments &&...arguments_);
   };
 }
 

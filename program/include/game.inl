@@ -155,7 +155,7 @@ namespace cse
   template <trait::is_callable callable, typename... game_arguments>
   std::shared_ptr<game> game::create(callable &&config, game_arguments &&...arguments)
   {
-    using game_type = typename trait::callable_smart_inner<callable>::type;
+    using game_type = trait::callable_smart_inner<callable>::type;
     return create<game_type, game_arguments...>(
       std::function<void(const std::shared_ptr<game_type>)>(std::forward<callable>(config)),
       std::forward<game_arguments>(arguments)...);
@@ -210,10 +210,10 @@ namespace cse
   }
 
   template <trait::is_callable callable, typename... scene_arguments>
-  auto game::set(const name scene_name, callable &&config, scene_arguments &&...arguments) ->
-    typename trait::callable_smart_inner<callable>::type &
+  auto game::set(const name scene_name, callable &&config, scene_arguments &&...arguments)
+    -> trait::callable_smart_inner<callable>::type &
   {
-    using scene_type = typename trait::callable_smart_inner<callable>::type;
+    using scene_type = trait::callable_smart_inner<callable>::type;
     return set<scene_type, scene_arguments...>(
       scene_name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
       std::forward<scene_arguments>(arguments)...);
@@ -242,7 +242,7 @@ namespace cse
   template <trait::is_callable callable, typename... scene_arguments> trait::callable_smart_inner<callable>::type &
   game::current(const name scene_name, callable &&config, scene_arguments &&...arguments)
   {
-    using scene_type = typename trait::callable_smart_inner<callable>::type;
+    using scene_type = trait::callable_smart_inner<callable>::type;
     return current<scene_type, scene_arguments...>(
       scene_name, std::function<void(const std::shared_ptr<scene_type>)>(std::forward<callable>(config)),
       std::forward<scene_arguments>(arguments)...);
@@ -292,7 +292,7 @@ namespace cse
     if constexpr (interfaces)
       if (auto iterator{try_iterate(active.interfaces, target_name)}; iterator != active.interfaces.end())
       {
-        if (auto &interface{*iterator}; active.phase == help::phase::CREATED)
+        if (const auto &interface{*iterator}; active.phase == help::phase::CREATED)
           active.interface_removals.insert(target_name);
         else
         {

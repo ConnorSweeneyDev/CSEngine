@@ -29,7 +29,7 @@ namespace cse::help
       double position{};
       bool loop{};
       temporal<double> speed{1.0};
-      temporal<double> volume{0.5};
+      temporal<double> volume{1.0};
       bool playing{};
     };
     struct request

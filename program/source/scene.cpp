@@ -29,7 +29,7 @@ namespace cse::help::scene
   std::size_t active::contact_key::hash::operator()(const contact_key &key) const
   {
     std::size_t seed{std::hash<std::size_t>{}(key.self)};
-    const auto mix{[&seed](std::size_t value) { seed ^= value + 0x9e3779b97f4a7c15ull + (seed << 6) + (seed >> 2); }};
+    const auto mix{[&seed](std::size_t value) { seed ^= value + 0x9e3779b97f4a7c15ull + (seed << 6u) + (seed >> 2u); }};
     mix(std::hash<std::size_t>{}(key.target));
     mix(std::hash<std::uint64_t>{}(key.self_hitbox));
     mix(std::hash<std::uint64_t>{}(key.target_hitbox));
@@ -74,35 +74,35 @@ namespace cse::help::scene
     interface_simulation_order.clear();
     for (interface_simulation_order.reserve(interfaces.size()); const auto &interface : interfaces)
       interface_simulation_order.emplace_back(interface.get());
-    std::sort(interface_simulation_order.begin(), interface_simulation_order.end(),
-              [](const cse::interface *left, const cse::interface *right)
-              {
-                if (left->active.priority.simulation != right->active.priority.simulation)
-                  return left->active.priority.simulation > right->active.priority.simulation;
-                return left->name.identifier() < right->name.identifier();
-              });
+    std::ranges::sort(interface_simulation_order,
+                      [](const cse::interface *left, const cse::interface *right)
+                      {
+                        if (left->active.priority.simulation != right->active.priority.simulation)
+                          return left->active.priority.simulation > right->active.priority.simulation;
+                        return left->name.identifier() < right->name.identifier();
+                      });
 
     object_simulation_order.clear();
     for (object_simulation_order.reserve(objects.size()); const auto &object : objects)
       object_simulation_order.emplace_back(object.get());
-    std::sort(object_simulation_order.begin(), object_simulation_order.end(),
-              [](const cse::object *left, const cse::object *right)
-              {
-                if (left->active.priority.simulation != right->active.priority.simulation)
-                  return left->active.priority.simulation > right->active.priority.simulation;
-                return left->name.identifier() < right->name.identifier();
-              });
+    std::ranges::sort(object_simulation_order,
+                      [](const cse::object *left, const cse::object *right)
+                      {
+                        if (left->active.priority.simulation != right->active.priority.simulation)
+                          return left->active.priority.simulation > right->active.priority.simulation;
+                        return left->name.identifier() < right->name.identifier();
+                      });
 
     light_simulation_order.clear();
     for (light_simulation_order.reserve(lights.size()); const auto &light : lights)
       light_simulation_order.emplace_back(light.get());
-    std::sort(light_simulation_order.begin(), light_simulation_order.end(),
-              [](const cse::light *left, const cse::light *right)
-              {
-                if (left->active.priority != right->active.priority)
-                  return left->active.priority > right->active.priority;
-                return left->name.identifier() < right->name.identifier();
-              });
+    std::ranges::sort(light_simulation_order,
+                      [](const cse::light *left, const cse::light *right)
+                      {
+                        if (left->active.priority != right->active.priority)
+                          return left->active.priority > right->active.priority;
+                        return left->name.identifier() < right->name.identifier();
+                      });
   }
 
   void active::generate_contacts()
@@ -115,40 +115,40 @@ namespace cse::help::scene
     entries.reserve(objects.size() * 4);
     for (std::size_t index{}; index < objects.size(); ++index)
     {
-      const auto &object{objects[index]};
+      const auto &object{objects.at(index)};
       auto object_hitboxes{collision::hitboxes(object.get())};
       if (object_hitboxes.empty()) continue;
-      auto z{static_cast<std::int64_t>(std::floor(object->active.translation.value.z + 0.5))};
+      auto depth{static_cast<std::int64_t>(std::floor(object->active.translation.value.z + 0.5))};
       for (const auto &[hitbox, rectangle] : object_hitboxes)
-        entries.push_back({index, z, hitbox, collision::bounds(object.get(), rectangle)});
+        entries.push_back({index, depth, hitbox, collision::bounds(object.get(), rectangle)});
     }
     if (entries.empty()) return;
 
-    auto comparator{[](const collision::entry &a, const collision::entry &b)
+    auto comparator{[](const collision::entry &first, const collision::entry &second)
                     {
-                      if (a.z != b.z) return a.z < b.z;
-                      return a.bounds.left < b.bounds.left;
+                      if (first.z != second.z) return first.z < second.z;
+                      return first.bounds.left < second.bounds.left;
                     }};
     bool large_disorder{};
     for (std::size_t index{1}; index < entries.size(); ++index)
-      if (comparator(entries[index], entries[index - 1]))
+      if (comparator(entries.at(index), entries.at(index - 1)))
       {
         large_disorder = true;
         break;
       }
 
-    if (large_disorder) { std::sort(entries.begin(), entries.end(), comparator); }
+    if (large_disorder) { std::ranges::sort(entries, comparator); }
     else
       for (std::size_t first{1}; first < entries.size(); ++first)
       {
-        auto key{entries[first]};
+        auto key{entries.at(first)};
         std::size_t second{first};
-        while (second > 0 && comparator(key, entries[second - 1]))
+        while (second > 0 && comparator(key, entries.at(second - 1)))
         {
-          entries[second] = entries[second - 1];
+          entries.at(second) = entries.at(second - 1);
           --second;
         }
-        entries[second] = key;
+        entries.at(second) = key;
       }
 
     static std::unordered_map<contact_key, std::size_t, contact_key::hash> contact_lookup{};
@@ -156,8 +156,8 @@ namespace cse::help::scene
     const auto emit{[&](std::size_t self_index, std::size_t target_index, const auto &own, const auto &theirs,
                         const auto &self_bounds, const auto &target_bounds)
                     {
-                      auto contact{collision::describe(objects[self_index]->name, objects[target_index].get(), own,
-                                                       theirs, self_bounds, target_bounds)};
+                      auto contact{collision::describe(objects.at(self_index)->name, objects.at(target_index).get(),
+                                                       own, theirs, self_bounds, target_bounds)};
                       const double area{std::max(contact.overlap.x, 0.0) * std::max(contact.overlap.y, 0.0)};
                       const contact_key key{self_index, target_index, own.identifier(), theirs.identifier()};
                       const auto found{contact_lookup.find(key)};
@@ -167,7 +167,7 @@ namespace cse::help::scene
                         contacts.push_back(std::move(contact));
                         return;
                       }
-                      auto &existing{contacts[found->second]};
+                      auto &existing{contacts.at(found->second)};
                       const double existing_area{std::max(existing.overlap.x, 0.0) * std::max(existing.overlap.y, 0.0)};
                       if (area > existing_area) existing = std::move(contact);
                     }};
@@ -178,20 +178,20 @@ namespace cse::help::scene
     std::size_t start{0};
     while (start < entries.size())
     {
-      auto z{entries[start].z};
+      auto depth{entries.at(start).z};
       std::size_t end{start + 1};
-      while (end < entries.size() && entries[end].z == z) ++end;
+      while (end < entries.size() && entries.at(end).z == depth) ++end;
 
       active_list.clear();
       for (std::size_t first{start}; first < end; ++first)
       {
-        const auto &current{entries[first]};
+        const auto &current{entries.at(first)};
         for (std::size_t second{}; second < active_list.size();)
         {
-          const auto &other{entries[active_list[second]]};
+          const auto &other{entries.at(active_list.at(second))};
           if (other.bounds.right < current.bounds.left)
           {
-            active_list[second] = active_list.back();
+            active_list.at(second) = active_list.back();
             active_list.pop_back();
             continue;
           }
@@ -215,32 +215,32 @@ namespace cse::help::scene
       object_graphics_order.emplace_back(object.get());
     auto camera_translation = camera->active.translation.interpolated(camera->previous.translation, alpha);
     auto camera_forward = glm::normalize(camera->active.forward.interpolated(camera->previous.forward, alpha));
-    std::sort(object_graphics_order.begin(), object_graphics_order.end(),
-              [alpha, &camera_translation, &camera_forward](const auto &left, const auto &right)
-              {
-                const auto layer_depth = [&](const auto *object)
-                {
-                  const auto position = object->active.translation.interpolated(object->previous.translation, alpha);
-                  return (std::floor(position.z + 0.5) - camera_translation.z) * camera_forward.z;
-                };
-                double left_depth = layer_depth(left);
-                double right_depth = layer_depth(right);
-                if (!equal(left_depth, right_depth, 1e-4)) return left_depth > right_depth;
-                if (left->active.priority.rendering != right->active.priority.rendering)
-                  return left->active.priority.rendering < right->active.priority.rendering;
-                if (const auto *left_batch{left->active.texture.image.data.data()},
-                    *right_batch{right->active.texture.image.data.data()};
-                    left_batch != right_batch)
-                  return left_batch < right_batch;
-                return left->name.identifier() < right->name.identifier();
-              });
+    std::ranges::sort(object_graphics_order,
+                      [alpha, &camera_translation, &camera_forward](const auto &left, const auto &right)
+                      {
+                        const auto layer_depth = [&](const auto *object)
+                        {
+                          const auto position =
+                            object->active.translation.interpolated(object->previous.translation, alpha);
+                          return (std::floor(position.z + 0.5) - camera_translation.z) * camera_forward.z;
+                        };
+                        const double left_depth = layer_depth(left);
+                        const double right_depth = layer_depth(right);
+                        if (!equal(left_depth, right_depth, 1e-4)) return left_depth > right_depth;
+                        if (left->active.priority.rendering != right->active.priority.rendering)
+                          return left->active.priority.rendering < right->active.priority.rendering;
+                        if (const auto *left_batch{left->active.texture.image.data.data()},
+                            *right_batch{right->active.texture.image.data.data()};
+                            left_batch != right_batch)
+                          return left_batch < right_batch;
+                        return left->name.identifier() < right->name.identifier();
+                      });
 
     light_graphics_order.clear();
     for (light_graphics_order.reserve(lights.size()); const auto &light : lights)
       light_graphics_order.emplace_back(light.get());
-    std::sort(light_graphics_order.begin(), light_graphics_order.end(),
-              [](const cse::light *left, const cse::light *right)
-              { return left->name.identifier() < right->name.identifier(); });
+    std::ranges::sort(light_graphics_order, [](const cse::light *left, const cse::light *right)
+                      { return left->name.identifier() < right->name.identifier(); });
   }
 }
 

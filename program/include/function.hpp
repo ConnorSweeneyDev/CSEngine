@@ -48,8 +48,8 @@ namespace cse::trait
     std::is_function_v<std::remove_pointer_t<std::decay_t<type>>> || requires { &std::decay_t<type>::operator(); };
   template <is_callable instance> struct callable_smart_inner
   {
-    using signature = typename callable<instance>::signature;
-    using first = typename first_parameter<signature>::type;
-    using type = typename smart_inner<std::remove_cvref_t<first>>::type;
+    using signature = callable<instance>::signature;
+    using first = first_parameter<signature>::type;
+    using type = smart_inner<std::remove_cvref_t<first>>::type;
   };
 }

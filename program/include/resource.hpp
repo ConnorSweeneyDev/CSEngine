@@ -13,13 +13,13 @@
 #include "numeric.hpp"
 #include "temporal.hpp"
 
-enum horizontal
+enum horizontal : std::uint8_t
 {
   LEFT,
   CENTER,
   RIGHT
 };
-enum vertical
+enum vertical : std::uint8_t
 {
   TOP,
   MIDDLE,

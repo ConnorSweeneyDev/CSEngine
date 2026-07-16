@@ -125,7 +125,7 @@ namespace cse
     if constexpr (interfaces)
       if (auto iterator{try_iterate(active.interfaces, target_name)}; iterator != active.interfaces.end())
       {
-        if (auto &interface{*iterator}; active.phase == help::phase::CREATED)
+        if (const auto &interface{*iterator}; active.phase == help::phase::CREATED)
           active.interface_removals.insert(target_name);
         else
         {
@@ -136,7 +136,7 @@ namespace cse
     if constexpr (objects)
       if (auto iterator{try_iterate(active.objects, target_name)}; iterator != active.objects.end())
       {
-        if (auto &object{*iterator}; active.phase == help::phase::CREATED)
+        if (const auto &object{*iterator}; active.phase == help::phase::CREATED)
           active.object_removals.insert(target_name);
         else
         {
@@ -147,7 +147,7 @@ namespace cse
     if constexpr (lights)
       if (auto iterator{try_iterate(active.lights, target_name)}; iterator != active.lights.end())
       {
-        if (auto &light{*iterator}; active.phase == help::phase::CREATED)
+        if (const auto &light{*iterator}; active.phase == help::phase::CREATED)
           active.light_removals.insert(target_name);
         else
         {

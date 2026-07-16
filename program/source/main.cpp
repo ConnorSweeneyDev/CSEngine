@@ -1,6 +1,10 @@
 #include "main.hpp"
 
+#include <cstddef>
 #include <exception>
+#include <span>
+#include <string_view>
+#include <vector>
 
 #include "SDL3/SDL_main.h"
 
@@ -12,7 +16,8 @@ int main(int argc, char *argv[])
 {
   try
   {
-    return cse::main(argc, argv);
+    const std::span<char *> arguments(argv, static_cast<std::size_t>(argc));
+    return cse::main(std::vector<std::string_view>(arguments.begin(), arguments.end()));
   }
   catch (const std::exception &error)
   {

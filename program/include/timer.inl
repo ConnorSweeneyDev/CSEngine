@@ -30,7 +30,7 @@ namespace cse::help
 
   template <typename callable> timer::state &timer::set(const name name, callable &&callback)
   {
-    using signature = typename trait::callable<callable>::signature;
+    using signature = trait::callable<callable>::signature;
     return set<signature>(name, std::function<signature>(std::forward<callable>(callback)));
   }
 
@@ -68,7 +68,7 @@ namespace cse::help
   template <typename signature, typename... call_arguments>
   auto timer::capture(const name name, call_arguments &&...arguments)
   {
-    using return_type = typename trait::function<signature>::return_type;
+    using return_type = trait::function<signature>::return_type;
     static_assert(!std::is_void_v<return_type>, "timer::capture requires a non-void callback signature");
     auto iterator{entries.find(name)};
     if (iterator == entries.end()) return std::optional<return_type>{std::nullopt};

@@ -8,8 +8,9 @@
 # Build Output
 build/
 program/**/shader.*
-.clang-format
 .clangd
+.clang-tidy
+.clang-format
 
 # User Files
 .env

@@ -144,7 +144,7 @@ namespace cse
     void remove(const cse::name target_name);
 
   protected:
-    scene() = default;
+    explicit scene() = default;
     virtual void pre_prepare();
     virtual void post_prepare();
     virtual void pre_create();

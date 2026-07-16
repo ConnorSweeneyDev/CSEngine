@@ -43,7 +43,7 @@ namespace cse::help
     return false;
   }
 
-  void timer::finish(typename std::unordered_map<name, entry>::iterator iterator)
+  void timer::finish(std::unordered_map<name, entry>::iterator iterator)
   {
     if (iterator->second.state.repeat)
       iterator->second.state.elapsed = 0.0;

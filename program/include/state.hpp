@@ -20,15 +20,15 @@ namespace cse
     template <typename type> class field
     {
     public:
-      field(const char *key_, const type &value_ = {});
+      explicit field(const char *key_, const type &value_ = {});
       ~field() = default;
       field(const field &) = delete;
       field &operator=(const field &) = delete;
       field(field &&) = delete;
       field &operator=(field &&) = delete;
 
-      operator type &() noexcept;
-      operator const type &() const noexcept;
+      explicit operator type &() noexcept;
+      explicit operator const type &() const noexcept;
       type *operator->() noexcept;
       const type *operator->() const noexcept;
       type &operator*() noexcept;
@@ -60,7 +60,7 @@ namespace cse
     void write() const;
 
   protected:
-    state(std::filesystem::path location_);
+    explicit state(std::filesystem::path location_);
 
   private:
     void enlist(std::function<void(nlohmann::json &json)> writer,

@@ -148,7 +148,7 @@ namespace cse
     interface &operator=(interface &&) = delete;
 
   protected:
-    interface(const initial &initial_);
+    explicit interface(const initial &initial_);
     virtual void on_prepare();
     virtual void on_create();
     virtual void on_synchronize();

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <string_view>
 
 namespace cse
 {
@@ -16,7 +17,11 @@ namespace cse
 #endif
       name(const char *string_);
     name(const std::string &string_);
-    explicit name(std::uint64_t identifier_);
+#if defined(NDEBUG)
+    constexpr
+#endif
+      name(std::string_view string_);
+    name(std::uint64_t identifier_);
 
     bool operator==(const name &other) const;
     bool operator!=(const name &other) const;
@@ -25,8 +30,7 @@ namespace cse
     std::string string() const;
 
   private:
-    static constexpr std::uint64_t hash_compiletime(const char *string, std::uint64_t hash = 14695981039346656037ULL);
-    static std::uint64_t hash_runtime(const std::string &string);
+    static constexpr std::uint64_t hash_string(const std::string_view string);
 
   private:
     std::uint64_t hash{};
@@ -38,7 +42,7 @@ namespace cse
 
 template <> struct std::hash<cse::name>
 {
-  std::size_t operator()(const cse::name &id) const;
+  std::size_t operator()(const cse::name &name) const;
 };
 
 #include "name.inl" // IWYU pragma: keep

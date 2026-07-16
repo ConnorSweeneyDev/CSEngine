@@ -18,7 +18,7 @@
 #include "numeric.hpp"
 #include "system.hpp"
 
-namespace cse::resource
+namespace
 {
   struct frame_record
   {
@@ -27,9 +27,9 @@ namespace cse::resource
     std::uint64_t hitbox_index;
     std::uint64_t hitbox_count;
   };
-  std::unordered_map<std::string, std::vector<animation::frame>> &frame_storage()
+  std::unordered_map<std::string, std::vector<cse::animation::frame>> &frame_storage()
   {
-    static std::unordered_map<std::string, std::vector<animation::frame>> instance{};
+    static std::unordered_map<std::string, std::vector<cse::animation::frame>> instance{};
     return instance;
   }
   struct hitbox_record
@@ -42,9 +42,9 @@ namespace cse::resource
 #endif
     double left, top, right, bottom;
   };
-  std::unordered_map<std::string, std::vector<std::pair<hitbox, rectangle>>> &hitbox_storage()
+  std::unordered_map<std::string, std::vector<std::pair<cse::hitbox, cse::rectangle>>> &hitbox_storage()
   {
-    static std::unordered_map<std::string, std::vector<std::pair<hitbox, rectangle>>> instance{};
+    static std::unordered_map<std::string, std::vector<std::pair<cse::hitbox, cse::rectangle>>> instance{};
     return instance;
   }
   struct glyph_record
@@ -53,12 +53,15 @@ namespace cse::resource
     double left, top, right, bottom;
     double width, height;
   };
-  std::unordered_map<std::string, std::vector<font::glyph>> &glyph_storage()
+  std::unordered_map<std::string, std::vector<cse::font::glyph>> &glyph_storage()
   {
-    static std::unordered_map<std::string, std::vector<font::glyph>> instance{};
+    static std::unordered_map<std::string, std::vector<cse::font::glyph>> instance{};
     return instance;
   }
+}
 
+namespace cse::resource
+{
   loader::loader(const char *name_, const std::uint64_t signature_, const std::uint64_t frames_offset_,
                  const std::uint64_t frames_size_, const std::uint64_t hitboxes_offset_,
                  const std::uint64_t hitboxes_size_, const std::uint64_t glyphs_offset_,
@@ -73,7 +76,7 @@ namespace cse::resource
     {
       const char *directory{SDL_GetBasePath()};
       if (!directory) throw exception("Failed to resolve the application directory");
-      csp::mapping &pack{csp::mount(directory, name_, signature_)};
+      const csp::mapping &pack{csp::mount(directory, name_, signature_)};
       const unsigned char *base{pack.base()};
 
       if (hitboxes_size_) csp::verify(base + hitboxes_offset_, hitboxes_size_);
@@ -96,7 +99,7 @@ namespace cse::resource
           csp::verify(reinterpret_cast<const unsigned char *>(strings + record.label_offset), record.label_size);
         hitbox_pool.push_back({hitbox(std::string(strings + record.label_offset, record.label_size)), bounds});
 #else
-        hitbox_pool.push_back({hitbox(record.identifier), bounds});
+        hitbox_pool.emplace_back(hitbox(record.identifier), bounds);
 #endif
       }
 

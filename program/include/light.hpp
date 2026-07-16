@@ -19,7 +19,7 @@ namespace cse::help::light
     temporal<glm::dvec4> brightness{{1.0, 1.0, 1.0, 1.0}};
     temporal<double> penetration{1.0};
     temporal<double> softness{};
-    temporal<double> range{20};
+    temporal<double> range{};
     temporal<double> angle{360};
   };
   struct shadow
@@ -112,7 +112,7 @@ namespace cse
     light &operator=(light &&) = delete;
 
   protected:
-    light(const initial &initial_);
+    explicit light(const initial &initial_);
     virtual void on_prepare();
     virtual void on_create();
     virtual void on_synchronize();

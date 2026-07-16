@@ -13,18 +13,21 @@
 
 namespace cse
 {
-  inline std::mutex log_mutex{};
-  inline bool log_started{};
+  namespace help
+  {
+    inline std::mutex log_mutex{};
+    inline bool log_started{};
+  }
 
   template <typename... message_arguments>
   void log(std::format_string<message_arguments...> message, message_arguments &&...arguments)
   {
     auto formatted_message{std::format(message, std::forward<message_arguments>(arguments)...)};
     print<CLOG>("{}.\n", formatted_message);
-    std::lock_guard<std::mutex> lock(log_mutex);
-    std::ofstream stream{"log.txt", log_started ? std::ios::app : std::ios::trunc};
+    const std::scoped_lock<std::mutex> lock(help::log_mutex);
+    std::ofstream stream{"log.txt", help::log_started ? std::ios::app : std::ios::trunc};
     if (!stream) return;
-    log_started = true;
+    help::log_started = true;
     stream << formatted_message << ".\n";
   }
 

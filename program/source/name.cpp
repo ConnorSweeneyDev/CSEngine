@@ -2,21 +2,17 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 namespace cse
 {
 #if defined(_DEBUG)
-  name::name(const char *string_) : hash{hash_compiletime(string_)}, label{string_} {}
+  name::name(const char *string_) : name{std::string_view{string_}} {}
+
+  name::name(const std::string_view string_) : hash{hash_string(string_)}, label{string_} {}
 #endif
 
-  name::name(const std::string &string_)
-    : hash{hash_runtime(string_)}
-#if defined(_DEBUG)
-      ,
-      label{string_}
-#endif
-  {
-  }
+  name::name(const std::string &string_) : name{std::string_view{string_}} {}
 
   name::name(std::uint64_t identifier_) : hash{identifier_} {}
 
@@ -32,15 +28,4 @@ namespace cse
   bool name::operator==(const name &other) const { return hash == other.hash; }
 
   bool name::operator!=(const name &other) const { return hash != other.hash; }
-
-  std::uint64_t name::hash_runtime(const std::string &string)
-  {
-    std::uint64_t hash{14695981039346656037ULL};
-    for (char character : string)
-    {
-      hash ^= static_cast<std::uint64_t>(character);
-      hash *= 1099511628211ULL;
-    }
-    return hash;
-  }
 }

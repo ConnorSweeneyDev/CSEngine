@@ -60,7 +60,7 @@ namespace cse::help
 
   private:
     template <typename signature> const std::function<signature> &deduce(const name name, const entry &target) const;
-    void finish(typename std::unordered_map<name, entry>::iterator iterator);
+    void finish(std::unordered_map<name, entry>::iterator iterator);
     void update(const double tick);
 
   private:

@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -28,9 +29,9 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
-#include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_float4.hpp"
 #include "glm/geometric.hpp"
+#include "glm/gtc/matrix_access.hpp"
 #include "glm/trigonometric.hpp"
 
 #include "collision.hpp"
@@ -101,11 +102,12 @@ namespace cse::help::game
     const std::array<corner, 4> vertices{
       {{1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, -1.0f, 1.0f, 0.0f}, {-1.0f, 1.0f, 0.0f, 1.0f}, {-1.0f, -1.0f, 0.0f, 0.0f}}};
     const std::array<Uint16, 6> indices{3, 1, 0, 3, 0, 2};
-    SDL_GPUBufferCreateInfo vertex_buffer_info{
+    const SDL_GPUBufferCreateInfo vertex_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_VERTEX, .size = sizeof(vertices), .props = 0};
     graphics_buffer.vertex = SDL_CreateGPUBuffer(video, &vertex_buffer_info);
     if (!graphics_buffer.vertex) throw sdl_exception("Could not create vertex buffer for game");
-    SDL_GPUBufferCreateInfo index_buffer_info{.usage = SDL_GPU_BUFFERUSAGE_INDEX, .size = sizeof(indices), .props = 0};
+    const SDL_GPUBufferCreateInfo index_buffer_info{
+      .usage = SDL_GPU_BUFFERUSAGE_INDEX, .size = sizeof(indices), .props = 0};
     graphics_buffer.index = SDL_CreateGPUBuffer(video, &index_buffer_info);
     if (!graphics_buffer.index) throw sdl_exception("Could not create index buffer for game");
     SDL_GPUSamplerCreateInfo sampler_info{};
@@ -123,49 +125,49 @@ namespace cse::help::game
     graphics_buffer.linear = SDL_CreateGPUSampler(video, &linear_sampler_info);
     if (!graphics_buffer.linear) throw sdl_exception("Could not create linear sampler for game");
     graphics_light.capacity = 16;
-    SDL_GPUBufferCreateInfo light_buffer_info{
+    const SDL_GPUBufferCreateInfo light_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
       .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
       .props = 0};
     graphics_light.buffer = SDL_CreateGPUBuffer(video, &light_buffer_info);
     if (!graphics_light.buffer) throw sdl_exception("Could not create light storage buffer for game");
-    SDL_GPUTransferBufferCreateInfo light_transfer_buffer_info{
+    const SDL_GPUTransferBufferCreateInfo light_transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
       .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
       .props = 0};
     graphics_light.transfer_buffer = SDL_CreateGPUTransferBuffer(video, &light_transfer_buffer_info);
     if (!graphics_light.transfer_buffer) throw sdl_exception("Could not create light transfer buffer for game");
     graphics_occluder.capacity = 16;
-    SDL_GPUBufferCreateInfo occluder_buffer_info{
+    const SDL_GPUBufferCreateInfo occluder_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
       .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
       .props = 0};
     graphics_occluder.buffer = SDL_CreateGPUBuffer(video, &occluder_buffer_info);
     if (!graphics_occluder.buffer) throw sdl_exception("Could not create occluder storage buffer for game");
-    SDL_GPUTransferBufferCreateInfo occluder_transfer_buffer_info{
+    const SDL_GPUTransferBufferCreateInfo occluder_transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
       .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
       .props = 0};
     graphics_occluder.transfer_buffer = SDL_CreateGPUTransferBuffer(video, &occluder_transfer_buffer_info);
     if (!graphics_occluder.transfer_buffer) throw sdl_exception("Could not create occluder transfer buffer for game");
-    SDL_GPUTextureCreateInfo occluder_array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
-                                                 .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-                                                 .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
-                                                 .width = 1,
-                                                 .height = 1,
-                                                 .layer_count_or_depth = 1,
-                                                 .num_levels = 1,
-                                                 .sample_count = SDL_GPU_SAMPLECOUNT_1,
-                                                 .props = 0};
+    const SDL_GPUTextureCreateInfo occluder_array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
+                                                       .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+                                                       .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+                                                       .width = 1,
+                                                       .height = 1,
+                                                       .layer_count_or_depth = 1,
+                                                       .num_levels = 1,
+                                                       .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                                       .props = 0};
     graphics_occluder.texture = SDL_CreateGPUTexture(video, &occluder_array_info);
     if (!graphics_occluder.texture) throw sdl_exception("Could not create occluder texture array for game");
     graphics_occluder.width = 1;
     graphics_occluder.height = 1;
-    SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
+    const SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = sizeof(vertices) + sizeof(indices), .props = 0};
     auto *transfer_buffer{SDL_CreateGPUTransferBuffer(video, &transfer_buffer_info)};
     if (!transfer_buffer) throw sdl_exception("Could not create transfer buffer for game");
-    auto start{static_cast<char *>(SDL_MapGPUTransferBuffer(video, transfer_buffer, false))};
+    auto *start{static_cast<char *>(SDL_MapGPUTransferBuffer(video, transfer_buffer, false))};
     if (!start) throw sdl_exception("Could not map data for game");
     SDL_memcpy(start, vertices.data(), sizeof(vertices));
     SDL_memcpy(start + sizeof(vertices), indices.data(), sizeof(indices));
@@ -174,12 +176,14 @@ namespace cse::help::game
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
     if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
-    SDL_GPUTransferBufferLocation vertex_transfer_location{.transfer_buffer = transfer_buffer, .offset = 0};
-    SDL_GPUBufferRegion vertex_buffer_region{.buffer = graphics_buffer.vertex, .offset = 0, .size = sizeof(vertices)};
+    const SDL_GPUTransferBufferLocation vertex_transfer_location{.transfer_buffer = transfer_buffer, .offset = 0};
+    const SDL_GPUBufferRegion vertex_buffer_region{
+      .buffer = graphics_buffer.vertex, .offset = 0, .size = sizeof(vertices)};
     SDL_UploadToGPUBuffer(copy_pass, &vertex_transfer_location, &vertex_buffer_region, false);
-    SDL_GPUTransferBufferLocation index_transfer_location{.transfer_buffer = transfer_buffer,
-                                                          .offset = sizeof(vertices)};
-    SDL_GPUBufferRegion index_buffer_region{.buffer = graphics_buffer.index, .offset = 0, .size = sizeof(indices)};
+    const SDL_GPUTransferBufferLocation index_transfer_location{.transfer_buffer = transfer_buffer,
+                                                                .offset = sizeof(vertices)};
+    const SDL_GPUBufferRegion index_buffer_region{
+      .buffer = graphics_buffer.index, .offset = 0, .size = sizeof(indices)};
     SDL_UploadToGPUBuffer(copy_pass, &index_transfer_location, &index_buffer_region, false);
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
@@ -272,13 +276,13 @@ namespace cse::help::game
       SDL_ReleaseGPUBuffer(video, graphics_light.buffer);
       graphics_light.capacity = std::max<std::size_t>(graphics_light.capacity, 16);
       while (graphics_light.capacity < graphics_light.samples.size()) graphics_light.capacity *= 2;
-      SDL_GPUBufferCreateInfo buffer_info{
+      const SDL_GPUBufferCreateInfo buffer_info{
         .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
         .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
         .props = 0};
       graphics_light.buffer = SDL_CreateGPUBuffer(video, &buffer_info);
       if (!graphics_light.buffer) throw sdl_exception("Could not create light storage buffer for game");
-      SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
+      const SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
         .size = static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.capacity),
         .props = 0};
@@ -291,13 +295,13 @@ namespace cse::help::game
       SDL_ReleaseGPUBuffer(video, graphics_occluder.buffer);
       graphics_occluder.capacity = std::max<std::size_t>(graphics_occluder.capacity, 16);
       while (graphics_occluder.capacity < graphics_occluder.samples.size()) graphics_occluder.capacity *= 2;
-      SDL_GPUBufferCreateInfo buffer_info{
+      const SDL_GPUBufferCreateInfo buffer_info{
         .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
         .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
         .props = 0};
       graphics_occluder.buffer = SDL_CreateGPUBuffer(video, &buffer_info);
       if (!graphics_occluder.buffer) throw sdl_exception("Could not create occluder storage buffer for game");
-      SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
+      const SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
         .size = static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.capacity),
         .props = 0};
@@ -310,13 +314,13 @@ namespace cse::help::game
       SDL_ReleaseGPUBuffer(video, graphics_object.buffer);
       graphics_object.capacity = std::max<std::size_t>(graphics_object.capacity, 16);
       while (graphics_object.capacity < graphics_object.samples.size()) graphics_object.capacity *= 2;
-      SDL_GPUBufferCreateInfo buffer_info{
+      const SDL_GPUBufferCreateInfo buffer_info{
         .usage = SDL_GPU_BUFFERUSAGE_VERTEX,
         .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
         .props = 0};
       graphics_object.buffer = SDL_CreateGPUBuffer(video, &buffer_info);
       if (!graphics_object.buffer) throw sdl_exception("Could not create instance buffer for game");
-      SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
+      const SDL_GPUTransferBufferCreateInfo transfer_buffer_info{
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
         .size = static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.capacity),
         .props = 0};
@@ -348,21 +352,23 @@ namespace cse::help::game
     if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
     if (lights > 0)
     {
-      SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = graphics_light.transfer_buffer, .offset = 0};
-      SDL_GPUBufferRegion buffer_region{.buffer = graphics_light.buffer, .offset = 0, .size = lights};
+      const SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = graphics_light.transfer_buffer,
+                                                            .offset = 0};
+      const SDL_GPUBufferRegion buffer_region{.buffer = graphics_light.buffer, .offset = 0, .size = lights};
       SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, true);
     }
     if (occluders > 0)
     {
-      SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = graphics_occluder.transfer_buffer,
-                                                      .offset = 0};
-      SDL_GPUBufferRegion buffer_region{.buffer = graphics_occluder.buffer, .offset = 0, .size = occluders};
+      const SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = graphics_occluder.transfer_buffer,
+                                                            .offset = 0};
+      const SDL_GPUBufferRegion buffer_region{.buffer = graphics_occluder.buffer, .offset = 0, .size = occluders};
       SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, true);
     }
     if (objects > 0)
     {
-      SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = graphics_object.transfer_buffer, .offset = 0};
-      SDL_GPUBufferRegion buffer_region{.buffer = graphics_object.buffer, .offset = 0, .size = objects};
+      const SDL_GPUTransferBufferLocation transfer_location{.transfer_buffer = graphics_object.transfer_buffer,
+                                                            .offset = 0};
+      const SDL_GPUBufferRegion buffer_region{.buffer = graphics_object.buffer, .offset = 0, .size = objects};
       SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, true);
     }
     SDL_EndGPUCopyPass(copy_pass);
@@ -411,8 +417,8 @@ namespace cse::help::game
       else
         ++iterator;
     for (auto &[key, audio] : audio_cache.sources)
-      if (std::any_of(audio_cache.tracks.begin(), audio_cache.tracks.end(),
-                      [value = audio.value](const auto &entry) { return entry.second.audio == value; }))
+      if (std::ranges::any_of(audio_cache.tracks,
+                              [value = audio.value](const auto &entry) { return entry.second.audio == value; }))
         audio.stamp = time;
     for (auto iterator{audio_cache.sources.begin()}; iterator != audio_cache.sources.end();)
       if (time - iterator->second.stamp >= cache_lifetime)
@@ -494,13 +500,13 @@ namespace cse::help::game
     interface_order.clear();
     for (interface_order.reserve(interfaces.size()); const auto &element : interfaces)
       interface_order.emplace_back(element.get());
-    std::sort(interface_order.begin(), interface_order.end(),
-              [](const cse::interface *left, const cse::interface *right)
-              {
-                if (left->active.priority.simulation != right->active.priority.simulation)
-                  return left->active.priority.simulation > right->active.priority.simulation;
-                return left->name.identifier() < right->name.identifier();
-              });
+    std::ranges::sort(interface_order,
+                      [](const cse::interface *left, const cse::interface *right)
+                      {
+                        if (left->active.priority.simulation != right->active.priority.simulation)
+                          return left->active.priority.simulation > right->active.priority.simulation;
+                        return left->name.identifier() < right->name.identifier();
+                      });
   }
 
   void active::generate_pool()
@@ -510,25 +516,26 @@ namespace cse::help::game
     interface_pool.insert(interface_pool.end(), scene->active.interface_simulation_order.begin(),
                           scene->active.interface_simulation_order.end());
     interface_pool.insert(interface_pool.end(), interface_order.begin(), interface_order.end());
-    std::sort(interface_pool.begin(), interface_pool.end(),
-              [](const cse::interface *left, const cse::interface *right)
-              {
-                if (left->active.priority.simulation != right->active.priority.simulation)
-                  return left->active.priority.simulation > right->active.priority.simulation;
-                if (const auto left_layer{left->scene ? 0 : 1}, right_layer{right->scene ? 0 : 1};
-                    left_layer != right_layer)
-                  return left_layer > right_layer;
-                return left->name.identifier() < right->name.identifier();
-              });
+    std::ranges::sort(interface_pool,
+                      [](const cse::interface *left, const cse::interface *right)
+                      {
+                        if (left->active.priority.simulation != right->active.priority.simulation)
+                          return left->active.priority.simulation > right->active.priority.simulation;
+                        if (const auto left_layer{left->scene ? 0 : 1}, right_layer{right->scene ? 0 : 1};
+                            left_layer != right_layer)
+                          return left_layer > right_layer;
+                        return left->name.identifier() < right->name.identifier();
+                      });
   }
 
-  bool active::inside(const glm::dvec2 &position)
+  bool active::inside(const glm::dvec2 &position) const
   {
     const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
     const auto canvas_width{canvas_height * aspect.value};
-    const auto x{position.x - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0)};
-    const auto y{position.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
-    return x >= -canvas_width / 2.0 && x < canvas_width / 2.0 && y > -canvas_height / 2.0 && y <= canvas_height / 2.0;
+    const auto left{position.x - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0)};
+    const auto top{position.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
+    return left >= -canvas_width / 2.0 && left < canvas_width / 2.0 && top > -canvas_height / 2.0 &&
+           top <= canvas_height / 2.0;
   }
 
   void active::interact()
@@ -541,7 +548,7 @@ namespace cse::help::game
       for (auto *element : interface_pool)
         if (const auto target{collision::hit(element, mouse.position)}; target != hitbox{})
         {
-          element->active.target.pressed[event.button.button] = target;
+          element->active.target.pressed.at(event.button.button) = target;
           break;
         }
     }
@@ -549,10 +556,10 @@ namespace cse::help::game
     {
       if (event.button.button > SDL_BUTTON_X2) return;
       for (auto *element : interface_pool)
-        if (const auto target{element->active.target.pressed[event.button.button]}; target != hitbox{})
+        if (const auto target{element->active.target.pressed.at(event.button.button)}; target != hitbox{})
         {
-          element->active.target.clicked[event.button.button] = target;
-          element->active.target.pressed[event.button.button] = {};
+          element->active.target.clicked.at(event.button.button) = target;
+          element->active.target.pressed.at(event.button.button) = {};
         }
     }
   }
@@ -562,7 +569,7 @@ namespace cse::help::game
     std::optional<glm::dvec2> position{};
     const auto &mouse{window->active.mouse};
     if (SDL_GetMouseFocus() == window->active.instance && inside(mouse.position)) position = mouse.position;
-    cse::interface *hit{};
+    const cse::interface *hit{};
     hitbox target{};
     if (position)
       for (auto *element : interface_pool)
@@ -593,34 +600,32 @@ namespace cse::help::game
     graphics_interface.order.reserve(scene->active.interfaces.size() + interfaces.size());
     for (const auto &element : scene->active.interfaces) graphics_interface.order.emplace_back(element.get());
     for (const auto &element : interfaces) graphics_interface.order.emplace_back(element.get());
-    std::sort(graphics_interface.order.begin(), graphics_interface.order.end(), comparator);
+    std::ranges::sort(graphics_interface.order, comparator);
   }
 
   void active::generate_frustum()
   {
     const auto matrix{graphics_object.world.first * graphics_object.world.second};
-    const auto row{[&matrix](const int index)
-                   { return glm::dvec4{matrix[0][index], matrix[1][index], matrix[2][index], matrix[3][index]}; }};
-    graphics_frustum[0] = row(3) + row(0);
-    graphics_frustum[1] = row(3) - row(0);
-    graphics_frustum[2] = row(3) + row(1);
-    graphics_frustum[3] = row(3) - row(1);
-    graphics_frustum[4] = row(2);
-    graphics_frustum[5] = row(3) - row(2);
+    graphics_frustum.at(0) = glm::row(matrix, 3) + glm::row(matrix, 0);
+    graphics_frustum.at(1) = glm::row(matrix, 3) - glm::row(matrix, 0);
+    graphics_frustum.at(2) = glm::row(matrix, 3) + glm::row(matrix, 1);
+    graphics_frustum.at(3) = glm::row(matrix, 3) - glm::row(matrix, 1);
+    graphics_frustum.at(4) = glm::row(matrix, 2);
+    graphics_frustum.at(5) = glm::row(matrix, 3) - glm::row(matrix, 2);
     for (auto &plane : graphics_frustum)
       if (const auto length{glm::length(glm::dvec3{plane})}; length > 0.0) plane /= length;
   }
 
   void active::generate_lights(const std::vector<cse::light *> &light_order)
   {
-    graphics_light.data.meta[0] = static_cast<float>(light_order.size());
+    graphics_light.data.meta.at(0) = static_cast<float>(light_order.size());
     graphics_light.samples.clear();
     graphics_light.samples.reserve(light_order.size());
     for (auto *element : light_order)
     {
       const auto interpolated{element->active.translation.interpolated(element->previous.translation, alpha)};
-      const glm::dvec3 position{std::floor(interpolated.x * 2.0 + 0.5) / 2.0,
-                                std::floor(interpolated.y * 2.0 + 0.5) / 2.0, std::floor(interpolated.z + 0.5)};
+      const glm::dvec3 position{std::floor((interpolated.x * 2.0) + 0.5) / 2.0,
+                                std::floor((interpolated.y * 2.0) + 0.5) / 2.0, std::floor(interpolated.z + 0.5)};
       const auto direction{element->active.calculate_direction(element->previous, alpha)};
       const auto brightness{
         element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha)};
@@ -635,22 +640,22 @@ namespace cse::help::game
       const auto shadow_darkness{shadow.darkness.interpolated(element->previous.shadow.darkness, alpha)};
       const auto shadow_softness{shadow.softness.interpolated(element->previous.shadow.softness, alpha)};
       graphics_light::entry entry{};
-      entry.position[0] = static_cast<float>(position.x);
-      entry.position[1] = static_cast<float>(position.y);
-      entry.position[2] = static_cast<float>(position.z);
-      entry.position[3] = static_cast<float>(range);
-      entry.brightness[0] = static_cast<float>(brightness.x * brightness.w);
-      entry.brightness[1] = static_cast<float>(brightness.y * brightness.w);
-      entry.brightness[2] = static_cast<float>(brightness.z * brightness.w);
-      entry.brightness[3] = shadow.cast ? static_cast<float>(std::max(0.0, shadow_darkness)) : 0.0f;
-      entry.direction[0] = static_cast<float>(direction.x);
-      entry.direction[1] = static_cast<float>(direction.y);
-      entry.direction[2] = static_cast<float>(direction.z);
-      entry.direction[3] = element->active.illumination.global ? 1.0f : 0.0f;
-      entry.cone[0] = static_cast<float>(std::cos(glm::radians(half)));
-      entry.cone[1] = static_cast<float>(std::cos(glm::radians(half * (1.0 - softness))));
-      entry.cone[2] = static_cast<float>(penetration);
-      entry.cone[3] = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
+      entry.position.at(0) = static_cast<float>(position.x);
+      entry.position.at(1) = static_cast<float>(position.y);
+      entry.position.at(2) = static_cast<float>(position.z);
+      entry.position.at(3) = static_cast<float>(range);
+      entry.brightness.at(0) = static_cast<float>(brightness.x * brightness.w);
+      entry.brightness.at(1) = static_cast<float>(brightness.y * brightness.w);
+      entry.brightness.at(2) = static_cast<float>(brightness.z * brightness.w);
+      entry.brightness.at(3) = shadow.cast ? static_cast<float>(std::max(0.0, shadow_darkness)) : 0.0f;
+      entry.direction.at(0) = static_cast<float>(direction.x);
+      entry.direction.at(1) = static_cast<float>(direction.y);
+      entry.direction.at(2) = static_cast<float>(direction.z);
+      entry.direction.at(3) = element->active.illumination.global ? 1.0f : 0.0f;
+      entry.cone.at(0) = static_cast<float>(std::cos(glm::radians(half)));
+      entry.cone.at(1) = static_cast<float>(std::cos(glm::radians(half * (1.0 - softness))));
+      entry.cone.at(2) = static_cast<float>(penetration);
+      entry.cone.at(3) = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
       graphics_light.samples.push_back(entry);
     }
   }
@@ -663,9 +668,9 @@ namespace cse::help::game
     const auto layer_of{[&](const cse::image &image) -> int
                         {
                           for (std::size_t index{}; index < graphics_occluder.layers.size(); ++index)
-                            if (graphics_occluder.layers[index].image == image)
+                            if (graphics_occluder.layers.at(index).image == image)
                             {
-                              graphics_occluder.layers[index].stamp = time;
+                              graphics_occluder.layers.at(index).stamp = time;
                               return static_cast<int>(index);
                             }
                           graphics_occluder.layers.push_back({image, time});
@@ -675,7 +680,7 @@ namespace cse::help::game
 
     bool penetrating{false};
     for (const auto &sample : graphics_light.samples)
-      if (sample.direction[3] < 0.5f && std::abs(sample.cone[2] - 1.0f) > 1e-3f)
+      if (sample.direction.at(3) < 0.5f && std::abs(sample.cone.at(2) - 1.0f) > 1e-3f)
       {
         penetrating = true;
         break;
@@ -684,7 +689,7 @@ namespace cse::help::game
     graphics_occluder.indices.assign(object_order.size(), -1.0f);
     for (std::size_t position{}; position < object_order.size(); ++position)
     {
-      auto *element{object_order[position]};
+      auto *element{object_order.at(position)};
       const auto penetration{std::max(
         0.0, element->active.illumination.penetration.interpolated(element->previous.illumination.penetration, alpha))};
       if (!element->active.shadow.cast && !penetrating && std::abs(penetration - 1.0) < 1e-6) continue;
@@ -704,54 +709,56 @@ namespace cse::help::game
       const bool rotated{steps % 2 == 1};
       const double width{static_cast<double>(image.frame_width)};
       const double height{static_cast<double>(image.frame_height)};
-      const double hx{rotated ? std::floor(scale.y + 0.5) * height / 2.0 : std::floor(scale.x + 0.5) * width / 2.0};
-      const double hy{rotated ? std::floor(scale.x + 0.5) * width / 2.0 : std::floor(scale.y + 0.5) * height / 2.0};
-      const double cx{std::floor(translation.x + 0.5) - (std::llround(hx * 2.0) % 2 != 0 ? 0.5 : 0.0)};
-      const double cy{std::floor(translation.y + 0.5) - (std::llround(hy * 2.0) % 2 != 0 ? 0.5 : 0.0)};
-      const double cz{std::floor(translation.z + 0.5)};
+      const double snapped_w{rotated ? std::floor(scale.y + 0.5) * height / 2.0
+                                     : std::floor(scale.x + 0.5) * width / 2.0};
+      const double snapped_h{rotated ? std::floor(scale.x + 0.5) * width / 2.0
+                                     : std::floor(scale.y + 0.5) * height / 2.0};
+      const double snapped_x{std::floor(translation.x + 0.5) - (std::llround(snapped_w * 2.0) % 2 != 0 ? 0.5 : 0.0)};
+      const double snapped_y{std::floor(translation.y + 0.5) - (std::llround(snapped_h * 2.0) % 2 != 0 ? 0.5 : 0.0)};
+      const double snapped_z{std::floor(translation.z + 0.5)};
       graphics_occluder::entry entry{};
-      entry.rectangle[0] = static_cast<float>(cx - hx);
-      entry.rectangle[1] = static_cast<float>(cy - hy);
-      entry.rectangle[2] = static_cast<float>(cx + hx);
-      entry.rectangle[3] = static_cast<float>(cy + hy);
+      entry.rectangle.at(0) = static_cast<float>(snapped_x - snapped_w);
+      entry.rectangle.at(1) = static_cast<float>(snapped_y - snapped_h);
+      entry.rectangle.at(2) = static_cast<float>(snapped_x + snapped_w);
+      entry.rectangle.at(3) = static_cast<float>(snapped_y + snapped_h);
       const auto first_u{flip.horizontal ? coordinates.right : coordinates.left};
       const auto second_u{flip.horizontal ? coordinates.left : coordinates.right};
       const auto first_v{flip.vertical ? coordinates.top : coordinates.bottom};
       const auto second_v{flip.vertical ? coordinates.bottom : coordinates.top};
       const bool swap_u{steps == 1 || steps == 2};
       const bool swap_v{steps == 2 || steps == 3};
-      entry.frame[0] = static_cast<float>(swap_u ? second_u : first_u);
-      entry.frame[1] = static_cast<float>(swap_v ? second_v : first_v);
-      entry.frame[2] = static_cast<float>(swap_u ? first_u : second_u);
-      entry.frame[3] = static_cast<float>(swap_v ? first_v : second_v);
+      entry.frame.at(0) = static_cast<float>(swap_u ? second_u : first_u);
+      entry.frame.at(1) = static_cast<float>(swap_v ? second_v : first_v);
+      entry.frame.at(2) = static_cast<float>(swap_u ? first_u : second_u);
+      entry.frame.at(3) = static_cast<float>(swap_v ? first_v : second_v);
       const auto shadow_darkness{
         element->active.shadow.darkness.interpolated(element->previous.shadow.darkness, alpha)};
       const auto shadow_softness{
         element->active.shadow.softness.interpolated(element->previous.shadow.softness, alpha)};
-      entry.surface[0] = static_cast<float>(cz);
-      entry.surface[1] = static_cast<float>(layer_of(image));
-      entry.surface[2] = static_cast<float>(transparency);
-      entry.surface[3] = rotated ? 1.0f : 0.0f;
-      entry.shadow[0] = static_cast<float>(penetration);
-      entry.shadow[1] = element->active.shadow.cast ? 1.0f : 0.0f;
-      entry.shadow[2] = static_cast<float>(std::max(0.0, shadow_darkness));
-      entry.shadow[3] = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
-      graphics_occluder.indices[position] = static_cast<float>(graphics_occluder.samples.size());
+      entry.surface.at(0) = static_cast<float>(snapped_z);
+      entry.surface.at(1) = static_cast<float>(layer_of(image));
+      entry.surface.at(2) = static_cast<float>(transparency);
+      entry.surface.at(3) = rotated ? 1.0f : 0.0f;
+      entry.shadow.at(0) = static_cast<float>(penetration);
+      entry.shadow.at(1) = element->active.shadow.cast ? 1.0f : 0.0f;
+      entry.shadow.at(2) = static_cast<float>(std::max(0.0, shadow_darkness));
+      entry.shadow.at(3) = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
+      graphics_occluder.indices.at(position) = static_cast<float>(graphics_occluder.samples.size());
       graphics_occluder.samples.push_back(entry);
     }
-    graphics_light.data.meta[1] = static_cast<float>(graphics_occluder.samples.size());
+    graphics_light.data.meta.at(1) = static_cast<float>(graphics_occluder.samples.size());
 
     const auto expired{[this](const graphics_occluder::layer &entry) { return time - entry.stamp >= cache_lifetime; }};
-    const bool pruned{std::any_of(graphics_occluder.layers.begin(), graphics_occluder.layers.end(), expired)};
+    const bool pruned{std::ranges::any_of(graphics_occluder.layers, expired)};
     if (pruned)
     {
       std::vector<float> remap(graphics_occluder.layers.size(), -1.0f);
       float next{};
       for (std::size_t index{}; index < graphics_occluder.layers.size(); ++index)
-        if (!expired(graphics_occluder.layers[index])) remap[index] = next++;
+        if (!expired(graphics_occluder.layers.at(index))) remap.at(index) = next++;
       std::erase_if(graphics_occluder.layers, expired);
       for (auto &entry : graphics_occluder.samples)
-        entry.surface[1] = remap[static_cast<std::size_t>(entry.surface[1])];
+        entry.surface.at(1) = remap.at(static_cast<std::size_t>(entry.surface.at(1)));
     }
     if ((additions || pruned) && !graphics_occluder.layers.empty())
     {
@@ -765,18 +772,19 @@ namespace cse::help::game
         total += entry.image.width * entry.image.height * entry.image.channels;
       }
       SDL_ReleaseGPUTexture(video, graphics_occluder.texture);
-      SDL_GPUTextureCreateInfo array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
-                                          .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-                                          .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
-                                          .width = max_width,
-                                          .height = max_height,
-                                          .layer_count_or_depth = static_cast<Uint32>(graphics_occluder.layers.size()),
-                                          .num_levels = 1,
-                                          .sample_count = SDL_GPU_SAMPLECOUNT_1,
-                                          .props = 0};
+      const SDL_GPUTextureCreateInfo array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
+                                                .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+                                                .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+                                                .width = max_width,
+                                                .height = max_height,
+                                                .layer_count_or_depth =
+                                                  static_cast<Uint32>(graphics_occluder.layers.size()),
+                                                .num_levels = 1,
+                                                .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                                .props = 0};
       graphics_occluder.texture = SDL_CreateGPUTexture(video, &array_info);
       if (!graphics_occluder.texture) throw sdl_exception("Could not create occluder texture array for game");
-      SDL_GPUTransferBufferCreateInfo transfer_info{
+      const SDL_GPUTransferBufferCreateInfo transfer_info{
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = total, .props = 0};
       auto *transfer{SDL_CreateGPUTransferBuffer(video, &transfer_info)};
       if (!transfer) throw sdl_exception("Could not create occluder layer transfer buffer for game");
@@ -797,18 +805,18 @@ namespace cse::help::game
       offset = 0;
       for (std::size_t layer{}; layer < graphics_occluder.layers.size(); ++layer)
       {
-        const auto &image{graphics_occluder.layers[layer].image};
-        SDL_GPUTextureTransferInfo source{
+        const auto &image{graphics_occluder.layers.at(layer).image};
+        const SDL_GPUTextureTransferInfo source{
           .transfer_buffer = transfer, .offset = offset, .pixels_per_row = 0, .rows_per_layer = 0};
-        SDL_GPUTextureRegion region{.texture = graphics_occluder.texture,
-                                    .mip_level = 0,
-                                    .layer = static_cast<Uint32>(layer),
-                                    .x = 0,
-                                    .y = 0,
-                                    .z = 0,
-                                    .w = image.width,
-                                    .h = image.height,
-                                    .d = 1};
+        const SDL_GPUTextureRegion region{.texture = graphics_occluder.texture,
+                                          .mip_level = 0,
+                                          .layer = static_cast<Uint32>(layer),
+                                          .x = 0,
+                                          .y = 0,
+                                          .z = 0,
+                                          .w = image.width,
+                                          .h = image.height,
+                                          .d = 1};
         SDL_UploadToGPUTexture(copy_pass, &source, &region, false);
         offset += image.width * image.height * image.channels;
       }
@@ -820,31 +828,31 @@ namespace cse::help::game
     }
     for (auto &entry : graphics_occluder.samples)
     {
-      const auto &image{graphics_occluder.layers[static_cast<std::size_t>(entry.surface[1])].image};
+      const auto &image{graphics_occluder.layers.at(static_cast<std::size_t>(entry.surface.at(1))).image};
       const float scale_u{static_cast<float>(image.width) / static_cast<float>(graphics_occluder.width)};
       const float scale_v{static_cast<float>(image.height) / static_cast<float>(graphics_occluder.height)};
-      entry.frame[0] *= scale_u;
-      entry.frame[2] *= scale_u;
-      entry.frame[1] *= scale_v;
-      entry.frame[3] *= scale_v;
+      entry.frame.at(0) *= scale_u;
+      entry.frame.at(2) *= scale_u;
+      entry.frame.at(1) *= scale_v;
+      entry.frame.at(3) *= scale_v;
     }
-    graphics_light.data.meta[2] = static_cast<float>(graphics_occluder.width);
-    graphics_light.data.meta[3] = static_cast<float>(graphics_occluder.height);
+    graphics_light.data.meta.at(2) = static_cast<float>(graphics_occluder.width);
+    graphics_light.data.meta.at(3) = static_cast<float>(graphics_occluder.height);
 
     static constexpr double cull_margin{2.0};
     auto amplification{0.0};
     for (const auto &entry : graphics_occluder.samples)
-      amplification = std::max(amplification, static_cast<double>(entry.shadow[0]));
+      amplification = std::max(amplification, static_cast<double>(entry.shadow.at(0)));
     std::erase_if(graphics_light.samples,
                   [this, amplification](const graphics_light::entry &entry)
                   {
-                    if (entry.direction[3] > 0.5f) return false;
-                    if (static_cast<double>(entry.cone[2]) * amplification > 1.0) return false;
-                    const glm::dvec3 center{entry.position[0], entry.position[1], entry.position[2]};
-                    const auto range{std::max(static_cast<double>(entry.position[3]), 1e-4)};
+                    if (entry.direction.at(3) > 0.5f) return false;
+                    if (static_cast<double>(entry.cone.at(2)) * amplification > 1.0) return false;
+                    const glm::dvec3 center{entry.position.at(0), entry.position.at(1), entry.position.at(2)};
+                    const auto range{std::max(static_cast<double>(entry.position.at(3)), 1e-4)};
                     return !inside_frustum(center, range + cull_margin);
                   });
-    graphics_light.data.meta[0] = static_cast<float>(graphics_light.samples.size());
+    graphics_light.data.meta.at(0) = static_cast<float>(graphics_light.samples.size());
   }
 
   void active::generate_objects(const std::vector<cse::object *> &object_order)
@@ -854,8 +862,9 @@ namespace cse::help::game
     graphics_object.samples.reserve(object_order.size());
     static constexpr double depth_bias_span{0.001};
     static constexpr double cull_margin{2.0};
-    const auto object_count{static_cast<double>(object_order.size())};
-    const double depth_bias_step{object_order.empty() ? 0.0 : depth_bias_span / object_count};
+    const auto object_total{object_order.size()};
+    const auto object_count{static_cast<double>(object_total)};
+    const double depth_bias_step{object_total == 0 ? 0.0 : depth_bias_span / object_count};
 
     static std::vector<double> transparencies{};
     static std::vector<char> shown{};
@@ -877,7 +886,7 @@ namespace cse::help::game
       const auto height{std::floor(scale.y + 0.5) * static_cast<double>(element->active.texture.image.frame_height)};
       const glm::dvec3 center{std::floor(translation.x + 0.5), std::floor(translation.y + 0.5),
                               std::floor(translation.z + 0.5)};
-      const auto radius{0.5 * std::sqrt(width * width + height * height) + cull_margin};
+      const auto radius{(0.5 * std::sqrt((width * width) + (height * height))) + cull_margin};
       shown.push_back(inside_frustum(center, radius) ? 1 : 0);
       if (!shown.back())
       {
@@ -888,50 +897,52 @@ namespace cse::help::game
       }
     }
 
-    const auto emit{
-      [&](const std::size_t position)
-      {
-        auto *element{object_order[position]};
-        const auto &coordinates{
-          element->active.texture.animation.frames[element->active.texture.playback.frame].coordinates};
-        const auto &flip{element->active.texture.flip};
-        const auto color{
-          glm::vec4{element->active.texture.color.tint.interpolated(element->previous.texture.color.tint, alpha)}};
-        const auto transparency{transparencies[position]};
-        const glm::mat4 model{
-          element->active.calculate_model_matrix(element->previous, element->active.texture.image.frame_width,
-                                                 element->active.texture.image.frame_height, alpha)};
-        graphics_object::sample data{};
-        SDL_memcpy(data.model.data(), &model, sizeof(model));
-        data.red = color.r;
-        data.green = color.g;
-        data.blue = color.b;
-        data.alpha = color.a;
-        data.left = static_cast<float>(flip.horizontal ? coordinates.right : coordinates.left);
-        data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
-        data.right = static_cast<float>(flip.horizontal ? coordinates.left : coordinates.right);
-        data.top = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
-        data.lit = element->active.illumination.show ? 1.0f : 0.0f;
-        data.shadowed = element->active.shadow.show ? 1.0f : 0.0f;
-        data.brightness = static_cast<float>(
-          element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha));
-        data.transparency = static_cast<float>(transparency);
-        data.depth = static_cast<float>(static_cast<double>(position) * depth_bias_step);
-        data.occluder = position < graphics_occluder.indices.size() ? graphics_occluder.indices[position] : -1.0f;
-        auto &available{require_pipelines()};
-        auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
-        auto *texture{require_texture(element->active.texture.image)};
-        if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
-            graphics_object.batches.back().texture == texture)
-          graphics_object.batches.back().count++;
-        else
-          graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, texture});
-        graphics_object.samples.push_back(data);
-      }};
-    for (std::size_t position{object_order.size()}; position-- > 0;)
-      if (shown[position] && transparencies[position] >= 1.0) emit(position);
-    for (std::size_t position{}; position < object_order.size(); ++position)
-      if (shown[position] && transparencies[position] < 1.0) emit(position);
+    static std::vector<std::size_t> emission_order{};
+    emission_order.clear();
+    emission_order.reserve(object_total);
+    for (std::size_t position{object_total}; position-- > 0;)
+      if (shown.at(position) && transparencies.at(position) >= 1.0) emission_order.push_back(position);
+    for (std::size_t position{}; position < object_total; ++position)
+      if (shown.at(position) && transparencies.at(position) < 1.0) emission_order.push_back(position);
+    for (const auto position : emission_order)
+    {
+      auto *element{object_order.at(position)};
+      const auto &coordinates{
+        element->active.texture.animation.frames[element->active.texture.playback.frame].coordinates};
+      const auto &flip{element->active.texture.flip};
+      const auto color{
+        glm::vec4{element->active.texture.color.tint.interpolated(element->previous.texture.color.tint, alpha)}};
+      const auto transparency{transparencies.at(position)};
+      const glm::mat4 model{element->active.calculate_model_matrix(element->previous,
+                                                                   element->active.texture.image.frame_width,
+                                                                   element->active.texture.image.frame_height, alpha)};
+      graphics_object::sample data{};
+      SDL_memcpy(data.model.data(), &model, sizeof(model));
+      data.red = color.r;
+      data.green = color.g;
+      data.blue = color.b;
+      data.alpha = color.a;
+      data.left = static_cast<float>(flip.horizontal ? coordinates.right : coordinates.left);
+      data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
+      data.right = static_cast<float>(flip.horizontal ? coordinates.left : coordinates.right);
+      data.top = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
+      data.lit = element->active.illumination.show ? 1.0f : 0.0f;
+      data.shadowed = element->active.shadow.show ? 1.0f : 0.0f;
+      data.brightness = static_cast<float>(
+        element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha));
+      data.transparency = static_cast<float>(transparency);
+      data.depth = static_cast<float>(static_cast<double>(position) * depth_bias_step);
+      data.occluder = position < graphics_occluder.indices.size() ? graphics_occluder.indices.at(position) : -1.0f;
+      auto &available{require_pipelines()};
+      auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
+      auto *texture{require_texture(element->active.texture.image)};
+      if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
+          graphics_object.batches.back().texture == texture)
+        graphics_object.batches.back().count++;
+      else
+        graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, texture});
+      graphics_object.samples.push_back(data);
+    }
   }
 
   void active::generate_interfaces()
@@ -975,7 +986,8 @@ namespace cse::help::game
       graphics_object.samples.push_back(data);
 
       const auto &text{element->active.text};
-      if (text.content.empty()) continue;
+      const auto content_length{text.content.size()};
+      if (content_length == 0) continue;
       if (!text.font.image.data.data()) throw exception("Interface '{}' has text but no font", element->name.string());
       if (text.font.glyphs.empty())
         throw exception("Font for interface '{}' contains no glyphs", element->name.string());
@@ -1002,28 +1014,28 @@ namespace cse::help::game
       const auto box_bottom{-element_height / 2.0};
 
       constexpr std::uint32_t undefined{0xFFFD};
-      const auto find{
-        [&](const std::uint32_t character) -> const cse::font::glyph &
-        {
-          const auto locate{[&](const std::uint32_t value) -> const cse::font::glyph *
-                            {
-                              const auto position{std::lower_bound(
-                                text.font.glyphs.begin(), text.font.glyphs.end(), static_cast<std::uint64_t>(value),
-                                [](const cse::font::glyph &candidate, const std::uint64_t target)
-                                { return candidate.character < target; })};
-                              if (position == text.font.glyphs.end() || position->character != value) return nullptr;
-                              return &*position;
-                            }};
-          if (const auto *glyph{locate(character)}) return *glyph;
-          if (const auto *glyph{locate(undefined)}) return *glyph;
-          throw exception("Font for interface '{}' is missing glyph U+{:04X} and the U+FFFD fallback glyph",
+      const auto find{[&](const std::uint32_t character) -> const cse::font::glyph &
+                      {
+                        const auto locate{[&](const std::uint32_t value) -> const cse::font::glyph *
+                                          {
+                                            const auto position{std::ranges::lower_bound(
+                                              text.font.glyphs, static_cast<std::uint64_t>(value), std::ranges::less{},
+                                              [](const cse::font::glyph &glyph) { return glyph.character; })};
+                                            if (position == text.font.glyphs.end() || position->character != value)
+                                              return nullptr;
+                                            return &*position;
+                                          }};
+                        if (const auto *glyph{locate(character)}) return *glyph;
+                        if (const auto *glyph{locate(undefined)}) return *glyph;
+                        throw exception(
+                          "Font for interface '{}' is missing glyph U+{:04X} and the U+FFFD fallback glyph",
                           element->name.string(), character);
-        }};
+                      }};
       std::vector<std::uint32_t> characters{};
-      characters.reserve(text.content.size());
-      for (std::size_t index{}; index < text.content.size();)
+      characters.reserve(content_length);
+      for (std::size_t index{}; index < content_length;)
       {
-        const auto first{static_cast<unsigned char>(text.content[index])};
+        const auto first{static_cast<unsigned char>(text.content.at(index))};
         std::size_t length{1};
         std::uint32_t character{first};
         if (first >= 0xF0)
@@ -1038,7 +1050,7 @@ namespace cse::help::game
           ++index;
           continue;
         }
-        if (index + length > text.content.size())
+        if (index + length > content_length)
         {
           characters.push_back(undefined);
           break;
@@ -1046,13 +1058,13 @@ namespace cse::help::game
         bool malformed{false};
         for (std::size_t offset{1}; offset < length; ++offset)
         {
-          const auto continuation{static_cast<unsigned char>(text.content[index + offset])};
+          const auto continuation{static_cast<unsigned char>(text.content.at(index + offset))};
           if ((continuation & 0xC0u) != 0x80u)
           {
             malformed = true;
             break;
           }
-          character = (character << 6) | (continuation & 0x3Fu);
+          character = (character << 6u) | (continuation & 0x3Fu);
         }
         if (malformed)
         {
@@ -1079,72 +1091,82 @@ namespace cse::help::game
         std::vector<item> items{};
         double width{};
       };
-      std::vector<line> lines{};
-      lines.emplace_back();
-      const auto append{[&](const cse::font::glyph &glyph, const std::uint32_t character)
-                        {
-                          auto &active_line{lines.back()};
-                          active_line.width += (active_line.items.empty() ? 0.0 : spacing_x) + glyph.width * scale_x;
-                          active_line.items.push_back({&glyph, character});
-                        }};
-      const auto strip{[&]()
-                       {
-                         auto &active_line{lines.back()};
-                         while (!active_line.items.empty() && active_line.items.back().character == U' ')
-                         {
-                           active_line.width -= active_line.items.back().glyph->width * scale_x;
-                           active_line.items.pop_back();
-                           if (!active_line.items.empty()) active_line.width -= spacing_x;
-                         }
-                       }};
-      const auto commit{[&]()
-                        {
-                          strip();
-                          lines.emplace_back();
-                        }};
-      std::vector<item> word{};
-      double word_width{};
-      const auto flush{[&]()
-                       {
-                         if (word.empty()) return;
-                         if (text.overflow.wrap && !lines.back().items.empty() &&
-                             lines.back().width + spacing_x + word_width > element_width)
-                           commit();
-                         for (const auto &entry : word)
-                         {
-                           if (text.overflow.wrap && !lines.back().items.empty() &&
-                               lines.back().width + spacing_x + entry.glyph->width * scale_x > element_width)
-                             commit();
-                           append(*entry.glyph, entry.character);
-                         }
-                         word.clear();
-                         word_width = 0.0;
-                       }};
+      struct composer
+      {
+        double spacing_x{};
+        double scale_x{};
+        double element_width{};
+        bool wrap{};
+        std::vector<line> lines{};
+        std::vector<item> word{};
+        double word_width{};
+
+        void append(const cse::font::glyph &glyph, const std::uint32_t character)
+        {
+          auto &active_line{lines.back()};
+          active_line.width += (active_line.items.empty() ? 0.0 : spacing_x) + (glyph.width * scale_x);
+          active_line.items.push_back({&glyph, character});
+        }
+        void strip()
+        {
+          auto &active_line{lines.back()};
+          while (!active_line.items.empty() && active_line.items.back().character == U' ')
+          {
+            active_line.width -= active_line.items.back().glyph->width * scale_x;
+            active_line.items.pop_back();
+            if (!active_line.items.empty()) active_line.width -= spacing_x;
+          }
+        }
+        void commit()
+        {
+          strip();
+          lines.emplace_back();
+        }
+        void flush()
+        {
+          if (word.empty()) return;
+          if (wrap && !lines.back().items.empty() && lines.back().width + spacing_x + word_width > element_width)
+            commit();
+          for (const auto &entry : word)
+          {
+            if (wrap && !lines.back().items.empty() &&
+                lines.back().width + spacing_x + (entry.glyph->width * scale_x) > element_width)
+              commit();
+            append(*entry.glyph, entry.character);
+          }
+          word.clear();
+          word_width = 0.0;
+        }
+      };
+      composer compose{
+        .spacing_x = spacing_x, .scale_x = scale_x, .element_width = element_width, .wrap = text.overflow.wrap};
+      compose.lines.emplace_back();
       for (const auto character : characters)
       {
         if (character == U'\n')
         {
-          flush();
-          commit();
+          compose.flush();
+          compose.commit();
           continue;
         }
         const auto &glyph{find(character)};
         if (character == U' ')
         {
-          flush();
-          append(glyph, character);
+          compose.flush();
+          compose.append(glyph, character);
           continue;
         }
-        word_width += (word.empty() ? 0.0 : spacing_x) + glyph.width * scale_x;
-        word.push_back({&glyph, character});
+        compose.word_width += (compose.word.empty() ? 0.0 : spacing_x) + (glyph.width * scale_x);
+        compose.word.push_back({&glyph, character});
       }
-      flush();
-      strip();
+      compose.flush();
+      compose.strip();
+      const auto &lines{compose.lines};
 
       double block_width{};
       for (const auto &entry : lines) block_width = std::max(block_width, entry.width);
       const auto line_count{static_cast<double>(lines.size())};
-      const auto block_height{line_count * line_height + (line_count - 1.0) * spacing_y};
+      const auto block_height{(line_count * line_height) + ((line_count - 1.0) * spacing_y)};
       const glm::dvec2 shift{text.align.offset.interpolated(element->previous.text.align.offset, alpha)};
       double block_left{-block_width / 2.0};
       if (text.align.horizontal.preset == LEFT)
@@ -1162,13 +1184,13 @@ namespace cse::help::game
       auto *atlas{require_texture(text.font.image)};
       for (std::size_t row{}; row < lines.size(); ++row)
       {
-        const auto &entry{lines[row]};
+        const auto &entry{lines.at(row)};
         double pen{block_left};
         if (text.align.horizontal.preset == CENTER)
-          pen = block_left + (block_width - entry.width) / 2.0;
+          pen = block_left + ((block_width - entry.width) / 2.0);
         else if (text.align.horizontal.preset == RIGHT)
           pen = block_left + (block_width - entry.width);
-        const auto top{block_top - static_cast<double>(row) * (line_height + spacing_y)};
+        const auto top{block_top - (static_cast<double>(row) * (line_height + spacing_y))};
         for (const auto &placed : entry.items)
         {
           const auto width{placed.glyph->width * scale_x};
@@ -1190,13 +1212,13 @@ namespace cse::help::game
           if (visible_right <= visible_left || visible_top <= visible_bottom) continue;
           const auto &glyph_coordinates{placed.glyph->coordinates};
           const auto uv_left{text_coordinates.left +
-                             (text_coordinates.right - text_coordinates.left) * glyph_coordinates.left};
+                             ((text_coordinates.right - text_coordinates.left) * glyph_coordinates.left)};
           const auto uv_right{text_coordinates.left +
-                              (text_coordinates.right - text_coordinates.left) * glyph_coordinates.right};
+                              ((text_coordinates.right - text_coordinates.left) * glyph_coordinates.right)};
           const auto uv_top{text_coordinates.bottom +
-                            (text_coordinates.top - text_coordinates.bottom) * glyph_coordinates.top};
+                            ((text_coordinates.top - text_coordinates.bottom) * glyph_coordinates.top)};
           const auto uv_bottom{text_coordinates.bottom +
-                               (text_coordinates.top - text_coordinates.bottom) * glyph_coordinates.bottom};
+                               ((text_coordinates.top - text_coordinates.bottom) * glyph_coordinates.bottom)};
           const auto fraction_left{(visible_left - left) / width};
           const auto fraction_right{(visible_right - left) / width};
           const auto fraction_top{(top - visible_top) / height};
@@ -1210,10 +1232,10 @@ namespace cse::help::game
           text_data.green = text_color.g;
           text_data.blue = text_color.b;
           text_data.alpha = text_color.a;
-          text_data.left = static_cast<float>(uv_left + (uv_right - uv_left) * fraction_left);
-          text_data.right = static_cast<float>(uv_left + (uv_right - uv_left) * fraction_right);
-          text_data.top = static_cast<float>(uv_top + (uv_bottom - uv_top) * fraction_top);
-          text_data.bottom = static_cast<float>(uv_top + (uv_bottom - uv_top) * fraction_bottom);
+          text_data.left = static_cast<float>(uv_left + ((uv_right - uv_left) * fraction_left));
+          text_data.right = static_cast<float>(uv_left + ((uv_right - uv_left) * fraction_right));
+          text_data.top = static_cast<float>(uv_top + ((uv_bottom - uv_top) * fraction_top));
+          text_data.bottom = static_cast<float>(uv_top + ((uv_bottom - uv_top) * fraction_bottom));
           text_data.transparency = static_cast<float>(text_alpha);
           if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
               graphics_object.batches.back().texture == atlas)
@@ -1228,9 +1250,8 @@ namespace cse::help::game
 
   bool active::inside_frustum(const glm::dvec3 &center, const double radius) const
   {
-    for (const auto &plane : graphics_frustum)
-      if (glm::dot(glm::dvec3{plane}, center) + plane.w < -radius) return false;
-    return true;
+    return std::ranges::all_of(graphics_frustum, [&](const auto &plane)
+                               { return glm::dot(glm::dvec3{plane}, center) + plane.w >= -radius; });
   }
 
   struct active::graphics_pipeline &active::require_pipelines()
@@ -1239,28 +1260,28 @@ namespace cse::help::game
     const auto backend_formats{SDL_GetGPUShaderFormats(video)};
     if (!has(backend_formats, SDL_GPU_SHADERFORMAT_SPIRV))
       throw sdl_exception("No supported vulkan shader formats for game");
-    SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader::vertex.size(),
-                                               .code = shader::vertex.data(),
-                                               .entrypoint = "main",
-                                               .format = SDL_GPU_SHADERFORMAT_SPIRV,
-                                               .stage = SDL_GPU_SHADERSTAGE_VERTEX,
-                                               .num_samplers = 0,
-                                               .num_storage_textures = 0,
-                                               .num_storage_buffers = 0,
-                                               .num_uniform_buffers = 1,
-                                               .props = 0};
+    const SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader::vertex.size(),
+                                                     .code = shader::vertex.data(),
+                                                     .entrypoint = "main",
+                                                     .format = SDL_GPU_SHADERFORMAT_SPIRV,
+                                                     .stage = SDL_GPU_SHADERSTAGE_VERTEX,
+                                                     .num_samplers = 0,
+                                                     .num_storage_textures = 0,
+                                                     .num_storage_buffers = 0,
+                                                     .num_uniform_buffers = 1,
+                                                     .props = 0};
     auto *vertex_shader{SDL_CreateGPUShader(video, &vertex_shader_info)};
     if (!vertex_shader) throw sdl_exception("Could not create vertex shader for game");
-    SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader::fragment.size(),
-                                                 .code = shader::fragment.data(),
-                                                 .entrypoint = "main",
-                                                 .format = SDL_GPU_SHADERFORMAT_SPIRV,
-                                                 .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
-                                                 .num_samplers = 2,
-                                                 .num_storage_textures = 0,
-                                                 .num_storage_buffers = 2,
-                                                 .num_uniform_buffers = 1,
-                                                 .props = 0};
+    const SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader::fragment.size(),
+                                                       .code = shader::fragment.data(),
+                                                       .entrypoint = "main",
+                                                       .format = SDL_GPU_SHADERFORMAT_SPIRV,
+                                                       .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
+                                                       .num_samplers = 2,
+                                                       .num_storage_textures = 0,
+                                                       .num_storage_buffers = 2,
+                                                       .num_uniform_buffers = 1,
+                                                       .props = 0};
     auto *fragment_shader{SDL_CreateGPUShader(video, &fragment_shader_info)};
     if (!fragment_shader) throw sdl_exception("Could not create fragment shader for game");
     const std::array<SDL_GPUVertexBufferDescription, 2> vertex_buffer_descriptions{
@@ -1272,17 +1293,17 @@ namespace cse::help::game
     const std::array<SDL_GPUVertexAttribute, 9> vertex_attributes{
       {{0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(corner, x)},
        {1, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model)},
-       {2, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 4},
-       {3, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 8},
-       {4, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + sizeof(float) * 12},
+       {2, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + (sizeof(float) * 4)},
+       {3, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + (sizeof(float) * 8)},
+       {4, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + (sizeof(float) * 12)},
        {5, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, red)},
        {6, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, left)},
        {7, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, lit)},
        {8, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(graphics_object::sample, depth)}}};
-    SDL_GPUVertexInputState vertex_input_state{.vertex_buffer_descriptions = vertex_buffer_descriptions.data(),
-                                               .num_vertex_buffers = 2,
-                                               .vertex_attributes = vertex_attributes.data(),
-                                               .num_vertex_attributes = 9};
+    const SDL_GPUVertexInputState vertex_input_state{.vertex_buffer_descriptions = vertex_buffer_descriptions.data(),
+                                                     .num_vertex_buffers = 2,
+                                                     .vertex_attributes = vertex_attributes.data(),
+                                                     .num_vertex_attributes = 9};
     SDL_GPURasterizerState rasterizer_state{};
     rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
     rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
@@ -1389,40 +1410,40 @@ namespace cse::help::game
     const auto usage{SDL_GPU_TEXTUREUSAGE_SAMPLER};
     if (!SDL_GPUTextureSupportsFormat(video, format, type, usage))
       throw sdl_exception("No supported texture format found for game");
-    SDL_GPUTextureCreateInfo texture_info{.type = type,
-                                          .format = format,
-                                          .usage = usage,
-                                          .width = image.width,
-                                          .height = image.height,
-                                          .layer_count_or_depth = 1,
-                                          .num_levels = 1,
-                                          .sample_count = SDL_GPU_SAMPLECOUNT_1,
-                                          .props = 0};
+    const SDL_GPUTextureCreateInfo texture_info{.type = type,
+                                                .format = format,
+                                                .usage = usage,
+                                                .width = image.width,
+                                                .height = image.height,
+                                                .layer_count_or_depth = 1,
+                                                .num_levels = 1,
+                                                .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                                .props = 0};
     auto *texture{SDL_CreateGPUTexture(video, &texture_info)};
     if (!texture) throw sdl_exception("Could not create texture for game");
-    SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{
+    const SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{
       .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = image.width * image.height * image.channels, .props = 0};
     auto *texture_transfer_buffer{SDL_CreateGPUTransferBuffer(video, &texture_transfer_buffer_info)};
     if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for game");
     auto *texture_data{SDL_MapGPUTransferBuffer(video, texture_transfer_buffer, false)};
     if (!texture_data) throw sdl_exception("Could not map texture data for game");
-    SDL_memcpy(texture_data, image.data.data(), image.width * image.height * image.channels);
+    SDL_memcpy(texture_data, image.data.data(), static_cast<std::size_t>(image.width) * image.height * image.channels);
     SDL_UnmapGPUTransferBuffer(video, texture_transfer_buffer);
     auto *command_buffer{SDL_AcquireGPUCommandBuffer(video)};
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
     auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
     if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
-    SDL_GPUTextureTransferInfo texture_transfer_info{
+    const SDL_GPUTextureTransferInfo texture_transfer_info{
       .transfer_buffer = texture_transfer_buffer, .offset = 0, .pixels_per_row = 0, .rows_per_layer = 0};
-    SDL_GPUTextureRegion texture_region{.texture = texture,
-                                        .mip_level = 0,
-                                        .layer = 0,
-                                        .x = 0,
-                                        .y = 0,
-                                        .z = 0,
-                                        .w = image.width,
-                                        .h = image.height,
-                                        .d = 1};
+    const SDL_GPUTextureRegion texture_region{.texture = texture,
+                                              .mip_level = 0,
+                                              .layer = 0,
+                                              .x = 0,
+                                              .y = 0,
+                                              .z = 0,
+                                              .w = image.width,
+                                              .h = image.height,
+                                              .d = 1};
     SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
@@ -1740,11 +1761,11 @@ namespace cse
     static double simulation_time{};
     double delta_time{active.time - simulation_time};
     simulation_time = active.time;
-    if (delta_time > 0.1) delta_time = 0.1;
+    delta_time = std::min(delta_time, 0.1);
     active.accumulator += delta_time;
   }
 
-  bool game::running() { return active.window->active.running; }
+  bool game::running() const { return active.window->active.running; }
 
   bool game::behind()
   {

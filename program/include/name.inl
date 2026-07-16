@@ -5,19 +5,27 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <string_view>
 
 namespace cse
 {
 #if defined(NDEBUG)
-  constexpr name::name(const char *string_) : hash{hash_compiletime(string_)} {}
+  constexpr name::name(const char *string_) : name{std::string_view{string_}} {}
+
+  constexpr name::name(const std::string_view string_) : hash{hash_string(string_)} {}
 #endif
 
   constexpr std::uint64_t name::identifier() const { return hash; }
 
-  constexpr std::uint64_t name::hash_compiletime(const char *string, std::uint64_t hash)
+  constexpr std::uint64_t name::hash_string(const std::string_view string)
   {
-    return *string ? hash_compiletime(string + 1, (hash ^ static_cast<std::uint64_t>(*string)) * 1099511628211ULL)
-                   : hash;
+    std::uint64_t hash{14695981039346656037ULL};
+    for (const char character : string)
+    {
+      hash ^= static_cast<std::uint64_t>(character);
+      hash *= 1099511628211ULL;
+    }
+    return hash;
   }
 }
 

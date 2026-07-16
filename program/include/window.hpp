@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 #include "SDL3/SDL_events.h"
@@ -16,7 +17,7 @@
 
 inline constexpr SDL_DisplayID PRIMARY{1000000};
 inline constexpr int ORIGIN{2000000};
-enum mode
+enum mode : std::uint8_t
 {
   WINDOWED,
   BORDERLESS,
@@ -102,11 +103,13 @@ namespace cse::help::window
     void destroy(SDL_GPUDevice *video);
 
     void poll(const double aspect, const unsigned int resolution);
-    viewport letterbox(const double aspect);
+    viewport letterbox(const double aspect) const;
     float pixel_density();
     glm::ivec2 pixel_size();
-    glm::dvec2 to_virtual(const double x, const double y, const double aspect, const unsigned int resolution);
-    glm::dvec2 to_pixel(const double x, const double y, const double aspect, const unsigned int resolution);
+    glm::dvec2 to_virtual(const double horizontal, const double vertical, const double aspect,
+                          const unsigned int resolution);
+    glm::dvec2 to_pixel(const double horizontal, const double vertical, const double aspect,
+                        const unsigned int resolution);
 
     void reconcile(SDL_GPUDevice *video);
     void generate_depth_texture(SDL_GPUDevice *video);
@@ -121,9 +124,9 @@ namespace cse::help::window
     void handle_manual_resize(SDL_GPUDevice *video);
     void handle_mode();
     void handle_vsync(SDL_GPUDevice *video);
-    glm::ivec2 calculate_display_center(const unsigned int w, const unsigned int h);
-    glm::ivec2 relative_to_absolute(const int x, const int y);
-    glm::ivec2 absolute_to_relative(const int x, const int y);
+    glm::ivec2 calculate_display_center(const unsigned int wide, const unsigned int tall);
+    glm::ivec2 relative_to_absolute(const int horizontal, const int vertical);
+    glm::ivec2 absolute_to_relative(const int horizontal, const int vertical);
 
   public:
     std::string title{};
@@ -186,7 +189,7 @@ namespace cse
     window &operator=(window &&) = delete;
 
   protected:
-    window(const initial &initial_);
+    explicit window(const initial &initial_);
     virtual void on_prepare();
     virtual void on_create();
     virtual void on_synchronize();

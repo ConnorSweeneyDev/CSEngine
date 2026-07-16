@@ -2,10 +2,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 namespace cse
 {
-  enum class axis
+  enum class axis : std::uint8_t
   {
     NONE,
     X,

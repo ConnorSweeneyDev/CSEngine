@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <type_traits>
 
 namespace cse
@@ -16,7 +17,7 @@ namespace cse
 
 namespace cse::help
 {
-  enum class phase
+  enum class phase : std::uint8_t
   {
     CLEANED,
     PREPARED,

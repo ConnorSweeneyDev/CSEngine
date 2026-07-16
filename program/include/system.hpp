@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <cstdlib>
 
-enum platforms
+enum platforms : std::uint8_t
 {
   WINDOWS,
   LINUX

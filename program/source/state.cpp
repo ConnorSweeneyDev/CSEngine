@@ -16,11 +16,8 @@
   #ifndef NOMINMAX
     #define NOMINMAX
   #endif
-  #include <windows.h>
-
   #include <combaseapi.h>
   #include <knownfolders.h>
-  #include <shlobj.h>
   #include <shlobj_core.h>
   #include <winerror.h>
   #include <winnt.h>
@@ -45,11 +42,12 @@
 namespace cse
 {
   state::state(std::filesystem::path location_)
-  {
-    location_.make_preferred();
-    location = std::move(location_);
-    building = this;
-  }
+    : location{[&location_]()
+               {
+                 location_.make_preferred();
+                 return std::move(location_);
+               }()}
+  { building = this; }
 
   void state::enlist(std::function<void(nlohmann::json &json)> writer,
                      std::function<void(const nlohmann::json &json)> reader)
@@ -134,7 +132,7 @@ namespace cse
 
     nlohmann::json json{};
     for (const auto &object : entries) object.writer(json);
-    std::ofstream stream{file, std::ios::binary | std::ios::trunc};
+    std::ofstream stream{file, std::ios_base::binary};
     if (!stream)
     {
       log("Could not open state file '{}' for writing; skipping write", file.string());

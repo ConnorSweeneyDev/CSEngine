@@ -18,7 +18,7 @@ namespace cse::trait
     { container.end() } -> std::sentinel_for<decltype(container.begin())>;
     typename vector::value_type;
     requires is_shared<typename vector::value_type>::value;
-    requires requires(const typename vector::value_type &element) {
+    requires requires(const vector::value_type &element) {
       { element->name } -> std::convertible_to<cse::name>;
     };
   };
@@ -54,8 +54,7 @@ template <cse::trait::pointer_vector vector> auto try_iterate(const vector &cont
 template <cse::trait::name_set set> auto try_iterate(const set &container, const cse::name name) noexcept
 { return container.find(name); }
 
-template <cse::trait::pointer_vector vector>
-typename vector::value_type find(const vector &container, const cse::name name)
+template <cse::trait::pointer_vector vector> vector::value_type find(const vector &container, const cse::name name)
 {
   auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
   if (iterator == container.end()) throw cse::exception("Vector lookup for name '{}' failed", name.string());
@@ -70,7 +69,7 @@ template <cse::trait::name_set set> cse::name find(const set &container, const c
 }
 
 template <cse::trait::pointer_vector vector>
-typename vector::value_type try_find(const vector &container, const cse::name name) noexcept
+vector::value_type try_find(const vector &container, const cse::name name) noexcept
 {
   auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
   if (iterator == container.end()) return nullptr;

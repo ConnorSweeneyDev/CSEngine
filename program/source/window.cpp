@@ -156,12 +156,12 @@ namespace cse::help::window
       viewport_left = 0.0f;
       viewport_top = (static_cast<float>(render_height) - viewport_height) / 2.0f;
     }
-    SDL_GPUViewport port{.x = viewport_left,
-                         .y = viewport_top,
-                         .w = viewport_width,
-                         .h = viewport_height,
-                         .min_depth = 0.0f,
-                         .max_depth = 1.0f};
+    const SDL_GPUViewport port{.x = viewport_left,
+                               .y = viewport_top,
+                               .w = viewport_width,
+                               .h = viewport_height,
+                               .min_depth = 0.0f,
+                               .max_depth = 1.0f};
     SDL_SetGPUViewport(render_pass, &port);
 
     if (!game_active.graphics_object.batches.empty())
@@ -170,56 +170,53 @@ namespace cse::help::window
         {{.buffer = game_active.graphics_buffer.vertex, .offset = 0},
          {.buffer = game_active.graphics_object.buffer, .offset = 0}}};
       SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffer_bindings.data(), 2);
-      SDL_GPUBufferBinding index_buffer_binding{.buffer = game_active.graphics_buffer.index, .offset = 0};
+      const SDL_GPUBufferBinding index_buffer_binding{.buffer = game_active.graphics_buffer.index, .offset = 0};
       SDL_BindGPUIndexBuffer(render_pass, &index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
       const std::array<SDL_GPUBuffer *, 2> storage_buffers{game_active.graphics_light.buffer,
                                                            game_active.graphics_occluder.buffer};
       SDL_BindGPUFragmentStorageBuffers(render_pass, 0, storage_buffers.data(), 2);
-      SDL_GPUTextureSamplerBinding occluder_binding{.texture = game_active.graphics_occluder.texture,
-                                                    .sampler = game_active.graphics_buffer.linear};
+      const SDL_GPUTextureSamplerBinding occluder_binding{.texture = game_active.graphics_occluder.texture,
+                                                          .sampler = game_active.graphics_buffer.linear};
       SDL_BindGPUFragmentSamplers(render_pass, 1, &occluder_binding, 1);
-      SDL_GPUGraphicsPipeline *pipeline{};
-      SDL_GPUTexture *texture{};
-      const auto draw_range{[&](const std::size_t first, const std::size_t last)
-                            {
-                              for (std::size_t index{first}; index < last; ++index)
-                              {
-                                const auto &group{game_active.graphics_object.batches[index]};
-                                if (group.pipeline != pipeline)
-                                {
-                                  SDL_BindGPUGraphicsPipeline(render_pass, group.pipeline);
-                                  pipeline = group.pipeline;
-                                }
-                                if (group.texture != texture)
-                                {
-                                  SDL_GPUTextureSamplerBinding texture_binding{
-                                    .texture = group.texture, .sampler = game_active.graphics_buffer.nearest};
-                                  SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_binding, 1);
-                                  texture = group.texture;
-                                }
-                                SDL_DrawGPUIndexedPrimitives(render_pass, 6, static_cast<Uint32>(group.count), 0, 0,
-                                                             static_cast<Uint32>(group.first));
-                              }
-                            }};
-      if (game_active.graphics_object.split > 0)
+      const SDL_GPUGraphicsPipeline *pipeline{};
+      const SDL_GPUTexture *texture{};
+      const auto &batches{game_active.graphics_object.batches};
+      const auto split{game_active.graphics_object.split};
+      for (std::size_t index{}; index < batches.size(); ++index)
       {
-        const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.world.first},
-                                                glm::mat4{game_active.graphics_object.world.second}};
-        SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
-        SDL_PushGPUFragmentUniformData(command_buffer, 0, &game_active.graphics_light.data,
-                                       sizeof(game_active.graphics_light.data));
-        draw_range(0, game_active.graphics_object.split);
-      }
-      if (game_active.graphics_object.split < game_active.graphics_object.batches.size())
-      {
-        const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.overlay.first},
-                                                glm::mat4{game_active.graphics_object.overlay.second}};
-        auto overlay_data{game_active.graphics_light.data};
-        overlay_data.meta[0] = 0.0f;
-        overlay_data.meta[1] = 0.0f;
-        SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
-        SDL_PushGPUFragmentUniformData(command_buffer, 0, &overlay_data, sizeof(overlay_data));
-        draw_range(game_active.graphics_object.split, game_active.graphics_object.batches.size());
+        if (index == 0 && split > 0)
+        {
+          const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.world.first},
+                                                  glm::mat4{game_active.graphics_object.world.second}};
+          SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
+          SDL_PushGPUFragmentUniformData(command_buffer, 0, &game_active.graphics_light.data,
+                                         sizeof(game_active.graphics_light.data));
+        }
+        if (index == split)
+        {
+          const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.overlay.first},
+                                                  glm::mat4{game_active.graphics_object.overlay.second}};
+          auto overlay_data{game_active.graphics_light.data};
+          overlay_data.meta.at(0) = 0.0f;
+          overlay_data.meta.at(1) = 0.0f;
+          SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
+          SDL_PushGPUFragmentUniformData(command_buffer, 0, &overlay_data, sizeof(overlay_data));
+        }
+        const auto &group{batches.at(index)};
+        if (group.pipeline != pipeline)
+        {
+          SDL_BindGPUGraphicsPipeline(render_pass, group.pipeline);
+          pipeline = group.pipeline;
+        }
+        if (group.texture != texture)
+        {
+          const SDL_GPUTextureSamplerBinding texture_binding{.texture = group.texture,
+                                                             .sampler = game_active.graphics_buffer.nearest};
+          SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_binding, 1);
+          texture = group.texture;
+        }
+        SDL_DrawGPUIndexedPrimitives(render_pass, 6, static_cast<Uint32>(group.count), 0, 0,
+                                     static_cast<Uint32>(group.first));
       }
     }
 
@@ -236,16 +233,16 @@ namespace cse::help::window
 
   void active::poll(const double aspect, const unsigned int resolution)
   {
-    float x{}, y{};
-    const auto buttons{SDL_GetMouseState(&x, &y)};
+    float horizontal{}, vertical{};
+    const auto buttons{SDL_GetMouseState(&horizontal, &vertical)};
     const auto density{pixel_density()};
-    x *= density;
-    y *= density;
+    horizontal *= density;
+    vertical *= density;
     const auto view{letterbox(aspect)};
     const bool warping{mouse.position != shadow.mouse.position};
     const bool focused{SDL_GetMouseFocus() == instance};
-    const bool inside{focused && x >= view.left && x <= view.left + view.width && y >= view.top &&
-                      y <= view.top + view.height};
+    const bool inside{focused && horizontal >= view.left && horizontal <= view.left + view.width &&
+                      vertical >= view.top && vertical <= view.top + view.height};
     const bool show{mouse.visible || (!warping && !inside)};
 
     if (show && !SDL_CursorVisible())
@@ -253,20 +250,20 @@ namespace cse::help::window
     else if (!show && SDL_CursorVisible())
       SDL_HideCursor();
     for (std::size_t button{SDL_BUTTON_LEFT}; button <= SDL_BUTTON_X2; ++button)
-      mouse.buttons[button] = has(buttons, SDL_BUTTON_MASK(button));
+      mouse.buttons.at(button) = has(buttons, SDL_BUTTON_MASK(button));
     if (warping)
     {
       const auto pixel{to_pixel(mouse.position.x, mouse.position.y, aspect, resolution)};
       SDL_WarpMouseInWindow(instance, static_cast<float>(pixel.x) / density, static_cast<float>(pixel.y) / density);
     }
     else
-      mouse.position = to_virtual(x, y, aspect, resolution);
+      mouse.position = to_virtual(horizontal, vertical, aspect, resolution);
     shadow.mouse.position = mouse.position;
 
     std::copy_n(SDL_GetKeyboardState(nullptr), keyboard.size(), keyboard.begin());
   }
 
-  active::viewport active::letterbox(const double aspect)
+  active::viewport active::letterbox(const double aspect) const
   {
     const auto window_width{static_cast<double>(render_width)};
     const auto window_height{static_cast<double>(render_height)};
@@ -305,26 +302,28 @@ namespace cse::help::window
     return size;
   }
 
-  glm::dvec2 active::to_virtual(const double x, const double y, const double aspect, const unsigned int resolution)
+  glm::dvec2 active::to_virtual(const double horizontal, const double vertical, const double aspect,
+                                const unsigned int resolution)
   {
     const auto view{letterbox(aspect)};
     const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
     const auto canvas_width{canvas_height * aspect};
-    const glm::dvec2 canvas{(x - view.left) / view.width * canvas_width - canvas_width / 2.0,
-                            (y - view.top) / view.height * canvas_height - canvas_height / 2.0};
+    const glm::dvec2 canvas{((horizontal - view.left) / view.width * canvas_width) - (canvas_width / 2.0),
+                            ((vertical - view.top) / view.height * canvas_height) - (canvas_height / 2.0)};
     return {canvas.x + (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
             -(canvas.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0))};
   }
 
-  glm::dvec2 active::to_pixel(const double x, const double y, const double aspect, const unsigned int resolution)
+  glm::dvec2 active::to_pixel(const double horizontal, const double vertical, const double aspect,
+                              const unsigned int resolution)
   {
     const auto view{letterbox(aspect)};
     const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
     const auto canvas_width{canvas_height * aspect};
-    const glm::dvec2 canvas{x - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
-                            -y - (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
-    return {(canvas.x + canvas_width / 2.0) / canvas_width * view.width + view.left,
-            (canvas.y + canvas_height / 2.0) / canvas_height * view.height + view.top};
+    const glm::dvec2 canvas{horizontal - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
+                            -vertical - (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
+    return {((canvas.x + (canvas_width / 2.0)) / canvas_width * view.width) + view.left,
+            ((canvas.y + (canvas_height / 2.0)) / canvas_height * view.height) + view.top};
   }
 
   void active::reconcile(SDL_GPUDevice *video)
@@ -358,7 +357,7 @@ namespace cse::help::window
     const auto usage{SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET};
     const std::array<SDL_GPUTextureFormat, 3> potential_formats{
       SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
-    SDL_GPUTextureCreateInfo depth_texture_info{
+    const SDL_GPUTextureCreateInfo depth_texture_info{
       .type = type,
       .format = [&video, &potential_formats]() -> SDL_GPUTextureFormat
       {
@@ -677,7 +676,7 @@ namespace cse::help::window
     log("Could not disable VSYNC; no uncapped present mode is supported");
   }
 
-  glm::ivec2 active::calculate_display_center(const unsigned int w, const unsigned int h)
+  glm::ivec2 active::calculate_display_center(const unsigned int wide, const unsigned int tall)
   {
     SDL_Rect bounds{};
     if (!SDL_GetDisplayBounds(display, &bounds))
@@ -685,29 +684,29 @@ namespace cse::help::window
       sdl_log("Could not get bounds for display {}", display);
       return {0, 0};
     }
-    return {bounds.x + (bounds.w - static_cast<int>(w)) / 2, bounds.y + (bounds.h - static_cast<int>(h)) / 2};
+    return {bounds.x + ((bounds.w - static_cast<int>(wide)) / 2), bounds.y + ((bounds.h - static_cast<int>(tall)) / 2)};
   }
 
-  glm::ivec2 active::relative_to_absolute(const int x, const int y)
+  glm::ivec2 active::relative_to_absolute(const int horizontal, const int vertical)
   {
     SDL_Rect bounds{};
     if (!SDL_GetDisplayBounds(display, &bounds))
     {
       sdl_log("Could not get bounds for display {}", display);
-      return {x, y};
+      return {horizontal, vertical};
     }
-    return {x + bounds.x, y + bounds.y};
+    return {horizontal + bounds.x, vertical + bounds.y};
   }
 
-  glm::ivec2 active::absolute_to_relative(const int x, const int y)
+  glm::ivec2 active::absolute_to_relative(const int horizontal, const int vertical)
   {
     SDL_Rect bounds{};
     if (!SDL_GetDisplayBounds(display, &bounds))
     {
       sdl_log("Could not get bounds for display {}", display);
-      return {x, y};
+      return {horizontal, vertical};
     }
-    return {x - bounds.x, y - bounds.y};
+    return {horizontal - bounds.x, vertical - bounds.y};
   }
 }
 
@@ -804,7 +803,6 @@ namespace cse
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before pre-rendering");
     active.reconcile(video);
-    if (!active.acquire_swapchain_texture(video)) return false;
-    return true;
+    return active.acquire_swapchain_texture(video);
   }
 }

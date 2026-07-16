@@ -371,37 +371,6 @@ void window::on_destroy()
 ## Miscellaneous
 A grab bag of public utilities the engine exposes.
 
-### Strongly-Typed, Inheritable Enumerations
-`cse::enumeration<derived>` is a CRTP base for building open, strongly-typed enum-like sets of values - handy when a
-plain `enum` is too rigid (e.g. you want to inherit from an existing enum). Each default-constructed `value` grabs the
-next integer; passing an explicit count reseeds the counter:
-
-```cpp
-struct colour : cse::enumeration<colour>
-{
-  static inline const value red{};   // 0
-  static inline const value green{}; // 1
-  static inline const value blue{};  // 2
-};
-struct more_colour : colour
-{
-  static inline const value yellow{}; // 3
-  static inline const value cyan{};   // 4
-};
-
-auto chosen = more_colour::yellow;
-if (chosen == colour::green) { ... }
-int index = chosen;
-```
-
-Values are equality- and `<=>`-comparable, and the `enumeration_value` concept lets you constrain templates to them.
-
-### Observable Values
-`cse::property<T>` is a transparent wrapper that behaves exactly like the `T` it holds - every operator
-(`= += * == <=> ++` …), `operator->`/`*`, plus `std::formatter`, `std::hash` and `operator>>` are forwarded - but it
-also carries a `std::function<void()> change` callback you can set to react to mutations. Use it when a field needs a
-side effect on assignment without writing a getter/setter pair.
-
 ### Names & Hitboxes
 Every `"string"` you pass as an entity/timer/asset name becomes a `cse::name`: a 64-bit FNV-1a hash (computed at
 *compile time* in release builds, so lookups and comparisons are integer-cheap; debug builds also keep the original text

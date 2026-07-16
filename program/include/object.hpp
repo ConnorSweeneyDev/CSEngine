@@ -137,7 +137,7 @@ namespace cse
     object &operator=(object &&) = delete;
 
   protected:
-    object(const initial &initial_);
+    explicit object(const initial &initial_);
     virtual void on_prepare();
     virtual void on_create();
     virtual void on_synchronize();

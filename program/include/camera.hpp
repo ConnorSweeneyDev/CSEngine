@@ -102,7 +102,7 @@ namespace cse
     camera &operator=(camera &&) = delete;
 
   protected:
-    camera(const initial &initial_);
+    explicit camera(const initial &initial_);
     virtual void on_prepare();
     virtual void on_create();
     virtual void on_synchronize();
