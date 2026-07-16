@@ -76,7 +76,7 @@ namespace cse::resource
     {
       const char *directory{SDL_GetBasePath()};
       if (!directory) throw exception("Failed to resolve the application directory");
-      const csp::mapping &pack{csp::mount(directory, name_, signature_)};
+      csp::mapping &pack{csp::mount(directory, name_, signature_)};
       const unsigned char *base{pack.base()};
 
       if (hitboxes_size_) csp::verify(base + hitboxes_offset_, hitboxes_size_);
