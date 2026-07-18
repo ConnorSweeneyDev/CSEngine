@@ -50,11 +50,13 @@ game/
 ```
 
 In relation to the asset metadata required, `.aseprite` files are the only special case. Textures should contain a
-top-level `image` group (and optionally a `hitbox` group). Fonts should contain only an `image` group and mark every
-glyph with a slice named after its character (e.g. `A`, `!`, ` `); every slice must share one height (the line height)
-and a slice's width is the exact width of that character. A slice named `�` (`U+FFFD`) is rendered in place of any
-character the font doesn't cover (and in place of malformed text content); without it, an uncovered character throws.
-Both can be animated with tags, and a font's frame rectangles apply to the whole atlas.
+top-level `image` group, a top-level `pivot` group and optionally a `hitbox` group. The `pivot` group must hold exactly
+one layer containing exactly one pixel of any color per frame. The standard positioning for a pivot is the center
+calculated as ((width / 2) - 1, (height / 2) - 1). Fonts should contain only an image group and mark every glyph with a
+slice named after its character (e.g. `A`, `!`, ` `); every slice must share one height (the line height) and a slice's
+width is the exact width of that character. A slice named `�` (`U+FFFD`) is rendered in place of any character the font
+doesn't cover (and in place of malformed text content); without it, an uncovered character throws. Both textures and
+fonts can be animated with tags.
 
 ### Build System Jobs
 After pulling in CSEngine, it builds with [CSBuild](https://github.com/ConnorSweeneyDev/CSBuild) (run
@@ -374,8 +376,12 @@ A grab bag of public utilities the engine exposes.
 ### Names & Hitboxes
 Every `"string"` you pass as an entity/timer/asset name becomes a `cse::name`: a 64-bit FNV-1a hash (computed at
 *compile time* in release builds, so lookups and comparisons are integer-cheap; debug builds also keep the original text
-for diagnostics). `cse::hitbox` is just an alias of `cse::name`. You can build one explicitly from a string or a raw
-identifier, and call `.string()` / `.identifier()`.
+for diagnostics). You can build one explicitly from a string or a raw identifier, and call `.string()` /
+`.identifier()`. `cse::hitbox` is a `cse::name` plus `left`/`top`/`right`/`bottom` bounds; two hitboxes compare equal
+when their names match, regardless of bounds, so contact results can be compared directly against the generated
+`hitbox::` constants. Frame data carries hitboxes in texture pixels while collision contacts carry them in world pixels;
+either way the coordinates are y-up from the bottom-left, like every pixel coordinate the engine exposes (including
+frame pivots).
 
 ### Pointer Helpers
 Type-safe helpers for the `shared_ptr` entities the engine hands you:

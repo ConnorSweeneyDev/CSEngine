@@ -373,7 +373,7 @@ namespace cse
                 ...))
     void remove(const name target_name);
 
-    void run();
+    int run();
 
   protected:
     explicit game(const initial &initial_);

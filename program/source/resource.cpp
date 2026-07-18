@@ -7,7 +7,6 @@
 #include <span>
 #include <string>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "SDL3/SDL_filesystem.h"
@@ -15,6 +14,7 @@
 
 #include "collision.hpp"
 #include "exception.hpp"
+#include "name.hpp"
 #include "numeric.hpp"
 #include "system.hpp"
 
@@ -24,6 +24,7 @@ namespace
   {
     double left, top, right, bottom;
     double duration;
+    double pivot_x, pivot_y;
     std::uint64_t hitbox_index;
     std::uint64_t hitbox_count;
   };
@@ -42,9 +43,9 @@ namespace
 #endif
     double left, top, right, bottom;
   };
-  std::unordered_map<std::string, std::vector<std::pair<cse::hitbox, cse::rectangle>>> &hitbox_storage()
+  std::unordered_map<std::string, std::vector<cse::hitbox>> &hitbox_storage()
   {
-    static std::unordered_map<std::string, std::vector<std::pair<cse::hitbox, cse::rectangle>>> instance{};
+    static std::unordered_map<std::string, std::vector<cse::hitbox>> instance{};
     return instance;
   }
   struct glyph_record
@@ -93,13 +94,13 @@ namespace cse::resource
       for (std::size_t index{}; index < hitbox_total; ++index)
       {
         const auto &record{hitbox_records[index]};
-        const rectangle bounds{record.left, record.top, record.right, record.bottom};
 #if defined(_DEBUG)
         if (record.label_size)
           csp::verify(reinterpret_cast<const unsigned char *>(strings + record.label_offset), record.label_size);
-        hitbox_pool.push_back({hitbox(std::string(strings + record.label_offset, record.label_size)), bounds});
+        hitbox_pool.push_back({name(std::string(strings + record.label_offset, record.label_size)), record.left,
+                               record.top, record.right, record.bottom});
 #else
-        hitbox_pool.emplace_back(hitbox(record.identifier), bounds);
+        hitbox_pool.push_back({name(record.identifier), record.left, record.top, record.right, record.bottom});
 #endif
       }
 
@@ -110,11 +111,13 @@ namespace cse::resource
       for (std::size_t index{}; index < frame_total; ++index)
       {
         const auto &record{frame_records[index]};
-        std::span<const std::pair<hitbox, rectangle>> hitboxes{};
+        std::span<const hitbox> hitboxes{};
         if (record.hitbox_count)
           hitboxes = {hitbox_pool.data() + record.hitbox_index, static_cast<std::size_t>(record.hitbox_count)};
-        frame_pool.push_back(
-          animation::frame{rectangle{record.left, record.top, record.right, record.bottom}, record.duration, hitboxes});
+        frame_pool.push_back(animation::frame{rectangle{record.left, record.top, record.right, record.bottom},
+                                              record.duration,
+                                              {record.pivot_x, record.pivot_y},
+                                              hitboxes});
       }
 
       auto &glyph_pool{glyph_storage()[name_]};

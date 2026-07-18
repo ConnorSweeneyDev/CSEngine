@@ -119,15 +119,15 @@ namespace cse::help::scene
       auto object_hitboxes{collision::hitboxes(object.get())};
       if (object_hitboxes.empty()) continue;
       auto depth{static_cast<std::int64_t>(std::floor(object->active.translation.value.z + 0.5))};
-      for (const auto &[hitbox, rectangle] : object_hitboxes)
-        entries.push_back({index, depth, hitbox, collision::bounds(object.get(), rectangle)});
+      for (const auto &hitbox : object_hitboxes)
+        entries.push_back({index, depth, collision::bounds(object.get(), hitbox)});
     }
     if (entries.empty()) return;
 
     auto comparator{[](const collision::entry &first, const collision::entry &second)
                     {
                       if (first.z != second.z) return first.z < second.z;
-                      return first.bounds.left < second.bounds.left;
+                      return first.hitbox.left < second.hitbox.left;
                     }};
     bool large_disorder{};
     for (std::size_t index{1}; index < entries.size(); ++index)
@@ -153,13 +153,12 @@ namespace cse::help::scene
 
     static std::unordered_map<contact_key, std::size_t, contact_key::hash> contact_lookup{};
     contact_lookup.clear();
-    const auto emit{[&](std::size_t self_index, std::size_t target_index, const auto &own, const auto &theirs,
-                        const auto &self_bounds, const auto &target_bounds)
+    const auto emit{[&](std::size_t self_index, std::size_t target_index, const auto &own, const auto &theirs)
                     {
                       auto contact{collision::describe(objects.at(self_index)->name, objects.at(target_index).get(),
-                                                       own, theirs, self_bounds, target_bounds)};
+                                                       own, theirs)};
                       const double area{std::max(contact.overlap.x, 0.0) * std::max(contact.overlap.y, 0.0)};
-                      const contact_key key{self_index, target_index, own.identifier(), theirs.identifier()};
+                      const contact_key key{self_index, target_index, own.name.identifier(), theirs.name.identifier()};
                       const auto found{contact_lookup.find(key)};
                       if (found == contact_lookup.end())
                       {
@@ -189,16 +188,16 @@ namespace cse::help::scene
         for (std::size_t second{}; second < active_list.size();)
         {
           const auto &other{entries.at(active_list.at(second))};
-          if (other.bounds.right < current.bounds.left)
+          if (other.hitbox.right < current.hitbox.left)
           {
             active_list.at(second) = active_list.back();
             active_list.pop_back();
             continue;
           }
-          if (current.index != other.index && collision::overlaps(current.bounds, other.bounds))
+          if (current.index != other.index && collision::overlaps(current.hitbox, other.hitbox))
           {
-            emit(current.index, other.index, current.hitbox, other.hitbox, current.bounds, other.bounds);
-            emit(other.index, current.index, other.hitbox, current.hitbox, other.bounds, current.bounds);
+            emit(current.index, other.index, current.hitbox, other.hitbox);
+            emit(other.index, current.index, other.hitbox, current.hitbox);
           }
           ++second;
         }

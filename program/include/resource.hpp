@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <span>
 #include <type_traits>
-#include <utility>
 
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double4.hpp"
@@ -85,13 +84,12 @@ namespace cse
     { return frames.data() == other.frames.data() && frames.size() == other.frames.size(); }
     struct frame
     {
-      const rectangle coordinates{};
-      const double duration{};
-      std::span<const std::pair<hitbox, rectangle>> hitboxes{};
+      rectangle coordinates{};
+      double duration{};
+      glm::dvec2 pivot{};
+      std::span<const hitbox> hitboxes{};
     };
     std::span<const frame> frames{};
-    std::size_t start{};
-    std::size_t end{};
   };
   struct playback
   {

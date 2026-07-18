@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <utility>
 
 #include "glm/ext/vector_double2.hpp"
 
@@ -13,7 +12,15 @@
 
 namespace cse
 {
-  using hitbox = name;
+  struct hitbox
+  {
+    bool operator==(const hitbox &other) const { return name == other.name; }
+    cse::name name{};
+    double left{};
+    double top{};
+    double right{};
+    double bottom{};
+  };
 
   struct contact
   {
@@ -21,13 +28,11 @@ namespace cse
     {
       cse::name name{};
       cse::hitbox hitbox{};
-      rectangle bounds{};
     } self;
     struct target
     {
       object *pointer{};
       cse::hitbox hitbox{};
-      rectangle bounds{};
     } target;
 
     cse::axis axis{};
@@ -43,14 +48,13 @@ namespace cse
       std::size_t index{};
       std::int64_t z{};
       cse::hitbox hitbox{};
-      rectangle bounds{};
     };
 
     bool overlaps(const rectangle &first, const rectangle &second);
-    std::span<const std::pair<hitbox, rectangle>> hitboxes(const cse::object *object);
-    rectangle bounds(const cse::object *object, const rectangle &bounds);
-    contact describe(const name self_name, cse::object *target, const hitbox own, const hitbox theirs,
-                     const rectangle &self_bounds, const rectangle &target_bounds);
-    hitbox hit(const cse::interface *interface, const glm::dvec2 &point);
+    bool overlaps(const cse::hitbox &first, const cse::hitbox &second);
+    std::span<const cse::hitbox> hitboxes(const cse::object *object);
+    cse::hitbox bounds(const cse::object *object, const cse::hitbox &source);
+    contact describe(const name self_name, cse::object *target, const cse::hitbox &own, const cse::hitbox &theirs);
+    cse::hitbox hit(const cse::interface *interface, const glm::dvec2 &point);
   }
 }

@@ -100,7 +100,8 @@ namespace cse::help::interface
     void synchronize(previous &last);
 
     glm::dmat4 calculate_model_matrix(const previous &last, const unsigned int frame_width,
-                                      const unsigned int frame_height, const double alpha) const;
+                                      const unsigned int frame_height, const glm::dvec2 &pivot,
+                                      const double alpha) const;
     glm::dmat4 calculate_text_matrix(const previous &last, const double width, const double height,
                                      const glm::dvec2 &offset, const double alpha) const;
     void animate(const double tick);
@@ -119,6 +120,10 @@ namespace cse::help::interface
     help::mixer mixer{};
     help::phase phase{};
   };
+
+  glm::dvec2 anchor(const int steps, const cse::flip &flip, const double scale_x, const double scale_y,
+                    const unsigned int frame_width, const unsigned int frame_height, const glm::dvec2 &pivot);
+  glm::dvec2 unrotate(const glm::dvec2 &value, const int steps);
 }
 
 namespace cse

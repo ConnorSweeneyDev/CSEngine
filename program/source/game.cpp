@@ -713,8 +713,11 @@ namespace cse::help::game
                                      : std::floor(scale.x + 0.5) * width / 2.0};
       const double snapped_h{rotated ? std::floor(scale.x + 0.5) * width / 2.0
                                      : std::floor(scale.y + 0.5) * height / 2.0};
-      const double snapped_x{std::floor(translation.x + 0.5) - (std::llround(snapped_w * 2.0) % 2 != 0 ? 0.5 : 0.0)};
-      const double snapped_y{std::floor(translation.y + 0.5) - (std::llround(snapped_h * 2.0) % 2 != 0 ? 0.5 : 0.0)};
+      const auto offset{help::object::anchor(steps, flip, std::floor(scale.x + 0.5), std::floor(scale.y + 0.5),
+                                             image.frame_width, image.frame_height,
+                                             element->active.texture.animation.frames[frame_index].pivot)};
+      const double snapped_x{std::floor(translation.x + 0.5) + offset.x};
+      const double snapped_y{std::floor(translation.y + 0.5) + offset.y};
       const double snapped_z{std::floor(translation.z + 0.5)};
       graphics_occluder::entry entry{};
       entry.rectangle.at(0) = static_cast<float>(snapped_x - snapped_w);
@@ -881,10 +884,18 @@ namespace cse::help::game
       transparencies.push_back(
         element->active.texture.color.alpha.interpolated(element->previous.texture.color.alpha, alpha));
       const auto translation{element->active.translation.interpolated(element->previous.translation, alpha)};
+      const auto rotation{element->active.rotation.interpolated(element->previous.rotation, alpha)};
       const auto scale{element->active.scale.interpolated(element->previous.scale, alpha)};
-      const auto width{std::floor(scale.x + 0.5) * static_cast<double>(element->active.texture.image.frame_width)};
-      const auto height{std::floor(scale.y + 0.5) * static_cast<double>(element->active.texture.image.frame_height)};
-      const glm::dvec3 center{std::floor(translation.x + 0.5), std::floor(translation.y + 0.5),
+      const auto scale_x{std::floor(scale.x + 0.5)};
+      const auto scale_y{std::floor(scale.y + 0.5)};
+      const auto width{scale_x * static_cast<double>(element->active.texture.image.frame_width)};
+      const auto height{scale_y * static_cast<double>(element->active.texture.image.frame_height)};
+      const auto offset{help::object::anchor(static_cast<int>(std::floor(rotation + 0.5)),
+                                             element->active.texture.flip, scale_x, scale_y,
+                                             element->active.texture.image.frame_width,
+                                             element->active.texture.image.frame_height,
+                                             element->active.texture.animation.frames[current].pivot)};
+      const glm::dvec3 center{std::floor(translation.x + 0.5) + offset.x, std::floor(translation.y + 0.5) + offset.y,
                               std::floor(translation.z + 0.5)};
       const auto radius{(0.5 * std::sqrt((width * width) + (height * height))) + cull_margin};
       shown.push_back(inside_frustum(center, radius) ? 1 : 0);
@@ -913,9 +924,9 @@ namespace cse::help::game
       const auto color{
         glm::vec4{element->active.texture.color.tint.interpolated(element->previous.texture.color.tint, alpha)}};
       const auto transparency{transparencies.at(position)};
-      const glm::mat4 model{element->active.calculate_model_matrix(element->previous,
-                                                                   element->active.texture.image.frame_width,
-                                                                   element->active.texture.image.frame_height, alpha)};
+      const glm::mat4 model{element->active.calculate_model_matrix(
+        element->previous, element->active.texture.image.frame_width, element->active.texture.image.frame_height,
+        element->active.texture.animation.frames[element->active.texture.playback.frame].pivot, alpha)};
       graphics_object::sample data{};
       SDL_memcpy(data.model.data(), &model, sizeof(model));
       data.red = color.r;
@@ -961,9 +972,9 @@ namespace cse::help::game
         glm::vec4{element->active.texture.color.tint.interpolated(element->previous.texture.color.tint, alpha)}};
       const auto transparency{
         element->active.texture.color.alpha.interpolated(element->previous.texture.color.alpha, alpha)};
-      const glm::mat4 model{element->active.calculate_model_matrix(element->previous,
-                                                                   element->active.texture.image.frame_width,
-                                                                   element->active.texture.image.frame_height, alpha)};
+      const glm::mat4 model{element->active.calculate_model_matrix(
+        element->previous, element->active.texture.image.frame_width, element->active.texture.image.frame_height,
+        element->active.texture.animation.frames[current].pivot, alpha)};
       graphics_object::sample data{};
       SDL_memcpy(data.model.data(), &model, sizeof(model));
       data.red = color.r;
@@ -1008,10 +1019,16 @@ namespace cse::help::game
                                std::max(1.0, std::floor(scale.x + 0.5))};
       const auto element_height{static_cast<double>(element->active.texture.image.frame_height) *
                                 std::max(1.0, std::floor(scale.y + 0.5))};
-      const auto box_left{-element_width / 2.0};
-      const auto box_right{element_width / 2.0};
-      const auto box_top{element_height / 2.0};
-      const auto box_bottom{-element_height / 2.0};
+      const int steps{static_cast<int>(std::floor(element->active.rotation.value + 0.5))};
+      const auto box_center{help::interface::unrotate(
+        help::interface::anchor(steps, flip, std::floor(scale.x + 0.5), std::floor(scale.y + 0.5),
+                                element->active.texture.image.frame_width, element->active.texture.image.frame_height,
+                                element->active.texture.animation.frames[current].pivot),
+        steps)};
+      const auto box_left{box_center.x - (element_width / 2.0)};
+      const auto box_right{box_center.x + (element_width / 2.0)};
+      const auto box_top{box_center.y + (element_height / 2.0)};
+      const auto box_bottom{box_center.y - (element_height / 2.0)};
 
       constexpr std::uint32_t undefined{0xFFFD};
       const auto find{[&](const std::uint32_t character) -> const cse::font::glyph &
@@ -1509,7 +1526,7 @@ namespace cse
     return *scene;
   }
 
-  void game::run()
+  int game::run()
   {
     prepare();
     create();
@@ -1535,6 +1552,7 @@ namespace cse
     }
     destroy();
     clean();
+    return success;
   }
 
   void game::pre_prepare() {}

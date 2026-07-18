@@ -72,22 +72,56 @@ namespace cse::help::interface
     target.clicked = {};
   }
 
+  glm::dvec2 anchor(const int steps, const cse::flip &flip, const double scale_x, const double scale_y,
+                    const unsigned int frame_width, const unsigned int frame_height, const glm::dvec2 &pivot)
+  {
+    const auto width{static_cast<double>(frame_width)};
+    const auto height{static_cast<double>(frame_height)};
+    const auto flipped_x{flip.horizontal ? width - 1.0 - pivot.x : pivot.x};
+    const auto flipped_y{flip.vertical ? height - 1.0 - pivot.y : pivot.y};
+    const glm::dvec2 center{(flipped_x + 0.5 - (width / 2.0)) * scale_x, (flipped_y + 0.5 - (height / 2.0)) * scale_y};
+    const int turns{((steps % 4) + 4) % 4};
+    glm::dvec2 rotated{center};
+    switch (turns)
+    {
+      case 1: rotated = {center.y, -center.x}; break;
+      case 2: rotated = {-center.x, -center.y}; break;
+      case 3: rotated = {-center.y, center.x}; break;
+      default: break;
+    }
+    const auto extent_x{turns % 2 != 0 ? scale_y : scale_x};
+    const auto extent_y{turns % 2 != 0 ? scale_x : scale_y};
+    return {(std::llround(extent_x) % 2 == 0 ? 0.5 : 0.0) - rotated.x,
+            (std::llround(extent_y) % 2 == 0 ? -0.5 : 0.0) - rotated.y};
+  }
+
+  glm::dvec2 unrotate(const glm::dvec2 &value, const int steps)
+  {
+    switch (((steps % 4) + 4) % 4)
+    {
+      case 1: return {-value.y, value.x};
+      case 2: return {-value.x, -value.y};
+      case 3: return {value.y, -value.x};
+      default: return value;
+    }
+  }
+
   glm::dmat4 active::calculate_model_matrix(const previous &last, const unsigned int frame_width,
-                                            const unsigned int frame_height, const double alpha) const
+                                            const unsigned int frame_height, const glm::dvec2 &pivot,
+                                            const double alpha) const
   {
     auto interpolated_translation = translation.interpolated(last.translation, alpha);
     auto interpolated_rotation = rotation.interpolated(last.rotation, alpha);
     auto interpolated_scale = scale.interpolated(last.scale, alpha);
     const auto scale_x{std::floor(interpolated_scale.x + 0.5)};
     const auto scale_y{std::floor(interpolated_scale.y + 0.5)};
-    const auto size_x{std::llround(scale_x * frame_width)};
-    const auto size_y{std::llround(scale_y * frame_height)};
+    const int steps{static_cast<int>(std::floor(interpolated_rotation + 0.5))};
+    const auto offset{anchor(steps, texture.flip, scale_x, scale_y, frame_width, frame_height, pivot)};
     auto model_matrix{glm::dmat4(1.0)};
-    model_matrix = glm::translate(
-      model_matrix, {std::floor(interpolated_translation.x + 0.5), std::floor(interpolated_translation.y + 0.5), 0.0});
+    model_matrix = glm::translate(model_matrix, {std::floor(interpolated_translation.x + 0.5) + offset.x,
+                                                 std::floor(interpolated_translation.y + 0.5) + offset.y, 0.0});
     model_matrix =
       glm::rotate(model_matrix, glm::radians(std::floor(interpolated_rotation + 0.5) * -90.0), {0.0, 0.0, 1.0});
-    model_matrix = glm::translate(model_matrix, {size_x % 2 == 0 ? 0.5 : 0.0, size_y % 2 == 0 ? -0.5 : 0.0, 0.0});
     model_matrix = glm::scale(model_matrix, {scale_x * static_cast<double>(frame_width) / 2.0,
                                              scale_y * static_cast<double>(frame_height) / 2.0, 1.0});
     return model_matrix;
