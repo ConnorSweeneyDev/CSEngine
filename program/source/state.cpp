@@ -8,29 +8,6 @@
 #include <string>
 #include <system_error>
 #include <utility>
-#if defined(_WIN32)
-  #ifndef WIN32_LEAN_AND_MEAN
-    #define WIN32_LEAN_AND_MEAN
-  #endif
-  #ifndef NOMINMAX
-    #define NOMINMAX
-  #endif
-  #include <combaseapi.h>
-  #include <knownfolders.h>
-  #include <shlobj_core.h>
-  #include <winerror.h>
-  #include <winnt.h>
-  #ifdef near
-    #undef near
-  #endif
-  #ifdef far
-    #undef far
-  #endif
-#elif defined(__linux__)
-  #include <cstdlib>
-  #include <pwd.h>
-  #include <unistd.h>
-#endif
 
 #include "SDL3/SDL_filesystem.h"
 #include "nlohmann/json_fwd.hpp"

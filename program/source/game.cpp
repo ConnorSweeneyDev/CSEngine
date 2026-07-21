@@ -75,14 +75,16 @@ namespace cse::help::game
     SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
       sdl_log("Could not set app metadata type");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING, "Connor.Sweeney.Engine"))
-      sdl_log("Could not set app metadata identifier");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, "CSEngine"))
-      sdl_log("Could not set app metadata name");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, "1.0.0"))
-      sdl_log("Could not set app metadata version");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, "Connor Sweeney"))
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, help::meta.organization.c_str()))
       sdl_log("Could not set app metadata creator");
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, help::meta.application.c_str()))
+      sdl_log("Could not set app metadata name");
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, help::meta.version.c_str()))
+      sdl_log("Could not set app metadata version");
+    if (!SDL_SetAppMetadataProperty(
+          SDL_PROP_APP_METADATA_IDENTIFIER_STRING,
+          (help::meta.organization + "-" + help::meta.application + "-" + help::meta.version).c_str()))
+      sdl_log("Could not set app metadata identifier");
 
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be prepared");
     audio_ready = false;

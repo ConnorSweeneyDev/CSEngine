@@ -10,6 +10,7 @@ namespace cse
   {
     std::string organization{"CSEngine"};
     std::string application{"Base"};
+    std::string version{"1.0.0"};
   };
   class game;
   class state;
