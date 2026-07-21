@@ -18,17 +18,14 @@
 
 namespace cse
 {
-  state::state(std::filesystem::path location_)
-    : location{[&location_]()
-               {
-                 location_.make_preferred();
-                 return std::move(location_);
-               }()}
+  state::state(const initial &initial_)
+    : storage{[&initial_]()
+              {
+                std::filesystem::path path{initial_.storage};
+                path.make_preferred();
+                return path;
+              }()}
   { building = this; }
-
-  void state::enlist(std::function<void(nlohmann::json &json)> writer,
-                     std::function<void(const nlohmann::json &json)> reader)
-  { entries.push_back({std::move(writer), std::move(reader)}); }
 
   void state::read()
   {
@@ -37,11 +34,11 @@ namespace cse
     {
       const char *directory{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
       if (!directory) throw sdl_exception("Failed to resolve the state directory");
-      file = directory / location;
+      file = directory / storage;
     }
     catch (const std::exception &error)
     {
-      log("Could not read state '{}': {}", location.string(), error.what());
+      log("Could not read state '{}': {}", storage.string(), error.what());
       return;
     }
     file += ".json";
@@ -95,11 +92,11 @@ namespace cse
     {
       const char *directory{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
       if (!directory) throw sdl_exception("Failed to resolve the state directory");
-      file = directory / location;
+      file = directory / storage;
     }
     catch (const std::exception &error)
     {
-      log("Could not write state '{}': {}", location.string(), error.what());
+      log("Could not write state '{}': {}", storage.string(), error.what());
       return;
     }
     file += ".json";
@@ -122,4 +119,8 @@ namespace cse
     stream << json.dump(2);
     if (!stream) log("Could not write state file '{}'", file.string());
   }
+
+  void state::enlist(std::function<void(nlohmann::json &json)> writer,
+                     std::function<void(const nlohmann::json &json)> reader)
+  { entries.push_back({std::move(writer), std::move(reader)}); }
 }

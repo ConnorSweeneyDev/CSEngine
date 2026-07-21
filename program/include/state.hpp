@@ -17,6 +17,10 @@ namespace cse
     friend class game;
 
   protected:
+    struct initial
+    {
+      const std::filesystem::path storage{};
+    };
     template <typename type> class field
     {
     public:
@@ -60,7 +64,7 @@ namespace cse
     void write() const;
 
   protected:
-    explicit state(std::filesystem::path location_);
+    explicit state(const initial &initial_);
 
   private:
     void enlist(std::function<void(nlohmann::json &json)> writer,
@@ -68,7 +72,7 @@ namespace cse
 
   public:
     cse::name name{};
-    std::filesystem::path location{};
+    std::filesystem::path storage{};
 
   private:
     std::vector<entry> entries{};
@@ -87,15 +91,15 @@ namespace cse
 #define CSE_EXPAND3(...) CSE_EXPAND2(CSE_EXPAND2(CSE_EXPAND2(CSE_EXPAND2(__VA_ARGS__))))
 #define CSE_EXPAND2(...) CSE_EXPAND1(CSE_EXPAND1(CSE_EXPAND1(CSE_EXPAND1(__VA_ARGS__))))
 #define CSE_EXPAND1(...) __VA_ARGS__
-#define CSE_FOR_EACH(op, ...) __VA_OPT__(CSE_EXPAND(CSE_FOR_EACH_(op, __VA_ARGS__)))
-#define CSE_FOR_EACH_(op, a, ...) op(a) __VA_OPT__(CSE_FOR_EACH_AGAIN CSE_PARENS(op, __VA_ARGS__))
+#define CSE_FOR_EACH(opt, ...) __VA_OPT__(CSE_EXPAND(CSE_FOR_EACH_(opt, __VA_ARGS__)))
+#define CSE_FOR_EACH_(opt, item, ...) opt(item) __VA_OPT__(CSE_FOR_EACH_AGAIN CSE_PARENS(opt, __VA_ARGS__))
 #define CSE_FOR_EACH_AGAIN() CSE_FOR_EACH_
 
-#define CSE_ENLIST_DECLARE(elem) CSE_ENLIST_DECLARE_ elem
+#define CSE_ENLIST_DECLARE(element) CSE_ENLIST_DECLARE_ element
 #define CSE_ENLIST_DECLARE_(name, type, ...) CSE_DEPAREN(type) name __VA_ARGS__;
-#define CSE_ENLIST_WRITE(elem) CSE_ENLIST_WRITE_ elem
+#define CSE_ENLIST_WRITE(element) CSE_ENLIST_WRITE_ element
 #define CSE_ENLIST_WRITE_(name, type, ...) json[#name] = value.name;
-#define CSE_ENLIST_READ(elem) CSE_ENLIST_READ_ elem
+#define CSE_ENLIST_READ(element) CSE_ENLIST_READ_ element
 #define CSE_ENLIST_READ_(name, type, ...)                                                                              \
   if (json.contains(#name)) json.at(#name).get_to(value.name);
 #define ENLIST(identifier, ...)                                                                                        \
