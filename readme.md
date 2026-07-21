@@ -341,7 +341,7 @@ private:
          (vsync, bool, {true}));
 
 public:
-  settings() : cse::state("settings") {}
+  settings() : cse::state({.storage = "settings"}) {}
   FIELD(window, settings::window, {});
 };
 ```

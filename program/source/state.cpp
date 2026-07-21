@@ -21,6 +21,7 @@ namespace cse
   state::state(const initial &initial_)
     : storage{[&initial_]()
               {
+                if (initial_.storage.empty()) throw exception("State storage path cannot be empty");
                 std::filesystem::path path{initial_.storage};
                 path.make_preferred();
                 return path;
