@@ -9,7 +9,6 @@
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
 
-#include "collision.hpp"
 #include "core.hpp"
 #include "mixer.hpp"
 #include "name.hpp"

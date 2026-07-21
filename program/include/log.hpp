@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <ios>
@@ -8,7 +9,9 @@
 #include <utility>
 
 #include "SDL3/SDL_error.h"
+#include "SDL3/SDL_filesystem.h"
 
+#include "core.hpp"
 #include "print.hpp"
 
 namespace cse
@@ -22,10 +25,13 @@ namespace cse
   template <typename... message_arguments>
   void log(std::format_string<message_arguments...> message, message_arguments &&...arguments)
   {
+    const char *directory{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
+    if (!directory) return;
     auto formatted_message{std::format(message, std::forward<message_arguments>(arguments)...)};
     print<CLOG>("{}.\n", formatted_message);
     const std::scoped_lock<std::mutex> lock(help::log_mutex);
-    std::ofstream stream{"log.txt", help::log_started ? std::ios::app : std::ios::trunc};
+    std::ofstream stream{std::filesystem::path(directory) / "log.txt",
+                         help::log_started ? std::ios::app : std::ios::trunc};
     if (!stream) return;
     help::log_started = true;
     stream << formatted_message << ".\n";

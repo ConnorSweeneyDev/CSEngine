@@ -890,9 +890,8 @@ namespace cse::help::game
       const auto scale_y{std::floor(scale.y + 0.5)};
       const auto width{scale_x * static_cast<double>(element->active.texture.image.frame_width)};
       const auto height{scale_y * static_cast<double>(element->active.texture.image.frame_height)};
-      const auto offset{help::object::anchor(static_cast<int>(std::floor(rotation + 0.5)),
-                                             element->active.texture.flip, scale_x, scale_y,
-                                             element->active.texture.image.frame_width,
+      const auto offset{help::object::anchor(static_cast<int>(std::floor(rotation + 0.5)), element->active.texture.flip,
+                                             scale_x, scale_y, element->active.texture.image.frame_width,
                                              element->active.texture.image.frame_height,
                                              element->active.texture.animation.frames[current].pivot)};
       const glm::dvec3 center{std::floor(translation.x + 0.5) + offset.x, std::floor(translation.y + 0.5) + offset.y,
@@ -1510,8 +1509,7 @@ namespace cse
                initial_.clear, initial_.master, initial_.sound,  initial_.music},
       active{initial_.tick,  initial_.frame,  initial_.aspect, initial_.resolution,
              initial_.clear, initial_.master, initial_.sound,  initial_.music}
-  {
-  }
+  { help::meta = initial_.meta; }
 
   scene &game::current(const name scene_name)
   {

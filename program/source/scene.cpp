@@ -153,23 +153,23 @@ namespace cse::help::scene
 
     static std::unordered_map<contact_key, std::size_t, contact_key::hash> contact_lookup{};
     contact_lookup.clear();
-    const auto emit{[&](std::size_t self_index, std::size_t target_index, const auto &own, const auto &theirs)
-                    {
-                      auto contact{collision::describe(objects.at(self_index)->name, objects.at(target_index).get(),
-                                                       own, theirs)};
-                      const double area{std::max(contact.overlap.x, 0.0) * std::max(contact.overlap.y, 0.0)};
-                      const contact_key key{self_index, target_index, own.name.identifier(), theirs.name.identifier()};
-                      const auto found{contact_lookup.find(key)};
-                      if (found == contact_lookup.end())
-                      {
-                        contact_lookup.emplace(key, contacts.size());
-                        contacts.push_back(std::move(contact));
-                        return;
-                      }
-                      auto &existing{contacts.at(found->second)};
-                      const double existing_area{std::max(existing.overlap.x, 0.0) * std::max(existing.overlap.y, 0.0)};
-                      if (area > existing_area) existing = std::move(contact);
-                    }};
+    const auto emit{
+      [&](std::size_t self_index, std::size_t target_index, const auto &own, const auto &theirs)
+      {
+        auto contact{collision::describe(objects.at(self_index)->name, objects.at(target_index).get(), own, theirs)};
+        const double area{std::max(contact.overlap.x, 0.0) * std::max(contact.overlap.y, 0.0)};
+        const contact_key key{self_index, target_index, own.name.identifier(), theirs.name.identifier()};
+        const auto found{contact_lookup.find(key)};
+        if (found == contact_lookup.end())
+        {
+          contact_lookup.emplace(key, contacts.size());
+          contacts.push_back(std::move(contact));
+          return;
+        }
+        auto &existing{contacts.at(found->second)};
+        const double existing_area{std::max(existing.overlap.x, 0.0) * std::max(existing.overlap.y, 0.0)};
+        if (area > existing_area) existing = std::move(contact);
+      }};
 
     static std::vector<std::size_t> active_list{};
     active_list.clear();

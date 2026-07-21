@@ -65,7 +65,6 @@ namespace cse
   private:
     void enlist(std::function<void(nlohmann::json &json)> writer,
                 std::function<void(const nlohmann::json &json)> reader);
-    std::filesystem::path directory() const;
 
   public:
     cse::name name{};

@@ -1,10 +1,16 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <type_traits>
 
 namespace cse
 {
+  struct meta
+  {
+    std::string organization{"CSEngine"};
+    std::string application{"Base"};
+  };
   class game;
   class state;
   class window;
@@ -17,6 +23,7 @@ namespace cse
 
 namespace cse::help
 {
+  inline cse::meta meta{};
   enum class phase : std::uint8_t
   {
     CLEANED,

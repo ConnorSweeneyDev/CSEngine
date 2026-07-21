@@ -9,19 +9,10 @@
 #include "core.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
+#include "resource.hpp"
 
 namespace cse
 {
-  struct hitbox
-  {
-    bool operator==(const hitbox &other) const { return name == other.name; }
-    cse::name name{};
-    double left{};
-    double top{};
-    double right{};
-    double bottom{};
-  };
-
   struct contact
   {
     struct self

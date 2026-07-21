@@ -12,7 +12,6 @@
 #include "SDL3/SDL_filesystem.h"
 #include "csp/csp.hpp"
 
-#include "collision.hpp"
 #include "exception.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
@@ -76,7 +75,7 @@ namespace cse::resource
     try
     {
       const char *directory{SDL_GetBasePath()};
-      if (!directory) throw exception("Failed to resolve the application directory");
+      if (!directory) throw sdl_exception("Failed to resolve the application directory");
       csp::mapping &pack{csp::mount(directory, name_, signature_)};
       const unsigned char *base{pack.base()};
 

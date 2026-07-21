@@ -8,7 +8,7 @@
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double4.hpp"
 
-#include "collision.hpp"
+#include "name.hpp"
 #include "numeric.hpp"
 #include "temporal.hpp"
 
@@ -77,6 +77,15 @@ namespace cse
   {
     bool wrap{};
     bool clip{true};
+  };
+  struct hitbox
+  {
+    bool operator==(const hitbox &other) const { return name == other.name; }
+    cse::name name{};
+    double left{};
+    double top{};
+    double right{};
+    double bottom{};
   };
   struct animation
   {

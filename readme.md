@@ -101,8 +101,8 @@ int cse::main(int argc, char *argv[])
 ```
 
 ### Composing the Game
-Subclass `cse::game` and set tuning defaults in the constructor (tick rate, frame rate, aspect ratio, virtual pixel
-resolution, clear colour, audio buses):
+Subclass `cse::game` and set tuning defaults in the constructor (meta info, tick rate, frame rate, aspect ratio, virtual
+pixel resolution, clear colour, audio buses):
 
 ```cpp
 namespace custom
@@ -121,7 +121,8 @@ namespace custom
   };
 
   game::game()
-    : cse::game({.tick = 300.0,
+    : cse::game({.meta = {.organization = "ConnorSweeneyDev", .application = "CSGame"},
+                 .tick = 300.0,
                  .frame = 144.0,
                  .aspect = {.value = 16.0 / 9.0, .interpolate = true},
                  .resolution = 100,
@@ -340,7 +341,7 @@ private:
          (vsync, bool, {true}));
 
 public:
-  settings() : cse::state("CSGame/settings") {}
+  settings() : cse::state("settings") {}
   FIELD(window, settings::window, {});
 };
 ```

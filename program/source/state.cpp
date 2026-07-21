@@ -8,7 +8,6 @@
 #include <string>
 #include <system_error>
 #include <utility>
-
 #if defined(_WIN32)
   #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN
@@ -21,7 +20,6 @@
   #include <shlobj_core.h>
   #include <winerror.h>
   #include <winnt.h>
-
   #ifdef near
     #undef near
   #endif
@@ -34,8 +32,10 @@
   #include <unistd.h>
 #endif
 
+#include "SDL3/SDL_filesystem.h"
 #include "nlohmann/json_fwd.hpp"
 
+#include "core.hpp"
 #include "exception.hpp"
 #include "log.hpp"
 
@@ -58,7 +58,9 @@ namespace cse
     std::filesystem::path file{};
     try
     {
-      file = directory() / location;
+      const char *directory{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
+      if (!directory) throw sdl_exception("Failed to resolve the state directory");
+      file = directory / location;
     }
     catch (const std::exception &error)
     {
@@ -114,7 +116,9 @@ namespace cse
     std::filesystem::path file{};
     try
     {
-      file = directory() / location;
+      const char *directory{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
+      if (!directory) throw sdl_exception("Failed to resolve the state directory");
+      file = directory / location;
     }
     catch (const std::exception &error)
     {
@@ -140,26 +144,5 @@ namespace cse
     }
     stream << json.dump(2);
     if (!stream) log("Could not write state file '{}'", file.string());
-  }
-
-  std::filesystem::path state::directory() const
-  {
-#if defined(_WIN32)
-    PWSTR raw{};
-    if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &raw)))
-    {
-      CoTaskMemFree(raw);
-      throw exception("Could not resolve local application data directory");
-    }
-    std::filesystem::path directory{raw};
-    CoTaskMemFree(raw);
-    return directory;
-#elif defined(__linux__)
-    if (const char *data{std::getenv("XDG_DATA_HOME")}; data && *data) return std::filesystem::path{data};
-    if (const char *home{std::getenv("HOME")}; home && *home) return std::filesystem::path{home} / ".local" / "share";
-    if (const passwd *object{getpwuid(getuid())}; object && object->pw_dir)
-      return std::filesystem::path{object->pw_dir} / ".local" / "share";
-    throw exception("Could not resolve user data directory");
-#endif
   }
 }
