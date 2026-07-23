@@ -49,14 +49,9 @@ game/
 | | music/*.opus        # streamed music
 ```
 
-In relation to the asset metadata required, `.aseprite` files are the only special case. Textures should contain a
-top-level `image` group, a top-level `pivot` group and optionally a `hitbox` group. The `pivot` group must hold exactly
-one layer containing exactly one pixel of any color per frame. The standard positioning for a pivot is the center
-calculated as ((width / 2) - 1, (height / 2) - 1). Fonts should contain only an image group and mark every glyph with a
-slice named after its character (e.g. `A`, `!`, ` `); every slice must share one height (the line height) and a slice's
-width is the exact width of that character. A slice named `�` (`U+FFFD`) is rendered in place of any character the font
-doesn't cover (and in place of malformed text content); without it, an uncovered character throws. Both textures and
-fonts can be animated with tags.
+There are very specific rules about the format of the aseprite, wav and opus files, all of which are detailed in the
+[CSData](https://github.com/ConnorSweeneyDev/CSData) helper repository. Ensure that your assets are valid, any invalid ones
+error out at build time so you can find them.
 
 ### Build System Jobs
 After pulling in CSEngine, it builds with [CSBuild](https://github.com/ConnorSweeneyDev/CSBuild) (run
