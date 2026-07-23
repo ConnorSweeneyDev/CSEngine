@@ -50,8 +50,8 @@ game/
 ```
 
 There are very specific rules about the format of the aseprite, wav and opus files, all of which are detailed in the
-[CSData](https://github.com/ConnorSweeneyDev/CSData) helper repository. Ensure that your assets are valid, any invalid ones
-error out at build time so you can find them.
+[CSData](https://github.com/ConnorSweeneyDev/CSData) helper repository. Ensure that your assets are valid, any invalid
+ones error out at build time so you can find them.
 
 ### Build System Jobs
 After pulling in CSEngine, it builds with [CSBuild](https://github.com/ConnorSweeneyDev/CSBuild) (run
