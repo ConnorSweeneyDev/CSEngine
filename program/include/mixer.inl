@@ -61,7 +61,7 @@ namespace cse::help
     std::vector<name> names{};
     names.reserve(entries.size());
     for (const auto &[name, track] : entries) names.push_back(name);
-    for (const auto name : names)
+    for (const auto &name : names)
       if (auto iterator{entries.find(name)}; iterator != entries.end()) function(name, iterator->second);
   }
 
@@ -71,7 +71,7 @@ namespace cse::help
     std::vector<name> names{};
     names.reserve(entries.size());
     for (const auto &[name, track] : entries) names.push_back(name);
-    for (const auto name : names)
+    for (const auto &name : names)
       if (auto iterator{entries.find(name)}; iterator != entries.end()) function(name, iterator->second);
   }
 
@@ -91,7 +91,7 @@ namespace cse::help
 
   template <trait::is_audio audio> void mixer::remove(std::initializer_list<name> names)
   {
-    for (const auto name : names) select<audio>().erase(name);
+    for (const auto &name : names) select<audio>().erase(name);
   }
 
   template <trait::is_audio audio> void mixer::clear() noexcept { select<audio>().clear(); }

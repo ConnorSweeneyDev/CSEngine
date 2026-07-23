@@ -39,7 +39,7 @@ namespace cse::help
     std::vector<name> names{};
     names.reserve(entries.size());
     for (const auto &[name, target] : entries) names.push_back(name);
-    for (const auto name : names)
+    for (const auto &name : names)
       if (auto iterator{entries.find(name)}; iterator != entries.end()) function(name, iterator->second.state);
   }
 
@@ -48,7 +48,7 @@ namespace cse::help
     std::vector<name> names{};
     names.reserve(entries.size());
     for (const auto &[name, target] : entries) names.push_back(name);
-    for (const auto name : names)
+    for (const auto &name : names)
       if (auto iterator{entries.find(name)}; iterator != entries.end()) function(name, iterator->second.state);
   }
 

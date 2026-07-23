@@ -39,10 +39,9 @@ namespace
 
 namespace cse::resource
 {
-  loader::loader(const char *name_, const std::uint64_t signature_, const std::uint64_t frames_offset_,
-                 const std::uint64_t frames_size_, const std::uint64_t hitboxes_offset_,
-                 const std::uint64_t hitboxes_size_, const std::uint64_t glyphs_offset_,
-                 const std::uint64_t glyphs_size_
+  loader::loader(const char *name_, const std::uint64_t signature_, const std::uint64_t hitboxes_offset_,
+                 const std::uint64_t hitboxes_size_, const std::uint64_t frames_offset_,
+                 const std::uint64_t frames_size_, const std::uint64_t glyphs_offset_, const std::uint64_t glyphs_size_
 #if defined(_DEBUG)
                  ,
                  const std::uint64_t strings_offset_
