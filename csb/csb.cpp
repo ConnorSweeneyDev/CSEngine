@@ -71,6 +71,7 @@ int csb::build()
                                        },
                                      }}});
 
+  csb::subproject_install({"ConnorSweeneyDev/CSData", "1.0.0", HEADER_LIBRARY});
   csb::subproject_install({"ConnorSweeneyDev/CSPack", "1.0.0", HEADER_LIBRARY});
 
   csb::generate_clang_format({{"BasedOnStyle", "LLVM"},
@@ -167,6 +168,7 @@ int csb::build()
 
   std::vector<std::filesystem::path> external_includes{};
   for (const auto &entry : csb::directory(csb::vcpkg_include())) external_includes.push_back(entry.path());
+  for (const auto &entry : csb::directory(csb::subproject_include("CSData"))) external_includes.push_back(entry.path());
   for (const auto &entry : csb::directory(csb::subproject_include("CSPack"))) external_includes.push_back(entry.path());
   csb::multi_task_run(
     [](const std::filesystem::path &source, const std::vector<std::filesystem::path> &,

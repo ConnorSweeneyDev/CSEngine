@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "SDL3/SDL_filesystem.h"
+#include "csd/csd.hpp"
 #include "csp/csp.hpp"
 
 #include "exception.hpp"
@@ -19,40 +20,16 @@
 
 namespace
 {
-  struct frame_record
-  {
-    double left, top, right, bottom;
-    double duration;
-    double pivot_x, pivot_y;
-    std::uint64_t hitbox_index;
-    std::uint64_t hitbox_count;
-  };
-  std::unordered_map<std::string, std::vector<cse::animation::frame>> &frame_storage()
-  {
-    static std::unordered_map<std::string, std::vector<cse::animation::frame>> instance{};
-    return instance;
-  }
-  struct hitbox_record
-  {
-#if defined(_DEBUG)
-    std::uint64_t label_offset;
-    std::uint64_t label_size;
-#else
-    std::uint64_t identifier;
-#endif
-    double left, top, right, bottom;
-  };
   std::unordered_map<std::string, std::vector<cse::hitbox>> &hitbox_storage()
   {
     static std::unordered_map<std::string, std::vector<cse::hitbox>> instance{};
     return instance;
   }
-  struct glyph_record
+  std::unordered_map<std::string, std::vector<cse::animation::frame>> &frame_storage()
   {
-    std::uint64_t character;
-    double left, top, right, bottom;
-    double width, height;
-  };
+    static std::unordered_map<std::string, std::vector<cse::animation::frame>> instance{};
+    return instance;
+  }
   std::unordered_map<std::string, std::vector<cse::font::glyph>> &glyph_storage()
   {
     static std::unordered_map<std::string, std::vector<cse::font::glyph>> instance{};
@@ -84,8 +61,8 @@ namespace cse::resource
       if (glyphs_size_) csp::verify(base + glyphs_offset_, glyphs_size_);
 
       auto &hitbox_pool{hitbox_storage()[name_]};
-      const std::size_t hitbox_total{static_cast<std::size_t>(hitboxes_size_ / sizeof(hitbox_record))};
-      const auto *hitbox_records{reinterpret_cast<const hitbox_record *>(base + hitboxes_offset_)};
+      const std::size_t hitbox_total{static_cast<std::size_t>(hitboxes_size_ / sizeof(csd::hitbox_record))};
+      const auto *hitbox_records{reinterpret_cast<const csd::hitbox_record *>(base + hitboxes_offset_)};
 #if defined(_DEBUG)
       const auto *strings{reinterpret_cast<const char *>(base + strings_offset_)};
 #endif
@@ -104,8 +81,8 @@ namespace cse::resource
       }
 
       auto &frame_pool{frame_storage()[name_]};
-      const std::size_t frame_total{static_cast<std::size_t>(frames_size_ / sizeof(frame_record))};
-      const auto *frame_records{reinterpret_cast<const frame_record *>(base + frames_offset_)};
+      const std::size_t frame_total{static_cast<std::size_t>(frames_size_ / sizeof(csd::frame_record))};
+      const auto *frame_records{reinterpret_cast<const csd::frame_record *>(base + frames_offset_)};
       frame_pool.reserve(frame_total);
       for (std::size_t index{}; index < frame_total; ++index)
       {
@@ -120,8 +97,8 @@ namespace cse::resource
       }
 
       auto &glyph_pool{glyph_storage()[name_]};
-      const std::size_t glyph_total{static_cast<std::size_t>(glyphs_size_ / sizeof(glyph_record))};
-      const auto *glyph_records{reinterpret_cast<const glyph_record *>(base + glyphs_offset_)};
+      const std::size_t glyph_total{static_cast<std::size_t>(glyphs_size_ / sizeof(csd::glyph_record))};
+      const auto *glyph_records{reinterpret_cast<const csd::glyph_record *>(base + glyphs_offset_)};
       glyph_pool.reserve(glyph_total);
       for (std::size_t index{}; index < glyph_total; ++index)
       {

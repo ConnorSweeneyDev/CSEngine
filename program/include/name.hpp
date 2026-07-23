@@ -30,9 +30,6 @@ namespace cse
     std::string string() const;
 
   private:
-    static constexpr std::uint64_t hash_string(const std::string_view string);
-
-  private:
     std::uint64_t hash{};
 #if defined(_DEBUG)
     std::string label{};
