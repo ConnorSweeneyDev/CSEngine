@@ -322,7 +322,8 @@ The game's `master`, `sound` and `music` temporals act as global buses for volum
 ### Persistent State
 A `state` is a JSON-backed settings blob saved under the OS user-data directory. Declare fields with the `ENLIST` macro
 (it builds a plain struct *and* its JSON serializers in one place - pass each field as a `(name, type, init)` tuple, add
-as many as you like), expose them with `FIELD`, and call `read()`/`write()`:
+as many as you like), expose them with `FIELD`, and call `read()`/`write()` which return `false` if anything unexpected
+happens (missing file does not count as unexpected) and `true` otherwise:
 
 ```cpp
 class settings final : public cse::state
@@ -353,6 +354,7 @@ Then load and save whenever you want:
 void window::on_create()
 {
   const auto &settings = find_as<csg::settings>(game->active.states, "settings");
+  if (!settings->read()) throw cse::exception("Failed to read settings");
   active.width = settings->window->size.first;
   active.mode  = settings->window->mode;
   active.vsync = settings->window->vsync;
@@ -362,7 +364,8 @@ void window::on_destroy()
   const auto &settings = find_as<csg::settings>(game->active.states, "settings");
   settings->window->size = {active.width, active.height};
   settings->window->mode = active.mode;
-  settings->write();
+  settings->window->vsync = active.vsync;
+  if (!settings->write()) throw cse::exception("Failed to write settings");
 }
 ```
 

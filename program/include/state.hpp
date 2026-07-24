@@ -60,8 +60,8 @@ namespace cse
     state(state &&) = delete;
     state &operator=(state &&) = delete;
 
-    void read();
-    void write() const;
+    bool read();
+    bool write() const;
 
   protected:
     explicit state(const initial &initial_);

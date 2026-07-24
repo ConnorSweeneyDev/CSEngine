@@ -28,7 +28,7 @@ namespace cse
               }()}
   { building = this; }
 
-  void state::read()
+  bool state::read()
   {
     std::filesystem::path file{};
     try
@@ -40,11 +40,19 @@ namespace cse
     catch (const std::exception &error)
     {
       log("Could not read state '{}': {}", storage.string(), error.what());
-      return;
+      return false;
     }
     file += ".json";
     std::error_code error{};
-    if (!std::filesystem::exists(file, error) || error) return;
+    if (!std::filesystem::exists(file, error))
+    {
+      if (error)
+      {
+        log("Could not check state file '{}': {}", file.string(), error.message());
+        return false;
+      }
+      return true;
+    }
 
     const auto discard{[&file](const std::string &reason)
                        {
@@ -63,7 +71,7 @@ namespace cse
       if (!stream)
       {
         discard("the file could not be opened");
-        return;
+        return false;
       }
       try
       {
@@ -73,7 +81,7 @@ namespace cse
       {
         stream.close();
         discard(parse_error.what());
-        return;
+        return false;
       }
     }
     try
@@ -83,10 +91,12 @@ namespace cse
     catch (const nlohmann::json::exception &read_error)
     {
       discard(read_error.what());
+      return false;
     }
+    return true;
   }
 
-  void state::write() const
+  bool state::write() const
   {
     std::filesystem::path file{};
     try
@@ -98,7 +108,7 @@ namespace cse
     catch (const std::exception &error)
     {
       log("Could not write state '{}': {}", storage.string(), error.what());
-      return;
+      return false;
     }
     file += ".json";
     std::error_code error{};
@@ -106,7 +116,7 @@ namespace cse
     if (error)
     {
       log("Could not create directory for state file '{}'; skipping write", file.string());
-      return;
+      return false;
     }
 
     nlohmann::json json{};
@@ -115,10 +125,16 @@ namespace cse
     if (!stream)
     {
       log("Could not open state file '{}' for writing; skipping write", file.string());
-      return;
+      return false;
     }
     stream << json.dump(2);
-    if (!stream) log("Could not write state file '{}'", file.string());
+    stream.flush();
+    if (!stream)
+    {
+      log("Could not write state file '{}'", file.string());
+      return false;
+    }
+    return true;
   }
 
   void state::enlist(std::function<void(nlohmann::json &json)> writer,
