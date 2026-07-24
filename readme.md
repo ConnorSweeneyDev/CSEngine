@@ -79,19 +79,20 @@ should do the following:
    ```
 
 ### Entry Point
-Define `cse::main` - the engine provides the real `main()` and wraps your code in error handling. Create the game from a
-setup function and run it:
+Define `cse::main` - the engine provides the real entry point (SDL's app callbacks) and wraps your code in error
+handling. Create the game from a setup function and return it; the engine then drives it through `SDL_AppInit`,
+`SDL_AppEvent`, `SDL_AppIterate` and `SDL_AppQuit`:
 
 ```cpp
 #include "cse/main.hpp"
 #include "cse/game.hpp"
+
 #include "game.hpp"
 
-int cse::main(int argc, char *argv[])
+std::shared_ptr<cse::game> cse::main(const std::vector<std::string_view> &arguments)
 {
-  if (argc > 1 || !argv[0]) throw exception("Expected 1 argument, got {}", argc);
-  game::create(custom::game::setup)->run();
-  return success;
+  if (arguments.size() != 1) throw exception("Expected 1 argument, got {}", arguments.size());
+  return game::create(custom::game::setup);
 }
 ```
 
@@ -206,40 +207,56 @@ player::player(const glm::dvec3 &translation_)
 Hooks are virtual no-ops you override. **Leaf entities** (`window`, `interface`, `camera`, `object`, `light`) expose
 `on_*` hooks; **`game` and `scene`** expose `pre_*`/`post_*` hooks that bracket the work of their children.
 
-The best way to describe the lifecycle of an entity is to show you the game's main loop:
+The best way to describe the lifecycle of an entity is to show you the game's SDL app callbacks:
 
 ```cpp
-  void game::run()
+SDL_AppResult game::initialize()
+{
+  if (active.phase == help::phase::CLEANED) prepare();
+  if (active.phase == help::phase::PREPARED) create();
+  return SDL_APP_CONTINUE;
+}
+
+SDL_AppResult game::receive(const SDL_Event &event)
+{
+  if (active.phase != help::phase::CREATED) throw exception("Game must be created before receiving events");
+  events.push_back(event);
+  return running() ? SDL_APP_CONTINUE : SDL_APP_SUCCESS;
+}
+
+SDL_AppResult game::iterate()
+{
+  if (active.phase != help::phase::CREATED) throw exception("Game must be created before iteration");
+  step();
+  while (behind())
   {
-    prepare();
-    create();
-    while (running())
-    {
-      step();
-      while (behind())
-      {
-        tps();
-        synchronize();
-        event();
-        simulate();
-        collide();
-        tps();
-      }
-      if (ready())
-      {
-        fps();
-        render();
-        mix();
-        fps();
-      }
-    }
-    destroy();
-    clean();
+    tps();
+    synchronize();
+    event();
+    simulate();
+    collide();
+    tps();
   }
+  if (ready())
+  {
+    fps();
+    render();
+    mix();
+    fps();
+  }
+  return running() ? SDL_APP_CONTINUE : SDL_APP_SUCCESS;
+}
+
+void game::quit()
+{
+  if (active.phase == help::phase::CREATED) destroy();
+  if (active.phase == help::phase::PREPARED) clean();
+  instance.reset();
+}
 ```
 
 For the most part, every entity follows this lifecycle - the only difference being that any of the core classes other
-than game don't necessarily call prepare and create/destroy and clean one after another - prepare is called at the
+than game don't necessarily call (prepare and create)/(destroy and clean) one after another - prepare is called at the
 instantiation of the entity in memory, and create is called when the entity becomes active in a scene. A similar
 behaviour describes destroy and clean.
 

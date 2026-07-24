@@ -145,7 +145,7 @@ namespace cse
   template <trait::is_game game_type, typename... game_arguments> std::shared_ptr<game_type>
   game::create(const std::function<void(const std::shared_ptr<game_type> &)> &config, game_arguments &&...arguments)
   {
-    if (!instance.expired()) throw exception("Tried to create a second game instance");
+    if (instance) throw exception("Tried to create a second game instance");
     auto new_instance{std::shared_ptr<game_type>{new game_type{std::forward<game_arguments>(arguments)...}}};
     if (config) config(new_instance);
     instance = new_instance;

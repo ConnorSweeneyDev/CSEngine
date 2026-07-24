@@ -147,7 +147,6 @@ namespace cse::help::window
 
   private:
     active::shadow shadow{};
-    SDL_Event event{};
 
     SDL_Window *instance{};
     SDL_GPUCommandBuffer *command_buffer{};
@@ -203,7 +202,7 @@ namespace cse
     void prepare();
     void create(SDL_GPUDevice *video, const double aspect, const unsigned int resolution);
     void synchronize();
-    void event(SDL_GPUDevice *video);
+    void event(SDL_GPUDevice *video, const SDL_Event &event);
     void simulate(const double tick);
     void render(const double aspect, const glm::dvec3 &clear, const double alpha);
     void destroy(SDL_GPUDevice *video);

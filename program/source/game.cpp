@@ -555,9 +555,8 @@ namespace cse::help::game
            top <= canvas_height / 2.0;
   }
 
-  void active::interact()
+  void active::interact(const SDL_Event &event)
   {
-    const auto &event{window->active.event};
     const auto &mouse{window->active.mouse};
     if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
@@ -1575,33 +1574,48 @@ namespace cse
     return *scene;
   }
 
-  int game::run()
+  SDL_AppResult game::initialize()
   {
-    prepare();
-    create();
-    while (running())
+    if (active.phase == help::phase::CLEANED) prepare();
+    if (active.phase == help::phase::PREPARED) create();
+    return SDL_APP_CONTINUE;
+  }
+
+  SDL_AppResult game::receive(const SDL_Event &event)
+  {
+    if (active.phase != help::phase::CREATED) throw exception("Game must be created before receiving events");
+    queue.push_back(event);
+    return running() ? SDL_APP_CONTINUE : SDL_APP_SUCCESS;
+  }
+
+  SDL_AppResult game::iterate()
+  {
+    if (active.phase != help::phase::CREATED) throw exception("Game must be created before iteration");
+    step();
+    while (behind())
     {
-      step();
-      while (behind())
-      {
-        tps();
-        synchronize();
-        event();
-        simulate();
-        collide();
-        tps();
-      }
-      if (ready())
-      {
-        fps();
-        render();
-        mix();
-        fps();
-      }
+      tps();
+      synchronize();
+      event();
+      simulate();
+      collide();
+      tps();
     }
-    destroy();
-    clean();
-    return success;
+    if (ready())
+    {
+      fps();
+      render();
+      mix();
+      fps();
+    }
+    return running() ? SDL_APP_CONTINUE : SDL_APP_SUCCESS;
+  }
+
+  void game::quit()
+  {
+    if (active.phase == help::phase::CREATED) destroy();
+    if (active.phase == help::phase::PREPARED) clean();
+    instance.reset();
   }
 
   void game::pre_prepare() {}
@@ -1721,15 +1735,16 @@ namespace cse
   {
     if (active.phase != help::phase::CREATED) throw exception("Game must be created before processing events");
     active.window->active.poll(active.aspect.value, active.resolution);
-    while (SDL_PollEvent(&active.window->active.event))
+    for (const auto &item : queue)
     {
-      pre_event(active.window->active.event);
-      active.interact();
-      active.window->event(active.video);
-      active.scene->event(active.window->active.event);
-      for (const auto &interface : active.interface_order) interface->event(active.window->active.event);
-      post_event(active.window->active.event);
+      pre_event(item);
+      active.interact(item);
+      active.window->event(active.video, item);
+      active.scene->event(item);
+      for (const auto &interface : active.interface_order) interface->event(item);
+      post_event(item);
     }
+    queue.clear();
     active.hover();
   }
 

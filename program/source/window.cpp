@@ -748,20 +748,20 @@ namespace cse
   }
 
   void window::on_event(const SDL_Event &) {}
-  void window::event(SDL_GPUDevice *video)
+  void window::event(SDL_GPUDevice *video, const SDL_Event &event)
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before processing events");
-    switch (active.event.type)
+    switch (event.type)
     {
       case SDL_EVENT_QUIT: active.running = false; break;
       case SDL_EVENT_WINDOW_MOVED: active.handle_move(); break;
       case SDL_EVENT_WINDOW_RESIZED: active.handle_resize(video); break;
       case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: active.handle_resize(video); break;
       case SDL_EVENT_MOUSE_WHEEL:
-        active.mouse.wheel += glm::dvec2{active.event.wheel.x, active.event.wheel.y};
-        on_event(active.event);
+        active.mouse.wheel += glm::dvec2{event.wheel.x, event.wheel.y};
+        on_event(event);
         break;
-      default: on_event(active.event); break;
+      default: on_event(event); break;
     }
   }
 
@@ -785,7 +785,6 @@ namespace cse
   void window::destroy(SDL_GPUDevice *video)
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before destruction");
-    active.event = {};
     active.destroy(video);
     active.phase = help::phase::PREPARED;
     on_destroy();

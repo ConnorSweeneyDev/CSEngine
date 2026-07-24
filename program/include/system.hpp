@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <cstdlib>
 
 enum platforms : std::uint8_t
 {
@@ -22,7 +21,4 @@ namespace cse
 #elif defined(NDEBUG)
   constexpr bool debug{false};
 #endif
-
-  constexpr auto success{EXIT_SUCCESS};
-  constexpr auto failure{EXIT_FAILURE};
 }
