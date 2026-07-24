@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <type_traits>
 
@@ -8,9 +9,17 @@ namespace cse
 {
   struct meta
   {
+    struct initial
+    {
+      std::string organization{"CSEngine"};
+      std::string application{"Base"};
+      std::string version{"1.0.0"};
+    };
+
     std::string organization{"CSEngine"};
     std::string application{"Base"};
     std::string version{"1.0.0"};
+    std::filesystem::path output{};
   };
   class game;
   class state;

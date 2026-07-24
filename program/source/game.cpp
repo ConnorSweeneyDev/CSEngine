@@ -14,6 +14,7 @@
 
 #include "SDL3/SDL_audio.h"
 #include "SDL3/SDL_events.h"
+#include "SDL3/SDL_filesystem.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_iostream.h"
@@ -1511,7 +1512,17 @@ namespace cse
                initial_.clear, initial_.master, initial_.sound,  initial_.music},
       active{initial_.tick,  initial_.frame,  initial_.aspect, initial_.resolution,
              initial_.clear, initial_.master, initial_.sound,  initial_.music}
-  { help::meta = initial_.meta; }
+  {
+    help::meta = {initial_.meta.organization, initial_.meta.application, initial_.meta.version, {}};
+    char *path{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
+    if (!path)
+    {
+      sdl_log("Failed to get preferred system path");
+      return;
+    }
+    help::meta.output = path;
+    SDL_free(path);
+  }
 
   scene &game::current(const name scene_name)
   {

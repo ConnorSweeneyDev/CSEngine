@@ -1,6 +1,5 @@
 #include "state.hpp"
 
-#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -9,7 +8,6 @@
 #include <system_error>
 #include <utility>
 
-#include "SDL3/SDL_filesystem.h"
 #include "nlohmann/json_fwd.hpp"
 
 #include "core.hpp"
@@ -30,19 +28,12 @@ namespace cse
 
   bool state::read()
   {
-    std::filesystem::path file{};
-    try
+    if (help::meta.output.empty())
     {
-      const char *directory{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
-      if (!directory) throw sdl_exception("Failed to resolve the state directory");
-      file = directory / storage;
-    }
-    catch (const std::exception &error)
-    {
-      log("Could not read state '{}': {}", storage.string(), error.what());
+      log("Could not read state '{}': Failed to resolve the state directory", storage.string());
       return false;
     }
-    file += ".json";
+    std::filesystem::path file{help::meta.output / storage += ".json"};
     std::error_code error{};
     if (!std::filesystem::exists(file, error))
     {
@@ -98,19 +89,12 @@ namespace cse
 
   bool state::write() const
   {
-    std::filesystem::path file{};
-    try
+    if (help::meta.output.empty())
     {
-      const char *directory{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
-      if (!directory) throw sdl_exception("Failed to resolve the state directory");
-      file = directory / storage;
-    }
-    catch (const std::exception &error)
-    {
-      log("Could not write state '{}': {}", storage.string(), error.what());
+      log("Could not write state '{}': Failed to resolve the state directory", storage.string());
       return false;
     }
-    file += ".json";
+    std::filesystem::path file{help::meta.output / storage += ".json"};
     std::error_code error{};
     std::filesystem::create_directories(file.parent_path(), error);
     if (error)
@@ -121,17 +105,29 @@ namespace cse
 
     nlohmann::json json{};
     for (const auto &object : entries) object.writer(json);
-    std::ofstream stream{file, std::ios_base::binary};
-    if (!stream)
+    auto temporary{file};
+    temporary += ".tmp";
     {
-      log("Could not open state file '{}' for writing; skipping write", file.string());
-      return false;
+      std::ofstream stream{temporary, std::ios_base::binary};
+      if (!stream)
+      {
+        log("Could not open state file '{}' for writing; skipping write", temporary.string());
+        return false;
+      }
+      stream << json.dump(2);
+      stream.close();
+      if (!stream)
+      {
+        log("Could not write state file '{}'", temporary.string());
+        std::filesystem::remove(temporary);
+        return false;
+      }
     }
-    stream << json.dump(2);
-    stream.flush();
-    if (!stream)
+    std::filesystem::rename(temporary, file, error);
+    if (error)
     {
-      log("Could not write state file '{}'", file.string());
+      log("Could not rename temporary state file to '{}'", file.string());
+      std::filesystem::remove(temporary);
       return false;
     }
     return true;

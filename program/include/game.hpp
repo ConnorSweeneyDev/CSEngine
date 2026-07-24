@@ -328,7 +328,7 @@ namespace cse
   protected:
     struct initial
     {
-      const cse::meta meta{};
+      const cse::meta::initial meta{};
       const double tick{100.0};
       const double frame{60.0};
       const temporal<double> aspect{16.0 / 9.0};

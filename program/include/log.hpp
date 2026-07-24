@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "SDL3/SDL_error.h"
-#include "SDL3/SDL_filesystem.h"
 
 #include "core.hpp"
 #include "print.hpp"
@@ -27,15 +26,13 @@ namespace cse
   {
     auto formatted_message{std::format(message, std::forward<message_arguments>(arguments)...)};
     print<CLOG>("{}.\n", formatted_message);
-    const char *directory{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
-    if (!directory)
+    if (help::meta.output.empty())
     {
       print<CLOG>("Could not resolve the log directory; skipping log write\n");
       return;
     }
     const std::scoped_lock<std::mutex> lock(help::log_mutex);
-    std::ofstream stream{std::filesystem::path(directory) / "log.txt",
-                         help::log_started ? std::ios::app : std::ios::trunc};
+    std::ofstream stream{help::meta.output / "log.txt", help::log_started ? std::ios::app : std::ios::trunc};
     if (!stream) return;
     help::log_started = true;
     stream << formatted_message << ".\n";
