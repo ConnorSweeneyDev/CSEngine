@@ -86,6 +86,7 @@ namespace cse::help::game
     template <typename handle> struct cached
     {
       handle value{};
+      std::size_t bytes{};
       double stamp{};
     };
 
@@ -287,7 +288,8 @@ namespace cse::help::game
     std::vector<cse::interface *> interface_order{};
     std::vector<cse::interface *> interface_pool{};
 
-    static constexpr double cache_lifetime{1.0};
+    static constexpr std::size_t maximum_vram{512u * 1024u * 1024u};
+    static constexpr std::size_t maximum_ram{128u * 1024u * 1024u};
 
     double actual_frame{1.0 / frame.target};
     SDL_GPUDevice *video{};

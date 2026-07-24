@@ -260,14 +260,22 @@ namespace cse::help::game
                               0.0};
       return std::pair<glm::dmat4, glm::dmat4>{projection, glm::translate(glm::dmat4{1.0}, origin)};
     }();
-    for (auto iterator{graphics_cache.texture.begin()}; iterator != graphics_cache.texture.end();)
-      if (time - iterator->second.stamp >= cache_lifetime)
-      {
-        SDL_ReleaseGPUTexture(video, iterator->second.value);
-        iterator = graphics_cache.texture.erase(iterator);
-      }
-      else
-        ++iterator;
+    std::size_t vram{};
+    for (const auto &[key, entry] : graphics_cache.texture) vram += entry.bytes;
+    for (const auto &entry : graphics_occluder.layers)
+      vram += static_cast<std::size_t>(entry.image.width) * entry.image.height * entry.image.channels;
+    while (vram > maximum_vram)
+    {
+      auto oldest{graphics_cache.texture.end()};
+      for (auto iterator{graphics_cache.texture.begin()}; iterator != graphics_cache.texture.end(); ++iterator)
+        if (iterator->second.stamp < time &&
+            (oldest == graphics_cache.texture.end() || iterator->second.stamp < oldest->second.stamp))
+          oldest = iterator;
+      if (oldest == graphics_cache.texture.end()) break;
+      vram -= oldest->second.bytes;
+      SDL_ReleaseGPUTexture(video, oldest->second.value);
+      graphics_cache.texture.erase(oldest);
+    }
 
     const auto lights{static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.samples.size())};
     const auto occluders{static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.samples.size())};
@@ -423,14 +431,20 @@ namespace cse::help::game
       if (std::ranges::any_of(audio_cache.tracks,
                               [value = audio.value](const auto &entry) { return entry.second.audio == value; }))
         audio.stamp = time;
-    for (auto iterator{audio_cache.sources.begin()}; iterator != audio_cache.sources.end();)
-      if (time - iterator->second.stamp >= cache_lifetime)
-      {
-        if (iterator->second.value) MIX_DestroyAudio(iterator->second.value);
-        iterator = audio_cache.sources.erase(iterator);
-      }
-      else
-        ++iterator;
+    std::size_t ram{};
+    for (const auto &[key, audio] : audio_cache.sources) ram += audio.bytes;
+    while (ram > maximum_ram)
+    {
+      auto oldest{audio_cache.sources.end()};
+      for (auto iterator{audio_cache.sources.begin()}; iterator != audio_cache.sources.end(); ++iterator)
+        if (iterator->second.stamp < time &&
+            (oldest == audio_cache.sources.end() || iterator->second.stamp < oldest->second.stamp))
+          oldest = iterator;
+      if (oldest == audio_cache.sources.end()) break;
+      ram -= oldest->second.bytes;
+      if (oldest->second.value) MIX_DestroyAudio(oldest->second.value);
+      audio_cache.sources.erase(oldest);
+    }
   }
 
   void active::destroy()
@@ -754,8 +768,29 @@ namespace cse::help::game
     }
     graphics_light.data.meta.at(1) = static_cast<float>(graphics_occluder.samples.size());
 
-    const auto expired{[this](const graphics_occluder::layer &entry) { return time - entry.stamp >= cache_lifetime; }};
-    const bool pruned{std::ranges::any_of(graphics_occluder.layers, expired)};
+    const auto weight{
+      [](const graphics_occluder::layer &entry)
+      { return static_cast<std::size_t>(entry.image.width) * entry.image.height * entry.image.channels; }};
+    std::size_t vram{};
+    for (const auto &[key, entry] : graphics_cache.texture) vram += entry.bytes;
+    for (const auto &entry : graphics_occluder.layers) vram += weight(entry);
+    std::vector<bool> doomed(graphics_occluder.layers.size(), false);
+    bool pruned{false};
+    while (vram > maximum_vram)
+    {
+      auto oldest{graphics_occluder.layers.size()};
+      for (std::size_t index{}; index < graphics_occluder.layers.size(); ++index)
+        if (!doomed.at(index) && graphics_occluder.layers.at(index).stamp < time &&
+            (oldest == graphics_occluder.layers.size() ||
+             graphics_occluder.layers.at(index).stamp < graphics_occluder.layers.at(oldest).stamp))
+          oldest = index;
+      if (oldest == graphics_occluder.layers.size()) break;
+      doomed.at(oldest) = true;
+      pruned = true;
+      vram -= weight(graphics_occluder.layers.at(oldest));
+    }
+    const auto expired{[&](const graphics_occluder::layer &entry)
+                       { return doomed.at(static_cast<std::size_t>(&entry - graphics_occluder.layers.data())); }};
     if (pruned)
     {
       std::vector<float> remap(graphics_occluder.layers.size(), -1.0f);
@@ -1467,7 +1502,8 @@ namespace cse::help::game
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
     SDL_ReleaseGPUTransferBuffer(video, texture_transfer_buffer);
-    return graphics_cache.texture.emplace(key, cached<SDL_GPUTexture *>{texture, time}).first->second.value;
+    const auto bytes{static_cast<std::size_t>(image.width) * image.height * image.channels};
+    return graphics_cache.texture.emplace(key, cached<SDL_GPUTexture *>{texture, bytes, time}).first->second.value;
   }
 
   std::int64_t active::seconds_to_frames(const double seconds) const
@@ -1501,7 +1537,9 @@ namespace cse::help::game
     if (!source) throw sdl_exception("Could not open audio data for game");
     auto *audio{MIX_LoadAudio_IO(soundboard, source, predecode, true)};
     if (!audio) throw sdl_exception("Could not load audio for game");
-    return audio_cache.sources.emplace(key, cached<MIX_Audio *>{audio, time}).first->second.value;
+    const auto duration{MIX_GetAudioDuration(audio)};
+    const auto bytes{predecode && duration > 0 ? static_cast<std::size_t>(duration) * 2 * sizeof(float) : size};
+    return audio_cache.sources.emplace(key, cached<MIX_Audio *>{audio, bytes, time}).first->second.value;
   }
 }
 
