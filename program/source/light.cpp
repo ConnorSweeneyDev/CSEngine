@@ -17,15 +17,13 @@ namespace cse::help::light
 {
   previous::previous(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec2> &rotation_,
                      const light::illumination &illumination_, const light::shadow &shadow_, const int priority_)
-    : translation{translation_}, rotation{rotation_}, illumination{illumination_}, shadow{shadow_}, priority{priority_}
-  {
-  }
+    : translation{translation_}, rotation{rotation_}, illumination{illumination_}, shadow{shadow_},
+      priority{priority_} {};
 
   active::active(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec2> &rotation_,
                  const light::illumination &illumination_, const light::shadow &shadow_, const int priority_)
-    : translation{translation_}, rotation{rotation_}, illumination{illumination_}, shadow{shadow_}, priority{priority_}
-  {
-  }
+    : translation{translation_}, rotation{rotation_}, illumination{illumination_}, shadow{shadow_},
+      priority{priority_} {};
 
   void active::synchronize(previous &last)
   {
@@ -76,9 +74,7 @@ namespace cse
 {
   light::light(const initial &initial_)
     : previous{initial_.translation, initial_.rotation, initial_.illumination, initial_.shadow, initial_.priority},
-      active{initial_.translation, initial_.rotation, initial_.illumination, initial_.shadow, initial_.priority}
-  {
-  }
+      active{initial_.translation, initial_.rotation, initial_.illumination, initial_.shadow, initial_.priority} {};
 
   void light::on_prepare() {}
   void light::prepare()

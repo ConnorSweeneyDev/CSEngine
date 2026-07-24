@@ -15,9 +15,9 @@
 namespace cse
 {
 #if defined(NDEBUG)
-  constexpr name::name(const char *string_) : name{std::string_view{string_}} {}
+  constexpr name::name(const char *string_) : name{std::string_view{string_}} {};
 
-  constexpr name::name(const std::string_view string_) : hash{csd::hash_identifier(string_)} {}
+  constexpr name::name(const std::string_view string_) : hash{csd::hash_identifier(string_)} {};
 #endif
 
   constexpr std::uint64_t name::identifier() const { return hash; }

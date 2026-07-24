@@ -59,17 +59,13 @@ namespace cse::help::game
                      const unsigned int resolution_, const temporal<glm::dvec3> &clear_,
                      const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_)
     : tick(tick_), frame(frame_), aspect(aspect_), resolution(resolution_), clear(clear_), master(master_),
-      sound(sound_), music(music_)
-  {
-  }
+      sound(sound_), music(music_) {};
 
   active::active(const double tick_, const double frame_, const temporal<double> &aspect_,
                  const unsigned int resolution_, const temporal<glm::dvec3> &clear_, const temporal<double> &master_,
                  const temporal<double> &sound_, const temporal<double> &music_)
     : tick(tick_), frame(frame_), aspect(aspect_), resolution(resolution_), clear(clear_), master(master_),
-      sound(sound_), music(music_)
-  {
-  }
+      sound(sound_), music(music_) {};
 
   void active::prepare()
   {

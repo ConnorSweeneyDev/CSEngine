@@ -21,18 +21,14 @@ namespace cse::help::object
                      const object::illumination &illumination_, const object::shadow &shadow_,
                      const object::priority &priority_)
     : translation{translation_}, rotation{rotation_}, scale{scale_}, collidable{collidable_}, texture{texture_},
-      illumination{illumination_}, shadow{shadow_}, priority{priority_}
-  {
-  }
+      illumination{illumination_}, shadow{shadow_}, priority{priority_} {};
 
   active::active(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
                  const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
                  const object::illumination &illumination_, const object::shadow &shadow_,
                  const object::priority &priority_)
     : translation{translation_}, rotation{rotation_}, scale{scale_}, collidable{collidable_}, texture{texture_},
-      illumination{illumination_}, shadow{shadow_}, priority{priority_}
-  {
-  }
+      illumination{illumination_}, shadow{shadow_}, priority{priority_} {};
 
   void active::synchronize(previous &last)
   {
@@ -180,9 +176,7 @@ namespace cse
     : previous{initial_.translation, initial_.rotation,     initial_.scale,  initial_.collidable,
                initial_.texture,     initial_.illumination, initial_.shadow, initial_.priority},
       active{initial_.translation, initial_.rotation,     initial_.scale,  initial_.collidable,
-             initial_.texture,     initial_.illumination, initial_.shadow, initial_.priority}
-  {
-  }
+             initial_.texture,     initial_.illumination, initial_.shadow, initial_.priority} {};
 
   void object::on_prepare() {}
   void object::prepare()

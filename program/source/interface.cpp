@@ -19,17 +19,13 @@ namespace cse::help::interface
                      const temporal<glm::dvec2> &scale_, const bool interactable_, const interface::texture &texture_,
                      const interface::text &text_, const interface::priority &priority_)
     : translation{translation_}, rotation{rotation_}, scale{scale_}, interactable{interactable_}, texture{texture_},
-      text{text_}, priority{priority_}
-  {
-  }
+      text{text_}, priority{priority_} {};
 
   active::active(const temporal<glm::dvec2> &translation_, const temporal<double> &rotation_,
                  const temporal<glm::dvec2> &scale_, const bool interactable_, const interface::texture &texture_,
                  const interface::text &text_, const interface::priority &priority_)
     : translation{translation_}, rotation{rotation_}, scale{scale_}, interactable{interactable_}, texture{texture_},
-      text{text_}, priority{priority_}
-  {
-  }
+      text{text_}, priority{priority_} {};
 
   void active::synchronize(previous &last)
   {
@@ -217,7 +213,7 @@ namespace cse
       active{initial_.translation, initial_.rotation, initial_.scale,   initial_.interactable,
              initial_.texture,     initial_.text,     initial_.priority}
   {
-  }
+  };
 
   void interface::on_prepare() {}
   void interface::prepare()

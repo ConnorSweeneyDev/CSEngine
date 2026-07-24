@@ -97,11 +97,11 @@ namespace cse
   protected:
     struct initial
     {
-      temporal<glm::dvec3> translation{};
-      temporal<glm::dvec2> rotation{};
-      help::light::illumination illumination{};
-      help::light::shadow shadow{};
-      int priority{};
+      const temporal<glm::dvec3> translation{};
+      const temporal<glm::dvec2> rotation{};
+      const help::light::illumination illumination{};
+      const help::light::shadow shadow{};
+      const int priority{};
     };
 
   public:
