@@ -1826,10 +1826,9 @@ namespace cse
 
     time();
     static double simulation_time{};
-    double delta_time{active.time - simulation_time};
+    const double delta_time{active.time - simulation_time};
     simulation_time = active.time;
-    delta_time = std::min(delta_time, 0.1);
-    active.accumulator += delta_time;
+    active.accumulator += std::min(delta_time, std::max(0.1, active.actual_frame + active.actual_tick));
   }
 
   bool game::running() const { return active.window->active.running; }
