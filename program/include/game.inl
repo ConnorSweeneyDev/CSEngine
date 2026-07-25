@@ -2,6 +2,7 @@
 
 #include "game.hpp"
 
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -33,6 +34,7 @@ namespace cse::help::game
     for (auto &[entry_name, entry] : entries)
     {
       entry.volume.value = std::clamp(entry.volume.value, 0.0, 1.0);
+      entry.speed.value = std::abs(entry.speed.value);
       const audio_cache::track_key key{static_cast<const void *>(&entries), entry_name.identifier()};
       auto &audio{audio_cache.tracks[key]};
       audio.seen = true;
@@ -49,7 +51,7 @@ namespace cse::help::game
       {
         audio.source = data;
         audio.size = size;
-        audio.position = entry.position;
+        audio.position = entry.elapsed.device;
         audio.started = false;
         audio.finished = false;
         audio.audio = data ? require_audio(data, size, predecode) : nullptr;
@@ -81,25 +83,26 @@ namespace cse::help::game
         audio.speed = speed;
       }
 
-      if (!equal(entry.position, audio.position))
+      if (!equal(entry.elapsed.device, audio.position))
       {
         if (const auto duration{audio.audio ? frames_to_seconds(MIX_GetAudioDuration(audio.audio)) : 0.0};
-            duration > 0.0 && entry.position >= duration)
-          entry.position = entry.loop ? 0.0 : duration;
-        MIX_SetTrackPlaybackPosition(audio.handle, seconds_to_frames(entry.position));
-        audio.position = entry.position;
+            duration > 0.0 && entry.elapsed.device >= duration)
+          entry.elapsed.device = entry.loop ? 0.0 : duration;
+        MIX_SetTrackPlaybackPosition(audio.handle, seconds_to_frames(entry.elapsed.device));
+        audio.position = entry.elapsed.device;
         audio.started = false;
         audio.finished = false;
       }
 
-      if (entry.playing)
+      const auto running{entry.playing && entry.speed.value > 0.0};
+      if (running)
       {
         if (audio.finished) {}
         else if (!audio.started)
         {
           const auto options{SDL_CreateProperties()};
           SDL_SetNumberProperty(options, MIX_PROP_PLAY_LOOPS_NUMBER, entry.loop ? -1 : 0);
-          SDL_SetNumberProperty(options, MIX_PROP_PLAY_START_FRAME_NUMBER, seconds_to_frames(entry.position));
+          SDL_SetNumberProperty(options, MIX_PROP_PLAY_START_FRAME_NUMBER, seconds_to_frames(entry.elapsed.device));
           MIX_PlayTrack(audio.handle, options);
           SDL_DestroyProperties(options);
           audio.started = true;
@@ -122,7 +125,7 @@ namespace cse::help::game
         if (const auto frames{MIX_GetTrackPlaybackPosition(audio.handle)}; frames >= 0)
         {
           const auto seconds{frames_to_seconds(frames)};
-          entry.position = seconds;
+          entry.elapsed.device = seconds;
           audio.position = seconds;
         }
         if (!entry.loop && !MIX_TrackPlaying(audio.handle))
@@ -131,8 +134,8 @@ namespace cse::help::game
           if (audio.audio)
             if (const auto duration{MIX_GetAudioDuration(audio.audio)}; duration > 0)
             {
-              entry.position = frames_to_seconds(duration);
-              audio.position = entry.position;
+              entry.elapsed.device = frames_to_seconds(duration);
+              audio.position = entry.elapsed.device;
             }
         }
       }

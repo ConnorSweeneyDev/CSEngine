@@ -51,7 +51,7 @@ namespace cse::help
       entries.erase(iterator);
   }
 
-  void timer::update(const double tick)
+  void timer::simulate(const double tick)
   {
     for (auto &[name, target] : entries)
       if (target.state.running) target.state.elapsed += tick;

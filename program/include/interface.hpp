@@ -80,9 +80,9 @@ namespace cse::help::interface
   struct active
   {
     friend class cse::game;
-    friend struct game::active;
     friend class cse::scene;
     friend class cse::interface;
+    friend struct game::active;
 
   public:
     active() = default;

@@ -72,9 +72,9 @@ namespace cse::help::object
 
   struct active
   {
-    friend struct game::active;
     friend class cse::scene;
     friend class cse::object;
+    friend struct game::active;
 
   public:
     active() = default;

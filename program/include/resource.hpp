@@ -118,12 +118,19 @@ namespace cse
     bool operator==(const sound &other) const
     { return data.data() == other.data.data() && data.size() == other.data.size(); }
     std::span<const unsigned char> data{};
+    double duration{};
   };
   struct music
   {
     bool operator==(const music &other) const
     { return data.data() == other.data.data() && data.size() == other.data.size(); }
     std::span<const unsigned char> data{};
+    double duration{};
+  };
+  struct elapsed
+  {
+    double device{};
+    double tick{};
   };
 }
 

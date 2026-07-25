@@ -17,10 +17,10 @@ namespace cse::help
     friend class cse::game;
     friend class cse::window;
     friend class cse::scene;
+    friend class cse::interface;
     friend class cse::camera;
     friend class cse::object;
     friend class cse::light;
-    friend class cse::interface;
 
   public:
     struct state
@@ -61,7 +61,7 @@ namespace cse::help
   private:
     template <typename signature> const std::function<signature> &deduce(const name name, const entry &target) const;
     void finish(std::unordered_map<name, entry>::iterator iterator);
-    void update(const double tick);
+    void simulate(const double tick);
 
   private:
     std::unordered_map<name, entry> entries{};

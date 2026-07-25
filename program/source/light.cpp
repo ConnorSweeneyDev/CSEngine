@@ -116,7 +116,8 @@ namespace cse
   {
     if (active.phase != help::phase::CREATED)
       throw exception("Light '{}' must be created before simulation", name.string());
-    active.timer.update(tick);
+    active.timer.simulate(tick);
+    active.mixer.simulate(tick);
     on_simulate(tick);
   }
 

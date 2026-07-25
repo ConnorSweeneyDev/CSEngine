@@ -14,19 +14,26 @@ namespace cse::help
 {
   class mixer
   {
+    friend class cse::game;
+    friend class cse::window;
+    friend class cse::scene;
+    friend class cse::interface;
+    friend class cse::camera;
+    friend class cse::object;
+    friend class cse::light;
     friend struct game::active;
     friend struct window::active;
     friend struct scene::active;
+    friend struct interface::active;
     friend struct camera::active;
     friend struct object::active;
     friend struct light::active;
-    friend struct interface::active;
 
   public:
     template <trait::is_audio audio> struct entry
     {
       audio source{};
-      double position{};
+      cse::elapsed elapsed{};
       bool loop{};
       temporal<double> speed{1.0};
       temporal<double> volume{1.0};
@@ -34,9 +41,7 @@ namespace cse::help
     };
     struct request
     {
-      request(const name id_, const cse::sound &source_) : id{id_}, source{source_} {}
-      request(const name id_, const cse::music &source_) : id{id_}, source{source_} {}
-      name id{};
+      cse::name name{};
       std::variant<cse::sound, cse::music> source{};
     };
 
@@ -61,6 +66,8 @@ namespace cse::help
     template <trait::is_audio audio> void clear() noexcept;
 
   private:
+    void simulate(const double tick);
+
     template <trait::is_audio audio> auto &select();
     template <trait::is_audio audio> const auto &select() const;
 

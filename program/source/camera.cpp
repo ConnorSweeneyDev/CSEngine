@@ -106,7 +106,8 @@ namespace cse
   void camera::simulate(const double tick)
   {
     if (active.phase != help::phase::CREATED) throw exception("Camera must be created before simulation");
-    active.timer.update(tick);
+    active.timer.simulate(tick);
+    active.mixer.simulate(tick);
     on_simulate(tick);
   }
 

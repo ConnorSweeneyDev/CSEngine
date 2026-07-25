@@ -42,8 +42,8 @@ namespace cse::help::scene
   struct active
   {
     friend class cse::game;
-    friend struct game::active;
     friend class cse::scene;
+    friend struct game::active;
 
   private:
     struct contact_key

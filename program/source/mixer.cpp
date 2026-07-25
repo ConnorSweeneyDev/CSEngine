@@ -1,5 +1,6 @@
 #include "mixer.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <initializer_list>
 #include <variant>
@@ -14,7 +15,7 @@ namespace cse::help
 
   void mixer::set(std::initializer_list<request> requests)
   {
-    for (const auto &name : requests) std::visit([&](const auto &source) { set(name.id, source); }, name.source);
+    for (const auto &item : requests) std::visit([&](const auto &source) { set(item.name, source); }, item.source);
   }
 
   void mixer::remove(const name name)
@@ -32,5 +33,27 @@ namespace cse::help
   {
     sounds.clear();
     musics.clear();
+  }
+
+  void mixer::simulate(const double tick)
+  {
+    const auto step{[tick](auto &entries)
+                    {
+                      for (auto &[name, track] : entries)
+                      {
+                        track.speed.value = std::abs(track.speed.value);
+                        if (!track.playing || track.speed.value <= 0.0) continue;
+                        const auto duration{track.source.duration};
+                        if (duration > 0.0 && !track.loop && track.elapsed.tick >= duration) continue;
+                        track.elapsed.tick += tick * track.speed.value;
+                        if (duration <= 0.0) continue;
+                        if (track.loop)
+                          track.elapsed.tick = std::fmod(track.elapsed.tick, duration);
+                        else if (track.elapsed.tick > duration)
+                          track.elapsed.tick = duration;
+                      }
+                    }};
+    step(sounds);
+    step(musics);
   }
 }

@@ -176,7 +176,10 @@ namespace cse::help::interface
                             playback.frame = 0;
                           }
                           else
+                          {
+                            if (duration > 0) playback.elapsed = duration;
                             break;
+                          }
                         }
                       }
                       else if (playback.speed.value < 0.0 && !no_frames)
@@ -255,7 +258,8 @@ namespace cse
   {
     if (active.phase != help::phase::CREATED)
       throw exception("Interface '{}' must be created before simulation", name.string());
-    active.timer.update(tick);
+    active.timer.simulate(tick);
+    active.mixer.simulate(tick);
     active.animate(tick);
     on_simulate(tick);
   }

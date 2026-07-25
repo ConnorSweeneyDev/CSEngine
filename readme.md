@@ -327,14 +327,35 @@ song.playing = true;
 
 active.mixer.set({{"sample1", sound::sample1}, {"sample2", sound::sample2}});
 auto &sfx = active.mixer.get<cse::sound>("sample1");
-sfx.position = 0;
+sfx.elapsed = {};
 sfx.playing = true;
 active.mixer.remove<cse::music>("main");
 ```
 
 Removing is optional; the mixer will automatically clear tracks when the entity is destroyed.\
 The game's `master`, `sound` and `music` temporals act as global buses for volume, all affecting each track's own
-`volume` temporal.
+`volume` temporal.\
+
+A track's `elapsed` is a `cse::elapsed`, which carries one clock per owner - and which one you read matters:
+
+```cpp
+sfx.elapsed.device;  // seconds - owned by the audio device, real time
+sfx.elapsed.tick;    // seconds - owned by the simulation, tick time
+```
+
+`elapsed.device` is written by the device every time the game renders, so it always runs in real time and is only
+sampled on frames that actually render. Under heavy lag the simulation falls behind real time and renders are starved
+first, so it advances faster than the game does and in irregular jumps. It is for presentation - **never drive gameplay
+from it.** Writing it seeks the device.
+
+`elapsed.tick` is advanced in `simulate` against the track's baked `source.duration`, so it ticks at the same rate as
+everything else in the simulation and is reproducible no matter how badly the game lags. It stops dead at `duration` on
+a non-looping track and wraps on a looping one, so a track has run out exactly when:
+
+```cpp
+const auto &sfx = active.mixer.get<cse::sound>("sample1");
+if (!sfx.loop && sfx.elapsed.tick >= sfx.source.duration) do_something();
+```
 
 ### Persistent State
 A `state` is a JSON-backed settings blob saved under the OS user-data directory. Declare fields with the `ENLIST` macro

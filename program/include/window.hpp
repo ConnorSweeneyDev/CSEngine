@@ -60,9 +60,9 @@ namespace cse::help::window
   struct active
   {
     friend class cse::game;
-    friend struct game::active;
     friend class cse::window;
     friend class cse::scene;
+    friend struct game::active;
 
   private:
     struct viewport

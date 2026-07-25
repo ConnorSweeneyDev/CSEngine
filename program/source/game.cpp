@@ -1750,7 +1750,8 @@ namespace cse
   {
     if (active.phase != help::phase::CREATED) throw exception("Game must be created before simulation");
     pre_simulate(active.actual_tick);
-    active.timer.update(active.actual_tick);
+    active.timer.simulate(active.actual_tick);
+    active.mixer.simulate(active.actual_tick);
     active.window->simulate(active.actual_tick);
     active.scene->simulate(active.actual_tick);
     for (const auto &interface : active.interface_order) interface->simulate(active.actual_tick);

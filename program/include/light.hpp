@@ -55,10 +55,10 @@ namespace cse::help::light
 
   struct active
   {
-    friend struct game::active;
-    friend struct scene::active;
     friend class cse::scene;
     friend class cse::light;
+    friend struct game::active;
+    friend struct scene::active;
 
   public:
     active() = default;

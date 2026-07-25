@@ -389,7 +389,8 @@ namespace cse
     if (active.phase != help::phase::CREATED)
       throw exception("Scene '{}' must be created before simulation", name.string());
     pre_simulate(tick);
-    active.timer.update(tick);
+    active.timer.simulate(tick);
+    active.mixer.simulate(tick);
     for (const auto &interface : active.interface_simulation_order) interface->simulate(tick);
     active.camera->simulate(tick);
     for (const auto &object : active.object_simulation_order) object->simulate(tick);
