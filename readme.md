@@ -9,6 +9,10 @@
 
 </div>
 
+## Requirements
+- Windows or Linux OS.
+- A C++20 compiler.
+
 ## Usage
 CSEngine is a static library (`cse`) that you link into your own executable. You describe your game declaratively as a
 tree of named entities, override lifecycle hooks to add behaviour, and the engine drives a fixed-timestep simulation
