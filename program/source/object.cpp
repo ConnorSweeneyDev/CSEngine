@@ -168,7 +168,10 @@ namespace cse::help::object
           if (duration > 0) playback.elapsed += duration;
         }
         else
+        {
+          playback.elapsed = 0;
           break;
+        }
     }
   }
 }

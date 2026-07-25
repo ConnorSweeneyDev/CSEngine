@@ -200,7 +200,10 @@ namespace cse::help::interface
                             if (duration > 0) playback.elapsed += duration;
                           }
                           else
+                          {
+                            playback.elapsed = 0;
                             break;
+                          }
                       }
                     }};
     step(texture.animation, texture.playback);
