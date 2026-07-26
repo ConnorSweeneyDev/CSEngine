@@ -31,7 +31,7 @@ namespace cse::help::collision
   std::span<const cse::hitbox> hitboxes(const cse::object *object)
   {
     if (!object->active.collidable) return {};
-    const auto &animation{object->active.texture.animation};
+    const auto &animation{object->active.texture.source.animation};
     auto frame{object->active.texture.playback.frame};
     if (frame >= animation.frames.size()) return {};
     return animation.frames[frame].hitboxes;
@@ -39,13 +39,13 @@ namespace cse::help::collision
 
   cse::hitbox bounds(const cse::object *object, const cse::hitbox &source)
   {
-    auto width{static_cast<double>(object->active.texture.image.frame_width)};
-    auto height{static_cast<double>(object->active.texture.image.frame_height)};
+    auto width{static_cast<double>(object->active.texture.source.image.frame_width)};
+    auto height{static_cast<double>(object->active.texture.source.image.frame_height)};
     auto translation{object->active.translation.value};
     auto rotation{static_cast<int>(std::floor(object->active.rotation.value + 0.5))};
     auto scale{object->active.scale.value};
     auto flip{object->active.texture.flip};
-    const auto &frames{object->active.texture.animation.frames};
+    const auto &frames{object->active.texture.source.animation.frames};
     glm::dvec2 pivot{(width - 1.0) / 2.0, (height - 1.0) / 2.0};
     if (!frames.empty())
     {
@@ -153,7 +153,7 @@ namespace cse::help::collision
   cse::hitbox hit(const cse::interface *interface, const glm::dvec2 &point)
   {
     if (!interface->active.interactable) return {};
-    const auto &animation{interface->active.texture.animation};
+    const auto &animation{interface->active.texture.source.animation};
     const auto frame{interface->active.texture.playback.frame};
     if (frame >= animation.frames.size()) return {};
     const auto &hitboxes{animation.frames[frame].hitboxes};

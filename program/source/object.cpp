@@ -115,7 +115,7 @@ namespace cse::help::object
 
   void active::animate(const double tick)
   {
-    auto &animation{texture.animation};
+    auto &animation{texture.source.animation};
     auto &playback{texture.playback};
     auto no_frames{animation.frames.empty()};
     auto frame_count{animation.frames.size()};

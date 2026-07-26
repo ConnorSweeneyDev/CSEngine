@@ -228,8 +228,8 @@ namespace cse::help::scene
                         if (!equal(left_depth, right_depth, 1e-4)) return left_depth > right_depth;
                         if (left->active.priority.rendering != right->active.priority.rendering)
                           return left->active.priority.rendering < right->active.priority.rendering;
-                        if (const auto *left_batch{left->active.texture.image.data.data()},
-                            *right_batch{right->active.texture.image.data.data()};
+                        if (const auto *left_batch{left->active.texture.source.image.data.data()},
+                            *right_batch{right->active.texture.source.image.data.data()};
                             left_batch != right_batch)
                           return left_batch < right_batch;
                         return left->name.identifier() < right->name.identifier();

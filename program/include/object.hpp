@@ -16,8 +16,7 @@ namespace cse::help::object
 {
   struct texture
   {
-    cse::image image{};
-    cse::animation animation{};
+    cse::texture::source source{};
     cse::playback playback{};
     cse::flip flip{};
     cse::color color{};

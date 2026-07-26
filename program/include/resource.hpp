@@ -113,6 +113,22 @@ namespace cse
     bool horizontal{};
     bool vertical{};
   };
+  namespace texture
+  {
+    struct source
+    {
+      cse::image image{};
+      cse::animation animation{};
+    };
+  }
+  namespace text
+  {
+    struct source
+    {
+      cse::font font{};
+      cse::animation animation{};
+    };
+  }
 
   struct sound
   {

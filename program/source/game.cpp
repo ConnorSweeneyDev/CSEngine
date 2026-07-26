@@ -609,8 +609,8 @@ namespace cse::help::game
                             if (const auto left_layer{left->scene ? 0 : 1}, right_layer{right->scene ? 0 : 1};
                                 left_layer != right_layer)
                               return left_layer < right_layer;
-                            if (const auto *left_batch{left->active.texture.image.data.data()},
-                                *right_batch{right->active.texture.image.data.data()};
+                            if (const auto *left_batch{left->active.texture.source.image.data.data()},
+                                *right_batch{right->active.texture.source.image.data.data()};
                                 left_batch != right_batch)
                               return left_batch < right_batch;
                             return left->name.identifier() < right->name.identifier();
@@ -712,12 +712,12 @@ namespace cse::help::game
       const auto penetration{std::max(
         0.0, element->active.illumination.penetration.interpolated(element->previous.illumination.penetration, alpha))};
       if (!element->active.shadow.cast && !penetrating && std::abs(penetration - 1.0) < 1e-6) continue;
-      const auto &image{element->active.texture.image};
-      const auto frame_count{element->active.texture.animation.frames.size()};
+      const auto &image{element->active.texture.source.image};
+      const auto frame_count{element->active.texture.source.animation.frames.size()};
       if (!image.data.data() || frame_count == 0) continue;
       auto frame_index{element->active.texture.playback.frame};
       if (frame_index >= frame_count) frame_index = frame_count - 1;
-      const auto &coordinates{element->active.texture.animation.frames[frame_index].coordinates};
+      const auto &coordinates{element->active.texture.source.animation.frames[frame_index].coordinates};
       const auto &flip{element->active.texture.flip};
       const auto translation{element->active.translation.interpolated(element->previous.translation, alpha)};
       const auto rotation{element->active.rotation.interpolated(element->previous.rotation, alpha)};
@@ -734,7 +734,7 @@ namespace cse::help::game
                                      : std::floor(scale.y + 0.5) * height / 2.0};
       const auto offset{help::object::anchor(steps, flip, std::floor(scale.x + 0.5), std::floor(scale.y + 0.5),
                                              image.frame_width, image.frame_height,
-                                             element->active.texture.animation.frames[frame_index].pivot)};
+                                             element->active.texture.source.animation.frames[frame_index].pivot)};
       const double snapped_x{std::floor(translation.x + 0.5) + offset.x};
       const double snapped_y{std::floor(translation.y + 0.5) + offset.y};
       const double snapped_z{std::floor(translation.z + 0.5)};
@@ -918,7 +918,7 @@ namespace cse::help::game
     for (auto *element : object_order)
     {
       auto &current{element->active.texture.playback.frame};
-      const auto size{element->active.texture.animation.frames.size()};
+      const auto size{element->active.texture.source.animation.frames.size()};
       if (size == 0) throw exception("Object '{}' contains no frames", element->name.string());
       if (current >= size) current = size - 1;
       transparencies.push_back(
@@ -928,19 +928,19 @@ namespace cse::help::game
       const auto scale{element->active.scale.interpolated(element->previous.scale, alpha)};
       const auto scale_x{std::floor(scale.x + 0.5)};
       const auto scale_y{std::floor(scale.y + 0.5)};
-      const auto width{scale_x * static_cast<double>(element->active.texture.image.frame_width)};
-      const auto height{scale_y * static_cast<double>(element->active.texture.image.frame_height)};
+      const auto width{scale_x * static_cast<double>(element->active.texture.source.image.frame_width)};
+      const auto height{scale_y * static_cast<double>(element->active.texture.source.image.frame_height)};
       const auto offset{help::object::anchor(static_cast<int>(std::floor(rotation + 0.5)), element->active.texture.flip,
-                                             scale_x, scale_y, element->active.texture.image.frame_width,
-                                             element->active.texture.image.frame_height,
-                                             element->active.texture.animation.frames[current].pivot)};
+                                             scale_x, scale_y, element->active.texture.source.image.frame_width,
+                                             element->active.texture.source.image.frame_height,
+                                             element->active.texture.source.animation.frames[current].pivot)};
       const glm::dvec3 center{std::floor(translation.x + 0.5) + offset.x, std::floor(translation.y + 0.5) + offset.y,
                               std::floor(translation.z + 0.5)};
       const auto radius{(0.5 * std::sqrt((width * width) + (height * height))) + cull_margin};
       shown.push_back(inside_frustum(center, radius) ? 1 : 0);
       if (!shown.back())
       {
-        const auto &image{element->active.texture.image};
+        const auto &image{element->active.texture.source.image};
         if (const auto iterator{graphics_cache.texture.find({image.data.data(), image.data.size()})};
             iterator != graphics_cache.texture.end())
           iterator->second.stamp = time;
@@ -958,14 +958,15 @@ namespace cse::help::game
     {
       auto *element{object_order.at(position)};
       const auto &coordinates{
-        element->active.texture.animation.frames[element->active.texture.playback.frame].coordinates};
+        element->active.texture.source.animation.frames[element->active.texture.playback.frame].coordinates};
       const auto &flip{element->active.texture.flip};
       const auto color{
         glm::vec4{element->active.texture.color.tint.interpolated(element->previous.texture.color.tint, alpha)}};
       const auto transparency{transparencies.at(position)};
       const glm::mat4 model{element->active.calculate_model_matrix(
-        element->previous, element->active.texture.image.frame_width, element->active.texture.image.frame_height,
-        element->active.texture.animation.frames[element->active.texture.playback.frame].pivot, alpha)};
+        element->previous, element->active.texture.source.image.frame_width,
+        element->active.texture.source.image.frame_height,
+        element->active.texture.source.animation.frames[element->active.texture.playback.frame].pivot, alpha)};
       graphics_object::sample data{};
       SDL_memcpy(data.model.data(), &model, sizeof(model));
       data.red = color.r;
@@ -985,7 +986,7 @@ namespace cse::help::game
       data.occluder = position < graphics_occluder.indices.size() ? graphics_occluder.indices.at(position) : -1.0f;
       auto &available{require_pipelines()};
       auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
-      auto *texture{require_texture(element->active.texture.image)};
+      auto *texture{require_texture(element->active.texture.source.image)};
       if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
           graphics_object.batches.back().texture == texture)
         graphics_object.batches.back().count++;
@@ -1002,18 +1003,19 @@ namespace cse::help::game
     for (auto *element : graphics_interface.order)
     {
       auto &current{element->active.texture.playback.frame};
-      const auto size{element->active.texture.animation.frames.size()};
+      const auto size{element->active.texture.source.animation.frames.size()};
       if (size == 0) throw exception("Interface '{}' contains no frames", element->name.string());
       if (current >= size) current = size - 1;
-      const auto &coordinates{element->active.texture.animation.frames[current].coordinates};
+      const auto &coordinates{element->active.texture.source.animation.frames[current].coordinates};
       const auto &flip{element->active.texture.flip};
       const auto color{
         glm::vec4{element->active.texture.color.tint.interpolated(element->previous.texture.color.tint, alpha)}};
       const auto transparency{
         element->active.texture.color.alpha.interpolated(element->previous.texture.color.alpha, alpha)};
-      const glm::mat4 model{element->active.calculate_model_matrix(
-        element->previous, element->active.texture.image.frame_width, element->active.texture.image.frame_height,
-        element->active.texture.animation.frames[current].pivot, alpha)};
+      const glm::mat4 model{
+        element->active.calculate_model_matrix(element->previous, element->active.texture.source.image.frame_width,
+                                               element->active.texture.source.image.frame_height,
+                                               element->active.texture.source.animation.frames[current].pivot, alpha)};
       graphics_object::sample data{};
       SDL_memcpy(data.model.data(), &model, sizeof(model));
       data.red = color.r;
@@ -1027,7 +1029,7 @@ namespace cse::help::game
       data.transparency = static_cast<float>(transparency);
       auto &available{require_pipelines()};
       auto *pipe{available.interface};
-      auto *texture{require_texture(element->active.texture.image)};
+      auto *texture{require_texture(element->active.texture.source.image)};
       if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
           graphics_object.batches.back().texture == texture)
         graphics_object.batches.back().count++;
@@ -1038,14 +1040,15 @@ namespace cse::help::game
       const auto &text{element->active.text};
       const auto content_length{text.content.size()};
       if (content_length == 0) continue;
-      if (!text.font.image.data.data()) throw exception("Interface '{}' has text but no font", element->name.string());
-      if (text.font.glyphs.empty())
+      if (!text.source.font.image.data.data())
+        throw exception("Interface '{}' has text but no font", element->name.string());
+      if (text.source.font.glyphs.empty())
         throw exception("Font for interface '{}' contains no glyphs", element->name.string());
       auto &text_frame{element->active.text.playback.frame};
-      const auto text_frames{text.animation.frames.size()};
+      const auto text_frames{text.source.animation.frames.size()};
       if (text_frames == 0) throw exception("Interface '{}' text contains no frames", element->name.string());
       if (text_frame >= text_frames) text_frame = text_frames - 1;
-      const auto &text_coordinates{text.animation.frames[text_frame].coordinates};
+      const auto &text_coordinates{text.source.animation.frames[text_frame].coordinates};
 
       const auto text_color{glm::vec4{text.color.tint.interpolated(element->previous.text.color.tint, alpha)}};
       const auto text_alpha{text.color.alpha.interpolated(element->previous.text.color.alpha, alpha)};
@@ -1054,15 +1057,16 @@ namespace cse::help::game
       const auto scale_x{std::max(1.0, std::floor(text_scale.x + 0.5))};
       const auto scale_y{std::max(1.0, std::floor(text_scale.y + 0.5))};
       const auto &scale{element->active.scale.value};
-      const auto element_width{static_cast<double>(element->active.texture.image.frame_width) *
+      const auto element_width{static_cast<double>(element->active.texture.source.image.frame_width) *
                                std::max(1.0, std::floor(scale.x + 0.5))};
-      const auto element_height{static_cast<double>(element->active.texture.image.frame_height) *
+      const auto element_height{static_cast<double>(element->active.texture.source.image.frame_height) *
                                 std::max(1.0, std::floor(scale.y + 0.5))};
       const int steps{static_cast<int>(std::floor(element->active.rotation.value + 0.5))};
       const auto box_center{help::interface::unrotate(
         help::interface::anchor(steps, flip, std::floor(scale.x + 0.5), std::floor(scale.y + 0.5),
-                                element->active.texture.image.frame_width, element->active.texture.image.frame_height,
-                                element->active.texture.animation.frames[current].pivot),
+                                element->active.texture.source.image.frame_width,
+                                element->active.texture.source.image.frame_height,
+                                element->active.texture.source.animation.frames[current].pivot),
         steps)};
       const auto box_left{box_center.x - (element_width / 2.0)};
       const auto box_right{box_center.x + (element_width / 2.0)};
@@ -1070,23 +1074,23 @@ namespace cse::help::game
       const auto box_bottom{box_center.y - (element_height / 2.0)};
 
       constexpr std::uint32_t undefined{0xFFFD};
-      const auto find{[&](const std::uint32_t character) -> const cse::font::glyph &
-                      {
-                        const auto locate{[&](const std::uint32_t value) -> const cse::font::glyph *
-                                          {
-                                            const auto position{std::ranges::lower_bound(
-                                              text.font.glyphs, static_cast<std::uint64_t>(value), std::ranges::less{},
-                                              [](const cse::font::glyph &glyph) { return glyph.character; })};
-                                            if (position == text.font.glyphs.end() || position->character != value)
-                                              return nullptr;
-                                            return &*position;
-                                          }};
-                        if (const auto *glyph{locate(character)}) return *glyph;
-                        if (const auto *glyph{locate(undefined)}) return *glyph;
-                        throw exception(
-                          "Font for interface '{}' is missing glyph U+{:04X} and the U+FFFD fallback glyph",
+      const auto find{
+        [&](const std::uint32_t character) -> const cse::font::glyph &
+        {
+          const auto locate{[&](const std::uint32_t value) -> const cse::font::glyph *
+                            {
+                              const auto position{std::ranges::lower_bound(
+                                text.source.font.glyphs, static_cast<std::uint64_t>(value), std::ranges::less{},
+                                [](const cse::font::glyph &glyph) { return glyph.character; })};
+                              if (position == text.source.font.glyphs.end() || position->character != value)
+                                return nullptr;
+                              return &*position;
+                            }};
+          if (const auto *glyph{locate(character)}) return *glyph;
+          if (const auto *glyph{locate(undefined)}) return *glyph;
+          throw exception("Font for interface '{}' is missing glyph U+{:04X} and the U+FFFD fallback glyph",
                           element->name.string(), character);
-                      }};
+        }};
       std::vector<std::uint32_t> characters{};
       characters.reserve(content_length);
       for (std::size_t index{}; index < content_length;)
@@ -1136,7 +1140,7 @@ namespace cse::help::game
         text.align.horizontal.spacing.interpolated(element->previous.text.align.horizontal.spacing, alpha)};
       const auto spacing_y{
         text.align.vertical.spacing.interpolated(element->previous.text.align.vertical.spacing, alpha)};
-      const auto line_height{text.font.glyphs.front().height * scale_y};
+      const auto line_height{text.source.font.glyphs.front().height * scale_y};
       struct item
       {
         const cse::font::glyph *glyph{};
@@ -1237,7 +1241,7 @@ namespace cse::help::game
         block_top = box_bottom + block_height;
       block_top += shift.y;
 
-      auto *atlas{require_texture(text.font.image)};
+      auto *atlas{require_texture(text.source.font.image)};
       for (std::size_t row{}; row < lines.size(); ++row)
       {
         const auto &entry{lines.at(row)};

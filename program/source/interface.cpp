@@ -208,8 +208,8 @@ namespace cse::help::interface
                           }
                       }
                     }};
-    step(texture.animation, texture.playback);
-    step(text.animation, text.playback);
+    step(texture.source.animation, texture.playback);
+    step(text.source.animation, text.playback);
   }
 }
 

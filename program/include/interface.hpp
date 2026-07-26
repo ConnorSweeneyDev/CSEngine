@@ -20,8 +20,7 @@ namespace cse::help::interface
 {
   struct texture
   {
-    cse::image image{};
-    cse::animation animation{};
+    cse::texture::source source{};
     cse::playback playback{};
     cse::flip flip{};
     cse::color color{};
@@ -29,8 +28,7 @@ namespace cse::help::interface
   struct text
   {
     std::string content{};
-    cse::font font{};
-    cse::animation animation{};
+    cse::text::source source{};
     cse::playback playback{};
     cse::align align{};
     temporal<glm::dvec2> scale{{1.0, 1.0}};
