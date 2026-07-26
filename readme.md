@@ -124,14 +124,12 @@ namespace custom
     : cse::game({.meta = {.organization = "ConnorSweeneyDev", .application = "CSGame", .version = "1.0.0"},
                  .tick = 300.0,
                  .frame = 144.0,
-                 .aspect = {.value = 16.0 / 9.0, .interpolate = true},
                  .resolution = 100,
-                 .clear = {.value = {0.0, 0.0, 0.0}, .interpolate = true},
-                 .master = {.value = 0.5, .interpolate = true},
-                 .sound = {.value = 1.0, .interpolate = true},
-                 .music = {.value = 1.0, .interpolate = true}})
-  {
-  }
+                 .clear = {{0.0, 0.0, 0.0}},
+                 .aspect = {16.0 / 9.0},
+                 .master = {0.5},
+                 .sound = {1.0},
+                 .music = {1.0}}) {};
 }
 ```
 
@@ -183,25 +181,17 @@ protected:
 };
 
 player::player(const glm::dvec3 &translation_)
-  : cse::object({.translation = {.value = translation_, .interpolate = true},
-                 .rotation = {.value = 0.0, .interpolate = true},
-                 .scale = {.value = {1.0, 1.0}, .interpolate = true},
+  : cse::object({.translation = {translation_},
+                 .rotation = {0.0},
+                 .scale = {{1.0, 1.0}},
                  .collidable = true,
-                 .texture = {.image = image::redhood,
-                             .animation = animation::redhood.idle,
+                 .texture = {.source = {.image = image::redhood, .animation = animation::redhood.idle},
                              .playback = {.frame = 0, .elapsed = 0.0, .playing = true, .speed = {1.0}, .loop = true},
-                             .color = {.tint = {.value = {0.5, 0.5, 0.5, 1.0}, .interpolate = true},
-                                       .alpha = {.value = 1.0, .interpolate = true}}},
-                 .illumination = {.show = true,
-                                  .brightness = {.value = 1.0, .interpolate = true},
-                                  .penetration = {.value = 1.0, .interpolate = true}},
-                 .shadow = {.show = true,
-                            .cast = true,
-                            .darkness = {.value = 1.0, .interpolate = true},
-                            .softness = {.value = 1.0, .interpolate = true}},
-                 .priority = {.simulation = 0, .rendering = 1}})
-{
-}
+                             .flip = {.horizontal = false, .vertical = false},
+                             .color = {.tint = {{0.5, 0.5, 0.5, 1.0}}, .alpha = {1.0}}},
+                 .illumination = {.show = true, .brightness = {1.0}, .penetration = {1.0}},
+                 .shadow = {.show = true, .cast = true, .darkness = {1.0}, .softness = {1.0}},
+                 .priority = {.simulation = 0, .rendering = 1}}) {};
 ```
 
 `camera`, `light`, `interface` and `window` are defined the same way against their own `initial` structs (see CSGame's

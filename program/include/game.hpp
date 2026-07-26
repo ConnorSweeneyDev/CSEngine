@@ -60,9 +60,9 @@ namespace cse::help::game
   public:
     game::tick tick{};
     game::frame frame{};
-    temporal<double> aspect{};
     unsigned int resolution{};
     temporal<glm::dvec3> clear{};
+    temporal<double> aspect{};
     temporal<double> master{};
     temporal<double> sound{};
     temporal<double> music{};
@@ -263,9 +263,9 @@ namespace cse::help::game
   public:
     game::tick tick{};
     game::frame frame{};
-    temporal<double> aspect{};
     unsigned int resolution{};
     temporal<glm::dvec3> clear{};
+    temporal<double> aspect{};
     temporal<double> master{};
     temporal<double> sound{};
     temporal<double> music{};
@@ -334,9 +334,9 @@ namespace cse
       const cse::meta::initial meta{};
       const double tick{100.0};
       const double frame{60.0};
-      const temporal<double> aspect{16.0 / 9.0};
       const unsigned int resolution{240};
       const temporal<glm::dvec3> clear{};
+      const temporal<double> aspect{16.0 / 9.0};
       const temporal<double> master{0.5};
       const temporal<double> sound{0.5};
       const temporal<double> music{0.5};
