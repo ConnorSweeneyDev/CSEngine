@@ -14,8 +14,8 @@ namespace cse
   {
     struct initial
     {
-      const bool visible{true};
-      const glm::dvec2 position{};
+      bool visible{true};
+      glm::dvec2 position{};
     };
     bool visible{true};
     glm::dvec2 position{};

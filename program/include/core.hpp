@@ -11,9 +11,9 @@ namespace cse
   {
     struct initial
     {
-      const std::string organization{"CSEngine"};
-      const std::string application{"Base"};
-      const std::string version{"1.0.0"};
+      std::string organization{"CSEngine"};
+      std::string application{"Base"};
+      std::string version{"1.0.0"};
     };
     std::string organization{"CSEngine"};
     std::string application{"Base"};
