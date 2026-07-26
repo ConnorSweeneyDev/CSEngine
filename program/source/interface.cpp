@@ -65,6 +65,7 @@ namespace cse::help::interface
     text.scale.instant = false;
     text.color.tint.instant = false;
     text.color.alpha.instant = false;
+    target.released = {};
     target.clicked = {};
   }
 

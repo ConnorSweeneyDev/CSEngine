@@ -46,6 +46,7 @@ namespace cse::help::interface
   {
     cse::hitbox hovered{};
     std::array<cse::hitbox, SDL_BUTTON_X2 + 1> pressed{};
+    std::array<cse::hitbox, SDL_BUTTON_X2 + 1> released{};
     std::array<cse::hitbox, SDL_BUTTON_X2 + 1> clicked{};
   };
 

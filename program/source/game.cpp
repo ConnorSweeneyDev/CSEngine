@@ -567,6 +567,13 @@ namespace cse::help::game
     else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
     {
       if (event.button.button > SDL_BUTTON_X2) return;
+      if (inside(mouse.position))
+        for (auto *element : interface_pool)
+          if (const auto target{collision::hit(element, mouse.position)}; target != hitbox{})
+          {
+            element->active.target.released.at(event.button.button) = target;
+            break;
+          }
       for (auto *element : interface_pool)
         if (const auto target{element->active.target.pressed.at(event.button.button)}; target != hitbox{})
         {
