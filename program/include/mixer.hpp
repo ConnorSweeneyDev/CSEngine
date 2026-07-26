@@ -34,10 +34,10 @@ namespace cse::help
     {
       audio source{};
       cse::elapsed elapsed{};
-      bool loop{};
-      temporal<double> speed{1.0};
-      temporal<double> volume{1.0};
       bool playing{};
+      temporal<double> speed{1.0};
+      bool loop{};
+      temporal<double> volume{1.0};
     };
     struct request
     {

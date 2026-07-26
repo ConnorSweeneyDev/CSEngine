@@ -1844,8 +1844,8 @@ namespace cse
     if (!equal(real_frame, active.actual_frame)) active.actual_frame = real_frame;
 
     time();
-    static double simulation_time{};
-    const double delta_time{active.time - simulation_time};
+    static std::optional<double> simulation_time{};
+    const double delta_time{simulation_time ? active.time - simulation_time.value() : 0.0};
     simulation_time = active.time;
     active.accumulator += std::min(delta_time, std::max(0.1, active.actual_frame + active.actual_tick));
   }

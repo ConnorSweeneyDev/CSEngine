@@ -156,6 +156,7 @@ namespace cse::help::interface
                         playback.frame = 0;
                       else if (playback.frame >= frame_count)
                         playback.frame = frame_count - 1;
+                      if (!playback.playing) return;
                       if (playback.speed.value > 0.0 && !no_frames)
                       {
                         playback.elapsed += tick * playback.speed.value;

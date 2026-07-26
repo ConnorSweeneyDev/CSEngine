@@ -103,9 +103,10 @@ namespace cse
   struct playback
   {
     std::size_t frame{};
+    double elapsed{};
+    bool playing{true};
     temporal<double> speed{1.0};
     bool loop{true};
-    double elapsed{};
   };
   struct flip
   {

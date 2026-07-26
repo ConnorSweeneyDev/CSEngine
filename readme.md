@@ -189,7 +189,7 @@ player::player(const glm::dvec3 &translation_)
                  .collidable = true,
                  .texture = {.image = image::redhood,
                              .animation = animation::redhood.idle,
-                             .playback = {.frame = 0, .speed = {1.0}, .loop = true},
+                             .playback = {.frame = 0, .elapsed = 0.0, .playing = true, .speed = {1.0}, .loop = true},
                              .color = {.tint = {.value = {0.5, 0.5, 0.5, 1.0}, .interpolate = true},
                                        .alpha = {.value = 1.0, .interpolate = true}}},
                  .illumination = {.show = true,
