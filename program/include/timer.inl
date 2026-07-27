@@ -4,6 +4,7 @@
 
 #include <any>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <type_traits>
 #include <typeindex>
@@ -25,7 +26,9 @@ namespace cse::help
 
   template <typename signature> timer::state &timer::set(const name name, const std::function<signature> &callback)
   {
-    return entries.insert_or_assign(name, entry{callback, std::type_index(typeid(signature)), {}}).first->second.state;
+    return entries
+      .insert_or_assign(name, entry{std::make_shared<const std::any>(callback), std::type_index(typeid(signature)), {}})
+      .first->second.state;
   }
 
   template <typename callable> timer::state &timer::set(const name name, callable &&callback)
@@ -82,9 +85,11 @@ namespace cse::help
   template <typename signature>
   const std::function<signature> &timer::deduce(const name name, const entry &target) const
   {
+    if (!target.callback)
+      throw exception("Attempted to call timer '{}' with incorrect function signature", name.string());
     try
     {
-      return std::any_cast<const std::function<signature> &>(target.callback);
+      return std::any_cast<const std::function<signature> &>(*target.callback);
     }
     catch (const std::bad_any_cast &)
     {

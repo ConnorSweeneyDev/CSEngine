@@ -32,4 +32,10 @@ namespace cse
   bool name::operator==(const name &other) const { return hash == other.hash; }
 
   bool name::operator!=(const name &other) const { return hash != other.hash; }
+
+  identity &identity::operator=(const cse::name &other)
+  {
+    cse::name::operator=(other);
+    return *this;
+  }
 }

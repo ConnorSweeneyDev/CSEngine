@@ -56,14 +56,16 @@
 namespace cse::help::game
 {
   previous::previous(const double tick_, const double frame_, const game::aspect &aspect_,
-                     const temporal<glm::dvec3> &clear_, const temporal<double> &master_,
-                     const temporal<double> &sound_, const temporal<double> &music_)
-    : tick(tick_), frame(frame_), aspect(aspect_), clear(clear_), master(master_), sound(sound_), music(music_) {};
+                     const temporal<glm::dvec3> &clear_, const game::memory::initial &memory_,
+                     const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_)
+    : tick(tick_), frame(frame_), aspect(aspect_), clear(clear_), memory({{}, memory_.vram}, {{}, memory_.ram}),
+      master(master_), sound(sound_), music(music_) {};
 
   active::active(const double tick_, const double frame_, const game::aspect &aspect_,
-                 const temporal<glm::dvec3> &clear_, const temporal<double> &master_, const temporal<double> &sound_,
-                 const temporal<double> &music_)
-    : tick(tick_), frame(frame_), aspect(aspect_), clear(clear_), master(master_), sound(sound_), music(music_) {};
+                 const temporal<glm::dvec3> &clear_, const game::memory::initial &memory_,
+                 const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_)
+    : tick(tick_), frame(frame_), aspect(aspect_), clear(clear_), memory({{}, memory_.vram}, {{}, memory_.ram}),
+      master(master_), sound(sound_), music(music_) {};
 
   void active::prepare()
   {
@@ -209,6 +211,7 @@ namespace cse::help::game
     last.frame = frame;
     last.aspect = aspect;
     last.clear = clear;
+    last.memory = memory;
     last.master = master;
     last.sound = sound;
     last.music = music;
@@ -251,11 +254,7 @@ namespace cse::help::game
                               0.0};
       return std::pair<glm::dmat4, glm::dmat4>{projection, glm::translate(glm::dmat4{1.0}, origin)};
     }();
-    std::size_t vram{};
-    for (const auto &[key, entry] : graphics_cache.texture) vram += entry.bytes;
-    for (const auto &entry : graphics_occluder.layers)
-      vram += static_cast<std::size_t>(entry.image.width) * entry.image.height * entry.image.channels;
-    while (vram > maximum_vram)
+    while (actual_vram.current > actual_vram.maximum)
     {
       auto oldest{graphics_cache.texture.end()};
       for (auto iterator{graphics_cache.texture.begin()}; iterator != graphics_cache.texture.end(); ++iterator)
@@ -263,7 +262,7 @@ namespace cse::help::game
             (oldest == graphics_cache.texture.end() || iterator->second.stamp < oldest->second.stamp))
           oldest = iterator;
       if (oldest == graphics_cache.texture.end()) break;
-      vram -= oldest->second.bytes;
+      actual_vram.current -= oldest->second.bytes;
       SDL_ReleaseGPUTexture(video, oldest->second.value);
       graphics_cache.texture.erase(oldest);
     }
@@ -389,9 +388,13 @@ namespace cse::help::game
     const auto sound_bus{master_bus * blend(previous_sound, sound)};
     const auto music_bus{master_bus * blend(previous_music, music)};
 
-    std::vector<channel> channels{};
+    auto &channels{audio_channels};
+    channels.clear();
     const auto add{[&channels](auto *source) { channels.push_back({&source->previous.mixer, &source->active.mixer}); }};
-    channels.reserve(3 + interfaces.size());
+    std::size_t expected{2 + interfaces.size()};
+    if (scene)
+      expected += 2 + scene->active.interfaces.size() + scene->active.objects.size() + scene->active.lights.size();
+    channels.reserve(expected);
     channels.push_back({&previous_mixer, &mixer});
     add(window.get());
     if (scene)
@@ -418,13 +421,12 @@ namespace cse::help::game
       }
       else
         ++iterator;
-    for (auto &[key, audio] : audio_cache.sources)
-      if (std::ranges::any_of(audio_cache.tracks,
-                              [value = audio.value](const auto &entry) { return entry.second.audio == value; }))
-        audio.stamp = time;
-    std::size_t ram{};
-    for (const auto &[key, audio] : audio_cache.sources) ram += audio.bytes;
-    while (ram > maximum_ram)
+    for (const auto &[key, track] : audio_cache.tracks)
+      if (track.source)
+        if (const auto iterator{audio_cache.sources.find({track.source, track.size})};
+            iterator != audio_cache.sources.end())
+          iterator->second.stamp = time;
+    while (actual_ram.current > actual_ram.maximum)
     {
       auto oldest{audio_cache.sources.end()};
       for (auto iterator{audio_cache.sources.begin()}; iterator != audio_cache.sources.end(); ++iterator)
@@ -432,7 +434,7 @@ namespace cse::help::game
             (oldest == audio_cache.sources.end() || iterator->second.stamp < oldest->second.stamp))
           oldest = iterator;
       if (oldest == audio_cache.sources.end()) break;
-      ram -= oldest->second.bytes;
+      actual_ram.current -= oldest->second.bytes;
       if (oldest->second.value) MIX_DestroyAudio(oldest->second.value);
       audio_cache.sources.erase(oldest);
     }
@@ -446,6 +448,7 @@ namespace cse::help::game
     for (auto &[key, audio] : audio_cache.sources)
       if (audio.value) MIX_DestroyAudio(audio.value);
     audio_cache.sources.clear();
+    actual_ram.current = 0;
     if (soundboard) MIX_DestroyMixer(soundboard);
     soundboard = nullptr;
 
@@ -488,6 +491,7 @@ namespace cse::help::game
     graphics_light.capacity = 0;
     graphics_light.samples.clear();
     graphics_cache.texture.clear();
+    actual_vram.current = 0;
     graphics_pipeline.interface = nullptr;
     graphics_pipeline.transparent = nullptr;
     graphics_pipeline.opaque = nullptr;
@@ -797,6 +801,7 @@ namespace cse::help::game
                               return static_cast<int>(index);
                             }
                           graphics_occluder.layers.push_back({image, time});
+                          actual_vram.current += static_cast<std::size_t>(image.width) * image.height * image.channels;
                           additions = true;
                           return static_cast<int>(graphics_occluder.layers.size() - 1);
                         }};
@@ -914,29 +919,28 @@ namespace cse::help::game
     const auto weight{
       [](const graphics_occluder::layer &entry)
       { return static_cast<std::size_t>(entry.image.width) * entry.image.height * entry.image.channels; }};
-    std::size_t vram{};
-    for (const auto &[key, entry] : graphics_cache.texture) vram += entry.bytes;
-    for (const auto &entry : graphics_occluder.layers) vram += weight(entry);
-    std::vector<bool> doomed(graphics_occluder.layers.size(), false);
+    auto &doomed{graphics_occluder.doomed};
+    doomed.assign(graphics_occluder.layers.size(), 0);
     bool pruned{false};
-    while (vram > maximum_vram)
+    while (actual_vram.current > actual_vram.maximum)
     {
       auto oldest{graphics_occluder.layers.size()};
       for (std::size_t index{}; index < graphics_occluder.layers.size(); ++index)
-        if (!doomed.at(index) && graphics_occluder.layers.at(index).stamp < time &&
+        if (doomed.at(index) == 0 && graphics_occluder.layers.at(index).stamp < time &&
             (oldest == graphics_occluder.layers.size() ||
              graphics_occluder.layers.at(index).stamp < graphics_occluder.layers.at(oldest).stamp))
           oldest = index;
       if (oldest == graphics_occluder.layers.size()) break;
-      doomed.at(oldest) = true;
+      doomed.at(oldest) = 1;
       pruned = true;
-      vram -= weight(graphics_occluder.layers.at(oldest));
+      actual_vram.current -= weight(graphics_occluder.layers.at(oldest));
     }
     const auto expired{[&](const graphics_occluder::layer &entry)
-                       { return doomed.at(static_cast<std::size_t>(&entry - graphics_occluder.layers.data())); }};
+                       { return doomed.at(static_cast<std::size_t>(&entry - graphics_occluder.layers.data())) != 0; }};
     if (pruned)
     {
-      std::vector<float> remap(graphics_occluder.layers.size(), -1.0f);
+      auto &remap{graphics_occluder.remap};
+      remap.assign(graphics_occluder.layers.size(), -1.0f);
       float next{};
       for (std::size_t index{}; index < graphics_occluder.layers.size(); ++index)
         if (!expired(graphics_occluder.layers.at(index))) remap.at(index) = next++;
@@ -1051,9 +1055,9 @@ namespace cse::help::game
     const auto slot_total{object_total * 2};
     const double depth_bias_step{object_total == 0 ? 0.0 : depth_bias_span / (object_count * 2.0)};
 
-    static std::vector<double> transparencies{};
-    static std::vector<char> shown{};
-    static std::vector<char> lettered{};
+    auto &transparencies{graphics_object.transparencies};
+    auto &shown{graphics_object.shown};
+    auto &lettered{graphics_object.lettered};
     transparencies.clear();
     shown.clear();
     lettered.clear();
@@ -1099,7 +1103,7 @@ namespace cse::help::game
           iterator->second.stamp = time;
     }
 
-    static std::vector<std::size_t> emission_order{};
+    auto &emission_order{graphics_object.emission_order};
     emission_order.clear();
     emission_order.reserve(slot_total);
     const auto opaque_slot{[&](const std::size_t slot)
@@ -1481,6 +1485,7 @@ namespace cse::help::game
     SDL_SubmitGPUCommandBuffer(command_buffer);
     SDL_ReleaseGPUTransferBuffer(video, texture_transfer_buffer);
     const auto bytes{static_cast<std::size_t>(image.width) * image.height * image.channels};
+    actual_vram.current += bytes;
     return graphics_cache.texture.emplace(key, cached<SDL_GPUTexture *>{texture, bytes, time}).first->second.value;
   }
 
@@ -1517,6 +1522,7 @@ namespace cse::help::game
     if (!audio) throw sdl_exception("Could not load audio for game");
     const auto duration{MIX_GetAudioDuration(audio)};
     const auto bytes{predecode && duration > 0 ? static_cast<std::size_t>(duration) * 2 * sizeof(float) : size};
+    actual_ram.current += bytes;
     return audio_cache.sources.emplace(key, cached<MIX_Audio *>{audio, bytes, time}).first->second.value;
   }
 }
@@ -1524,10 +1530,10 @@ namespace cse::help::game
 namespace cse
 {
   game::game(const initial &initial_)
-    : previous{initial_.tick,   initial_.frame, initial_.aspect, initial_.clear,
-               initial_.master, initial_.sound, initial_.music},
-      active{initial_.tick,   initial_.frame, initial_.aspect, initial_.clear,
-             initial_.master, initial_.sound, initial_.music}
+    : previous{initial_.tick,   initial_.frame,  initial_.aspect, initial_.clear,
+               initial_.memory, initial_.master, initial_.sound,  initial_.music},
+      active{initial_.tick,   initial_.frame,  initial_.aspect, initial_.clear,
+             initial_.memory, initial_.master, initial_.sound,  initial_.music}
   {
     help::meta = {initial_.meta.organization, initial_.meta.application, initial_.meta.version, {}};
     char *path{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
@@ -1542,7 +1548,7 @@ namespace cse
 
   scene &game::current(const name scene_name)
   {
-    auto scene{find(active.scenes, scene_name)};
+    auto scene{active.scenes.find(scene_name)};
     if (active.phase == help::phase::CREATED)
       next.scene = {scene_name, {}};
     else
@@ -1662,14 +1668,14 @@ namespace cse
       {
         active.scene->destroy();
         if (name == active.scene->name) active.scene->clean();
-        set_or_add(active.scenes, scene);
+        active.scenes.set(scene);
         active.scene = scene;
         scene->prepare();
         scene->create();
       }
       else
       {
-        auto next_scene{find(active.scenes, name)};
+        auto next_scene{active.scenes.find(name)};
         if (name != active.scene->name)
         {
           active.scene->destroy();
@@ -1683,12 +1689,11 @@ namespace cse
     if (!active.interface_removals.empty())
     {
       for (const auto &interface_name : active.interface_removals)
-        if (auto iterator{try_iterate(active.interfaces, interface_name)}; iterator != active.interfaces.end())
+        if (auto interface{active.interfaces.find(interface_name)})
         {
-          const auto &interface{*iterator};
           if (interface->active.phase == help::phase::CREATED) interface->destroy();
           interface->clean();
-          active.interfaces.erase(iterator);
+          active.interfaces.remove(interface_name);
         }
       active.interface_removals.clear();
     }
@@ -1696,7 +1701,7 @@ namespace cse
     {
       for (auto &interface : active.interface_additions)
       {
-        set_or_add(active.interfaces, interface);
+        active.interfaces.set(interface);
         interface->prepare();
         interface->create();
       }
@@ -1817,6 +1822,12 @@ namespace cse
       active.actual_tick = real_tick;
     }
     if (!equal(real_frame, active.actual_frame)) active.actual_frame = real_frame;
+    active.memory.vram.maximum = std::max<std::size_t>(1, active.memory.vram.maximum);
+    active.memory.ram.maximum = std::max<std::size_t>(1, active.memory.ram.maximum);
+    active.actual_vram.maximum = active.memory.vram.maximum * 1024u * 1024u;
+    active.actual_ram.maximum = active.memory.ram.maximum * 1024u * 1024u;
+    active.memory.vram.current = active.actual_vram.current / (1024u * 1024u);
+    active.memory.ram.current = active.actual_ram.current / (1024u * 1024u);
 
     time();
     static std::optional<double> simulation_time{};

@@ -5,12 +5,14 @@
 #include <memory>
 #include <optional>
 #include <type_traits>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include "SDL3/SDL_events.h"
 
 #include "collision.hpp"
+#include "container.hpp"
 #include "core.hpp"
 #include "mixer.hpp"
 #include "name.hpp"
@@ -30,9 +32,9 @@ namespace cse::help::scene
 
   public:
     std::shared_ptr<cse::camera> camera{};
-    std::vector<std::shared_ptr<cse::interface>> interfaces{};
-    std::vector<std::shared_ptr<cse::object>> objects{};
-    std::vector<std::shared_ptr<cse::light>> lights{};
+    help::container<cse::interface> interfaces{};
+    help::container<cse::object> objects{};
+    help::container<cse::light> lights{};
     std::vector<contact> contacts{};
     help::timer timer{};
     help::mixer mixer{};
@@ -80,9 +82,9 @@ namespace cse::help::scene
 
   public:
     std::shared_ptr<cse::camera> camera{};
-    std::vector<std::shared_ptr<cse::interface>> interfaces{};
-    std::vector<std::shared_ptr<cse::object>> objects{};
-    std::vector<std::shared_ptr<cse::light>> lights{};
+    help::container<cse::interface> interfaces{};
+    help::container<cse::object> objects{};
+    help::container<cse::light> lights{};
     std::vector<contact> contacts{};
     help::timer timer{};
     help::mixer mixer{};
@@ -90,17 +92,21 @@ namespace cse::help::scene
 
   private:
     std::unordered_set<cse::name> interface_removals{};
-    std::vector<std::shared_ptr<cse::interface>> interface_additions{};
+    help::container<cse::interface> interface_additions{};
     std::vector<cse::interface *> interface_simulation_order{};
     std::unordered_set<cse::name> object_removals{};
-    std::vector<std::shared_ptr<cse::object>> object_additions{};
+    help::container<cse::object> object_additions{};
     std::vector<cse::object *> object_simulation_order{};
     std::unordered_set<cse::name> light_removals{};
-    std::vector<std::shared_ptr<cse::light>> light_additions{};
+    help::container<cse::light> light_additions{};
     std::vector<cse::light *> light_simulation_order{};
 
     std::vector<cse::object *> object_graphics_order{};
     std::vector<cse::light *> light_graphics_order{};
+
+    std::vector<collision::entry> contact_entries{};
+    std::unordered_map<contact_key, std::size_t, contact_key::hash> contact_lookup{};
+    std::vector<std::size_t> contact_sweep{};
   };
 
   struct next
@@ -177,7 +183,7 @@ namespace cse
 
   public:
     cse::game *game{};
-    cse::name name{};
+    cse::identity name{};
     help::scene::previous previous{};
     help::scene::active active{};
     help::scene::next next{};

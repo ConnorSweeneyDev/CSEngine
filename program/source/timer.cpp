@@ -9,6 +9,18 @@
 
 namespace cse::help
 {
+  timer &timer::operator=(const timer &other)
+  {
+    if (this == &other) return *this;
+    std::erase_if(entries, [&other](const auto &item) { return !other.entries.contains(item.first); });
+    for (const auto &[name, target] : other.entries)
+      if (const auto iterator{entries.find(name)}; iterator != entries.end())
+        iterator->second = target;
+      else
+        entries.emplace(name, target);
+    return *this;
+  }
+
   std::size_t timer::count() const noexcept { return entries.size(); }
 
   bool timer::has(const name name) const { return entries.contains(name); }
@@ -27,9 +39,9 @@ namespace cse::help
     return iterator->second.state;
   }
 
-  void timer::remove(const name name) { entries.erase(name); }
+  void timer::remove(const name name) noexcept { entries.erase(name); }
 
-  void timer::remove(std::initializer_list<name> names)
+  void timer::remove(std::initializer_list<name> names) noexcept
   {
     for (const auto &name : names) entries.erase(name);
   }
@@ -43,17 +55,17 @@ namespace cse::help
     return false;
   }
 
+  void timer::simulate(const double tick)
+  {
+    for (auto &[name, target] : entries)
+      if (target.state.running) target.state.elapsed += tick;
+  }
+
   void timer::finish(std::unordered_map<name, entry>::iterator iterator)
   {
     if (iterator->second.state.repeat)
       iterator->second.state.elapsed = 0.0;
     else
       entries.erase(iterator);
-  }
-
-  void timer::simulate(const double tick)
-  {
-    for (auto &[name, target] : entries)
-      if (target.state.running) target.state.elapsed += tick;
   }
 }

@@ -71,7 +71,7 @@ namespace cse
                 std::function<void(const nlohmann::json &json)> reader);
 
   public:
-    cse::name name{};
+    cse::identity name{};
     std::filesystem::path storage{};
 
   private:

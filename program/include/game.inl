@@ -10,6 +10,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -31,6 +32,14 @@
 
 namespace cse::help::game
 {
+  template <typename first, typename second>
+  std::size_t active::pair_hash::operator()(const std::pair<first, second> &key) const noexcept
+  {
+    const auto left{std::hash<std::string>{}(key.first)};
+    const auto right{std::hash<std::string>{}(key.second)};
+    return left ^ (right << 1);
+  }
+
   template <typename type> void active::compose_text(type &text, const type &last, const cse::name &element,
                                                      const double box_left, const double box_right,
                                                      const double box_top, const double box_bottom,
@@ -39,7 +48,7 @@ namespace cse::help::game
     constexpr bool is_object{std::is_same_v<type, help::object::text>};
     constexpr bool is_interface{std::is_same_v<type, help::interface::text>};
     static_assert(is_object || is_interface, "compose_text() only supports object text and interface text");
-    std::string kind{};
+    std::string_view kind{};
     if constexpr (is_object)
       kind = "Object";
     else if constexpr (is_interface)
@@ -77,7 +86,8 @@ namespace cse::help::game
                                       element.string(), character);
                     }};
     const auto content_length{text.content.size()};
-    std::vector<std::uint32_t> characters{};
+    auto &characters{graphics_text.characters};
+    characters.clear();
     characters.reserve(content_length);
     for (std::size_t index{}; index < content_length;)
     {
@@ -125,66 +135,69 @@ namespace cse::help::game
     const auto spacing_x{text.align.horizontal.spacing.interpolated(last.align.horizontal.spacing, alpha)};
     const auto spacing_y{text.align.vertical.spacing.interpolated(last.align.vertical.spacing, alpha)};
     const auto line_height{text.source.font.glyphs.front().height * scale_y};
-    struct item
-    {
-      const cse::font::glyph *glyph{};
-      std::uint32_t character{};
-    };
-    struct line
-    {
-      std::vector<item> items{};
-      double width{};
-    };
+    auto &items{graphics_text.items};
+    auto &lines{graphics_text.lines};
+    auto &word{graphics_text.word};
+    items.clear();
+    lines.clear();
+    word.clear();
     struct composer
     {
       double spacing_x{};
       double scale_x{};
       double element_width{};
       bool wrap{};
-      std::vector<line> lines{};
-      std::vector<item> word{};
+      std::vector<active::graphics_text::item> *items{};
+      std::vector<active::graphics_text::line> *lines{};
+      std::vector<active::graphics_text::item> *word{};
       double word_width{};
 
       void append(const cse::font::glyph &glyph, const std::uint32_t character)
       {
-        auto &active_line{lines.back()};
-        active_line.width += (active_line.items.empty() ? 0.0 : spacing_x) + (glyph.width * scale_x);
-        active_line.items.push_back({&glyph, character});
+        auto &active_line{lines->back()};
+        active_line.width += (active_line.count == 0 ? 0.0 : spacing_x) + (glyph.width * scale_x);
+        items->push_back({&glyph, character});
+        ++active_line.count;
       }
       void strip()
       {
-        auto &active_line{lines.back()};
-        while (!active_line.items.empty() && active_line.items.back().character == U' ')
+        auto &active_line{lines->back()};
+        while (active_line.count != 0 && items->back().character == U' ')
         {
-          active_line.width -= active_line.items.back().glyph->width * scale_x;
-          active_line.items.pop_back();
-          if (!active_line.items.empty()) active_line.width -= spacing_x;
+          active_line.width -= items->back().glyph->width * scale_x;
+          items->pop_back();
+          --active_line.count;
+          if (active_line.count != 0) active_line.width -= spacing_x;
         }
       }
       void commit()
       {
         strip();
-        lines.emplace_back();
+        lines->push_back({.first = items->size()});
       }
       void flush()
       {
-        if (word.empty()) return;
-        if (wrap && !lines.back().items.empty() && lines.back().width + spacing_x + word_width > element_width)
-          commit();
-        for (const auto &entry : word)
+        if (word->empty()) return;
+        if (wrap && lines->back().count != 0 && lines->back().width + spacing_x + word_width > element_width) commit();
+        for (const auto &entry : *word)
         {
-          if (wrap && !lines.back().items.empty() &&
-              lines.back().width + spacing_x + (entry.glyph->width * scale_x) > element_width)
+          if (wrap && lines->back().count != 0 &&
+              lines->back().width + spacing_x + (entry.glyph->width * scale_x) > element_width)
             commit();
           append(*entry.glyph, entry.character);
         }
-        word.clear();
+        word->clear();
         word_width = 0.0;
       }
     };
-    composer compose{
-      .spacing_x = spacing_x, .scale_x = scale_x, .element_width = element_width, .wrap = text.overflow.wrap};
-    compose.lines.emplace_back();
+    composer compose{.spacing_x = spacing_x,
+                     .scale_x = scale_x,
+                     .element_width = element_width,
+                     .wrap = text.overflow.wrap,
+                     .items = &items,
+                     .lines = &lines,
+                     .word = &word};
+    lines.push_back({});
     for (const auto character : characters)
     {
       if (character == U'\n')
@@ -200,12 +213,11 @@ namespace cse::help::game
         compose.append(glyph, character);
         continue;
       }
-      compose.word_width += (compose.word.empty() ? 0.0 : spacing_x) + (glyph.width * scale_x);
-      compose.word.push_back({&glyph, character});
+      compose.word_width += (word.empty() ? 0.0 : spacing_x) + (glyph.width * scale_x);
+      word.push_back({&glyph, character});
     }
     compose.flush();
     compose.strip();
-    const auto &lines{compose.lines};
 
     double block_width{};
     for (const auto &entry : lines) block_width = std::max(block_width, entry.width);
@@ -234,8 +246,9 @@ namespace cse::help::game
       else if (text.align.horizontal.preset == RIGHT)
         pen = block_left + (block_width - entry.width);
       const auto top{block_top - (static_cast<double>(row) * (line_height + spacing_y))};
-      for (const auto &placed : entry.items)
+      for (std::size_t index{entry.first}; index < entry.first + entry.count; ++index)
       {
+        const auto &placed{items.at(index)};
         const auto width{placed.glyph->width * scale_x};
         const auto height{placed.glyph->height * scale_y};
         const auto left{pen};
@@ -423,8 +436,8 @@ namespace cse
   {
     auto state{std::make_shared<state_type>(std::forward<state_arguments>(arguments)...)};
     state->name = state_name;
-    set_or_add(active.states, state);
-    if (active.phase != help::phase::CREATED) set_or_add(previous.states, state);
+    active.states.set(state);
+    if (active.phase != help::phase::CREATED) previous.states.set(state);
     return *state;
   }
 
@@ -451,7 +464,7 @@ namespace cse
     scene->name = scene_name;
     scene->game = this;
     if (config) config(scene);
-    if (auto target{try_find(active.scenes, scene_name)}; active.phase == help::phase::CREATED && target)
+    if (auto target{active.scenes.find(scene_name)}; active.phase == help::phase::CREATED && target)
     {
       if (active.scene == target)
       {
@@ -461,7 +474,7 @@ namespace cse
       else
         target->clean();
     }
-    set_or_add(active.scenes, scene);
+    active.scenes.set(scene);
     if (active.phase == help::phase::CREATED) scene->prepare();
     return *scene;
   }
@@ -489,7 +502,7 @@ namespace cse
       next.scene = {scene_name, scene};
     else
     {
-      set_or_add(active.scenes, scene);
+      active.scenes.set(scene);
       active.scene = scene;
       previous.scene = scene;
     }
@@ -514,15 +527,15 @@ namespace cse
     interface->scene = std::nullopt;
     switch (active.phase)
     {
-      case help::phase::CLEANED: set_or_add(active.interfaces, interface); break;
+      case help::phase::CLEANED: active.interfaces.set(interface); break;
       case help::phase::PREPARED:
-        if (auto existing{try_find(active.interfaces, interface_name)}) existing->clean();
-        set_or_add(active.interfaces, interface);
+        if (auto existing{active.interfaces.find(interface_name)}) existing->clean();
+        active.interfaces.set(interface);
         interface->prepare();
         break;
       case help::phase::CREATED:
-        if (try_contains(active.interfaces, interface_name)) active.interface_removals.insert(interface_name);
-        set_or_add(active.interface_additions, interface);
+        if (active.interfaces.contains(interface_name)) active.interface_removals.insert(interface_name);
+        active.interface_additions.set(interface);
         break;
     }
     return *interface;
@@ -538,23 +551,22 @@ namespace cse
     constexpr bool scenes{all || (trait::is_scene<target_types> || ...)};
     constexpr bool interfaces{all || (trait::is_interface<target_types> || ...)};
     if constexpr (scenes)
-      if (auto iterator{try_iterate(active.scenes, target_name)}; iterator != active.scenes.end())
+      if (auto scene{active.scenes.find(target_name)})
       {
-        const auto &scene{*iterator};
         if (active.scene == scene || scene->active.phase == help::phase::CREATED)
           throw exception("Tried to remove current or created scene '{}'", target_name.string());
         scene->clean();
-        active.scenes.erase(iterator);
+        active.scenes.remove(target_name);
       }
     if constexpr (interfaces)
-      if (auto iterator{try_iterate(active.interfaces, target_name)}; iterator != active.interfaces.end())
+      if (auto interface{active.interfaces.find(target_name)})
       {
-        if (const auto &interface{*iterator}; active.phase == help::phase::CREATED)
+        if (active.phase == help::phase::CREATED)
           active.interface_removals.insert(target_name);
         else
         {
           if (interface->active.phase == help::phase::PREPARED) interface->clean();
-          active.interfaces.erase(iterator);
+          active.interfaces.remove(target_name);
         }
       }
   }

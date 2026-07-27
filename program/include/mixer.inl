@@ -16,24 +16,6 @@ namespace cse::help
 {
   template <trait::is_audio audio> std::size_t mixer::count() const noexcept { return select<audio>().size(); }
 
-  template <trait::is_audio audio> auto &mixer::select()
-  {
-    static_assert(std::is_same_v<audio, cse::sound> || std::is_same_v<audio, cse::music>, "Invalid audio type");
-    if constexpr (std::is_same_v<audio, cse::sound>)
-      return sounds;
-    else
-      return musics;
-  }
-
-  template <trait::is_audio audio> const auto &mixer::select() const
-  {
-    static_assert(std::is_same_v<audio, cse::sound> || std::is_same_v<audio, cse::music>, "Invalid audio type");
-    if constexpr (std::is_same_v<audio, cse::sound>)
-      return sounds;
-    else
-      return musics;
-  }
-
   template <trait::is_audio audio> bool mixer::has(const name name) const { return select<audio>().contains(name); }
 
   template <trait::is_audio audio> mixer::entry<audio> &mixer::get(const name name)
@@ -87,12 +69,30 @@ namespace cse::help
     iterate<cse::music>(std::forward<callable>(function));
   }
 
-  template <trait::is_audio audio> void mixer::remove(const name name) { select<audio>().erase(name); }
+  template <trait::is_audio audio> void mixer::remove(const name name) noexcept { select<audio>().erase(name); }
 
-  template <trait::is_audio audio> void mixer::remove(std::initializer_list<name> names)
+  template <trait::is_audio audio> void mixer::remove(std::initializer_list<name> names) noexcept
   {
     for (const auto &name : names) select<audio>().erase(name);
   }
 
   template <trait::is_audio audio> void mixer::clear() noexcept { select<audio>().clear(); }
+
+  template <trait::is_audio audio> auto &mixer::select() noexcept
+  {
+    static_assert(std::is_same_v<audio, cse::sound> || std::is_same_v<audio, cse::music>, "Invalid audio type");
+    if constexpr (std::is_same_v<audio, cse::sound>)
+      return sounds;
+    else
+      return musics;
+  }
+
+  template <trait::is_audio audio> const auto &mixer::select() const noexcept
+  {
+    static_assert(std::is_same_v<audio, cse::sound> || std::is_same_v<audio, cse::music>, "Invalid audio type");
+    if constexpr (std::is_same_v<audio, cse::sound>)
+      return sounds;
+    else
+      return musics;
+  }
 }

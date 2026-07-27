@@ -168,7 +168,7 @@ namespace cse
   public:
     cse::game *game{};
     std::optional<cse::scene *> scene{};
-    cse::name name{};
+    cse::identity name{};
     help::interface::previous previous{};
     help::interface::active active{};
   };

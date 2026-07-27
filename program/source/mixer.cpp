@@ -3,12 +3,30 @@
 #include <cmath>
 #include <cstddef>
 #include <initializer_list>
+#include <unordered_map>
 #include <variant>
 
 #include "name.hpp"
 
 namespace cse::help
 {
+  mixer &mixer::operator=(const mixer &other)
+  {
+    if (this == &other) return *this;
+    const auto reconcile{[](const auto &source, auto &target)
+                         {
+                           std::erase_if(target, [&source](const auto &item) { return !source.contains(item.first); });
+                           for (const auto &[name, track] : source)
+                             if (const auto iterator{target.find(name)}; iterator != target.end())
+                               iterator->second = track;
+                             else
+                               target.emplace(name, track);
+                         }};
+    reconcile(other.sounds, sounds);
+    reconcile(other.musics, musics);
+    return *this;
+  }
+
   std::size_t mixer::count() const noexcept { return sounds.size() + musics.size(); }
 
   bool mixer::has(const name name) const { return sounds.contains(name) || musics.contains(name); }

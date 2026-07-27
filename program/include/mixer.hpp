@@ -46,6 +46,13 @@ namespace cse::help
     };
 
   public:
+    mixer() = default;
+    ~mixer() = default;
+    mixer(const mixer &) = default;
+    mixer &operator=(const mixer &other);
+    mixer(mixer &&) = default;
+    mixer &operator=(mixer &&) = default;
+
     std::size_t count() const noexcept;
     template <trait::is_audio audio> std::size_t count() const noexcept;
     bool has(const name name) const;
@@ -60,16 +67,16 @@ namespace cse::help
     template <typename callable> void iterate(callable &&function) const;
     void remove(const name name);
     void remove(std::initializer_list<name> names);
-    template <trait::is_audio audio> void remove(const name name);
-    template <trait::is_audio audio> void remove(std::initializer_list<name> names);
+    template <trait::is_audio audio> void remove(const name name) noexcept;
+    template <trait::is_audio audio> void remove(std::initializer_list<name> names) noexcept;
     void clear() noexcept;
     template <trait::is_audio audio> void clear() noexcept;
 
   private:
     void simulate(const double tick);
 
-    template <trait::is_audio audio> auto &select();
-    template <trait::is_audio audio> const auto &select() const;
+    template <trait::is_audio audio> auto &select() noexcept;
+    template <trait::is_audio audio> const auto &select() const noexcept;
 
   private:
     std::unordered_map<name, entry<cse::sound>> sounds{};

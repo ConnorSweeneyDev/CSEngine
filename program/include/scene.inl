@@ -50,15 +50,15 @@ namespace cse
     interface->scene = this;
     switch (active.phase)
     {
-      case help::phase::CLEANED: set_or_add(active.interfaces, interface); break;
+      case help::phase::CLEANED: active.interfaces.set(interface); break;
       case help::phase::PREPARED:
-        if (auto existing{try_find(active.interfaces, interface_name)}) existing->clean();
-        set_or_add(active.interfaces, interface);
+        if (auto existing{active.interfaces.find(interface_name)}) existing->clean();
+        active.interfaces.set(interface);
         interface->prepare();
         break;
       case help::phase::CREATED:
-        if (try_contains(active.interfaces, interface_name)) active.interface_removals.insert(interface_name);
-        set_or_add(active.interface_additions, interface);
+        if (active.interfaces.contains(interface_name)) active.interface_removals.insert(interface_name);
+        active.interface_additions.set(interface);
         break;
     }
     return *interface;
@@ -74,15 +74,15 @@ namespace cse
     object->scene = this;
     switch (active.phase)
     {
-      case help::phase::CLEANED: set_or_add(active.objects, object); break;
+      case help::phase::CLEANED: active.objects.set(object); break;
       case help::phase::PREPARED:
-        if (auto existing{try_find(active.objects, object_name)}) existing->clean();
-        set_or_add(active.objects, object);
+        if (auto existing{active.objects.find(object_name)}) existing->clean();
+        active.objects.set(object);
         object->prepare();
         break;
       case help::phase::CREATED:
-        if (try_contains(active.objects, object_name)) active.object_removals.insert(object_name);
-        set_or_add(active.object_additions, object);
+        if (active.objects.contains(object_name)) active.object_removals.insert(object_name);
+        active.object_additions.set(object);
         break;
     }
     return *object;
@@ -98,15 +98,15 @@ namespace cse
     light->scene = this;
     switch (active.phase)
     {
-      case help::phase::CLEANED: set_or_add(active.lights, light); break;
+      case help::phase::CLEANED: active.lights.set(light); break;
       case help::phase::PREPARED:
-        if (auto existing{try_find(active.lights, light_name)}) existing->clean();
-        set_or_add(active.lights, light);
+        if (auto existing{active.lights.find(light_name)}) existing->clean();
+        active.lights.set(light);
         light->prepare();
         break;
       case help::phase::CREATED:
-        if (try_contains(active.lights, light_name)) active.light_removals.insert(light_name);
-        set_or_add(active.light_additions, light);
+        if (active.lights.contains(light_name)) active.light_removals.insert(light_name);
+        active.light_additions.set(light);
         break;
     }
     return *light;
@@ -123,36 +123,36 @@ namespace cse
     constexpr bool objects{all || (trait::is_object<target_types> || ...)};
     constexpr bool lights{all || (trait::is_light<target_types> || ...)};
     if constexpr (interfaces)
-      if (auto iterator{try_iterate(active.interfaces, target_name)}; iterator != active.interfaces.end())
+      if (auto interface{active.interfaces.find(target_name)})
       {
-        if (const auto &interface{*iterator}; active.phase == help::phase::CREATED)
+        if (active.phase == help::phase::CREATED)
           active.interface_removals.insert(target_name);
         else
         {
           if (interface->active.phase == help::phase::PREPARED) interface->clean();
-          active.interfaces.erase(iterator);
+          active.interfaces.remove(target_name);
         }
       }
     if constexpr (objects)
-      if (auto iterator{try_iterate(active.objects, target_name)}; iterator != active.objects.end())
+      if (auto object{active.objects.find(target_name)})
       {
-        if (const auto &object{*iterator}; active.phase == help::phase::CREATED)
+        if (active.phase == help::phase::CREATED)
           active.object_removals.insert(target_name);
         else
         {
           if (object->active.phase == help::phase::PREPARED) object->clean();
-          active.objects.erase(iterator);
+          active.objects.remove(target_name);
         }
       }
     if constexpr (lights)
-      if (auto iterator{try_iterate(active.lights, target_name)}; iterator != active.lights.end())
+      if (auto light{active.lights.find(target_name)})
       {
-        if (const auto &light{*iterator}; active.phase == help::phase::CREATED)
+        if (active.phase == help::phase::CREATED)
           active.light_removals.insert(target_name);
         else
         {
           if (light->active.phase == help::phase::PREPARED) light->clean();
-          active.lights.erase(iterator);
+          active.lights.remove(target_name);
         }
       }
   }

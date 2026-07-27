@@ -174,7 +174,7 @@ namespace cse
   public:
     cse::game *game{};
     cse::scene *scene{};
-    cse::name name{};
+    cse::identity name{};
     help::object::previous previous{};
     help::object::active active{};
   };

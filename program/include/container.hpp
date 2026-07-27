@@ -1,238 +1,66 @@
 #pragma once
 
-#include <algorithm>
-#include <concepts>
-#include <iterator>
+#include <cstddef>
 #include <memory>
-#include <utility>
+#include <unordered_map>
+#include <vector>
 
-#include "exception.hpp"
+#include "core.hpp"
 #include "name.hpp"
-#include "pointer.hpp"
 
-namespace cse::trait
+namespace cse::help
 {
-  template <typename vector>
-  concept pointer_vector = requires(const vector &container) {
-    { container.begin() } -> std::input_iterator;
-    { container.end() } -> std::sentinel_for<decltype(container.begin())>;
-    typename vector::value_type;
-    requires is_shared<typename vector::value_type>::value;
-    requires requires(const vector::value_type &element) {
-      { element->name } -> std::convertible_to<cse::name>;
-    };
+  template <typename type> class container
+  {
+    friend class cse::game;
+    friend class cse::scene;
+    friend struct game::active;
+    friend struct scene::active;
+
+  private:
+    using element = std::shared_ptr<type>;
+    using storage = std::vector<element>;
+
+  public:
+    container() = default;
+    ~container() = default;
+    container(const container &other);
+
+    auto begin() const noexcept -> typename storage::const_iterator;
+    auto end() const noexcept -> typename storage::const_iterator;
+    std::size_t size() const noexcept;
+    bool empty() const noexcept;
+
+    const element &at(const std::size_t position) const;
+    element operator[](const cse::name name) const;
+    element find(const cse::name name) const noexcept;
+    bool contains(const cse::name name) const noexcept;
+    template <typename... derived> bool is(const cse::name name) const;
+    template <typename... derived> bool try_is(const cse::name name) const noexcept;
+    template <typename... derived> bool is_a(const cse::name name) const;
+    template <typename... derived> bool try_is_a(const cse::name name) const noexcept;
+    template <typename derived> std::shared_ptr<derived> as(const cse::name name) const;
+    template <typename derived> std::shared_ptr<derived> try_as(const cse::name name) const noexcept;
+    template <typename derived> std::shared_ptr<derived> as_a(const cse::name name) const;
+    template <typename derived> std::shared_ptr<derived> try_as_a(const cse::name name) const noexcept;
+
+  private:
+    container &operator=(const container &other);
+    container(container &&other) noexcept;
+    container &operator=(container &&other) noexcept;
+
+    void set(const element &value);
+    bool remove(const cse::name name);
+    void clear() noexcept;
+
+    void reindex() const;
+    const element *locate(const cse::name name) const noexcept;
+
+  private:
+    storage elements{};
+    mutable std::unordered_map<cse::name, std::size_t> index{};
+    mutable bool indexed{};
   };
-
-  template <typename set>
-  concept name_set = requires(const set &container) {
-    { container.find(std::declval<cse::name>()) } -> std::input_iterator;
-    { container.end() } -> std::sentinel_for<decltype(container.find(std::declval<cse::name>()))>;
-    typename set::value_type;
-    requires std::same_as<typename set::value_type, cse::name>;
-  };
 }
 
-template <cse::trait::pointer_vector vector> auto iterate(const vector &container, const cse::name name)
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
-  if (iterator == container.end()) throw cse::exception("Vector lookup for name '{}' failed", name.string());
-  return iterator;
-}
-
-template <cse::trait::name_set set> auto iterate(const set &container, const cse::name name)
-{
-  auto iterator{container.find(name)};
-  if (iterator == container.end()) throw cse::exception("Set lookup for name '{}' failed", name.string());
-  return iterator;
-}
-
-template <cse::trait::pointer_vector vector> auto try_iterate(const vector &container, const cse::name name) noexcept
-{
-  return std::ranges::find_if(container, [&](const auto &element) { return element->name == name; });
-}
-
-template <cse::trait::name_set set> auto try_iterate(const set &container, const cse::name name) noexcept
-{ return container.find(name); }
-
-template <cse::trait::pointer_vector vector> vector::value_type find(const vector &container, const cse::name name)
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
-  if (iterator == container.end()) throw cse::exception("Vector lookup for name '{}' failed", name.string());
-  return *iterator;
-}
-
-template <cse::trait::name_set set> cse::name find(const set &container, const cse::name name)
-{
-  auto iterator{container.find(name)};
-  if (iterator == container.end()) throw cse::exception("Set lookup for name '{}' failed", name.string());
-  return *iterator;
-}
-
-template <cse::trait::pointer_vector vector>
-vector::value_type try_find(const vector &container, const cse::name name) noexcept
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
-  if (iterator == container.end()) return nullptr;
-  return *iterator;
-}
-
-template <cse::trait::name_set set> cse::name try_find(const set &container, const cse::name name) noexcept
-{
-  auto iterator{container.find(name)};
-  if (iterator == container.end()) return {};
-  return *iterator;
-}
-
-template <typename... derived, cse::trait::pointer_vector vector>
-bool find_is(const vector &container, const cse::name name)
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
-  if (iterator == container.end()) throw cse::exception("Vector lookup for name '{}' failed", name.string());
-  return is<derived...>(*iterator);
-}
-
-template <typename... derived, cse::trait::pointer_vector vector>
-bool try_find_is(const vector &container, const cse::name name) noexcept
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
-  if (iterator == container.end()) return false;
-  return is<derived...>(*iterator);
-}
-
-template <typename... derived, cse::trait::pointer_vector vector>
-bool find_is_a(const vector &container, const cse::name name)
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
-  if (iterator == container.end()) throw cse::exception("Vector lookup for name '{}' failed", name.string());
-  return is_a<derived...>(*iterator);
-}
-
-template <typename... derived, cse::trait::pointer_vector vector>
-bool try_find_is_a(const vector &container, const cse::name name) noexcept
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
-  if (iterator == container.end()) return false;
-  return is_a<derived...>(*iterator);
-}
-
-template <typename derived, cse::trait::pointer_vector vector>
-std::shared_ptr<derived> find_as(const vector &container, const cse::name name)
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
-  if (iterator == container.end()) throw cse::exception("Vector lookup for name '{}' failed", name.string());
-  return as<derived>(*iterator);
-}
-
-template <typename derived, cse::trait::pointer_vector vector>
-std::shared_ptr<derived> try_find_as(const vector &container, const cse::name name) noexcept
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
-  if (iterator == container.end()) return nullptr;
-  return try_as<derived>(*iterator);
-}
-
-template <typename derived, cse::trait::pointer_vector vector>
-std::shared_ptr<derived> find_as_a(const vector &container, const cse::name name)
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
-  if (iterator == container.end()) throw cse::exception("Vector lookup for name '{}' failed", name.string());
-  return as_a<derived>(*iterator);
-}
-
-template <typename derived, cse::trait::pointer_vector vector>
-std::shared_ptr<derived> try_find_as_a(const vector &container, const cse::name name) noexcept
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &element) { return element->name == name; })};
-  if (iterator == container.end()) return nullptr;
-  return try_as_a<derived>(*iterator);
-}
-
-template <cse::trait::pointer_vector vector> bool contains(const vector &container, const cse::name name)
-{
-  if (!std::ranges::any_of(container, [&](const auto &element) { return element->name == name; }))
-    throw cse::exception("Vector lookup for name '{}' failed", name.string());
-  return true;
-}
-
-template <cse::trait::name_set set> bool contains(const set &container, const cse::name name)
-{
-  if (container.find(name) == container.end()) throw cse::exception("Set lookup for name '{}' failed", name.string());
-  return true;
-}
-
-template <cse::trait::pointer_vector vector> bool try_contains(const vector &container, const cse::name name) noexcept
-{
-  return std::ranges::any_of(container, [&](const auto &element) { return element->name == name; });
-}
-
-template <cse::trait::name_set set> bool try_contains(const set &container, const cse::name name) noexcept
-{ return container.find(name) != container.end(); }
-
-template <cse::trait::pointer_vector vector>
-void set_or_add(vector &container, const typename vector::value_type &element)
-{
-  auto iterator{std::ranges::find_if(container, [&](const auto &existing) { return existing->name == element->name; })};
-  if (iterator != container.end())
-    *iterator = element;
-  else
-    container.push_back(element);
-}
-
-template <cse::trait::name_set set> void set_or_add(set &container, const cse::name &element)
-{ container.insert(element); }
-
-template <cse::trait::pointer_vector vector>
-cse::name name(const vector &container, const typename vector::value_type &pointer)
-{
-  if (!pointer) throw cse::exception("Pointer is null in vector name lookup");
-  for (const auto &element : container)
-    if (element == pointer) return element->name;
-  throw cse::exception("Vector name lookup failed");
-}
-
-template <cse::trait::pointer_vector vector>
-cse::name name(const vector &container, const std::weak_ptr<typename vector::value_type::element_type> &pointer)
-{
-  auto locked{pointer.lock()};
-  if (!locked) throw cse::exception("Weak pointer lock in vector name lookup failed");
-  for (const auto &element : container)
-    if (element == locked) return element->name;
-  throw cse::exception("Vector name lookup failed");
-}
-
-template <cse::trait::pointer_vector vector>
-cse::name name(const vector &container, const typename vector::value_type::element_type *pointer)
-{
-  if (!pointer) throw cse::exception("Pointer is null in vector name lookup");
-  for (const auto &element : container)
-    if (element.get() == pointer) return element->name;
-  throw cse::exception("Vector name lookup failed");
-}
-
-template <cse::trait::pointer_vector vector>
-cse::name try_name(const vector &container, const typename vector::value_type &pointer) noexcept
-{
-  if (!pointer) return cse::name{};
-  for (const auto &element : container)
-    if (element == pointer) return element->name;
-  return cse::name{};
-}
-
-template <cse::trait::pointer_vector vector> cse::name
-try_name(const vector &container, const std::weak_ptr<typename vector::value_type::element_type> &pointer) noexcept
-{
-  auto locked{pointer.lock()};
-  if (!locked) return cse::name{};
-  for (const auto &element : container)
-    if (element == locked) return element->name;
-  return cse::name{};
-}
-
-template <cse::trait::pointer_vector vector>
-cse::name try_name(const vector &container, const typename vector::value_type::element_type *pointer) noexcept
-{
-  if (!pointer) return cse::name{};
-  for (const auto &element : container)
-    if (element.get() == pointer) return element->name;
-  return cse::name{};
-}
+#include "container.inl" // IWYU pragma: keep

@@ -125,6 +125,7 @@ namespace custom
                  .frame = 144.0,
                  .aspect = {.ratio = 16.0 / 9.0, .resolution = 180, .scaling = VIRTUAL},
                  .clear = {{0.0, 0.0, 0.0}},
+                 .memory = {.vram = 512, .ram = 128},
                  .master = {0.5},
                  .sound = {1.0},
                  .music = {1.0}}) {};
@@ -150,6 +151,10 @@ Pick `resolution` so it divides your target display heights, and is a multiple o
 
 `clear` is the background colour for the canvas. This affects the clear colour for the 3D scene, and the colour of the
 letterbox bars when the canvas does not fill the window.
+
+`memory` is the maximum amount of RAM and VRAM (in MB) the engine will allocate for assets. Unused assets (oldest first)
+are automatically evicted when the limit is reached. If so many assets are loaded that the limit cannot be respected,
+thrashing will occur which could cause performance issues.
 
 `master`, `sound` and `music` are the global volume buses for all audio. Each is a `temporal<double>` in the range
 [0.0, 1.0] that multiplies every track's own `volume` temporal.
@@ -310,14 +315,17 @@ Set `.instant = true` on a temporal when you want a hard cut (no interpolation) 
 - `active.*` is the current snapshot; `previous.*` is last tick's - compare them to detect transitions.
 - Reach related entities through pointers: every entity has `game`, and scene-owned entities also have `scene`. So
   `scene->game->active.window->active.keyboard`, or from a game-level interface, `game->active.window->active.mouse`.
-- Look entities up by name with the helpers in `cse/container.hpp`:
+- Look entities up by name with the custom container class the engine uses, and make use of the type system with the
+  helpers it provides, or the standalone versions in `cse/pointer.hpp`:
   ```cpp
-  find(active.interfaces, "tick")->active.text.content = "TPS:" + std::to_string(active.tick.count);
-  auto player = try_find(active.objects, "player");                     // nullptr if absent
-  auto settings = find_as<custom::settings>(active.states, "settings"); // find + downcast
-  if (is<player>(contact.target.pointer)) { ... }                       // exact-type check
+  active.interfaces["tick"]->active.text.content = ...;           // throws if absent
+  auto player = active.objects.find("player");                    // nullptr if absent
+  auto settings = active.states.as<custom::settings>("settings"); // ["settings"] + downcast
+  settings = active.states.try_as<custom::settings>("settings");  // find("settings") + downcast
+  if (is<player>(contact.target.pointer)) { ... }                 // exact-type check with standalone helper
   ```
-  Each comes in a throwing form (`find`, `find_as`, `contains`) and a non-throwing `try_` form.
+  The only throwing container helpers are `[]` and `.at(index)`; the pointer helpers throw if they are not a `try_`
+  variant.
 
 ### Starting and Calling Timers
 Schedule one-shot or repeating callbacks on any entity's `active.timer`. `set` returns the timer's modifiable `state`.
@@ -363,8 +371,8 @@ The game's `master`, `sound` and `music` temporals act as global buses for volum
 A track's `elapsed` is a `cse::elapsed`, which carries one clock per owner - and which one you read matters:
 
 ```cpp
-sfx.elapsed.device;  // seconds - owned by the audio device, real time
-sfx.elapsed.tick;    // seconds - owned by the simulation, tick time
+sfx.elapsed.device; // seconds - owned by the audio device, real time
+sfx.elapsed.tick;   // seconds - owned by the simulation, tick time
 ```
 
 `elapsed.device` is written by the device every time the game renders, so it always runs in real time and is only

@@ -111,9 +111,12 @@ namespace cse::help::scene
     contacts.clear();
     if (objects.empty()) return;
 
-    static std::vector<collision::entry> entries{};
+    auto &entries{contact_entries};
     entries.clear();
-    entries.reserve(objects.size() * 4);
+    std::size_t total{};
+    for (const auto &object : objects) total += collision::hitboxes(object.get()).size();
+    if (total == 0) return;
+    entries.reserve(total);
     for (std::size_t index{}; index < objects.size(); ++index)
     {
       const auto &object{objects.at(index)};
@@ -123,7 +126,6 @@ namespace cse::help::scene
       for (const auto &hitbox : object_hitboxes)
         entries.push_back({index, depth, collision::bounds(object.get(), hitbox)});
     }
-    if (entries.empty()) return;
 
     auto comparator{[](const collision::entry &first, const collision::entry &second)
                     {
@@ -152,7 +154,6 @@ namespace cse::help::scene
         entries.at(second) = key;
       }
 
-    static std::unordered_map<contact_key, std::size_t, contact_key::hash> contact_lookup{};
     contact_lookup.clear();
     const auto emit{
       [&](std::size_t self_index, std::size_t target_index, const auto &own, const auto &theirs)
@@ -172,9 +173,8 @@ namespace cse::help::scene
         if (area > existing_area) existing = std::move(contact);
       }};
 
-    static std::vector<std::size_t> active_list{};
+    auto &active_list{contact_sweep};
     active_list.clear();
-    active_list.reserve(std::min(entries.size(), static_cast<std::size_t>(64)));
     std::size_t start{0};
     while (start < entries.size())
     {
@@ -299,12 +299,11 @@ namespace cse
     if (!active.interface_removals.empty())
     {
       for (const auto &interface_name : active.interface_removals)
-        if (auto iterator{try_iterate(active.interfaces, interface_name)}; iterator != active.interfaces.end())
+        if (auto interface{active.interfaces.find(interface_name)})
         {
-          const auto &interface{*iterator};
           if (interface->active.phase == help::phase::CREATED) interface->destroy();
           interface->clean();
-          active.interfaces.erase(iterator);
+          active.interfaces.remove(interface_name);
         }
       active.interface_removals.clear();
     }
@@ -312,7 +311,7 @@ namespace cse
     {
       for (auto &interface : active.interface_additions)
       {
-        set_or_add(active.interfaces, interface);
+        active.interfaces.set(interface);
         interface->prepare();
         interface->create();
       }
@@ -322,12 +321,11 @@ namespace cse
     if (!active.object_removals.empty())
     {
       for (const auto &object_name : active.object_removals)
-        if (auto iterator{try_iterate(active.objects, object_name)}; iterator != active.objects.end())
+        if (auto object{active.objects.find(object_name)})
         {
-          const auto &object{*iterator};
           if (object->active.phase == help::phase::CREATED) object->destroy();
           object->clean();
-          active.objects.erase(iterator);
+          active.objects.remove(object_name);
         }
       active.object_removals.clear();
     }
@@ -335,7 +333,7 @@ namespace cse
     {
       for (auto &object : active.object_additions)
       {
-        set_or_add(active.objects, object);
+        active.objects.set(object);
         object->prepare();
         object->create();
       }
@@ -345,12 +343,11 @@ namespace cse
     if (!active.light_removals.empty())
     {
       for (const auto &light_name : active.light_removals)
-        if (auto iterator{try_iterate(active.lights, light_name)}; iterator != active.lights.end())
+        if (auto light{active.lights.find(light_name)})
         {
-          const auto &light{*iterator};
           if (light->active.phase == help::phase::CREATED) light->destroy();
           light->clean();
-          active.lights.erase(iterator);
+          active.lights.remove(light_name);
         }
       active.light_removals.clear();
     }
@@ -358,7 +355,7 @@ namespace cse
     {
       for (auto &light : active.light_additions)
       {
-        set_or_add(active.lights, light);
+        active.lights.set(light);
         light->prepare();
         light->create();
       }

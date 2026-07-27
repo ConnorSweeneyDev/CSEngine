@@ -35,6 +35,23 @@ namespace cse
     std::string label{};
 #endif
   };
+
+  class identity : public cse::name
+  {
+    friend class game;
+    friend class scene;
+
+  public:
+    identity() = default;
+    ~identity() = default;
+    identity(const identity &) = default;
+    identity &operator=(const identity &) = delete;
+    identity(identity &&) = delete;
+    identity &operator=(identity &&) = delete;
+
+  private:
+    identity &operator=(const cse::name &other);
+  };
 }
 
 template <> struct std::hash<cse::name>

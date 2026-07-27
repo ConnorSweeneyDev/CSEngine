@@ -4,10 +4,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <map>
 #include <memory>
 #include <optional>
 #include <type_traits>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -21,6 +21,7 @@
 #include "glm/ext/vector_double3.hpp"
 #include "glm/ext/vector_double4.hpp"
 
+#include "container.hpp"
 #include "core.hpp"
 #include "function.hpp"
 #include "mixer.hpp"
@@ -55,13 +56,34 @@ namespace cse::help::game
     unsigned int resolution{180};
     ::scaling scaling{VIRTUAL};
   };
+  struct vram
+  {
+    std::size_t current{};
+    std::size_t maximum{};
+  };
+  struct ram
+  {
+    std::size_t current{};
+    std::size_t maximum{};
+  };
+  struct memory
+  {
+    struct initial
+    {
+      std::size_t vram{512};
+      std::size_t ram{128};
+    };
+    game::vram vram{};
+    game::ram ram{};
+  };
 
   struct previous
   {
   public:
     previous() = default;
     previous(const double tick_, const double frame_, const game::aspect &aspect_, const temporal<glm::dvec3> &clear_,
-             const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_);
+             const game::memory::initial &memory_, const temporal<double> &master_, const temporal<double> &sound_,
+             const temporal<double> &music_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;
@@ -73,15 +95,16 @@ namespace cse::help::game
     game::frame frame{};
     game::aspect aspect{};
     temporal<glm::dvec3> clear{};
+    game::memory memory{};
     temporal<double> master{};
     temporal<double> sound{};
     temporal<double> music{};
 
-    std::vector<std::shared_ptr<cse::state>> states{};
+    help::container<cse::state> states{};
     std::shared_ptr<cse::window> window{};
-    std::vector<std::shared_ptr<cse::scene>> scenes{};
+    help::container<cse::scene> scenes{};
     std::shared_ptr<cse::scene> scene{};
-    std::vector<std::shared_ptr<cse::interface>> interfaces{};
+    help::container<cse::interface> interfaces{};
     help::timer timer{};
     help::mixer mixer{};
     help::phase phase{};
@@ -99,6 +122,11 @@ namespace cse::help::game
       handle value{};
       std::size_t bytes{};
       double stamp{};
+    };
+    struct pair_hash
+    {
+      template <typename first, typename second>
+      std::size_t operator()(const std::pair<first, second> &key) const noexcept;
     };
 
     struct corner
@@ -143,6 +171,10 @@ namespace cse::help::game
       };
       std::vector<batch> batches{};
       std::vector<sample> samples{};
+      std::vector<double> transparencies{};
+      std::vector<char> shown{};
+      std::vector<char> lettered{};
+      std::vector<std::size_t> emission_order{};
       std::size_t split{};
       std::pair<glm::dmat4, glm::dmat4> world{};
       std::pair<glm::dmat4, glm::dmat4> overlay{};
@@ -156,6 +188,16 @@ namespace cse::help::game
       {
         double left{}, bottom{}, right{}, top{};
         double uv_left{}, uv_bottom{}, uv_right{}, uv_top{};
+      };
+      struct item
+      {
+        const cse::font::glyph *glyph{};
+        std::uint32_t character{};
+      };
+      struct line
+      {
+        std::size_t first{}, count{};
+        double width{};
       };
       struct quad
       {
@@ -177,6 +219,10 @@ namespace cse::help::game
         int steps{};
       };
       std::vector<composed> scratch{};
+      std::vector<std::uint32_t> characters{};
+      std::vector<item> items{};
+      std::vector<line> lines{};
+      std::vector<item> word{};
       std::vector<quad> quads{};
       std::vector<block> blocks{};
     };
@@ -216,6 +262,8 @@ namespace cse::help::game
       std::vector<entry> samples{};
       std::vector<float> indices{};
       std::vector<layer> layers{};
+      std::vector<std::uint8_t> doomed{};
+      std::vector<float> remap{};
       std::size_t capacity{};
       SDL_GPUBuffer *buffer{};
       SDL_GPUTransferBuffer *transfer_buffer{};
@@ -225,7 +273,7 @@ namespace cse::help::game
     struct graphics_cache
     {
       using texture_key = std::pair<const unsigned char *, std::size_t>;
-      std::map<texture_key, cached<SDL_GPUTexture *>> texture{};
+      std::unordered_map<texture_key, cached<SDL_GPUTexture *>, pair_hash> texture{};
     };
 
     struct channel
@@ -252,14 +300,15 @@ namespace cse::help::game
     {
       using source_key = std::pair<const unsigned char *, std::size_t>;
       using track_key = std::pair<const void *, std::uint64_t>;
-      std::map<source_key, cached<MIX_Audio *>> sources{};
-      std::map<track_key, audio_track> tracks{};
+      std::unordered_map<source_key, cached<MIX_Audio *>, pair_hash> sources{};
+      std::unordered_map<track_key, audio_track, pair_hash> tracks{};
     };
 
   public:
     active() = default;
     active(const double tick_, const double frame_, const game::aspect &aspect_, const temporal<glm::dvec3> &clear_,
-           const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_);
+           const game::memory::initial &memory_, const temporal<double> &master_, const temporal<double> &sound_,
+           const temporal<double> &music_);
     ~active() = default;
     active(const active &) = delete;
     active &operator=(const active &) = delete;
@@ -308,15 +357,16 @@ namespace cse::help::game
     game::frame frame{};
     game::aspect aspect{};
     temporal<glm::dvec3> clear{};
+    game::memory memory{};
     temporal<double> master{};
     temporal<double> sound{};
     temporal<double> music{};
 
-    std::vector<std::shared_ptr<cse::state>> states{};
+    help::container<cse::state> states{};
     std::shared_ptr<cse::window> window{};
-    std::vector<std::shared_ptr<cse::scene>> scenes{};
+    help::container<cse::scene> scenes{};
     std::shared_ptr<cse::scene> scene{};
-    std::vector<std::shared_ptr<cse::interface>> interfaces{};
+    help::container<cse::interface> interfaces{};
     help::timer timer{};
     help::mixer mixer{};
     help::phase phase{};
@@ -327,14 +377,13 @@ namespace cse::help::game
     double accumulator{};
     double alpha{};
     std::unordered_set<cse::name> interface_removals{};
-    std::vector<std::shared_ptr<cse::interface>> interface_additions{};
+    help::container<cse::interface> interface_additions{};
     std::vector<cse::interface *> interface_order{};
     std::vector<cse::interface *> interface_pool{};
 
-    static constexpr std::size_t maximum_vram{512u * 1024u * 1024u};
-    static constexpr std::size_t maximum_ram{128u * 1024u * 1024u};
-
     double actual_frame{1.0 / frame.target};
+    game::vram actual_vram{};
+    game::ram actual_ram{};
     SDL_GPUDevice *video{};
     active::graphics_buffer graphics_buffer{};
     active::graphics_pipeline graphics_pipeline{};
@@ -350,6 +399,7 @@ namespace cse::help::game
     int frequency{};
     MIX_Mixer *soundboard{};
     active::audio_cache audio_cache{};
+    std::vector<active::channel> audio_channels{};
   };
 
   struct next
@@ -379,6 +429,7 @@ namespace cse
       const double frame{144.0};
       const help::game::aspect aspect{};
       const temporal<glm::dvec3> clear{};
+      const help::game::memory::initial memory{};
       const temporal<double> master{0.5};
       const temporal<double> sound{0.5};
       const temporal<double> music{0.5};

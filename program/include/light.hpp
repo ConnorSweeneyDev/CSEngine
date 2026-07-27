@@ -133,7 +133,7 @@ namespace cse
   public:
     cse::game *game{};
     cse::scene *scene{};
-    cse::name name{};
+    cse::identity name{};
     help::light::previous previous{};
     help::light::active active{};
   };
