@@ -35,8 +35,8 @@ namespace cse::help::game
   template <typename first, typename second>
   std::size_t active::pair_hash::operator()(const std::pair<first, second> &key) const noexcept
   {
-    const auto left{std::hash<std::string>{}(key.first)};
-    const auto right{std::hash<std::string>{}(key.second)};
+    const auto left{std::hash<first>{}(key.first)};
+    const auto right{std::hash<second>{}(key.second)};
     return left ^ (right << 1);
   }
 
