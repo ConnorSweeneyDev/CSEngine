@@ -118,10 +118,6 @@ namespace cse::help::interface
     help::mixer mixer{};
     help::phase phase{};
   };
-
-  glm::dvec2 anchor(const int steps, const cse::flip &flip, const double scale_x, const double scale_y,
-                    const unsigned int frame_width, const unsigned int frame_height, const glm::dvec2 &pivot);
-  glm::dvec2 unrotate(const glm::dvec2 &value, const int steps);
 }
 
 namespace cse

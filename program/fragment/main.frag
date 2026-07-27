@@ -195,7 +195,7 @@ float4 main(Input input, bool front : SV_IsFrontFace) : SV_Target0
   if (texture_color.a == 0.0f) discard;
   float3 tint = (input.color.rgb - 0.5f) * 2.0f * input.color.a;
   float3 surface = texture_color.rgb + tint;
-  float3 pixel = float3(floor(input.world.xy) + 0.5f, input.world.z);
+  float3 pixel = float3(floor(input.world.xy + 0.5f), input.world.z);
   float3 illumination = float3(1.0f, 1.0f, 1.0f);
 
   if (input.material.x > 0.5f)

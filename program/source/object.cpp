@@ -13,22 +13,21 @@
 #include "exception.hpp"
 #include "resource.hpp"
 #include "temporal.hpp"
+#include "transform.hpp"
 
 namespace cse::help::object
 {
   previous::previous(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
                      const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
-                     const object::illumination &illumination_, const object::shadow &shadow_,
-                     const object::priority &priority_)
+                     const object::text &text_, const object::priority &priority_)
     : translation{translation_}, rotation{rotation_}, scale{scale_}, collidable{collidable_}, texture{texture_},
-      illumination{illumination_}, shadow{shadow_}, priority{priority_} {};
+      text{text_}, priority{priority_} {};
 
   active::active(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
                  const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
-                 const object::illumination &illumination_, const object::shadow &shadow_,
-                 const object::priority &priority_)
+                 const object::text &text_, const object::priority &priority_)
     : translation{translation_}, rotation{rotation_}, scale{scale_}, collidable{collidable_}, texture{texture_},
-      illumination{illumination_}, shadow{shadow_}, priority{priority_} {};
+      text{text_}, priority{priority_} {};
 
   void active::synchronize(previous &last)
   {
@@ -37,8 +36,7 @@ namespace cse::help::object
     last.scale = scale;
     last.collidable = collidable;
     last.texture = texture;
-    last.illumination = illumination;
-    last.shadow = shadow;
+    last.text = text;
     last.priority = priority;
 
     last.timer = timer;
@@ -61,32 +59,21 @@ namespace cse::help::object
     texture.playback.speed.instant = false;
     texture.color.tint.instant = false;
     texture.color.alpha.instant = false;
-    illumination.brightness.instant = false;
-    illumination.penetration.instant = false;
-    shadow.darkness.instant = false;
-    shadow.softness.instant = false;
-  }
-
-  glm::dvec2 anchor(const int steps, const cse::flip &flip, const double scale_x, const double scale_y,
-                    const unsigned int frame_width, const unsigned int frame_height, const glm::dvec2 &pivot)
-  {
-    const auto width{static_cast<double>(frame_width)};
-    const auto height{static_cast<double>(frame_height)};
-    const auto flipped_x{flip.horizontal ? width - 1.0 - pivot.x : pivot.x};
-    const auto flipped_y{flip.vertical ? height - 1.0 - pivot.y : pivot.y};
-    const glm::dvec2 center{(flipped_x + 0.5 - (width / 2.0)) * scale_x, (flipped_y + 0.5 - (height / 2.0)) * scale_y};
-    const int turns{((steps % 4) + 4) % 4};
-    glm::dvec2 rotated{center};
-    switch (turns)
-    {
-      case 1: rotated = {center.y, -center.x}; break;
-      case 2: rotated = {-center.x, -center.y}; break;
-      case 3: rotated = {-center.y, center.x}; break;
-      default: break;
-    }
-    const auto extent_x{turns % 2 != 0 ? scale_y : scale_x};
-    const auto extent_y{turns % 2 != 0 ? scale_x : scale_y};
-    return {(-extent_x / 2.0) - rotated.x, (extent_y / 2.0) - rotated.y};
+    texture.illumination.brightness.instant = false;
+    texture.illumination.penetration.instant = false;
+    texture.shadow.darkness.instant = false;
+    texture.shadow.softness.instant = false;
+    text.playback.speed.instant = false;
+    text.align.horizontal.spacing.instant = false;
+    text.align.vertical.spacing.instant = false;
+    text.align.offset.instant = false;
+    text.scale.instant = false;
+    text.color.tint.instant = false;
+    text.color.alpha.instant = false;
+    text.illumination.brightness.instant = false;
+    text.illumination.penetration.instant = false;
+    text.shadow.darkness.instant = false;
+    text.shadow.softness.instant = false;
   }
 
   glm::dmat4 active::calculate_model_matrix(const previous &last, const unsigned int frame_width,
@@ -99,7 +86,7 @@ namespace cse::help::object
     const auto scale_x{std::floor(interpolated_scale.x + 0.5)};
     const auto scale_y{std::floor(interpolated_scale.y + 0.5)};
     const int steps{static_cast<int>(std::floor(interpolated_rotation + 0.5))};
-    const auto offset{anchor(steps, texture.flip, scale_x, scale_y, frame_width, frame_height, pivot)};
+    const auto offset{transform::anchor(steps, texture.flip, scale_x, scale_y, frame_width, frame_height, pivot)};
     auto model_matrix{glm::dmat4(1.0)};
     model_matrix = glm::translate(model_matrix, {std::floor(interpolated_translation.x + 0.5) + offset.x,
                                                  std::floor(interpolated_translation.y + 0.5) + offset.y,
@@ -113,77 +100,99 @@ namespace cse::help::object
     return model_matrix;
   }
 
+  glm::dmat4 active::calculate_text_matrix(const previous &last, const double width, const double height,
+                                           const glm::dvec2 &offset, const double alpha) const
+  {
+    auto interpolated_translation = translation.interpolated(last.translation, alpha);
+    auto interpolated_rotation = rotation.interpolated(last.rotation, alpha);
+    const auto pixel_width{std::floor(width + 0.5)};
+    const auto pixel_height{std::floor(height + 0.5)};
+    auto text_matrix{glm::dmat4(1.0)};
+    text_matrix = glm::translate(text_matrix, {std::floor(interpolated_translation.x + 0.5),
+                                               std::floor(interpolated_translation.y + 0.5),
+                                               std::floor(interpolated_translation.z + 0.5)});
+    text_matrix =
+      glm::rotate(text_matrix, glm::radians(std::floor(interpolated_rotation + 0.5) * -90.0), {0.0, 0.0, 1.0});
+    text_matrix = glm::translate(
+      text_matrix, {transform::snap_x(offset.x, pixel_width), transform::snap_y(offset.y, pixel_height), 0.0});
+    text_matrix = glm::scale(text_matrix, {pixel_width / 2.0, pixel_height / 2.0, 1.0});
+    return text_matrix;
+  }
+
   void active::animate(const double tick)
   {
-    auto &animation{texture.source.animation};
-    auto &playback{texture.playback};
-    auto no_frames{animation.frames.empty()};
-    auto frame_count{animation.frames.size()};
-    if (no_frames)
-      playback.frame = 0;
-    else if (playback.frame >= frame_count)
-      playback.frame = frame_count - 1;
-    if (!playback.playing) return;
-    if (playback.speed.value > 0.0 && !no_frames)
-    {
-      playback.elapsed += tick * playback.speed.value;
-      while (true)
-      {
-        auto duration = animation.frames[playback.frame].duration;
-        if (duration > 0 && playback.elapsed < duration) break;
-        if (playback.frame < frame_count - 1)
-        {
-          if (duration > 0) playback.elapsed -= duration;
-          playback.frame++;
-        }
-        else if (playback.loop)
-        {
-          if (duration > 0)
-            playback.elapsed -= duration;
-          else
-            break;
-          playback.frame = 0;
-        }
-        else
-        {
-          if (duration > 0) playback.elapsed = duration;
-          break;
-        }
-      }
-    }
-    else if (playback.speed.value < 0.0 && !no_frames)
-    {
-      playback.elapsed += tick * playback.speed.value;
-      while (playback.elapsed < 0)
-        if (playback.frame > 0)
-        {
-          playback.frame--;
-          auto duration = animation.frames[playback.frame].duration;
-          if (duration > 0) playback.elapsed += duration;
-        }
-        else if (playback.loop)
-        {
-          if (animation.frames[0].duration <= 0) break;
-          playback.frame = frame_count - 1;
-          auto duration = animation.frames[playback.frame].duration;
-          if (duration > 0) playback.elapsed += duration;
-        }
-        else
-        {
-          playback.elapsed = 0;
-          break;
-        }
-    }
+    const auto step{[tick](const cse::animation &animation, cse::playback &playback)
+                    {
+                      auto no_frames{animation.frames.empty()};
+                      auto frame_count{animation.frames.size()};
+                      if (no_frames)
+                        playback.frame = 0;
+                      else if (playback.frame >= frame_count)
+                        playback.frame = frame_count - 1;
+                      if (!playback.playing) return;
+                      if (playback.speed.value > 0.0 && !no_frames)
+                      {
+                        playback.elapsed += tick * playback.speed.value;
+                        while (true)
+                        {
+                          auto duration = animation.frames[playback.frame].duration;
+                          if (duration > 0 && playback.elapsed < duration) break;
+                          if (playback.frame < frame_count - 1)
+                          {
+                            if (duration > 0) playback.elapsed -= duration;
+                            playback.frame++;
+                          }
+                          else if (playback.loop)
+                          {
+                            if (duration > 0)
+                              playback.elapsed -= duration;
+                            else
+                              break;
+                            playback.frame = 0;
+                          }
+                          else
+                          {
+                            if (duration > 0) playback.elapsed = duration;
+                            break;
+                          }
+                        }
+                      }
+                      else if (playback.speed.value < 0.0 && !no_frames)
+                      {
+                        playback.elapsed += tick * playback.speed.value;
+                        while (playback.elapsed < 0)
+                          if (playback.frame > 0)
+                          {
+                            playback.frame--;
+                            auto duration = animation.frames[playback.frame].duration;
+                            if (duration > 0) playback.elapsed += duration;
+                          }
+                          else if (playback.loop)
+                          {
+                            if (animation.frames[0].duration <= 0) break;
+                            playback.frame = frame_count - 1;
+                            auto duration = animation.frames[playback.frame].duration;
+                            if (duration > 0) playback.elapsed += duration;
+                          }
+                          else
+                          {
+                            playback.elapsed = 0;
+                            break;
+                          }
+                      }
+                    }};
+    step(texture.source.animation, texture.playback);
+    step(text.source.animation, text.playback);
   }
 }
 
 namespace cse
 {
   object::object(const initial &initial_)
-    : previous{initial_.translation, initial_.rotation,     initial_.scale,  initial_.collidable,
-               initial_.texture,     initial_.illumination, initial_.shadow, initial_.priority},
-      active{initial_.translation, initial_.rotation,     initial_.scale,  initial_.collidable,
-             initial_.texture,     initial_.illumination, initial_.shadow, initial_.priority} {};
+    : previous{initial_.translation, initial_.rotation, initial_.scale,   initial_.collidable,
+               initial_.texture,     initial_.text,     initial_.priority},
+      active{initial_.translation, initial_.rotation, initial_.scale,   initial_.collidable,
+             initial_.texture,     initial_.text,     initial_.priority} {};
 
   void object::on_prepare() {}
   void object::prepare()

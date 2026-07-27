@@ -13,6 +13,7 @@
 #include "numeric.hpp"
 #include "object.hpp"
 #include "resource.hpp"
+#include "transform.hpp"
 
 namespace cse::help::collision
 {
@@ -71,44 +72,17 @@ namespace cse::help::collision
       local_bottom = temporary;
     }
     const int steps{((rotation % 4) + 4) % 4};
-    if (steps != 0)
-    {
-      const double left{local_left}, right{local_right}, top{local_top}, bottom{local_bottom};
-      switch (steps)
-      {
-        case 1:
-          local_left = bottom;
-          local_right = top;
-          local_bottom = -right;
-          local_top = -left;
-          break;
-        case 2:
-          local_left = -right;
-          local_right = -left;
-          local_bottom = -top;
-          local_top = -bottom;
-          break;
-        case 3:
-          local_left = -top;
-          local_right = -bottom;
-          local_bottom = left;
-          local_top = right;
-          break;
-        default: break;
-      }
-      if (local_left > local_right) std::swap(local_left, local_right);
-      if (local_bottom > local_top) std::swap(local_bottom, local_top);
-    }
+    const auto local{transform::turn({local_left, local_top, local_right, local_bottom}, steps)};
 
     glm::dvec2 actual_scale{std::floor(scale.x + 0.5), std::floor(scale.y + 0.5)};
     const bool rotated{steps % 2 == 1};
     if (rotated) std::swap(actual_scale.x, actual_scale.y);
-    const glm::dvec2 pixel{std::floor(translation.x + 0.5) - (actual_scale.x / 2.0),
-                           std::floor(translation.y + 0.5) + (actual_scale.y / 2.0)};
-    return {source.name, std::floor(pixel.x + (local_left * actual_scale.x) + 0.5),
-            std::floor(pixel.y + (local_top * actual_scale.y) + 0.5),
-            std::floor(pixel.x + (local_right * actual_scale.x) + 0.5),
-            std::floor(pixel.y + (local_bottom * actual_scale.y) + 0.5)};
+    const auto origin{transform::grid(actual_scale.x, actual_scale.y)};
+    const glm::dvec2 pixel{std::floor(translation.x + 0.5) + origin.x, std::floor(translation.y + 0.5) + origin.y};
+    return {source.name, std::floor(pixel.x + (local.left * actual_scale.x) + 0.5),
+            std::floor(pixel.y + (local.top * actual_scale.y) + 0.5),
+            std::floor(pixel.x + (local.right * actual_scale.x) + 0.5),
+            std::floor(pixel.y + (local.bottom * actual_scale.y) + 0.5)};
   }
 
   contact describe(const name self_name, cse::object *target, const cse::hitbox &own, const cse::hitbox &theirs)
@@ -169,7 +143,7 @@ namespace cse::help::collision
     const auto extent_x{steps % 2 != 0 ? scale_y : scale_x};
     const auto extent_y{steps % 2 != 0 ? scale_x : scale_y};
     glm::dvec2 local{point.x - std::floor(translation.x + 0.5), point.y - std::floor(translation.y + 0.5)};
-    local -= glm::dvec2{std::llround(extent_x) % 2 == 0 ? 0.5 : 0.0, std::llround(extent_y) % 2 == 0 ? -0.5 : 0.0};
+    local -= transform::grid(extent_x, extent_y);
     const auto sine{std::sin(-rotation)};
     const auto cosine{std::cos(-rotation)};
     local = {(local.x * cosine) - (local.y * sine), (local.x * sine) + (local.y * cosine)};

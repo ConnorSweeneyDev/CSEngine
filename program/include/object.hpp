@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "SDL3/SDL_events.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
@@ -14,13 +16,6 @@
 
 namespace cse::help::object
 {
-  struct texture
-  {
-    cse::texture::source source{};
-    cse::playback playback{};
-    cse::flip flip{};
-    cse::color color{};
-  };
   struct illumination
   {
     bool show{true};
@@ -34,6 +29,27 @@ namespace cse::help::object
     temporal<double> darkness{1.0};
     temporal<double> softness{1.0};
   };
+  struct texture
+  {
+    cse::texture::source source{};
+    cse::playback playback{};
+    cse::flip flip{};
+    cse::color color{};
+    object::illumination illumination{};
+    object::shadow shadow{};
+  };
+  struct text
+  {
+    std::string content{};
+    cse::text::source source{};
+    cse::playback playback{};
+    cse::align align{};
+    temporal<glm::dvec2> scale{{1.0, 1.0}};
+    cse::overflow overflow{};
+    cse::color color{};
+    object::illumination illumination{};
+    object::shadow shadow{};
+  };
   struct priority
   {
     int simulation{};
@@ -46,8 +62,7 @@ namespace cse::help::object
     previous() = default;
     previous(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
              const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
-             const object::illumination &illumination_, const object::shadow &shadow_,
-             const object::priority &priority_);
+             const object::text &text_, const object::priority &priority_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;
@@ -60,8 +75,7 @@ namespace cse::help::object
     temporal<glm::dvec2> scale{};
     bool collidable{};
     object::texture texture{};
-    object::illumination illumination{};
-    object::shadow shadow{};
+    object::text text{};
     object::priority priority{};
 
     help::timer timer{};
@@ -79,7 +93,7 @@ namespace cse::help::object
     active() = default;
     active(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
            const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
-           const object::illumination &illumination_, const object::shadow &shadow_, const object::priority &priority_);
+           const object::text &text_, const object::priority &priority_);
     ~active() = default;
     active(const active &) = delete;
     active &operator=(const active &) = delete;
@@ -92,6 +106,8 @@ namespace cse::help::object
     glm::dmat4 calculate_model_matrix(const previous &last, const unsigned int frame_width,
                                       const unsigned int frame_height, const glm::dvec2 &pivot,
                                       const double alpha) const;
+    glm::dmat4 calculate_text_matrix(const previous &last, const double width, const double height,
+                                     const glm::dvec2 &offset, const double alpha) const;
     void animate(const double tick);
 
   public:
@@ -100,17 +116,13 @@ namespace cse::help::object
     temporal<glm::dvec2> scale{};
     bool collidable{};
     object::texture texture{};
-    object::illumination illumination{};
-    object::shadow shadow{};
+    object::text text{};
     object::priority priority{};
 
     help::timer timer{};
     help::mixer mixer{};
     help::phase phase{};
   };
-
-  glm::dvec2 anchor(const int steps, const cse::flip &flip, const double scale_x, const double scale_y,
-                    const unsigned int frame_width, const unsigned int frame_height, const glm::dvec2 &pivot);
 }
 
 namespace cse
@@ -127,8 +139,7 @@ namespace cse
       const temporal<glm::dvec2> scale{{1.0, 1.0}};
       const bool collidable{true};
       const help::object::texture texture{};
-      const help::object::illumination illumination{};
-      const help::object::shadow shadow{};
+      const help::object::text text{};
       const help::object::priority priority{};
     };
 

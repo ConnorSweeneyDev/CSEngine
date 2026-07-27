@@ -29,6 +29,12 @@
 #include "temporal.hpp"
 #include "timer.hpp"
 
+enum scaling : std::uint8_t
+{
+  VIRTUAL,
+  PHYSICAL
+};
+
 namespace cse::help::game
 {
   struct tick
@@ -43,14 +49,19 @@ namespace cse::help::game
     unsigned int count{};
     double average{};
   };
+  struct aspect
+  {
+    double ratio{16.0 / 9.0};
+    unsigned int resolution{180};
+    ::scaling scaling{VIRTUAL};
+  };
 
   struct previous
   {
   public:
     previous() = default;
-    previous(const double tick_, const double frame_, const temporal<double> &aspect_, const unsigned int resolution_,
-             const temporal<glm::dvec3> &clear_, const temporal<double> &master_, const temporal<double> &sound_,
-             const temporal<double> &music_);
+    previous(const double tick_, const double frame_, const game::aspect &aspect_, const temporal<glm::dvec3> &clear_,
+             const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;
@@ -60,9 +71,8 @@ namespace cse::help::game
   public:
     game::tick tick{};
     game::frame frame{};
-    unsigned int resolution{};
+    game::aspect aspect{};
     temporal<glm::dvec3> clear{};
-    temporal<double> aspect{};
     temporal<double> master{};
     temporal<double> sound{};
     temporal<double> music{};
@@ -139,6 +149,36 @@ namespace cse::help::game
       std::size_t capacity{};
       SDL_GPUBuffer *buffer{};
       SDL_GPUTransferBuffer *transfer_buffer{};
+    };
+    struct graphics_text
+    {
+      struct composed
+      {
+        double left{}, bottom{}, right{}, top{};
+        double uv_left{}, uv_bottom{}, uv_right{}, uv_top{};
+      };
+      struct quad
+      {
+        std::array<float, 16> model{};
+        float left{}, bottom{}, right{}, top{};
+        double minimum_x{}, minimum_y{}, maximum_x{}, maximum_y{};
+        float occluder{-1.0f};
+      };
+      struct block
+      {
+        std::size_t first{}, count{};
+        cse::image image{};
+        float red{}, green{}, blue{}, alpha{};
+        bool visible{};
+        bool lit{}, shadowed{}, cast{};
+        double brightness{}, transparency{};
+        double penetration{}, darkness{}, softness{};
+        double plane{};
+        int steps{};
+      };
+      std::vector<composed> scratch{};
+      std::vector<quad> quads{};
+      std::vector<block> blocks{};
     };
     struct graphics_light
     {
@@ -218,9 +258,8 @@ namespace cse::help::game
 
   public:
     active() = default;
-    active(const double tick_, const double frame_, const temporal<double> &aspect_, const unsigned int resolution_,
-           const temporal<glm::dvec3> &clear_, const temporal<double> &master_, const temporal<double> &sound_,
-           const temporal<double> &music_);
+    active(const double tick_, const double frame_, const game::aspect &aspect_, const temporal<glm::dvec3> &clear_,
+           const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_);
     ~active() = default;
     active(const active &) = delete;
     active &operator=(const active &) = delete;
@@ -231,7 +270,7 @@ namespace cse::help::game
     void prepare();
     void create();
     void synchronize(previous &last);
-    void render(const temporal<double> previous_aspect);
+    void render();
     void mix(const help::mixer &previous_mixer, const temporal<double> previous_master,
              const temporal<double> previous_sound, const temporal<double> previous_music);
     void destroy();
@@ -245,11 +284,15 @@ namespace cse::help::game
 
     void generate_graphics_order();
     void generate_frustum();
+    void generate_text(const std::vector<cse::object *> &object_order);
     void generate_lights(const std::vector<cse::light *> &light_order);
     void generate_occluders(const std::vector<cse::object *> &object_order);
     void generate_objects(const std::vector<cse::object *> &object_order);
     void generate_interfaces();
     bool inside_frustum(const glm::dvec3 &center, const double radius) const;
+    template <typename type> void compose_text(type &text, const type &last, const cse::name &element,
+                                               const double box_left, const double box_right, const double box_top,
+                                               const double box_bottom, std::vector<graphics_text::composed> &output);
     graphics_pipeline &require_pipelines();
     SDL_GPUTexture *require_texture(const cse::image &image);
 
@@ -263,9 +306,8 @@ namespace cse::help::game
   public:
     game::tick tick{};
     game::frame frame{};
-    unsigned int resolution{};
+    game::aspect aspect{};
     temporal<glm::dvec3> clear{};
-    temporal<double> aspect{};
     temporal<double> master{};
     temporal<double> sound{};
     temporal<double> music{};
@@ -301,6 +343,7 @@ namespace cse::help::game
     active::graphics_light graphics_light{};
     active::graphics_occluder graphics_occluder{};
     active::graphics_object graphics_object{};
+    active::graphics_text graphics_text{};
     active::graphics_interface graphics_interface{};
 
     bool audio_ready{};
@@ -331,12 +374,11 @@ namespace cse
   protected:
     struct initial
     {
-      const cse::meta::initial meta{};
+      const help::meta::initial meta{};
       const double tick{100.0};
-      const double frame{60.0};
-      const unsigned int resolution{240};
+      const double frame{144.0};
+      const help::game::aspect aspect{};
       const temporal<glm::dvec3> clear{};
-      const temporal<double> aspect{16.0 / 9.0};
       const temporal<double> master{0.5};
       const temporal<double> sound{0.5};
       const temporal<double> music{0.5};

@@ -101,8 +101,7 @@ std::shared_ptr<cse::game> cse::main(const std::vector<std::string_view> &argume
 ```
 
 ### Composing the Game
-Subclass `cse::game` and set tuning defaults in the constructor (meta info, tick rate, frame rate, aspect ratio, virtual
-pixel resolution, clear colour, audio buses):
+Subclass `cse::game` and set tuning defaults in the constructor:
 
 ```cpp
 namespace custom
@@ -114,36 +113,57 @@ namespace custom
     static void setup(const std::shared_ptr<game> &game);
 
   protected:
-    void pre_create() override final;
-    void pre_event(const SDL_Event &event) override final;
-    void pre_simulate(const double tick) override final;
-    void post_destroy() override final;
+    void pre_create() final;
+    void pre_event(const SDL_Event &event) final;
+    void pre_simulate(const double tick) final;
+    void post_destroy() final;
   };
 
   game::game()
     : cse::game({.meta = {.organization = "ConnorSweeneyDev", .application = "CSGame", .version = "1.0.0"},
                  .tick = 300.0,
                  .frame = 144.0,
-                 .resolution = 100,
+                 .aspect = {.ratio = 16.0 / 9.0, .resolution = 180, .scaling = VIRTUAL},
                  .clear = {{0.0, 0.0, 0.0}},
-                 .aspect = {16.0 / 9.0},
                  .master = {0.5},
                  .sound = {1.0},
                  .music = {1.0}}) {};
 }
 ```
 
-The `setup` function builds the whole entity tree with a fluent, chained API. `set<...>` registers an entity; `current`
-registers a scene *and* makes it the active one, but calling it without a config function just switches to an
-already-registered scene:
+`meta` is used to generate the user-data dirctory path (the version does not affect the path) and application metadata.
+
+`tick` and `frame` are the simulation and render rates respectively. The tick rate will always be maintained as long as
+the game is not too demanding; if the tick rate ever falls below the target, the game will still be deterministic, but
+will run slower than real time. The frame rate is a target; this means that even if the game can easily render at your
+target frame rate, the user's system may be configured to limit it to a lower value, so you should not rely on it.
+
+`aspect` bundles the three things that define the virtual canvas. `ratio` is a `double` that defines the aspect ratio
+the game will adhere to no matter the size of the window. `resolution` is the canvas **height** in virtual pixels; the
+width is derived as `resolution × ratio`. `scaling` chooses how the canvas is fitted to the window:
+- `VIRTUAL` (default) scales by whole multiples only, so every virtual pixel is an exact block of device pixels. The
+  remainder is letterboxed. Crisp at any window size, at the cost of black bars when the window is not a clean multiple.
+- `PHYSICAL` fits the canvas to the window and letterboxes only for aspect. Uses the whole screen, but virtual pixels
+  land on fractional device pixels, so sprite edges and glyph stems shimmer slightly during motion.
+Pick `resolution` so it divides your target display heights, and is a multiple of your aspect ratio height: at 16:9,
+**180** (320×180) scales exactly 2x/4×/6×/8×/12× at 360p/720p/1080p/1440p/2160p.
+
+`clear` is the background colour for the canvas. This affects the clear colour for the 3D scene, and the colour of the
+letterbox bars when the canvas does not fill the window.
+
+`master`, `sound` and `music` are the global volume buses for all audio. Each is a `temporal<double>` in the range
+[0.0, 1.0] that multiplies every track's own `volume` temporal.
+
+The `setup` function builds the whole entity tree. `set<...>` registers an entity; `current` registers a scene *and*
+makes it the active one, but calling it without a config function just switches to an already-registered scene:
 
 ```cpp
-void game::setup(const std::shared_ptr<game> &game)
+void game::setup(const std::shared_ptr<game> &g)
 {
-  game->set<settings>("settings")
-       .set<window>()
-       .current("main", scene::main)
-       .set<cursor>("cursor");
+  g->set<settings>("settings");
+  g->set<window>();
+  g->current("main", scene::main);
+  g->set<cursor>("cursor");
 }
 ```
 
@@ -151,23 +171,23 @@ A scene's contents are populated by a config function passed to `set`/`current`.
 scene has exactly one), while objects, lights and interfaces are named:
 
 ```cpp
-void scene::main(const std::shared_ptr<scene> &scene)
+void scene::main(const std::shared_ptr<scene> &s)
 {
-  scene->set<button>("button1", glm::dvec2{-22.0, -40.0})
-        .set<camera>(glm::dvec3{0.0, 0.0, 80.0})
-        .set<player>("player", glm::dvec3{0.0, 0.0, 0.0})
-        .set<environment>("floor", glm::dvec3{0.0, -61.0, 0.0}, image::floor, animation::floor.main)
-        .set<sun>("sun");
+  s->set<button>("button1", glm::dvec2{-22.0, 40.0});
+  s->set<camera>(glm::dvec3{0.0, 0.0, 80.0});
+  s->set<player>("player", glm::dvec3{0.0, -6.0, 0.0});
+  s->set<environment>("floor", glm::dvec3{0.0, -61.0, 0.0}, image::floor, animation::floor.main);
+  s->set<sun>("sun");
 }
 ```
 
-You can swap scenes at runtime with `game->current("name")` (re-use a registered scene) or
-`game->current("name", configFn)` (build it on the fly), and add/remove entities live with `scene->set<...>(...)` /
-`scene->remove("name")`.
+You can swap scenes at runtime with `game->current("name")` (re-use a registered scene) or `game->current("name",
+config)` (build it on the fly), and add/remove entities live with `scene->set<...>(...)` / `scene->remove("name")`.
 
 ### Defining Entities
 Every entity type follows the same shape: subclass the engine base, pass an `initial` struct (designated initializers)
-to the base constructor, and override the hooks you care about. An object:
+to the base constructor, and override the hooks you care about. An object with every single field configured could look
+like this:
 
 ```cpp
 class player final : public cse::object
@@ -176,8 +196,8 @@ public:
   player(const glm::dvec3 &translation_);
 
 protected:
-  void on_event(const SDL_Event &event) override final;
-  void on_simulate(const double tick) override final;
+  void on_event(const SDL_Event &event) final;
+  void on_simulate(const double tick) final;
 };
 
 player::player(const glm::dvec3 &translation_)
@@ -188,14 +208,24 @@ player::player(const glm::dvec3 &translation_)
                  .texture = {.source = {.image = image::redhood, .animation = animation::redhood.idle},
                              .playback = {.frame = 0, .elapsed = 0.0, .playing = true, .speed = {1.0}, .loop = true},
                              .flip = {.horizontal = false, .vertical = false},
-                             .color = {.tint = {{0.5, 0.5, 0.5, 1.0}}, .alpha = {1.0}}},
-                 .illumination = {.show = true, .brightness = {1.0}, .penetration = {1.0}},
-                 .shadow = {.show = true, .cast = true, .darkness = {1.0}, .softness = {1.0}},
+                             .color = {.tint = {{0.5, 0.5, 0.5, 1.0}}, .alpha = {1.0}},
+                             .illumination = {.show = true, .brightness = {1.0}, .penetration = {1.0}},
+                             .shadow = {.show = true, .cast = true, .darkness = {1.0}, .softness = {1.0}}},
+                 .text = {.content = "Player",
+                          .source = {.font = font::text, .animation = animation::text.main},
+                          .playback = {.frame = 0, .elapsed = 0.0, .playing = false, .speed = {0.0}, .loop = false},
+                          .align = {.horizontal = {.preset = CENTER, .spacing = {0.0}},
+                                    .vertical = {.preset = TOP, .spacing = {0.0}},
+                                    .offset = {{0.0, -5.0}}},
+                          .scale = {{1.0, 1.0}},
+                          .overflow = {.wrap = false, .clip = false},
+                          .color = {.tint = {{0.5, 0.5, 0.5, 1.0}}, .alpha = {1.0}},
+                          .illumination = {.show = true, .brightness = {1.0}, .penetration = {1.0}},
+                          .shadow = {.show = false, .cast = true, .darkness = {1.0}, .softness = {0.5}}},
                  .priority = {.simulation = 0, .rendering = 1}}) {};
 ```
 
-`camera`, `light`, `interface` and `window` are defined the same way against their own `initial` structs (see CSGame's
-`camera.cpp`, `light.cpp`, `interface.cpp`, `window.cpp`).
+All the core classes are defined the same way against their own `initial` structs.
 
 ### Lifecycle Hooks
 Hooks are virtual no-ops you override. **Leaf entities** (`window`, `interface`, `camera`, `object`, `light`) expose
@@ -251,8 +281,8 @@ void game::quit()
 
 For the most part, every entity follows this lifecycle - the only difference being that any of the core classes other
 than game don't necessarily call (prepare and create)/(destroy and clean) one after another - prepare is called at the
-instantiation of the entity in memory, and create is called when the entity becomes active in a scene. A similar
-behaviour describes destroy and clean.
+instantiation of the entity in memory, and create is called when the entity becomes active. A similar behaviour
+describes destroy and clean.
 
 ### The Temporal Value Model
 Any value that should animate smoothly is a `temporal<T>`. It carries a `value`, an optional `rate` (first derivative)
@@ -276,7 +306,7 @@ void player::on_simulate(const double tick)
 
 Set `.instant = true` on a temporal when you want a hard cut (no interpolation) for one frame.
 
-### Accessing State at Runtime
+### Accessing Runtime State
 - `active.*` is the current snapshot; `previous.*` is last tick's - compare them to detect transitions.
 - Reach related entities through pointers: every entity has `game`, and scene-owned entities also have `scene`. So
   `scene->game->active.window->active.keyboard`, or from a game-level interface, `game->active.window->active.mouse`.

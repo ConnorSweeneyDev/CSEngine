@@ -7,19 +7,6 @@
 
 namespace cse
 {
-  struct meta
-  {
-    struct initial
-    {
-      std::string organization{"CSEngine"};
-      std::string application{"Base"};
-      std::string version{"1.0.0"};
-    };
-    std::string organization{"CSEngine"};
-    std::string application{"Base"};
-    std::string version{"1.0.0"};
-    std::filesystem::path output{};
-  };
   class game;
   class state;
   class window;
@@ -32,13 +19,6 @@ namespace cse
 
 namespace cse::help
 {
-  inline cse::meta meta{};
-  enum class phase : std::uint8_t
-  {
-    CLEANED,
-    PREPARED,
-    CREATED
-  };
   namespace game
   {
     struct previous;
@@ -76,6 +56,27 @@ namespace cse::help
     struct previous;
     struct active;
   }
+
+  struct meta
+  {
+    struct initial
+    {
+      std::string organization{"CSEngine"};
+      std::string application{"Base"};
+      std::string version{"1.0.0"};
+    };
+    std::string organization{"CSEngine"};
+    std::string application{"Base"};
+    std::string version{"1.0.0"};
+    std::filesystem::path output{};
+  };
+  inline help::meta meta{};
+  enum class phase : std::uint8_t
+  {
+    CLEANED,
+    PREPARED,
+    CREATED
+  };
 }
 
 namespace cse::trait

@@ -11,6 +11,7 @@
 #include "glm/ext/vector_int2.hpp"
 
 #include "core.hpp"
+#include "game.hpp"
 #include "input.hpp"
 #include "mixer.hpp"
 #include "timer.hpp"
@@ -97,19 +98,17 @@ namespace cse::help::window
     active &operator=(active &&) = delete;
 
   private:
-    void create(SDL_GPUDevice *video, const double aspect, const unsigned int resolution);
+    void create(SDL_GPUDevice *video, const help::game::aspect &aspect);
     void synchronize(previous &last);
-    void render(const help::game::active &game_active, const double aspect, const glm::dvec3 &clear);
+    void render(const help::game::active &game_active, const glm::dvec3 &clear);
     void destroy(SDL_GPUDevice *video);
 
-    void poll(const double aspect, const unsigned int resolution);
-    viewport letterbox(const double aspect) const;
+    void poll(const help::game::aspect &aspect);
+    viewport letterbox(const help::game::aspect &aspect) const;
     float pixel_density();
     glm::ivec2 pixel_size();
-    glm::dvec2 to_virtual(const double horizontal, const double vertical, const double aspect,
-                          const unsigned int resolution);
-    glm::dvec2 to_pixel(const double horizontal, const double vertical, const double aspect,
-                        const unsigned int resolution);
+    glm::dvec2 to_virtual(const double horizontal, const double vertical, const help::game::aspect &aspect);
+    glm::dvec2 to_pixel(const double horizontal, const double vertical, const help::game::aspect &aspect);
 
     void reconcile(SDL_GPUDevice *video);
     void generate_depth_texture(SDL_GPUDevice *video);
@@ -200,11 +199,11 @@ namespace cse
 
   private:
     void prepare();
-    void create(SDL_GPUDevice *video, const double aspect, const unsigned int resolution);
+    void create(SDL_GPUDevice *video, const help::game::aspect &aspect);
     void synchronize();
     void event(SDL_GPUDevice *video, const SDL_Event &event);
     void simulate(const double tick);
-    void render(const double aspect, const glm::dvec3 &clear, const double alpha);
+    void render(const glm::dvec3 &clear, const double alpha);
     void destroy(SDL_GPUDevice *video);
     void clean();
 

@@ -5,7 +5,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -51,21 +50,20 @@
 #include "shader.hpp"
 #include "system.hpp"
 #include "temporal.hpp"
+#include "transform.hpp"
 #include "window.hpp"
 
 namespace cse::help::game
 {
-  previous::previous(const double tick_, const double frame_, const temporal<double> &aspect_,
-                     const unsigned int resolution_, const temporal<glm::dvec3> &clear_,
-                     const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_)
-    : tick(tick_), frame(frame_), aspect(aspect_), resolution(resolution_), clear(clear_), master(master_),
-      sound(sound_), music(music_) {};
+  previous::previous(const double tick_, const double frame_, const game::aspect &aspect_,
+                     const temporal<glm::dvec3> &clear_, const temporal<double> &master_,
+                     const temporal<double> &sound_, const temporal<double> &music_)
+    : tick(tick_), frame(frame_), aspect(aspect_), clear(clear_), master(master_), sound(sound_), music(music_) {};
 
-  active::active(const double tick_, const double frame_, const temporal<double> &aspect_,
-                 const unsigned int resolution_, const temporal<glm::dvec3> &clear_, const temporal<double> &master_,
-                 const temporal<double> &sound_, const temporal<double> &music_)
-    : tick(tick_), frame(frame_), aspect(aspect_), resolution(resolution_), clear(clear_), master(master_),
-      sound(sound_), music(music_) {};
+  active::active(const double tick_, const double frame_, const game::aspect &aspect_,
+                 const temporal<glm::dvec3> &clear_, const temporal<double> &master_, const temporal<double> &sound_,
+                 const temporal<double> &music_)
+    : tick(tick_), frame(frame_), aspect(aspect_), clear(clear_), master(master_), sound(sound_), music(music_) {};
 
   void active::prepare()
   {
@@ -210,7 +208,6 @@ namespace cse::help::game
     last.tick = tick;
     last.frame = frame;
     last.aspect = aspect;
-    last.resolution = resolution;
     last.clear = clear;
     last.master = master;
     last.sound = sound;
@@ -235,22 +232,20 @@ namespace cse::help::game
       track.speed.instant = false;
       track.volume.instant = false;
     }
-    aspect.instant = false;
     clear.instant = false;
     master.instant = false;
     sound.instant = false;
     music.instant = false;
   }
 
-  void active::render(const temporal<double> previous_aspect)
+  void active::render()
   {
     generate_graphics_order();
     generate_interfaces();
     graphics_object.overlay = [&]()
     {
-      const auto height{static_cast<double>(std::max(1u, resolution))};
-      const auto real_aspect{aspect.interpolated(previous_aspect, alpha)};
-      const auto width{height * real_aspect};
+      const auto height{static_cast<double>(std::max(1u, aspect.resolution))};
+      const auto width{height * aspect.ratio};
       const auto projection{glm::ortho(-width / 2.0, width / 2.0, -height / 2.0, height / 2.0, -1.0, 1.0)};
       const glm::dvec3 origin{std::llround(width) % 2 == 0 ? -0.5 : 0.0, std::llround(height) % 2 == 0 ? 0.5 : 0.0,
                               0.0};
@@ -471,6 +466,9 @@ namespace cse::help::game
     SDL_ReleaseGPUBuffer(video, graphics_buffer.vertex);
     SDL_DestroyGPUDevice(video);
     graphics_interface.order.clear();
+    graphics_text.blocks.clear();
+    graphics_text.quads.clear();
+    graphics_text.scratch.clear();
     graphics_object.transfer_buffer = nullptr;
     graphics_object.buffer = nullptr;
     graphics_object.capacity = 0;
@@ -543,8 +541,8 @@ namespace cse::help::game
 
   bool active::inside(const glm::dvec2 &position) const
   {
-    const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
-    const auto canvas_width{canvas_height * aspect.value};
+    const auto canvas_height{static_cast<double>(std::max(1u, aspect.resolution))};
+    const auto canvas_width{canvas_height * aspect.ratio};
     const auto left{position.x - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0)};
     const auto top{position.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
     return left >= -canvas_width / 2.0 && left < canvas_width / 2.0 && top > -canvas_height / 2.0 &&
@@ -635,6 +633,112 @@ namespace cse::help::game
       if (const auto length{glm::length(glm::dvec3{plane})}; length > 0.0) plane /= length;
   }
 
+  void active::generate_text(const std::vector<cse::object *> &object_order)
+  {
+    static constexpr double cull_margin{2.0};
+    graphics_text.quads.clear();
+    graphics_text.blocks.assign(object_order.size(), {});
+    for (std::size_t position{}; position < object_order.size(); ++position)
+    {
+      auto *element{object_order.at(position)};
+      auto &block{graphics_text.blocks.at(position)};
+      block.first = graphics_text.quads.size();
+      auto &text{element->active.text};
+      if (text.content.empty()) continue;
+
+      const auto &image{element->active.texture.source.image};
+      auto &current{element->active.texture.playback.frame};
+      const auto frame_count{element->active.texture.source.animation.frames.size()};
+      if (frame_count == 0) throw exception("Object '{}' contains no frames", element->name.string());
+      if (current >= frame_count) current = frame_count - 1;
+      const auto &scale{element->active.scale.value};
+      const auto element_width{static_cast<double>(image.frame_width) * std::max(1.0, std::floor(scale.x + 0.5))};
+      const auto element_height{static_cast<double>(image.frame_height) * std::max(1.0, std::floor(scale.y + 0.5))};
+      const int steps{static_cast<int>(std::floor(element->active.rotation.value + 0.5))};
+      const auto box_center{help::transform::unrotate(
+        help::transform::anchor(steps, element->active.texture.flip, std::floor(scale.x + 0.5),
+                                std::floor(scale.y + 0.5), image.frame_width, image.frame_height,
+                                element->active.texture.source.animation.frames[current].pivot),
+        steps)};
+      const auto box_left{box_center.x - (element_width / 2.0)};
+      const auto box_right{box_center.x + (element_width / 2.0)};
+      const auto box_top{box_center.y + (element_height / 2.0)};
+      const auto box_bottom{box_center.y - (element_height / 2.0)};
+      compose_text(text, element->previous.text, element->name, box_left, box_right, box_top, box_bottom,
+                   graphics_text.scratch);
+      if (graphics_text.scratch.empty()) continue;
+
+      const auto color{glm::vec4{text.color.tint.interpolated(element->previous.text.color.tint, alpha)}};
+      const auto &illumination{text.illumination};
+      const auto &shadow{text.shadow};
+      block.image = text.source.font.image;
+      block.red = color.r;
+      block.green = color.g;
+      block.blue = color.b;
+      block.alpha = color.a;
+      block.lit = illumination.show;
+      block.shadowed = shadow.show;
+      block.cast = shadow.cast;
+      block.brightness = illumination.brightness.interpolated(element->previous.text.illumination.brightness, alpha);
+      block.transparency =
+        std::clamp(text.color.alpha.interpolated(element->previous.text.color.alpha, alpha), 0.0, 1.0);
+      block.penetration =
+        std::max(0.0, illumination.penetration.interpolated(element->previous.text.illumination.penetration, alpha));
+      block.darkness = std::max(0.0, shadow.darkness.interpolated(element->previous.text.shadow.darkness, alpha));
+      block.softness =
+        std::clamp(shadow.softness.interpolated(element->previous.text.shadow.softness, alpha), 0.0, 1.0);
+      block.steps =
+        static_cast<int>(std::floor(element->active.rotation.interpolated(element->previous.rotation, alpha) + 0.5));
+      const bool rotated{(((block.steps % 4) + 4) % 4) % 2 == 1};
+
+      double minimum_x{}, minimum_y{}, maximum_x{}, maximum_y{};
+      for (const auto &entry : graphics_text.scratch)
+      {
+        const auto quad_width{entry.right - entry.left};
+        const auto quad_height{entry.top - entry.bottom};
+        const glm::dmat4 matrix{element->active.calculate_text_matrix(
+          element->previous, quad_width, quad_height,
+          {(entry.left + entry.right) / 2.0, (entry.top + entry.bottom) / 2.0}, alpha)};
+        const glm::mat4 model{matrix};
+        graphics_text::quad quad{};
+        SDL_memcpy(quad.model.data(), &model, sizeof(model));
+        quad.left = static_cast<float>(entry.uv_left);
+        quad.bottom = static_cast<float>(entry.uv_bottom);
+        quad.right = static_cast<float>(entry.uv_right);
+        quad.top = static_cast<float>(entry.uv_top);
+        const auto half_width{std::floor(quad_width + 0.5) / 2.0};
+        const auto half_height{std::floor(quad_height + 0.5) / 2.0};
+        quad.minimum_x = matrix[3].x - (rotated ? half_height : half_width);
+        quad.maximum_x = matrix[3].x + (rotated ? half_height : half_width);
+        quad.minimum_y = matrix[3].y - (rotated ? half_width : half_height);
+        quad.maximum_y = matrix[3].y + (rotated ? half_width : half_height);
+        block.plane = matrix[3].z;
+        if (graphics_text.quads.size() == block.first)
+        {
+          minimum_x = quad.minimum_x;
+          maximum_x = quad.maximum_x;
+          minimum_y = quad.minimum_y;
+          maximum_y = quad.maximum_y;
+        }
+        else
+        {
+          minimum_x = std::min(minimum_x, quad.minimum_x);
+          maximum_x = std::max(maximum_x, quad.maximum_x);
+          minimum_y = std::min(minimum_y, quad.minimum_y);
+          maximum_y = std::max(maximum_y, quad.maximum_y);
+        }
+        graphics_text.quads.push_back(quad);
+      }
+      block.count = graphics_text.quads.size() - block.first;
+
+      const auto span_x{maximum_x - minimum_x};
+      const auto span_y{maximum_y - minimum_y};
+      const glm::dvec3 center{(minimum_x + maximum_x) / 2.0, (minimum_y + maximum_y) / 2.0, block.plane};
+      const auto radius{(0.5 * std::sqrt((span_x * span_x) + (span_y * span_y))) + cull_margin};
+      block.visible = inside_frustum(center, radius);
+    }
+  }
+
   void active::generate_lights(const std::vector<cse::light *> &light_order)
   {
     graphics_light.data.meta.at(0) = static_cast<float>(light_order.size());
@@ -709,9 +813,10 @@ namespace cse::help::game
     for (std::size_t position{}; position < object_order.size(); ++position)
     {
       auto *element{object_order.at(position)};
+      const auto &illumination{element->active.texture.illumination};
       const auto penetration{std::max(
-        0.0, element->active.illumination.penetration.interpolated(element->previous.illumination.penetration, alpha))};
-      if (!element->active.shadow.cast && !penetrating && std::abs(penetration - 1.0) < 1e-6) continue;
+        0.0, illumination.penetration.interpolated(element->previous.texture.illumination.penetration, alpha))};
+      if (!element->active.texture.shadow.cast && !penetrating && std::abs(penetration - 1.0) < 1e-6) continue;
       const auto &image{element->active.texture.source.image};
       const auto frame_count{element->active.texture.source.animation.frames.size()};
       if (!image.data.data() || frame_count == 0) continue;
@@ -732,9 +837,9 @@ namespace cse::help::game
                                      : std::floor(scale.x + 0.5) * width / 2.0};
       const double snapped_h{rotated ? std::floor(scale.x + 0.5) * width / 2.0
                                      : std::floor(scale.y + 0.5) * height / 2.0};
-      const auto offset{help::object::anchor(steps, flip, std::floor(scale.x + 0.5), std::floor(scale.y + 0.5),
-                                             image.frame_width, image.frame_height,
-                                             element->active.texture.source.animation.frames[frame_index].pivot)};
+      const auto offset{help::transform::anchor(steps, flip, std::floor(scale.x + 0.5), std::floor(scale.y + 0.5),
+                                                image.frame_width, image.frame_height,
+                                                element->active.texture.source.animation.frames[frame_index].pivot)};
       const double snapped_x{std::floor(translation.x + 0.5) + offset.x};
       const double snapped_y{std::floor(translation.y + 0.5) + offset.y};
       const double snapped_z{std::floor(translation.z + 0.5)};
@@ -754,19 +859,55 @@ namespace cse::help::game
       entry.frame.at(2) = static_cast<float>(swap_u ? first_u : second_u);
       entry.frame.at(3) = static_cast<float>(swap_v ? first_v : second_v);
       const auto shadow_darkness{
-        element->active.shadow.darkness.interpolated(element->previous.shadow.darkness, alpha)};
+        element->active.texture.shadow.darkness.interpolated(element->previous.texture.shadow.darkness, alpha)};
       const auto shadow_softness{
-        element->active.shadow.softness.interpolated(element->previous.shadow.softness, alpha)};
+        element->active.texture.shadow.softness.interpolated(element->previous.texture.shadow.softness, alpha)};
       entry.surface.at(0) = static_cast<float>(snapped_z);
       entry.surface.at(1) = static_cast<float>(layer_of(image));
       entry.surface.at(2) = static_cast<float>(transparency);
       entry.surface.at(3) = rotated ? 1.0f : 0.0f;
       entry.shadow.at(0) = static_cast<float>(penetration);
-      entry.shadow.at(1) = element->active.shadow.cast ? 1.0f : 0.0f;
+      entry.shadow.at(1) = element->active.texture.shadow.cast ? 1.0f : 0.0f;
       entry.shadow.at(2) = static_cast<float>(std::max(0.0, shadow_darkness));
       entry.shadow.at(3) = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
       graphics_occluder.indices.at(position) = static_cast<float>(graphics_occluder.samples.size());
       graphics_occluder.samples.push_back(entry);
+    }
+
+    for (auto &block : graphics_text.blocks)
+    {
+      for (std::size_t index{block.first}; index < block.first + block.count; ++index)
+        graphics_text.quads.at(index).occluder = -1.0f;
+      if (block.count == 0 || block.transparency <= 0.0) continue;
+      if (!block.cast && !penetrating && std::abs(block.penetration - 1.0) < 1e-6) continue;
+      const auto layer{static_cast<float>(layer_of(block.image))};
+      const int turns{((block.steps % 4) + 4) % 4};
+      const bool rotated{turns % 2 == 1};
+      const bool swap_u{turns == 1 || turns == 2};
+      const bool swap_v{turns == 2 || turns == 3};
+      for (std::size_t index{block.first}; index < block.first + block.count; ++index)
+      {
+        auto &quad{graphics_text.quads.at(index)};
+        graphics_occluder::entry entry{};
+        entry.rectangle.at(0) = static_cast<float>(quad.minimum_x);
+        entry.rectangle.at(1) = static_cast<float>(quad.minimum_y);
+        entry.rectangle.at(2) = static_cast<float>(quad.maximum_x);
+        entry.rectangle.at(3) = static_cast<float>(quad.maximum_y);
+        entry.frame.at(0) = swap_u ? quad.right : quad.left;
+        entry.frame.at(1) = swap_v ? quad.top : quad.bottom;
+        entry.frame.at(2) = swap_u ? quad.left : quad.right;
+        entry.frame.at(3) = swap_v ? quad.bottom : quad.top;
+        entry.surface.at(0) = static_cast<float>(block.plane);
+        entry.surface.at(1) = layer;
+        entry.surface.at(2) = static_cast<float>(block.transparency);
+        entry.surface.at(3) = rotated ? 1.0f : 0.0f;
+        entry.shadow.at(0) = static_cast<float>(block.penetration);
+        entry.shadow.at(1) = block.cast ? 1.0f : 0.0f;
+        entry.shadow.at(2) = static_cast<float>(block.darkness);
+        entry.shadow.at(3) = static_cast<float>(block.softness);
+        quad.occluder = static_cast<float>(graphics_occluder.samples.size());
+        graphics_occluder.samples.push_back(entry);
+      }
     }
     graphics_light.data.meta.at(1) = static_cast<float>(graphics_occluder.samples.size());
 
@@ -902,21 +1043,26 @@ namespace cse::help::game
   {
     graphics_object.samples.clear();
     graphics_object.batches.clear();
-    graphics_object.samples.reserve(object_order.size());
+    graphics_object.samples.reserve(object_order.size() + graphics_text.quads.size());
     static constexpr double depth_bias_span{0.001};
     static constexpr double cull_margin{2.0};
     const auto object_total{object_order.size()};
     const auto object_count{static_cast<double>(object_total)};
-    const double depth_bias_step{object_total == 0 ? 0.0 : depth_bias_span / object_count};
+    const auto slot_total{object_total * 2};
+    const double depth_bias_step{object_total == 0 ? 0.0 : depth_bias_span / (object_count * 2.0)};
 
     static std::vector<double> transparencies{};
     static std::vector<char> shown{};
+    static std::vector<char> lettered{};
     transparencies.clear();
     shown.clear();
+    lettered.clear();
     transparencies.reserve(object_order.size());
     shown.reserve(object_order.size());
-    for (auto *element : object_order)
+    lettered.reserve(object_order.size());
+    for (std::size_t position{}; position < object_total; ++position)
     {
+      auto *element{object_order.at(position)};
       auto &current{element->active.texture.playback.frame};
       const auto size{element->active.texture.source.animation.frames.size()};
       if (size == 0) throw exception("Object '{}' contains no frames", element->name.string());
@@ -930,10 +1076,10 @@ namespace cse::help::game
       const auto scale_y{std::floor(scale.y + 0.5)};
       const auto width{scale_x * static_cast<double>(element->active.texture.source.image.frame_width)};
       const auto height{scale_y * static_cast<double>(element->active.texture.source.image.frame_height)};
-      const auto offset{help::object::anchor(static_cast<int>(std::floor(rotation + 0.5)), element->active.texture.flip,
-                                             scale_x, scale_y, element->active.texture.source.image.frame_width,
-                                             element->active.texture.source.image.frame_height,
-                                             element->active.texture.source.animation.frames[current].pivot)};
+      const auto offset{help::transform::anchor(
+        static_cast<int>(std::floor(rotation + 0.5)), element->active.texture.flip, scale_x, scale_y,
+        element->active.texture.source.image.frame_width, element->active.texture.source.image.frame_height,
+        element->active.texture.source.animation.frames[current].pivot)};
       const glm::dvec3 center{std::floor(translation.x + 0.5) + offset.x, std::floor(translation.y + 0.5) + offset.y,
                               std::floor(translation.z + 0.5)};
       const auto radius{(0.5 * std::sqrt((width * width) + (height * height))) + cull_margin};
@@ -945,18 +1091,68 @@ namespace cse::help::game
             iterator != graphics_cache.texture.end())
           iterator->second.stamp = time;
       }
+      const auto &block{graphics_text.blocks.at(position)};
+      lettered.push_back(block.count > 0 && block.visible && static_cast<int>(block.transparency * 255.0) > 0 ? 1 : 0);
+      if (block.count > 0 && !lettered.back())
+        if (const auto iterator{graphics_cache.texture.find({block.image.data.data(), block.image.data.size()})};
+            iterator != graphics_cache.texture.end())
+          iterator->second.stamp = time;
     }
 
     static std::vector<std::size_t> emission_order{};
     emission_order.clear();
-    emission_order.reserve(object_total);
-    for (std::size_t position{object_total}; position-- > 0;)
-      if (shown.at(position) && transparencies.at(position) >= 1.0) emission_order.push_back(position);
-    for (std::size_t position{}; position < object_total; ++position)
-      if (shown.at(position) && transparencies.at(position) < 1.0) emission_order.push_back(position);
-    for (const auto position : emission_order)
+    emission_order.reserve(slot_total);
+    const auto opaque_slot{[&](const std::size_t slot)
+                           {
+                             const auto position{slot / 2};
+                             if (slot % 2 == 0) return shown.at(position) && transparencies.at(position) >= 1.0;
+                             return lettered.at(position) != 0 && graphics_text.blocks.at(position).transparency >= 1.0;
+                           }};
+    const auto drawn_slot{[&](const std::size_t slot)
+                          { return slot % 2 == 0 ? shown.at(slot / 2) != 0 : lettered.at(slot / 2) != 0; }};
+    for (std::size_t slot{slot_total}; slot-- > 0;)
+      if (drawn_slot(slot) && opaque_slot(slot)) emission_order.push_back(slot);
+    for (std::size_t slot{}; slot < slot_total; ++slot)
+      if (drawn_slot(slot) && !opaque_slot(slot)) emission_order.push_back(slot);
+    for (const auto slot : emission_order)
     {
+      const auto position{slot / 2};
       auto *element{object_order.at(position)};
+      const auto depth{static_cast<float>(static_cast<double>(slot) * depth_bias_step)};
+      if (slot % 2 == 1)
+      {
+        const auto &block{graphics_text.blocks.at(position)};
+        auto &available{require_pipelines()};
+        auto *pipe{block.transparency < 1.0 ? available.transparent : available.opaque};
+        auto *atlas{require_texture(block.image)};
+        for (std::size_t index{block.first}; index < block.first + block.count; ++index)
+        {
+          const auto &quad{graphics_text.quads.at(index)};
+          graphics_object::sample data{};
+          data.model = quad.model;
+          data.red = block.red;
+          data.green = block.green;
+          data.blue = block.blue;
+          data.alpha = block.alpha;
+          data.left = quad.left;
+          data.bottom = quad.bottom;
+          data.right = quad.right;
+          data.top = quad.top;
+          data.lit = block.lit ? 1.0f : 0.0f;
+          data.shadowed = block.shadowed ? 1.0f : 0.0f;
+          data.brightness = static_cast<float>(block.brightness);
+          data.transparency = static_cast<float>(block.transparency);
+          data.depth = depth;
+          data.occluder = quad.occluder;
+          if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
+              graphics_object.batches.back().texture == atlas)
+            graphics_object.batches.back().count++;
+          else
+            graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, atlas});
+          graphics_object.samples.push_back(data);
+        }
+        continue;
+      }
       const auto &coordinates{
         element->active.texture.source.animation.frames[element->active.texture.playback.frame].coordinates};
       const auto &flip{element->active.texture.flip};
@@ -977,12 +1173,12 @@ namespace cse::help::game
       data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
       data.right = static_cast<float>(flip.horizontal ? coordinates.left : coordinates.right);
       data.top = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
-      data.lit = element->active.illumination.show ? 1.0f : 0.0f;
-      data.shadowed = element->active.shadow.show ? 1.0f : 0.0f;
-      data.brightness = static_cast<float>(
-        element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha));
+      data.lit = element->active.texture.illumination.show ? 1.0f : 0.0f;
+      data.shadowed = element->active.texture.shadow.show ? 1.0f : 0.0f;
+      data.brightness = static_cast<float>(element->active.texture.illumination.brightness.interpolated(
+        element->previous.texture.illumination.brightness, alpha));
       data.transparency = static_cast<float>(transparency);
-      data.depth = static_cast<float>(static_cast<double>(position) * depth_bias_step);
+      data.depth = depth;
       data.occluder = position < graphics_occluder.indices.size() ? graphics_occluder.indices.at(position) : -1.0f;
       auto &available{require_pipelines()};
       auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
@@ -1037,273 +1233,49 @@ namespace cse::help::game
         graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, texture});
       graphics_object.samples.push_back(data);
 
-      const auto &text{element->active.text};
-      const auto content_length{text.content.size()};
-      if (content_length == 0) continue;
-      if (!text.source.font.image.data.data())
-        throw exception("Interface '{}' has text but no font", element->name.string());
-      if (text.source.font.glyphs.empty())
-        throw exception("Font for interface '{}' contains no glyphs", element->name.string());
-      auto &text_frame{element->active.text.playback.frame};
-      const auto text_frames{text.source.animation.frames.size()};
-      if (text_frames == 0) throw exception("Interface '{}' text contains no frames", element->name.string());
-      if (text_frame >= text_frames) text_frame = text_frames - 1;
-      const auto &text_coordinates{text.source.animation.frames[text_frame].coordinates};
-
-      const auto text_color{glm::vec4{text.color.tint.interpolated(element->previous.text.color.tint, alpha)}};
-      const auto text_alpha{text.color.alpha.interpolated(element->previous.text.color.alpha, alpha)};
-      if (static_cast<int>(std::clamp(text_alpha, 0.0, 1.0) * 255.0) <= 0) continue;
-      const auto text_scale{text.scale.interpolated(element->previous.text.scale, alpha)};
-      const auto scale_x{std::max(1.0, std::floor(text_scale.x + 0.5))};
-      const auto scale_y{std::max(1.0, std::floor(text_scale.y + 0.5))};
+      auto &text{element->active.text};
+      if (text.content.empty()) continue;
       const auto &scale{element->active.scale.value};
       const auto element_width{static_cast<double>(element->active.texture.source.image.frame_width) *
                                std::max(1.0, std::floor(scale.x + 0.5))};
       const auto element_height{static_cast<double>(element->active.texture.source.image.frame_height) *
                                 std::max(1.0, std::floor(scale.y + 0.5))};
       const int steps{static_cast<int>(std::floor(element->active.rotation.value + 0.5))};
-      const auto box_center{help::interface::unrotate(
-        help::interface::anchor(steps, flip, std::floor(scale.x + 0.5), std::floor(scale.y + 0.5),
+      const auto box_center{help::transform::unrotate(
+        help::transform::anchor(steps, flip, std::floor(scale.x + 0.5), std::floor(scale.y + 0.5),
                                 element->active.texture.source.image.frame_width,
                                 element->active.texture.source.image.frame_height,
                                 element->active.texture.source.animation.frames[current].pivot),
         steps)};
-      const auto box_left{box_center.x - (element_width / 2.0)};
-      const auto box_right{box_center.x + (element_width / 2.0)};
-      const auto box_top{box_center.y + (element_height / 2.0)};
-      const auto box_bottom{box_center.y - (element_height / 2.0)};
-
-      constexpr std::uint32_t undefined{0xFFFD};
-      const auto find{
-        [&](const std::uint32_t character) -> const cse::font::glyph &
-        {
-          const auto locate{[&](const std::uint32_t value) -> const cse::font::glyph *
-                            {
-                              const auto position{std::ranges::lower_bound(
-                                text.source.font.glyphs, static_cast<std::uint64_t>(value), std::ranges::less{},
-                                [](const cse::font::glyph &glyph) { return glyph.character; })};
-                              if (position == text.source.font.glyphs.end() || position->character != value)
-                                return nullptr;
-                              return &*position;
-                            }};
-          if (const auto *glyph{locate(character)}) return *glyph;
-          if (const auto *glyph{locate(undefined)}) return *glyph;
-          throw exception("Font for interface '{}' is missing glyph U+{:04X} and the U+FFFD fallback glyph",
-                          element->name.string(), character);
-        }};
-      std::vector<std::uint32_t> characters{};
-      characters.reserve(content_length);
-      for (std::size_t index{}; index < content_length;)
-      {
-        const auto first{static_cast<unsigned char>(text.content.at(index))};
-        std::size_t length{1};
-        std::uint32_t character{first};
-        if (first >= 0xF0)
-          length = 4, character = first & 0x07u;
-        else if (first >= 0xE0)
-          length = 3, character = first & 0x0Fu;
-        else if (first >= 0xC0)
-          length = 2, character = first & 0x1Fu;
-        else if (first >= 0x80)
-        {
-          characters.push_back(undefined);
-          ++index;
-          continue;
-        }
-        if (index + length > content_length)
-        {
-          characters.push_back(undefined);
-          break;
-        }
-        bool malformed{false};
-        for (std::size_t offset{1}; offset < length; ++offset)
-        {
-          const auto continuation{static_cast<unsigned char>(text.content.at(index + offset))};
-          if ((continuation & 0xC0u) != 0x80u)
-          {
-            malformed = true;
-            break;
-          }
-          character = (character << 6u) | (continuation & 0x3Fu);
-        }
-        if (malformed)
-        {
-          characters.push_back(undefined);
-          ++index;
-          continue;
-        }
-        characters.push_back(character);
-        index += length;
-      }
-
-      const auto spacing_x{
-        text.align.horizontal.spacing.interpolated(element->previous.text.align.horizontal.spacing, alpha)};
-      const auto spacing_y{
-        text.align.vertical.spacing.interpolated(element->previous.text.align.vertical.spacing, alpha)};
-      const auto line_height{text.source.font.glyphs.front().height * scale_y};
-      struct item
-      {
-        const cse::font::glyph *glyph{};
-        std::uint32_t character{};
-      };
-      struct line
-      {
-        std::vector<item> items{};
-        double width{};
-      };
-      struct composer
-      {
-        double spacing_x{};
-        double scale_x{};
-        double element_width{};
-        bool wrap{};
-        std::vector<line> lines{};
-        std::vector<item> word{};
-        double word_width{};
-
-        void append(const cse::font::glyph &glyph, const std::uint32_t character)
-        {
-          auto &active_line{lines.back()};
-          active_line.width += (active_line.items.empty() ? 0.0 : spacing_x) + (glyph.width * scale_x);
-          active_line.items.push_back({&glyph, character});
-        }
-        void strip()
-        {
-          auto &active_line{lines.back()};
-          while (!active_line.items.empty() && active_line.items.back().character == U' ')
-          {
-            active_line.width -= active_line.items.back().glyph->width * scale_x;
-            active_line.items.pop_back();
-            if (!active_line.items.empty()) active_line.width -= spacing_x;
-          }
-        }
-        void commit()
-        {
-          strip();
-          lines.emplace_back();
-        }
-        void flush()
-        {
-          if (word.empty()) return;
-          if (wrap && !lines.back().items.empty() && lines.back().width + spacing_x + word_width > element_width)
-            commit();
-          for (const auto &entry : word)
-          {
-            if (wrap && !lines.back().items.empty() &&
-                lines.back().width + spacing_x + (entry.glyph->width * scale_x) > element_width)
-              commit();
-            append(*entry.glyph, entry.character);
-          }
-          word.clear();
-          word_width = 0.0;
-        }
-      };
-      composer compose{
-        .spacing_x = spacing_x, .scale_x = scale_x, .element_width = element_width, .wrap = text.overflow.wrap};
-      compose.lines.emplace_back();
-      for (const auto character : characters)
-      {
-        if (character == U'\n')
-        {
-          compose.flush();
-          compose.commit();
-          continue;
-        }
-        const auto &glyph{find(character)};
-        if (character == U' ')
-        {
-          compose.flush();
-          compose.append(glyph, character);
-          continue;
-        }
-        compose.word_width += (compose.word.empty() ? 0.0 : spacing_x) + (glyph.width * scale_x);
-        compose.word.push_back({&glyph, character});
-      }
-      compose.flush();
-      compose.strip();
-      const auto &lines{compose.lines};
-
-      double block_width{};
-      for (const auto &entry : lines) block_width = std::max(block_width, entry.width);
-      const auto line_count{static_cast<double>(lines.size())};
-      const auto block_height{(line_count * line_height) + ((line_count - 1.0) * spacing_y)};
-      const glm::dvec2 shift{text.align.offset.interpolated(element->previous.text.align.offset, alpha)};
-      double block_left{-block_width / 2.0};
-      if (text.align.horizontal.preset == LEFT)
-        block_left = box_left;
-      else if (text.align.horizontal.preset == RIGHT)
-        block_left = box_right - block_width;
-      block_left += shift.x;
-      double block_top{block_height / 2.0};
-      if (text.align.vertical.preset == TOP)
-        block_top = box_top;
-      else if (text.align.vertical.preset == BOTTOM)
-        block_top = box_bottom + block_height;
-      block_top += shift.y;
-
+      compose_text(text, element->previous.text, element->name, box_center.x - (element_width / 2.0),
+                   box_center.x + (element_width / 2.0), box_center.y + (element_height / 2.0),
+                   box_center.y - (element_height / 2.0), graphics_text.scratch);
+      const auto text_color{glm::vec4{text.color.tint.interpolated(element->previous.text.color.tint, alpha)}};
+      const auto text_alpha{text.color.alpha.interpolated(element->previous.text.color.alpha, alpha)};
+      if (static_cast<int>(std::clamp(text_alpha, 0.0, 1.0) * 255.0) <= 0) continue;
       auto *atlas{require_texture(text.source.font.image)};
-      for (std::size_t row{}; row < lines.size(); ++row)
+      for (const auto &entry : graphics_text.scratch)
       {
-        const auto &entry{lines.at(row)};
-        double pen{block_left};
-        if (text.align.horizontal.preset == CENTER)
-          pen = block_left + ((block_width - entry.width) / 2.0);
-        else if (text.align.horizontal.preset == RIGHT)
-          pen = block_left + (block_width - entry.width);
-        const auto top{block_top - (static_cast<double>(row) * (line_height + spacing_y))};
-        for (const auto &placed : entry.items)
-        {
-          const auto width{placed.glyph->width * scale_x};
-          const auto height{placed.glyph->height * scale_y};
-          const auto left{pen};
-          pen += width + spacing_x;
-          if (width <= 0.0 || height <= 0.0) continue;
-          auto visible_left{left};
-          auto visible_right{left + width};
-          auto visible_top{top};
-          auto visible_bottom{top - height};
-          if (text.overflow.clip)
-          {
-            visible_left = std::max(visible_left, box_left);
-            visible_right = std::min(visible_right, box_right);
-            visible_top = std::min(visible_top, box_top);
-            visible_bottom = std::max(visible_bottom, box_bottom);
-          }
-          if (visible_right <= visible_left || visible_top <= visible_bottom) continue;
-          const auto &glyph_coordinates{placed.glyph->coordinates};
-          const auto uv_left{text_coordinates.left +
-                             ((text_coordinates.right - text_coordinates.left) * glyph_coordinates.left)};
-          const auto uv_right{text_coordinates.left +
-                              ((text_coordinates.right - text_coordinates.left) * glyph_coordinates.right)};
-          const auto uv_top{text_coordinates.bottom +
-                            ((text_coordinates.top - text_coordinates.bottom) * glyph_coordinates.top)};
-          const auto uv_bottom{text_coordinates.bottom +
-                               ((text_coordinates.top - text_coordinates.bottom) * glyph_coordinates.bottom)};
-          const auto fraction_left{(visible_left - left) / width};
-          const auto fraction_right{(visible_right - left) / width};
-          const auto fraction_top{(top - visible_top) / height};
-          const auto fraction_bottom{(top - visible_bottom) / height};
-          const glm::mat4 text_model{element->active.calculate_text_matrix(
-            element->previous, visible_right - visible_left, visible_top - visible_bottom,
-            {(visible_left + visible_right) / 2.0, (visible_top + visible_bottom) / 2.0}, alpha)};
-          graphics_object::sample text_data{};
-          SDL_memcpy(text_data.model.data(), &text_model, sizeof(text_model));
-          text_data.red = text_color.r;
-          text_data.green = text_color.g;
-          text_data.blue = text_color.b;
-          text_data.alpha = text_color.a;
-          text_data.left = static_cast<float>(uv_left + ((uv_right - uv_left) * fraction_left));
-          text_data.right = static_cast<float>(uv_left + ((uv_right - uv_left) * fraction_right));
-          text_data.top = static_cast<float>(uv_top + ((uv_bottom - uv_top) * fraction_top));
-          text_data.bottom = static_cast<float>(uv_top + ((uv_bottom - uv_top) * fraction_bottom));
-          text_data.transparency = static_cast<float>(text_alpha);
-          if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
-              graphics_object.batches.back().texture == atlas)
-            graphics_object.batches.back().count++;
-          else
-            graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, atlas});
-          graphics_object.samples.push_back(text_data);
-        }
+        const glm::mat4 text_model{element->active.calculate_text_matrix(
+          element->previous, entry.right - entry.left, entry.top - entry.bottom,
+          {(entry.left + entry.right) / 2.0, (entry.top + entry.bottom) / 2.0}, alpha)};
+        graphics_object::sample text_data{};
+        SDL_memcpy(text_data.model.data(), &text_model, sizeof(text_model));
+        text_data.red = text_color.r;
+        text_data.green = text_color.g;
+        text_data.blue = text_color.b;
+        text_data.alpha = text_color.a;
+        text_data.left = static_cast<float>(entry.uv_left);
+        text_data.bottom = static_cast<float>(entry.uv_bottom);
+        text_data.right = static_cast<float>(entry.uv_right);
+        text_data.top = static_cast<float>(entry.uv_top);
+        text_data.transparency = static_cast<float>(text_alpha);
+        if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
+            graphics_object.batches.back().texture == atlas)
+          graphics_object.batches.back().count++;
+        else
+          graphics_object.batches.push_back({graphics_object.samples.size(), 1, pipe, atlas});
+        graphics_object.samples.push_back(text_data);
       }
     }
   }
@@ -1552,10 +1524,10 @@ namespace cse::help::game
 namespace cse
 {
   game::game(const initial &initial_)
-    : previous{initial_.tick,  initial_.frame,  initial_.aspect, initial_.resolution,
-               initial_.clear, initial_.master, initial_.sound,  initial_.music},
-      active{initial_.tick,  initial_.frame,  initial_.aspect, initial_.resolution,
-             initial_.clear, initial_.master, initial_.sound,  initial_.music}
+    : previous{initial_.tick,   initial_.frame, initial_.aspect, initial_.clear,
+               initial_.master, initial_.sound, initial_.music},
+      active{initial_.tick,   initial_.frame, initial_.aspect, initial_.clear,
+             initial_.master, initial_.sound, initial_.music}
   {
     help::meta = {initial_.meta.organization, initial_.meta.application, initial_.meta.version, {}};
     char *path{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
@@ -1649,7 +1621,7 @@ namespace cse
     if (active.phase != help::phase::PREPARED) throw exception("Game must be prepared before creation");
     pre_create();
     active.create();
-    active.window->create(active.video, active.aspect.value, active.resolution);
+    active.window->create(active.video, active.aspect);
     active.scene->create();
     for (const auto &interface : active.interfaces) interface->create();
     active.phase = help::phase::CREATED;
@@ -1675,7 +1647,7 @@ namespace cse
         active.window = window;
         window->prepare();
         active.create();
-        window->create(active.video, active.aspect.value, active.resolution);
+        window->create(active.video, active.aspect);
         active.scene->create();
         for (const auto &interface : active.interfaces) interface->create();
       }
@@ -1741,7 +1713,7 @@ namespace cse
   void game::event()
   {
     if (active.phase != help::phase::CREATED) throw exception("Game must be created before processing events");
-    active.window->active.poll(active.aspect.value, active.resolution);
+    active.window->active.poll(active.aspect);
     for (const auto &item : queue)
     {
       pre_event(item);
@@ -1786,11 +1758,10 @@ namespace cse
     if (active.phase != help::phase::CREATED) throw exception("Game must be created before rendering");
     pre_render(active.alpha);
     const auto clear{active.clear.interpolated(previous.clear, active.alpha)};
-    const auto aspect{active.aspect.interpolated(previous.aspect, active.alpha)};
     if (!active.window->available(active.video)) return;
-    active.scene->render(aspect, active.alpha);
-    active.render(previous.aspect);
-    active.window->render(aspect, clear, active.alpha);
+    active.scene->render(active.aspect.ratio, active.alpha);
+    active.render();
+    active.window->render(clear, active.alpha);
     post_render(active.alpha);
   }
 

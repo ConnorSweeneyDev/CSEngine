@@ -64,6 +64,7 @@ namespace cse::help::scene
     generate_graphics_order(alpha);
     game_active.graphics_object.world = camera->render(aspect, alpha);
     game_active.generate_frustum();
+    game_active.generate_text(object_graphics_order);
     game_active.generate_lights(light_graphics_order);
     game_active.generate_occluders(object_graphics_order);
     game_active.generate_objects(object_graphics_order);

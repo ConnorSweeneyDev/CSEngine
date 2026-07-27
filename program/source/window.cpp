@@ -39,7 +39,7 @@ namespace cse::help::window
     : title{title_}, display{display_}, left{left_}, top{top_}, width{width_}, height{height_}, mode{mode_},
       vsync{vsync_}, mouse{mouse_.visible, mouse_.position} {};
 
-  void active::create(SDL_GPUDevice *video, const double aspect, const unsigned int resolution)
+  void active::create(SDL_GPUDevice *video, const help::game::aspect &aspect)
   {
     instance = SDL_CreateWindow(title.c_str(), static_cast<int>(width), static_cast<int>(height),
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
@@ -82,7 +82,7 @@ namespace cse::help::window
 
     if (!mouse.visible) SDL_HideCursor();
     const auto density{pixel_density()};
-    const auto pixel{to_pixel(mouse.position.x, mouse.position.y, aspect, resolution)};
+    const auto pixel{to_pixel(mouse.position.x, mouse.position.y, aspect)};
     SDL_WarpMouseInWindow(instance, static_cast<float>(pixel.x) / density, static_cast<float>(pixel.y) / density);
     shadow.mouse.position = mouse.position;
   }
@@ -118,7 +118,7 @@ namespace cse::help::window
     mouse.wheel = {};
   }
 
-  void active::render(const help::game::active &game_active, const double aspect, const glm::dvec3 &clear)
+  void active::render(const help::game::active &game_active, const glm::dvec3 &clear)
   {
     SDL_GPUColorTargetInfo color_target_info{};
     color_target_info.texture = swapchain_texture;
@@ -136,26 +136,11 @@ namespace cse::help::window
     depth_stencil_target_info.cycle = true;
     render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, &depth_stencil_target_info);
     if (!render_pass) throw sdl_exception("Could not begin GPU render pass");
-    float viewport_left{}, viewport_top{}, viewport_width{}, viewport_height{};
-    const auto target_aspect{static_cast<float>(aspect)};
-    if ((static_cast<float>(render_width) / static_cast<float>(render_height)) > target_aspect)
-    {
-      viewport_height = static_cast<float>(render_height);
-      viewport_width = viewport_height * target_aspect;
-      viewport_top = 0.0f;
-      viewport_left = (static_cast<float>(render_width) - viewport_width) / 2.0f;
-    }
-    else
-    {
-      viewport_width = static_cast<float>(render_width);
-      viewport_height = viewport_width / target_aspect;
-      viewport_left = 0.0f;
-      viewport_top = (static_cast<float>(render_height) - viewport_height) / 2.0f;
-    }
-    const SDL_GPUViewport port{.x = viewport_left,
-                               .y = viewport_top,
-                               .w = viewport_width,
-                               .h = viewport_height,
+    const auto view{letterbox(game_active.aspect)};
+    const SDL_GPUViewport port{.x = static_cast<float>(view.left),
+                               .y = static_cast<float>(view.top),
+                               .w = static_cast<float>(view.width),
+                               .h = static_cast<float>(view.height),
                                .min_depth = 0.0f,
                                .max_depth = 1.0f};
     SDL_SetGPUViewport(render_pass, &port);
@@ -227,7 +212,7 @@ namespace cse::help::window
     SDL_DestroyWindow(instance);
   }
 
-  void active::poll(const double aspect, const unsigned int resolution)
+  void active::poll(const help::game::aspect &aspect)
   {
     float horizontal{}, vertical{};
     const auto buttons{SDL_GetMouseState(&horizontal, &vertical)};
@@ -249,33 +234,43 @@ namespace cse::help::window
       mouse.buttons.at(button) = has(buttons, SDL_BUTTON_MASK(button));
     if (warping)
     {
-      const auto pixel{to_pixel(mouse.position.x, mouse.position.y, aspect, resolution)};
+      const auto pixel{to_pixel(mouse.position.x, mouse.position.y, aspect)};
       SDL_WarpMouseInWindow(instance, static_cast<float>(pixel.x) / density, static_cast<float>(pixel.y) / density);
     }
     else
-      mouse.position = to_virtual(horizontal, vertical, aspect, resolution);
+      mouse.position = to_virtual(horizontal, vertical, aspect);
     shadow.mouse.position = mouse.position;
 
     std::copy_n(SDL_GetKeyboardState(nullptr), keyboard.size(), keyboard.begin());
   }
 
-  active::viewport active::letterbox(const double aspect) const
+  active::viewport active::letterbox(const help::game::aspect &aspect) const
   {
     const auto window_width{static_cast<double>(render_width)};
     const auto window_height{static_cast<double>(render_height)};
+    const auto canvas_height{std::max(1u, aspect.resolution)};
+    const auto canvas_width{
+      std::max(1u, static_cast<unsigned int>(std::llround(static_cast<double>(canvas_height) * aspect.ratio)))};
+    const auto scale{aspect.scaling == VIRTUAL ? std::min(render_width / canvas_width, render_height / canvas_height)
+                                               : 0u};
     viewport result{};
-    if (window_width / window_height > aspect)
+    if (scale >= 1u)
+    {
+      result.width = static_cast<double>(scale * canvas_width);
+      result.height = static_cast<double>(scale * canvas_height);
+    }
+    else if (window_width / window_height > aspect.ratio)
     {
       result.height = window_height;
-      result.width = result.height * aspect;
-      result.left = (window_width - result.width) / 2.0;
+      result.width = result.height * aspect.ratio;
     }
     else
     {
       result.width = window_width;
-      result.height = result.width / aspect;
-      result.top = (window_height - result.height) / 2.0;
+      result.height = result.width / aspect.ratio;
     }
+    result.left = std::floor((window_width - result.width) / 2.0);
+    result.top = std::floor((window_height - result.height) / 2.0);
     return result;
   }
 
@@ -298,24 +293,22 @@ namespace cse::help::window
     return size;
   }
 
-  glm::dvec2 active::to_virtual(const double horizontal, const double vertical, const double aspect,
-                                const unsigned int resolution)
+  glm::dvec2 active::to_virtual(const double horizontal, const double vertical, const help::game::aspect &aspect)
   {
     const auto view{letterbox(aspect)};
-    const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
-    const auto canvas_width{canvas_height * aspect};
+    const auto canvas_height{static_cast<double>(std::max(1u, aspect.resolution))};
+    const auto canvas_width{canvas_height * aspect.ratio};
     const glm::dvec2 canvas{((horizontal - view.left) / view.width * canvas_width) - (canvas_width / 2.0),
                             ((vertical - view.top) / view.height * canvas_height) - (canvas_height / 2.0)};
     return {canvas.x + (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
             -(canvas.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0))};
   }
 
-  glm::dvec2 active::to_pixel(const double horizontal, const double vertical, const double aspect,
-                              const unsigned int resolution)
+  glm::dvec2 active::to_pixel(const double horizontal, const double vertical, const help::game::aspect &aspect)
   {
     const auto view{letterbox(aspect)};
-    const auto canvas_height{static_cast<double>(std::max(1u, resolution))};
-    const auto canvas_width{canvas_height * aspect};
+    const auto canvas_height{static_cast<double>(std::max(1u, aspect.resolution))};
+    const auto canvas_width{canvas_height * aspect.ratio};
     const glm::dvec2 canvas{horizontal - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
                             -vertical - (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
     return {((canvas.x + (canvas_width / 2.0)) / canvas_width * view.width) + view.left,
@@ -724,10 +717,10 @@ namespace cse
   }
 
   void window::on_create() {}
-  void window::create(SDL_GPUDevice *video, const double aspect, const unsigned int resolution)
+  void window::create(SDL_GPUDevice *video, const help::game::aspect &aspect)
   {
     if (active.phase != help::phase::PREPARED) throw exception("Window must be prepared before creation");
-    active.create(video, aspect, resolution);
+    active.create(video, aspect);
     active.phase = help::phase::CREATED;
     on_create();
     active.reconcile(video);
@@ -769,10 +762,10 @@ namespace cse
   }
 
   void window::on_render(const double) {}
-  void window::render(const double aspect, const glm::dvec3 &clear, const double alpha)
+  void window::render(const glm::dvec3 &clear, const double alpha)
   {
     if (active.phase != help::phase::CREATED) throw exception("Window must be created before post-rendering");
-    active.render(game->active, aspect, clear);
+    active.render(game->active, clear);
     on_render(alpha);
   }
 
