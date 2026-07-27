@@ -322,7 +322,7 @@ Set `.instant = true` on a temporal when you want a hard cut (no interpolation) 
   auto player = active.objects.find("player");                    // nullptr if absent
   auto settings = active.states.as<custom::settings>("settings"); // ["settings"] + downcast
   settings = active.states.try_as<custom::settings>("settings");  // find("settings") + downcast
-  if (is<player>(contact.target.pointer)) { ... }                 // exact-type check with standalone helper
+  if (is<player>(contact.target.pointer)) { ... }                 // throwing exact-type check with standalone helper
   ```
   The only throwing container helpers are `[]` and `.at(index)`; the pointer helpers throw if they are not a `try_`
   variant.
