@@ -52,28 +52,57 @@ template <typename type> std::shared_ptr<type> lock(const std::weak_ptr<type> &p
 
 template <typename type> std::shared_ptr<type> try_lock(const std::weak_ptr<type> &pointer) { return pointer.lock(); }
 
-template <typename... derived, typename base> bool is(const base *pointer) noexcept
+template <typename... derived, typename base> bool is(const base *pointer)
+{
+  if (!pointer) throw cse::exception("Null pointer passed to is");
+  const std::type_info &typeid_base{typeid(*pointer)};
+  return (... || (typeid_base == typeid(derived)));
+}
+
+template <typename... derived, typename base> bool is(const std::unique_ptr<base> &pointer)
+{
+  if (!pointer) throw cse::exception("Null pointer passed to is");
+  const std::type_info &typeid_base{typeid(*pointer)};
+  return (... || (typeid_base == typeid(derived)));
+}
+
+template <typename... derived, typename base> bool is(const std::shared_ptr<base> &pointer)
+{
+  if (!pointer) throw cse::exception("Null pointer passed to is");
+  const std::type_info &typeid_base{typeid(*pointer)};
+  return (... || (typeid_base == typeid(derived)));
+}
+
+template <typename... derived, typename base> bool is(const std::weak_ptr<base> &pointer)
+{
+  auto locked{try_lock(pointer)};
+  if (!locked) throw cse::exception("Null pointer passed to is");
+  const std::type_info &typeid_base{typeid(*locked)};
+  return (... || (typeid_base == typeid(derived)));
+}
+
+template <typename... derived, typename base> bool try_is(const base *pointer) noexcept
 {
   if (!pointer) return false;
   const std::type_info &typeid_base{typeid(*pointer)};
   return (... || (typeid_base == typeid(derived)));
 }
 
-template <typename... derived, typename base> bool is(const std::unique_ptr<base> &pointer) noexcept
+template <typename... derived, typename base> bool try_is(const std::unique_ptr<base> &pointer) noexcept
 {
   if (!pointer) return false;
   const std::type_info &typeid_base{typeid(*pointer)};
   return (... || (typeid_base == typeid(derived)));
 }
 
-template <typename... derived, typename base> bool is(const std::shared_ptr<base> &pointer) noexcept
+template <typename... derived, typename base> bool try_is(const std::shared_ptr<base> &pointer) noexcept
 {
   if (!pointer) return false;
   const std::type_info &typeid_base{typeid(*pointer)};
   return (... || (typeid_base == typeid(derived)));
 }
 
-template <typename... derived, typename base> bool is(const std::weak_ptr<base> &pointer) noexcept
+template <typename... derived, typename base> bool try_is(const std::weak_ptr<base> &pointer) noexcept
 {
   auto locked{try_lock(pointer)};
   if (!locked) return false;
@@ -81,25 +110,50 @@ template <typename... derived, typename base> bool is(const std::weak_ptr<base> 
   return (... || (typeid_base == typeid(derived)));
 }
 
-template <typename... derived, typename base> bool is_a(const base *pointer) noexcept
+template <typename... derived, typename base> bool is_a(const base *pointer)
+{
+  if (!pointer) throw cse::exception("Null pointer passed to is_a");
+  return (... || (dynamic_cast<derived *>(pointer) != nullptr));
+}
+
+template <typename... derived, typename base> bool is_a(const std::unique_ptr<base> &pointer)
+{
+  if (!pointer) throw cse::exception("Null pointer passed to is_a");
+  return (... || (dynamic_cast<derived *>(pointer.get()) != nullptr));
+}
+
+template <typename... derived, typename base> bool is_a(const std::shared_ptr<base> &pointer)
+{
+  if (!pointer) throw cse::exception("Null pointer passed to is_a");
+  return (... || (dynamic_cast<derived *>(pointer.get()) != nullptr));
+}
+
+template <typename... derived, typename base> bool is_a(const std::weak_ptr<base> &pointer)
+{
+  auto locked{try_lock(pointer)};
+  if (!locked) throw cse::exception("Null pointer passed to is_a");
+  return (... || (dynamic_cast<derived *>(locked.get()) != nullptr));
+}
+
+template <typename... derived, typename base> bool try_is_a(const base *pointer) noexcept
 {
   if (!pointer) return false;
   return (... || (dynamic_cast<derived *>(pointer) != nullptr));
 }
 
-template <typename... derived, typename base> bool is_a(const std::unique_ptr<base> &pointer) noexcept
+template <typename... derived, typename base> bool try_is_a(const std::unique_ptr<base> &pointer) noexcept
 {
   if (!pointer) return false;
   return (... || (dynamic_cast<derived *>(pointer.get()) != nullptr));
 }
 
-template <typename... derived, typename base> bool is_a(const std::shared_ptr<base> &pointer) noexcept
+template <typename... derived, typename base> bool try_is_a(const std::shared_ptr<base> &pointer) noexcept
 {
   if (!pointer) return false;
   return (... || (dynamic_cast<derived *>(pointer.get()) != nullptr));
 }
 
-template <typename... derived, typename base> bool is_a(const std::weak_ptr<base> &pointer) noexcept
+template <typename... derived, typename base> bool try_is_a(const std::weak_ptr<base> &pointer) noexcept
 {
   auto locked{try_lock(pointer)};
   if (!locked) return false;

@@ -51,14 +51,14 @@ namespace cse::help
 
   template <typename type> template <typename... derived>
   bool container<type>::try_is(const cse::name name) const noexcept
-  { return ::is<derived...>(find(name)); }
+  { return ::try_is<derived...>(find(name)); }
 
   template <typename type> template <typename... derived> bool container<type>::is_a(const cse::name name) const
   { return ::is_a<derived...>((*this)[name]); }
 
   template <typename type> template <typename... derived>
   bool container<type>::try_is_a(const cse::name name) const noexcept
-  { return ::is_a<derived...>(find(name)); }
+  { return ::try_is_a<derived...>(find(name)); }
 
   template <typename type> template <typename derived>
   std::shared_ptr<derived> container<type>::as(const cse::name name) const
