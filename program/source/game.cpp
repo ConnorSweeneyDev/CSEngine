@@ -93,12 +93,12 @@ namespace cse::help::game
       sdl_log("SDL_mixer could not be prepared; continuing without sound");
     else
       audio_ready = true;
+
+    help::locale::resolve(language);
   }
 
   void active::create()
   {
-    help::locale::resolve(language);
-
     video = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, debug, "vulkan");
     if (!video) throw sdl_exception("Could not create GPU device");
 
