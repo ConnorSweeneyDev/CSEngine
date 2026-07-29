@@ -28,8 +28,11 @@ namespace cse::help::locale
   store::registrar::registrar(const std::initializer_list<std::string_view> languages_) { enlist(languages_); }
 
   store::segment::segment(const char *literal_) : literal{literal_ ? literal_ : ""} {}
+
   store::segment::segment(const std::string &literal_) : literal{literal_} {}
+
   store::segment::segment(const std::string_view literal_) : literal{literal_} {}
+
   store::segment::segment(const locale::key &key_) : pointer{&key_} {}
 
   store &registry()
@@ -114,7 +117,7 @@ namespace cse::help::locale
 
 namespace cse
 {
-  void locale::node::settle()
+  void lexeme::node::settle()
   {
     constant = true;
     for (const auto &segment : segments)
@@ -124,11 +127,11 @@ namespace cse
     cached = true;
   }
 
-  locale::locale(const char *literal) : locale(literal ? std::string_view{literal} : std::string_view{}) {}
+  lexeme::lexeme(const char *literal) : lexeme(literal ? std::string_view{literal} : std::string_view{}) {}
 
-  locale::locale(const std::string &literal) : locale(std::string_view{literal}) {}
+  lexeme::lexeme(const std::string &literal) : lexeme(std::string_view{literal}) {}
 
-  locale::locale(const std::string_view literal)
+  lexeme::lexeme(const std::string_view literal)
   {
     if (literal.empty()) return;
     auto fresh{std::make_shared<node>()};
@@ -137,7 +140,7 @@ namespace cse
     handle = std::move(fresh);
   }
 
-  locale::locale(const help::locale::key &key)
+  lexeme::lexeme(const help::locale::key &key)
   {
     auto fresh{std::make_shared<node>()};
     fresh->segments.emplace_back(key);
@@ -145,7 +148,7 @@ namespace cse
     handle = std::move(fresh);
   }
 
-  locale::locale(const std::initializer_list<help::locale::store::segment> segments)
+  lexeme::lexeme(const std::initializer_list<help::locale::store::segment> segments)
   {
     if (segments.size() == 0) return;
     auto fresh{std::make_shared<node>()};
@@ -154,17 +157,17 @@ namespace cse
     handle = std::move(fresh);
   }
 
-  bool locale::operator==(const char *other) const { return string() == (other ? other : ""); }
+  bool lexeme::operator==(const char *other) const { return string() == (other ? other : ""); }
 
-  bool locale::operator==(const std::string &other) const { return string() == other; }
+  bool lexeme::operator==(const std::string &other) const { return string() == other; }
 
-  bool locale::operator==(const std::string_view other) const { return string() == other; }
+  bool lexeme::operator==(const std::string_view other) const { return string() == other; }
 
-  bool locale::operator==(const help::locale::key &other) const { return string() == other.string(); }
+  bool lexeme::operator==(const help::locale::key &other) const { return string() == other.string(); }
 
-  bool locale::operator==(const locale &other) const { return handle == other.handle || string() == other.string(); }
+  bool lexeme::operator==(const lexeme &other) const { return handle == other.handle || string() == other.string(); }
 
-  const std::string &locale::string() const
+  const std::string &lexeme::string() const
   {
     static const std::string blank{};
     if (!handle) return blank;

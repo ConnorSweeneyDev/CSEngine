@@ -72,7 +72,7 @@ namespace cse::help::locale
 
 namespace cse
 {
-  class locale
+  class lexeme
   {
   private:
     struct node
@@ -87,23 +87,23 @@ namespace cse
     };
 
   public:
-    locale() = default;
-    locale(const char *literal);
-    locale(const std::string &literal);
-    locale(const std::string_view literal);
-    locale(const help::locale::key &key);
-    locale(const std::initializer_list<help::locale::store::segment> segments);
-    ~locale() = default;
-    locale(const locale &) = default;
-    locale &operator=(const locale &) = default;
-    locale(locale &&) = default;
-    locale &operator=(locale &&) = default;
+    lexeme() = default;
+    lexeme(const char *literal);
+    lexeme(const std::string &literal);
+    lexeme(const std::string_view literal);
+    lexeme(const help::locale::key &key);
+    lexeme(const std::initializer_list<help::locale::store::segment> segments);
+    ~lexeme() = default;
+    lexeme(const lexeme &) = default;
+    lexeme &operator=(const lexeme &) = default;
+    lexeme(lexeme &&) = default;
+    lexeme &operator=(lexeme &&) = default;
 
     bool operator==(const char *other) const;
     bool operator==(const std::string &other) const;
     bool operator==(const std::string_view other) const;
     bool operator==(const help::locale::key &other) const;
-    bool operator==(const locale &other) const;
+    bool operator==(const lexeme &other) const;
 
     const std::string &string() const;
 
@@ -124,7 +124,7 @@ namespace cse
 #define CSE_TRANSLATE_ENTRY(element) CSE_TRANSLATE_ENTRY_ element
 #define CSE_TRANSLATE_ENTRY_(name, value) {language::name, value},
 #define TRANSLATE(identifier, ...)                                                                                     \
-  namespace locale                                                                                                     \
+  namespace lexeme                                                                                                     \
   {                                                                                                                    \
     namespace detail                                                                                                   \
     {                                                                                                                  \

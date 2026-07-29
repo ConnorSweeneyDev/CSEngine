@@ -221,7 +221,7 @@ player::player(const glm::dvec3 &translation_)
                              .color = {.tint = {{0.5, 0.5, 0.5, 1.0}}, .alpha = {1.0}},
                              .illumination = {.show = true, .brightness = {1.0}, .penetration = {1.0}},
                              .shadow = {.show = true, .cast = true, .darkness = {1.0}, .softness = {1.0}}},
-                 .text = {.content = {"[", locale::player, "]"},
+                 .text = {.content = {"[", lexeme::player, "]"},
                           .source = {.font = font::text, .animation = animation::text.main},
                           .playback = {.frame = 0, .elapsed = 0.0, .playing = false, .speed = {0.0}, .loop = false},
                           .align = {.horizontal = {.preset = CENTER, .spacing = {0.0}},
@@ -444,7 +444,7 @@ void window::on_destroy()
 
 ### Localization
 Declare the languages you support once with `LANGUAGES`, then declare each translation key once with `TRANSLATE`,
-listing every language's value beside it. `LANGUAGES` emits into a `language` namespace and `TRANSLATE` into a `locale`
+listing every language's value beside it. `LANGUAGES` emits into a `language` namespace and `TRANSLATE` into a `lexeme`
 namespace, both nested in whatever namespace you expand them in:
 
 ```cpp
@@ -457,17 +457,17 @@ namespace custom
 }
 ```
 
-That gives you `custom::language::ENGLISH` (a `const char *`) and `custom::locale::welcome_message` (a translation key).
-Text `content` is a `cse::locale`, which is any mix of literals and keys that automatically translates based on the
+That gives you `custom::language::ENGLISH` (a `const char *`) and `custom::lexeme::welcome_message` (a translation key).
+Text `content` is a `cse::lexeme`, which is any mix of literals and keys that automatically translates based on the
 current language:
 
 ```cpp
-content = "Player";                           // "Player" in all languages
-content = locale::menu_play;                   // Custom translation of "Play"
-content = {"[", locale::welcome_message, "]"}; // Custom translation of "Welcome!" surrounded by []
+content = "Player";                            // "Player" in all languages
+content = lexeme::menu_play;                   // Custom translation of "Play"
+content = {"[", lexeme::welcome_message, "]"}; // Custom translation of "Welcome!" surrounded by []
 ```
 
-Assign `game->active.language` to switch; every locale holding a key re-resolves on the next frame with no further work
+Assign `game->active.language` to switch; every lexeme holding a key re-resolves on the next frame with no further work
 on your part:
 
 ```cpp

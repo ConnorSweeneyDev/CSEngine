@@ -39,7 +39,7 @@ namespace cse::help::object
   };
   struct text
   {
-    cse::locale content{};
+    cse::lexeme content{};
     cse::text::source source{};
     cse::playback playback{};
     cse::align align{};
