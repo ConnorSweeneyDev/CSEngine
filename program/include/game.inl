@@ -54,7 +54,7 @@ namespace cse::help::game
     else if constexpr (is_interface)
       kind = "Interface";
     output.clear();
-    if (!text.source.font.image.data.data()) throw exception("{} '{}' has text but no font", kind, element.string());
+    if (!usable(text.source.font.image)) throw exception("{} '{}' has text but no font", kind, element.string());
     if (text.source.font.glyphs.empty()) throw exception("Font for {} '{}' contains no glyphs", kind, element.string());
     auto &text_frame{text.playback.frame};
     const auto text_frames{text.source.animation.frames.size()};

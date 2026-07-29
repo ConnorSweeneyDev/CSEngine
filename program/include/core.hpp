@@ -69,8 +69,7 @@ namespace cse::help
     std::string application{"Base"};
     std::string version{"1.0.0"};
     std::filesystem::path output{};
-  };
-  inline help::meta meta{};
+  } inline meta{};
   enum class phase : std::uint8_t
   {
     CLEANED,

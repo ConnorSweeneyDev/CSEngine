@@ -653,7 +653,8 @@ namespace cse::help::game
       const auto &image{element->active.texture.source.image};
       auto &current{element->active.texture.playback.frame};
       const auto frame_count{element->active.texture.source.animation.frames.size()};
-      if (frame_count == 0) throw exception("Object '{}' contains no frames", element->name.string());
+      if (!usable(image)) throw exception("Object '{}' contains no image", element->name.string());
+      if (frame_count == 0) throw exception("Object '{}' texture contains no frames", element->name.string());
       if (current >= frame_count) current = frame_count - 1;
       const auto &scale{element->active.scale.value};
       const auto element_width{static_cast<double>(image.frame_width) * std::max(1.0, std::floor(scale.x + 0.5))};
@@ -824,7 +825,7 @@ namespace cse::help::game
       if (!element->active.texture.shadow.cast && !penetrating && std::abs(penetration - 1.0) < 1e-6) continue;
       const auto &image{element->active.texture.source.image};
       const auto frame_count{element->active.texture.source.animation.frames.size()};
-      if (!image.data.data() || frame_count == 0) continue;
+      if (!usable(image) || frame_count == 0) continue;
       auto frame_index{element->active.texture.playback.frame};
       if (frame_index >= frame_count) frame_index = frame_count - 1;
       const auto &coordinates{element->active.texture.source.animation.frames[frame_index].coordinates};
@@ -1069,7 +1070,9 @@ namespace cse::help::game
       auto *element{object_order.at(position)};
       auto &current{element->active.texture.playback.frame};
       const auto size{element->active.texture.source.animation.frames.size()};
-      if (size == 0) throw exception("Object '{}' contains no frames", element->name.string());
+      if (!usable(element->active.texture.source.image))
+        throw exception("Object '{}' contains no image", element->name.string());
+      if (size == 0) throw exception("Object '{}' texture contains no frames", element->name.string());
       if (current >= size) current = size - 1;
       transparencies.push_back(
         element->active.texture.color.alpha.interpolated(element->previous.texture.color.alpha, alpha));
@@ -1204,7 +1207,9 @@ namespace cse::help::game
     {
       auto &current{element->active.texture.playback.frame};
       const auto size{element->active.texture.source.animation.frames.size()};
-      if (size == 0) throw exception("Interface '{}' contains no frames", element->name.string());
+      if (!usable(element->active.texture.source.image))
+        throw exception("Interface '{}' contains no image", element->name.string());
+      if (size == 0) throw exception("Interface '{}' texture contains no frames", element->name.string());
       if (current >= size) current = size - 1;
       const auto &coordinates{element->active.texture.source.animation.frames[current].coordinates};
       const auto &flip{element->active.texture.flip};
@@ -1288,6 +1293,12 @@ namespace cse::help::game
   {
     return std::ranges::all_of(graphics_frustum, [&](const auto &plane)
                                { return glm::dot(glm::dvec3{plane}, center) + plane.w >= -radius; });
+  }
+
+  bool active::usable(const cse::image &image)
+  {
+    return !image.data.empty() && image.width > 0 && image.height > 0 && image.frame_width > 0 &&
+           image.frame_height > 0 && image.channels > 0;
   }
 
   struct active::graphics_pipeline &active::require_pipelines()
@@ -1434,6 +1445,7 @@ namespace cse::help::game
 
   SDL_GPUTexture *active::require_texture(const cse::image &image)
   {
+    if (!usable(image)) throw exception("Could not create texture for game from an empty image");
     const graphics_cache::texture_key key{image.data.data(), image.data.size()};
     if (const auto iterator{graphics_cache.texture.find(key)}; iterator != graphics_cache.texture.end())
     {

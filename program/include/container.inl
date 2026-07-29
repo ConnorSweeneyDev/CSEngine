@@ -3,13 +3,11 @@
 #include "container.hpp"
 
 #include <cstddef>
-#include <memory>
 #include <unordered_map>
 #include <utility>
 
 #include "exception.hpp"
 #include "name.hpp"
-#include "pointer.hpp"
 
 namespace cse::help
 {
@@ -45,36 +43,6 @@ namespace cse::help
 
   template <typename type> bool container<type>::contains(const cse::name name) const noexcept
   { return locate(name) != nullptr; }
-
-  template <typename type> template <typename... derived> bool container<type>::is(const cse::name name) const
-  { return ::is<derived...>((*this)[name]); }
-
-  template <typename type> template <typename... derived>
-  bool container<type>::try_is(const cse::name name) const noexcept
-  { return ::try_is<derived...>(find(name)); }
-
-  template <typename type> template <typename... derived> bool container<type>::is_a(const cse::name name) const
-  { return ::is_a<derived...>((*this)[name]); }
-
-  template <typename type> template <typename... derived>
-  bool container<type>::try_is_a(const cse::name name) const noexcept
-  { return ::try_is_a<derived...>(find(name)); }
-
-  template <typename type> template <typename derived>
-  std::shared_ptr<derived> container<type>::as(const cse::name name) const
-  { return ::as<derived>((*this)[name]); }
-
-  template <typename type> template <typename derived>
-  std::shared_ptr<derived> container<type>::try_as(const cse::name name) const noexcept
-  { return ::try_as<derived>(find(name)); }
-
-  template <typename type> template <typename derived>
-  std::shared_ptr<derived> container<type>::as_a(const cse::name name) const
-  { return ::as_a<derived>((*this)[name]); }
-
-  template <typename type> template <typename derived>
-  std::shared_ptr<derived> container<type>::try_as_a(const cse::name name) const noexcept
-  { return ::try_as_a<derived>(find(name)); }
 
   template <typename type> container<type> &container<type>::operator=(const container &other)
   {

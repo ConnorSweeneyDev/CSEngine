@@ -339,6 +339,7 @@ namespace cse::help::game
     void generate_objects(const std::vector<cse::object *> &object_order);
     void generate_interfaces();
     bool inside_frustum(const glm::dvec3 &center, const double radius) const;
+    static bool usable(const cse::image &image);
     template <typename type> void compose_text(type &text, const type &last, const cse::name &element,
                                                const double box_left, const double box_right, const double box_top,
                                                const double box_bottom, std::vector<graphics_text::composed> &output);

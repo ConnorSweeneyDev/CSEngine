@@ -17,7 +17,7 @@ namespace cse::help
     friend struct game::active;
     friend struct scene::active;
 
-  private:
+  public:
     using element = std::shared_ptr<type>;
     using storage = std::vector<element>;
 
@@ -35,14 +35,6 @@ namespace cse::help
     element operator[](const cse::name name) const;
     element find(const cse::name name) const noexcept;
     bool contains(const cse::name name) const noexcept;
-    template <typename... derived> bool is(const cse::name name) const;
-    template <typename... derived> bool try_is(const cse::name name) const noexcept;
-    template <typename... derived> bool is_a(const cse::name name) const;
-    template <typename... derived> bool try_is_a(const cse::name name) const noexcept;
-    template <typename derived> std::shared_ptr<derived> as(const cse::name name) const;
-    template <typename derived> std::shared_ptr<derived> try_as(const cse::name name) const noexcept;
-    template <typename derived> std::shared_ptr<derived> as_a(const cse::name name) const;
-    template <typename derived> std::shared_ptr<derived> try_as_a(const cse::name name) const noexcept;
 
   private:
     container &operator=(const container &other);

@@ -18,8 +18,7 @@ namespace cse
 
   void exception::report(const std::exception &error)
   {
-    if (!SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", std::format("{}.", error.what()).c_str(),
-                                  nullptr))
-      print<CERR>("{}.\n", error.what());
+    print<CERR>("{}.\n", error.what());
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", std::format("{}.", error.what()).c_str(), nullptr);
   }
 }
