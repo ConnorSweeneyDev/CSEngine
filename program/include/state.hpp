@@ -8,6 +8,7 @@
 #include "nlohmann/json_fwd.hpp"
 
 #include "core.hpp"
+#include "macro.hpp"
 #include "name.hpp"
 
 namespace cse
@@ -79,21 +80,6 @@ namespace cse
     inline static thread_local state *building{};
   };
 }
-
-#define CSE_DEPAREN(type) CSE_DEPAREN_ESCAPE(CSE_DEPAREN_ISH type)
-#define CSE_DEPAREN_ISH(...) CSE_DEPAREN_ISH __VA_ARGS__
-#define CSE_DEPAREN_ESCAPE(...) CSE_DEPAREN_ESCAPE_(__VA_ARGS__)
-#define CSE_DEPAREN_ESCAPE_(...) CSE_DEPAREN_VANISH##__VA_ARGS__
-#define CSE_DEPAREN_VANISHCSE_DEPAREN_ISH
-
-#define CSE_PARENS ()
-#define CSE_EXPAND(...) CSE_EXPAND3(CSE_EXPAND3(CSE_EXPAND3(CSE_EXPAND3(__VA_ARGS__))))
-#define CSE_EXPAND3(...) CSE_EXPAND2(CSE_EXPAND2(CSE_EXPAND2(CSE_EXPAND2(__VA_ARGS__))))
-#define CSE_EXPAND2(...) CSE_EXPAND1(CSE_EXPAND1(CSE_EXPAND1(CSE_EXPAND1(__VA_ARGS__))))
-#define CSE_EXPAND1(...) __VA_ARGS__
-#define CSE_FOR_EACH(opt, ...) __VA_OPT__(CSE_EXPAND(CSE_FOR_EACH_(opt, __VA_ARGS__)))
-#define CSE_FOR_EACH_(opt, item, ...) opt(item) __VA_OPT__(CSE_FOR_EACH_AGAIN CSE_PARENS(opt, __VA_ARGS__))
-#define CSE_FOR_EACH_AGAIN() CSE_FOR_EACH_
 
 #define CSE_ENLIST_DECLARE(element) CSE_ENLIST_DECLARE_ element
 #define CSE_ENLIST_DECLARE_(name, type, ...) CSE_DEPAREN(type) name __VA_ARGS__;

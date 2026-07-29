@@ -85,13 +85,14 @@ namespace cse::help::game
                       throw exception("Font for {} '{}' is missing glyph U+{:04X} and the U+FFFD fallback glyph", kind,
                                       element.string(), character);
                     }};
-    const auto content_length{text.content.size()};
+    const auto &content{text.content.string()};
+    const auto content_length{content.size()};
     auto &characters{graphics_text.characters};
     characters.clear();
     characters.reserve(content_length);
     for (std::size_t index{}; index < content_length;)
     {
-      const auto first{static_cast<unsigned char>(text.content.at(index))};
+      const auto first{static_cast<unsigned char>(content.at(index))};
       std::size_t length{1};
       std::uint32_t character{first};
       if (first >= 0xF0)
@@ -114,7 +115,7 @@ namespace cse::help::game
       bool malformed{false};
       for (std::size_t offset{1}; offset < length; ++offset)
       {
-        const auto continuation{static_cast<unsigned char>(text.content.at(index + offset))};
+        const auto continuation{static_cast<unsigned char>(content.at(index + offset))};
         if ((continuation & 0xC0u) != 0x80u)
         {
           malformed = true;

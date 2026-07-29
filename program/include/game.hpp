@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -82,8 +83,8 @@ namespace cse::help::game
   public:
     previous() = default;
     previous(const double tick_, const double frame_, const game::aspect &aspect_, const temporal<glm::dvec3> &clear_,
-             const game::memory::initial &memory_, const temporal<double> &master_, const temporal<double> &sound_,
-             const temporal<double> &music_);
+             const game::memory::initial &memory_, const std::string &language_, const temporal<double> &master_,
+             const temporal<double> &sound_, const temporal<double> &music_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;
@@ -96,6 +97,7 @@ namespace cse::help::game
     game::aspect aspect{};
     temporal<glm::dvec3> clear{};
     game::memory memory{};
+    std::string language{};
     temporal<double> master{};
     temporal<double> sound{};
     temporal<double> music{};
@@ -307,8 +309,8 @@ namespace cse::help::game
   public:
     active() = default;
     active(const double tick_, const double frame_, const game::aspect &aspect_, const temporal<glm::dvec3> &clear_,
-           const game::memory::initial &memory_, const temporal<double> &master_, const temporal<double> &sound_,
-           const temporal<double> &music_);
+           const game::memory::initial &memory_, const std::string &language_, const temporal<double> &master_,
+           const temporal<double> &sound_, const temporal<double> &music_);
     ~active() = default;
     active(const active &) = delete;
     active &operator=(const active &) = delete;
@@ -359,6 +361,7 @@ namespace cse::help::game
     game::aspect aspect{};
     temporal<glm::dvec3> clear{};
     game::memory memory{};
+    std::string language{};
     temporal<double> master{};
     temporal<double> sound{};
     temporal<double> music{};
@@ -431,6 +434,7 @@ namespace cse
       const help::game::aspect aspect{};
       const temporal<glm::dvec3> clear{};
       const help::game::memory::initial memory{};
+      const std::string language{};
       const temporal<double> master{0.5};
       const temporal<double> sound{0.5};
       const temporal<double> music{0.5};

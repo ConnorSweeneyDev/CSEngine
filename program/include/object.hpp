@@ -1,13 +1,12 @@
 #pragma once
 
-#include <string>
-
 #include "SDL3/SDL_events.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
 
 #include "core.hpp"
+#include "locale.hpp"
 #include "mixer.hpp"
 #include "name.hpp"
 #include "resource.hpp"
@@ -40,7 +39,7 @@ namespace cse::help::object
   };
   struct text
   {
-    std::string content{};
+    cse::locale content{};
     cse::text::source source{};
     cse::playback playback{};
     cse::align align{};

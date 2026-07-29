@@ -40,6 +40,7 @@
 #include "exception.hpp"
 #include "interface.hpp"
 #include "light.hpp"
+#include "locale.hpp"
 #include "log.hpp"
 #include "mask.hpp"
 #include "mixer.hpp"
@@ -57,15 +58,16 @@ namespace cse::help::game
 {
   previous::previous(const double tick_, const double frame_, const game::aspect &aspect_,
                      const temporal<glm::dvec3> &clear_, const game::memory::initial &memory_,
-                     const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_)
+                     const std::string &language_, const temporal<double> &master_, const temporal<double> &sound_,
+                     const temporal<double> &music_)
     : tick(tick_), frame(frame_), aspect(aspect_), clear(clear_), memory({{}, memory_.vram}, {{}, memory_.ram}),
-      master(master_), sound(sound_), music(music_) {};
+      language(language_), master(master_), sound(sound_), music(music_) {};
 
   active::active(const double tick_, const double frame_, const game::aspect &aspect_,
-                 const temporal<glm::dvec3> &clear_, const game::memory::initial &memory_,
+                 const temporal<glm::dvec3> &clear_, const game::memory::initial &memory_, const std::string &language_,
                  const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_)
     : tick(tick_), frame(frame_), aspect(aspect_), clear(clear_), memory({{}, memory_.vram}, {{}, memory_.ram}),
-      master(master_), sound(sound_), music(music_) {};
+      language(language_), master(master_), sound(sound_), music(music_) {};
 
   void active::prepare()
   {
@@ -95,6 +97,8 @@ namespace cse::help::game
 
   void active::create()
   {
+    help::locale::resolve(language);
+
     video = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, debug, "vulkan");
     if (!video) throw sdl_exception("Could not create GPU device");
 
@@ -207,11 +211,14 @@ namespace cse::help::game
 
   void active::synchronize(previous &last)
   {
+    if (language != last.language) help::locale::resolve(language);
+
     last.tick = tick;
     last.frame = frame;
     last.aspect = aspect;
     last.clear = clear;
     last.memory = memory;
+    last.language = language;
     last.master = master;
     last.sound = sound;
     last.music = music;
@@ -648,7 +655,7 @@ namespace cse::help::game
       auto &block{graphics_text.blocks.at(position)};
       block.first = graphics_text.quads.size();
       auto &text{element->active.text};
-      if (text.content.empty()) continue;
+      if (text.content.string().empty()) continue;
 
       const auto &image{element->active.texture.source.image};
       auto &current{element->active.texture.playback.frame};
@@ -1243,7 +1250,7 @@ namespace cse::help::game
       graphics_object.samples.push_back(data);
 
       auto &text{element->active.text};
-      if (text.content.empty()) continue;
+      if (text.content.string().empty()) continue;
       const auto &scale{element->active.scale.value};
       const auto element_width{static_cast<double>(element->active.texture.source.image.frame_width) *
                                std::max(1.0, std::floor(scale.x + 0.5))};
@@ -1542,10 +1549,10 @@ namespace cse::help::game
 namespace cse
 {
   game::game(const initial &initial_)
-    : previous{initial_.tick,   initial_.frame,  initial_.aspect, initial_.clear,
-               initial_.memory, initial_.master, initial_.sound,  initial_.music},
-      active{initial_.tick,   initial_.frame,  initial_.aspect, initial_.clear,
-             initial_.memory, initial_.master, initial_.sound,  initial_.music}
+    : previous{initial_.tick,     initial_.frame,  initial_.aspect, initial_.clear, initial_.memory,
+               initial_.language, initial_.master, initial_.sound,  initial_.music},
+      active{initial_.tick,     initial_.frame,  initial_.aspect, initial_.clear, initial_.memory,
+             initial_.language, initial_.master, initial_.sound,  initial_.music}
   {
     help::meta = {initial_.meta.organization, initial_.meta.application, initial_.meta.version, {}};
     char *path{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};

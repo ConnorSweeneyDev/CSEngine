@@ -2,7 +2,6 @@
 
 #include <array>
 #include <optional>
-#include <string>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_mouse.h"
@@ -10,6 +9,7 @@
 #include "glm/ext/vector_double2.hpp"
 
 #include "core.hpp"
+#include "locale.hpp"
 #include "mixer.hpp"
 #include "name.hpp"
 #include "resource.hpp"
@@ -27,7 +27,7 @@ namespace cse::help::interface
   };
   struct text
   {
-    std::string content{};
+    cse::locale content{};
     cse::text::source source{};
     cse::playback playback{};
     cse::align align{};

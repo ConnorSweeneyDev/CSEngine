@@ -126,6 +126,7 @@ namespace custom
                  .aspect = {.ratio = 16.0 / 9.0, .resolution = 180, .scaling = VIRTUAL},
                  .clear = {{0.0, 0.0, 0.0}},
                  .memory = {.vram = 512, .ram = 128},
+                 .language = language::ENGLISH,
                  .master = {0.5},
                  .sound = {1.0},
                  .music = {1.0}}) {};
@@ -155,6 +156,10 @@ letterbox bars when the canvas does not fill the window.
 `memory` is the maximum amount of RAM and VRAM (in MB) the engine will allocate for assets. Unused assets (oldest first)
 are automatically evicted when the limit is reached. If so many assets are loaded that the limit cannot be respected,
 thrashing will occur which could cause performance issues.
+
+`language` selects which set of translations text resolves against, and is empty by default. It is only meaningful if
+you declare languages with the `LANGUAGES` macro; if you do declare them, leaving it empty or naming a language that was
+never declared throws.
 
 `master`, `sound` and `music` are the global volume buses for all audio. Each is a `temporal<double>` in the range
 [0.0, 1.0] that multiplies every track's own `volume` temporal.
@@ -216,7 +221,7 @@ player::player(const glm::dvec3 &translation_)
                              .color = {.tint = {{0.5, 0.5, 0.5, 1.0}}, .alpha = {1.0}},
                              .illumination = {.show = true, .brightness = {1.0}, .penetration = {1.0}},
                              .shadow = {.show = true, .cast = true, .darkness = {1.0}, .softness = {1.0}}},
-                 .text = {.content = "Player",
+                 .text = {.content = {"[", locale::player, "]"},
                           .source = {.font = font::text, .animation = animation::text.main},
                           .playback = {.frame = 0, .elapsed = 0.0, .playing = false, .speed = {0.0}, .loop = false},
                           .align = {.horizontal = {.preset = CENTER, .spacing = {0.0}},
@@ -332,7 +337,7 @@ Schedule one-shot or repeating callbacks on any entity's `active.timer`. `set` r
 
 ```cpp
 // Set a timer for 0.5 seconds that clears the text content when it fires
-auto &hide = active.timer.set("hide_text", [this]() { active.text.content.clear(); });
+auto &hide = active.timer.set("hide_text", [this]() { active.text.content = {}; });
 hide.target = 0.5;
 if (active.timer.call<void()>("hide_text")) { /* fired */ }
 
@@ -435,6 +440,38 @@ void window::on_destroy()
   settings->window->vsync = active.vsync;
   if (!settings->write()) throw cse::exception("Failed to write settings");
 }
+```
+
+### Localization
+Declare the languages you support once with `LANGUAGES`, then declare each translation key once with `TRANSLATE`,
+listing every language's value beside it. `LANGUAGES` emits into a `language` namespace and `TRANSLATE` into a `locale`
+namespace, both nested in whatever namespace you expand them in:
+
+```cpp
+namespace custom
+{
+  LANGUAGES(ENGLISH, SPANISH, FRENCH);
+
+  TRANSLATE(welcome_message, (ENGLISH, "Welcome!"), (SPANISH, "¡Bienvenido!"), (FRENCH, "Bienvenue!"));
+  TRANSLATE(menu_play,       (ENGLISH, "Play"),     (SPANISH, "Jugar"),        (FRENCH, "Jouer"));
+}
+```
+
+That gives you `custom::language::ENGLISH` (a `const char *`) and `custom::locale::welcome_message` (a translation key).
+Text `content` is a `cse::locale`, which is any mix of literals and keys that automatically translates based on the
+current language:
+
+```cpp
+content = "Player";                           // "Player" in all languages
+content = locale::menu_play;                   // Custom translation of "Play"
+content = {"[", locale::welcome_message, "]"}; // Custom translation of "Welcome!" surrounded by []
+```
+
+Assign `game->active.language` to switch; every locale holding a key re-resolves on the next frame with no further work
+on your part:
+
+```cpp
+active.language = language::SPANISH;
 ```
 
 ## Miscellaneous
