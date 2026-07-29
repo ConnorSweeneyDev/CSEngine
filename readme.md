@@ -318,14 +318,12 @@ Set `.instant = true` on a temporal when you want a hard cut (no interpolation) 
 - Look entities up by name with the custom container class the engine uses, and make use of the type system with the
   helpers it provides, or the standalone versions in `cse/pointer.hpp`:
   ```cpp
-  active.interfaces["tick"]->active.text.content = ...;           // throws if absent
-  auto player = active.objects.find("player");                    // nullptr if absent
-  auto settings = active.states.as<custom::settings>("settings"); // ["settings"] + downcast
-  settings = active.states.try_as<custom::settings>("settings");  // find("settings") + downcast
-  if (is<player>(contact.target.pointer)) { ... }                 // throwing exact-type check with standalone helper
+  active.interfaces["tick"]->active.text.content = ...;               // throws if absent
+  auto player = active.objects.find("player");                        // nullptr if absent
+  auto settings = as<custom::settings>(active.states["settings"]);    // throw if absent + throw if mismatch
+  settings = try_as<custom::settings>(active.states.find("settings"); // nullptr if absent + nullptr if mismatch
+  if (is<player>(contact.target.pointer)) { ... }                     // throws if nullptr
   ```
-  The only throwing container helpers are `[]` and `.at(index)`; the pointer helpers throw if they are not a `try_`
-  variant.
 
 ### Starting and Calling Timers
 Schedule one-shot or repeating callbacks on any entity's `active.timer`. `set` returns the timer's modifiable `state`.
