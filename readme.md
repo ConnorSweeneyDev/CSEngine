@@ -390,7 +390,7 @@ if (!sfx.loop && sfx.elapsed.tick >= sfx.source.duration) do_something();
 ### Persistent State
 A `state` is a JSON-backed settings blob saved under the OS user-data directory. Declare fields with the `ENLIST` macro
 (it builds a plain struct *and* its JSON serializers in one place - pass each field as a `(name, type, init)` tuple, add
-as many as you like), expose them with `FIELD`, and call `read()`/`write()` which return `false` if anything unexpected
+as many as you like), expose them with `STORE`, and call `read()`/`write()` which return `false` if anything unexpected
 happens (missing file does not count as unexpected) and `true` otherwise:
 
 ```cpp
@@ -406,7 +406,7 @@ private:
 
 public:
   settings() : cse::state({.storage = "settings"}) {}
-  FIELD(window, settings::window, {});
+  STORE(window, settings::window, {});
 };
 ```
 

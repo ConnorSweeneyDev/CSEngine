@@ -111,7 +111,7 @@ namespace cse
     { CSE_FOR_EACH(CSE_ENLIST_READ, __VA_ARGS__) }                                                                     \
   }
 
-#define FIELD(identifier, type, ...)                                                                                   \
+#define STORE(identifier, type, ...)                                                                                   \
   state::field<CSE_DEPAREN(type)> identifier { #identifier, __VA_ARGS__ }
 
 #include "state.inl" // IWYU pragma: keep
