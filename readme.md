@@ -474,7 +474,7 @@ Assign `game->active.language` to switch; every lexeme holding a key re-resolves
 on your part:
 
 ```cpp
-active.language = language::SPANISH;
+active.language = language::FR;
 ```
 
 ## Miscellaneous
