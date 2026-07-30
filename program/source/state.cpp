@@ -1,18 +1,29 @@
 #include "state.hpp"
 
 #include <filesystem>
+#include <format>
 #include <fstream>
-#include <functional>
 #include <ios>
 #include <string>
+#include <string_view>
 #include <system_error>
-#include <utility>
 
 #include "nlohmann/json_fwd.hpp"
 
 #include "core.hpp"
 #include "exception.hpp"
 #include "log.hpp"
+
+namespace cse::help
+{
+  marker::marker(const std::string_view name_) : length{trail.size()}
+  {
+    if (!trail.empty()) trail += '.';
+    trail += name_;
+  }
+
+  marker::~marker() { trail.resize(length); }
+}
 
 namespace cse
 {
@@ -23,8 +34,7 @@ namespace cse
                 std::filesystem::path path{initial_.storage};
                 path.make_preferred();
                 return path;
-              }()}
-  { building = this; }
+              }()} {};
 
   bool state::read()
   {
@@ -75,19 +85,28 @@ namespace cse
         return false;
       }
     }
+    if (!json.is_object())
+    {
+      discard(std::format("type must be object, but is {}", json.type_name()));
+      return false;
+    }
+    document = &json;
+    writing = false;
     try
     {
-      for (const auto &object : entries) object.reader(json);
+      enroll();
     }
     catch (const nlohmann::json::exception &read_error)
     {
+      document = nullptr;
       discard(read_error.what());
       return false;
     }
+    document = nullptr;
     return true;
   }
 
-  bool state::write() const
+  bool state::write()
   {
     if (help::meta.output.empty())
     {
@@ -104,7 +123,10 @@ namespace cse
     }
 
     nlohmann::json json{};
-    for (const auto &object : entries) object.writer(json);
+    document = &json;
+    writing = true;
+    enroll();
+    document = nullptr;
     auto temporary{file};
     temporary += ".tmp";
     {
@@ -132,8 +154,4 @@ namespace cse
     }
     return true;
   }
-
-  void state::enlist(std::function<void(nlohmann::json &json)> writer,
-                     std::function<void(const nlohmann::json &json)> reader)
-  { entries.push_back({std::move(writer), std::move(reader)}); }
 }

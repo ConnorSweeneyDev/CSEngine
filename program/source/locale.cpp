@@ -1,5 +1,6 @@
 #include "locale.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <initializer_list>
 #include <memory>
@@ -9,6 +10,7 @@
 #include <utility>
 
 #include "exception.hpp"
+#include "log.hpp"
 
 namespace cse::help::locale
 {
@@ -25,7 +27,7 @@ namespace cse::help::locale
     return store.table.at((index * store.languages.size()) + store.current);
   }
 
-  store::registrar::registrar(const std::initializer_list<std::string_view> languages_) { enlist(languages_); }
+  store::registrar::registrar(const std::span<const std::string_view> languages_) { enlist(languages_); }
 
   store::segment::segment(const char *literal_) : literal{literal_ ? literal_ : ""} {}
 
@@ -41,77 +43,61 @@ namespace cse::help::locale
     return instance;
   }
 
-  void enlist(const std::initializer_list<std::string_view> languages)
+  void enlist(const std::span<const std::string_view> languages)
   {
     auto &store{registry()};
-    if (!store.languages.empty()) throw exception("Tried to declare LANGUAGES more than once");
-    if (languages.size() == 0) throw exception("Tried to declare LANGUAGES without any languages");
-    for (const auto language : languages)
+    if (!store.languages.empty())
     {
-      for (const auto existing : store.languages)
-        if (existing == language) throw exception("Duplicate language '{}' in LANGUAGES", language);
-      store.languages.push_back(language);
+      store.duplicated = true;
+      return;
     }
+    store.languages = languages;
     store.resolved = false;
   }
 
   void enlist(const locale::key &key)
   {
     auto &store{registry()};
-    for (const auto *existing : store.keys)
-      if (existing->label() == key.label()) throw exception("Duplicate translation key '{}'", key.label());
     store.keys.push_back(&key);
     store.resolved = false;
   }
 
-  void resolve(const std::string &language)
+  void resolve(std::string &language)
   {
     auto &store{registry()};
-    if (store.languages.empty())
-    {
-      if (store.keys.empty()) return;
-      throw exception("Translation keys were declared without a LANGUAGES declaration");
-    }
+    if (store.languages.empty() && store.keys.empty()) return;
+    if (store.duplicated) throw exception("Tried to declare LANGUAGES more than once");
+    const auto fallback{store.languages.front()};
     if (language.empty())
-      throw exception("The game language is empty but {} language(s) were declared with LANGUAGES",
-                      store.languages.size());
+    {
+      log("The game language is empty; falling back to '{}'", fallback);
+      language = fallback;
+    }
+    auto target{std::ranges::find(store.languages, std::string_view{language})};
+    if (target == store.languages.end())
+    {
+      log("Tried to set the game language to unknown language '{}'; falling back to '{}'", language, fallback);
+      language = fallback;
+      target = store.languages.begin();
+    }
     const auto count{store.languages.size()};
-    auto target{count};
-    for (std::size_t index{}; index < count; ++index)
-      if (store.languages.at(index) == language) target = index;
-    if (target == count) throw exception("Tried to set the game language to unknown language '{}'", language);
 
     if (!store.resolved)
     {
       store.table.assign(store.keys.size() * count, {});
       for (const auto *key : store.keys)
       {
-        for (const auto &entry : key->entries)
+        std::size_t index{};
+        for (const auto language_name : store.languages)
         {
-          bool known{false};
-          for (const auto language_name : store.languages)
-            if (language_name == entry.language) known = true;
-          if (!known) throw exception("Translation key '{}' names unknown language '{}'", key->label(), entry.language);
-        }
-        for (std::size_t index{}; index < count; ++index)
-        {
-          const auto language_name{store.languages.at(index)};
-          std::size_t found{};
-          for (const auto &entry : key->entries)
-            if (entry.language == language_name)
-            {
-              store.table.at((key->index * count) + index) = entry.value;
-              ++found;
-            }
-          if (found == 0)
-            throw exception("Translation key '{}' is missing a value for language '{}'", key->label(), language_name);
-          if (found > 1)
-            throw exception("Translation key '{}' has {} values for language '{}'", key->label(), found, language_name);
+          store.table.at((key->index * count) + index) =
+            std::ranges::find(key->entries, language_name, &locale::key::entry::language)->value;
+          ++index;
         }
       }
       store.resolved = true;
     }
-    store.current = target;
+    store.current = static_cast<std::size_t>(target - store.languages.begin());
   }
 }
 

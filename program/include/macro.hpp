@@ -14,3 +14,7 @@
 #define CSE_FOR_EACH(opt, ...) __VA_OPT__(CSE_EXPAND(CSE_FOR_EACH_(opt, __VA_ARGS__)))
 #define CSE_FOR_EACH_(opt, item, ...) opt(item) __VA_OPT__(CSE_FOR_EACH_AGAIN CSE_PARENS(opt, __VA_ARGS__))
 #define CSE_FOR_EACH_AGAIN() CSE_FOR_EACH_
+
+#define CSE_JOIN(first, second) CSE_JOIN_(first, second)
+#define CSE_JOIN_(first, second) first##second
+#define CSE_FILLED(...) __VA_OPT__(FILLED)

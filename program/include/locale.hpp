@@ -14,7 +14,8 @@ namespace cse::help::locale
 {
   class key
   {
-    friend void resolve(const std::string &language);
+    friend void resolve(std::string &language);
+    template <const auto &entries, const auto &languages> friend key forge(const std::string_view label);
 
   public:
     struct entry
@@ -24,7 +25,6 @@ namespace cse::help::locale
     };
 
   public:
-    key(const std::string_view label_, const std::span<const entry> entries_);
     ~key() = default;
     key(const key &) = delete;
     key &operator=(const key &) = delete;
@@ -35,16 +35,23 @@ namespace cse::help::locale
     std::string_view string() const;
 
   private:
+    key(const std::string_view label_, const std::span<const entry> entries_);
+
+  private:
     std::string_view identity{};
     std::span<const entry> entries{};
     std::size_t index{};
   };
 
+  constexpr bool distinct(const std::span<const key::entry> entries);
+  constexpr bool complete(const std::span<const key::entry> entries, const std::span<const std::string_view> languages);
+  template <const auto &entries, const auto &languages> key forge(const std::string_view label);
+
   struct store
   {
     struct registrar
     {
-      registrar(const std::initializer_list<std::string_view> languages_);
+      registrar(const std::span<const std::string_view> languages_);
     };
     struct segment
     {
@@ -57,17 +64,18 @@ namespace cse::help::locale
       const locale::key *pointer{};
     };
 
-    std::vector<std::string_view> languages{};
+    std::span<const std::string_view> languages{};
     std::vector<const locale::key *> keys{};
     std::vector<std::string_view> table{};
     std::size_t current{};
     bool resolved{};
+    bool duplicated{};
   };
 
   store &registry();
-  void enlist(const std::initializer_list<std::string_view> languages);
+  void enlist(const std::span<const std::string_view> languages);
   void enlist(const locale::key &key);
-  void resolve(const std::string &language);
+  void resolve(std::string &language);
 }
 
 namespace cse
@@ -113,11 +121,17 @@ namespace cse
 }
 
 #define CSE_LANGUAGE_DECLARE(language) inline constexpr const char *language{#language};
-#define LANGUAGES(...)                                                                                                 \
+#define LANGUAGES(...) CSE_JOIN(CSE_LANGUAGES_, CSE_FILLED(__VA_ARGS__))(__VA_ARGS__)
+#define CSE_LANGUAGES_(...) static_assert(false, "LANGUAGES was declared without any languages")
+#define CSE_LANGUAGES_FILLED(...)                                                                                      \
   namespace language                                                                                                   \
   {                                                                                                                    \
     CSE_FOR_EACH(CSE_LANGUAGE_DECLARE, __VA_ARGS__)                                                                    \
-    namespace detail { inline const cse::help::locale::store::registrar languages{__VA_ARGS__}; }                      \
+    namespace detail                                                                                                   \
+    {                                                                                                                  \
+      inline constexpr std::string_view list[]{__VA_ARGS__};                                                           \
+      inline const cse::help::locale::store::registrar languages{list};                                                \
+    }                                                                                                                  \
   }                                                                                                                    \
   static_assert(true)
 
@@ -130,6 +144,9 @@ namespace cse
     {                                                                                                                  \
       inline constexpr cse::help::locale::key::entry identifier[]{CSE_FOR_EACH(CSE_TRANSLATE_ENTRY, __VA_ARGS__)};     \
     }                                                                                                                  \
-    inline const cse::help::locale::key identifier{#identifier, detail::identifier};                                   \
+    inline const cse::help::locale::key identifier{                                                                    \
+      cse::help::locale::forge<detail::identifier, language::detail::list>(#identifier)};                              \
   }                                                                                                                    \
   static_assert(true)
+
+#include "locale.inl" // IWYU pragma: keep

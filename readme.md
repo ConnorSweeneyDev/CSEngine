@@ -126,7 +126,7 @@ namespace custom
                  .aspect = {.ratio = 16.0 / 9.0, .resolution = 180, .scaling = VIRTUAL},
                  .clear = {{0.0, 0.0, 0.0}},
                  .memory = {.vram = 512, .ram = 128},
-                 .language = language::ENGLISH,
+                 .language = language::EN,
                  .master = {0.5},
                  .sound = {1.0},
                  .music = {1.0}}) {};
@@ -159,7 +159,7 @@ thrashing will occur which could cause performance issues.
 
 `language` selects which set of translations text resolves against, and is empty by default. It is only meaningful if
 you declare languages with the `LANGUAGES` macro; if you do declare them, leaving it empty or naming a language that was
-never declared throws.
+never declared logs a warning and falls back to the first language you declared, overwriting the value.
 
 `master`, `sound` and `music` are the global volume buses for all audio. Each is a `temporal<double>` in the range
 [0.0, 1.0] that multiplies every track's own `volume` temporal.
@@ -401,7 +401,6 @@ happens (missing file does not count as unexpected) and `true` otherwise:
 ```cpp
 class settings final : public cse::state
 {
-private:
   ENLIST(window,
          (display, SDL_DisplayID, {PRIMARY}),
          (position, (std::pair<int, int>), {ORIGIN, ORIGIN}),
@@ -409,17 +408,21 @@ private:
          (mode, ::mode, {WINDOWED}),
          (vsync, bool, {true}));
 
-public:
-  settings() : cse::state({.storage = "settings"}) {}
-  STORE(window, settings::window, {});
+  STORE((window, settings::window, {}),
+        (volume, double, {0.5}));
+
+  settings() : cse::state({.storage = "settings"}) {};
 };
 ```
 
 Wrap any field whose `type` or `init` contains a top-level comma in parentheses (as `position` and `size` do above) so
-the preprocessor reads the tuple correctly. `ENLIST` supports a few hundred fields per struct.
+the preprocessor reads the tuple correctly. Both macros take the same `(name, type, init)` tuples and both require the
+`init`, even when it is just `{}` - a field with no initializer is a compilation error. `ENLIST` supports a few hundred
+fields per struct.
 
 State I/O never crashes the game: a file that can't be opened or parsed is renamed to `.bak` and defaults are used, and
-a failed write is skipped - both with a logged warning.
+a failed write is skipped - both with a logged warning. A field whose JSON value does not match its type is
+handled on its own by taking it's default value, and a logged warning tracks this.
 
 Then load and save whenever you want:
 
@@ -428,16 +431,16 @@ void window::on_create()
 {
   const auto &settings = find_as<csg::settings>(game->active.states, "settings");
   if (!settings->read()) throw cse::exception("Failed to read settings");
-  active.width = settings->window->size.first;
-  active.mode  = settings->window->mode;
-  active.vsync = settings->window->vsync;
+  active.width = settings->window.size.first;
+  active.mode  = settings->window.mode;
+  active.vsync = settings->window.vsync;
 }
 void window::on_destroy()
 {
   const auto &settings = find_as<csg::settings>(game->active.states, "settings");
-  settings->window->size = {active.width, active.height};
-  settings->window->mode = active.mode;
-  settings->window->vsync = active.vsync;
+  settings->window.size  = {active.width, active.height};
+  settings->window.mode  = active.mode;
+  settings->window.vsync = active.vsync;
   if (!settings->write()) throw cse::exception("Failed to write settings");
 }
 ```
@@ -450,19 +453,19 @@ namespace, both nested in whatever namespace you expand them in:
 ```cpp
 namespace custom
 {
-  LANGUAGES(ENGLISH, SPANISH, FRENCH);
+  LANGUAGES(EN, SP, FR);
 
-  TRANSLATE(welcome_message, (ENGLISH, "Welcome!"), (SPANISH, "¡Bienvenido!"), (FRENCH, "Bienvenue!"));
-  TRANSLATE(menu_play,       (ENGLISH, "Play"),     (SPANISH, "Jugar"),        (FRENCH, "Jouer"));
+  TRANSLATE(welcome_message, (EN, "Welcome!"), (SP, "¡Bienvenido!"), (FR, "Bienvenue!"));
+  TRANSLATE(menu_play,       (EN, "Play"),     (SP, "Jugar"),        (FR, "Jouer"));
 }
 ```
 
-That gives you `custom::language::ENGLISH` (a `const char *`) and `custom::lexeme::welcome_message` (a translation key).
+That gives you `custom::language::EN` (a `const char *`) and `custom::lexeme::welcome_message` (a translation key).
 Text `content` is a `cse::lexeme`, which is any mix of literals and keys that automatically translates based on the
 current language:
 
 ```cpp
-content = "Player";                            // "Player" in all languages
+content = "Player";                            // "Player" no matter the current language
 content = lexeme::menu_play;                   // Custom translation of "Play"
 content = {"[", lexeme::welcome_message, "]"}; // Custom translation of "Welcome!" surrounded by []
 ```

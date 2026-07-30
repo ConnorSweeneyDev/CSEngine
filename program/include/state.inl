@@ -10,42 +10,23 @@
 
 namespace cse
 {
-  template <typename type> state::field<type>::field(const char *key_, const type &value_) : value{value_}, key{key_}
+  template <typename type> void state::enlist(const char *key, type &value)
   {
-    building->enlist(
-      [this](nlohmann::json &json)
-      {
-        if (!json.emplace(key, value).second) throw cse::exception("Duplicate state field \"{}\"", key);
-      },
-      [this](const nlohmann::json &json)
-      {
-        if (!json.contains(key)) return;
-        try
-        {
-          json.at(key).get_to(value);
-        }
-        catch (const nlohmann::json::exception &error)
-        {
-          log("Could not parse state field \"{}\", using default: {}", key, error.what());
-        }
-      });
-  }
-
-  template <typename type> state::field<type>::operator type &() noexcept { return value; }
-
-  template <typename type> state::field<type>::operator const type &() const noexcept { return value; }
-
-  template <typename type> type *state::field<type>::operator->() noexcept { return &value; }
-
-  template <typename type> const type *state::field<type>::operator->() const noexcept { return &value; }
-
-  template <typename type> type &state::field<type>::operator*() noexcept { return value; }
-
-  template <typename type> const type &state::field<type>::operator*() const noexcept { return value; }
-
-  template <typename type> state::field<type> &state::field<type>::operator=(const type &value_)
-  {
-    value = value_;
-    return *this;
+    if (!document) throw cse::exception("Tried to enlist state field \"{}\" outside of a read or write", key);
+    if (writing)
+    {
+      if (!document->emplace(key, value).second) throw cse::exception("Duplicate state field \"{}\"", key);
+      return;
+    }
+    if (!document->contains(key)) return;
+    const help::marker marker{key};
+    try
+    {
+      document->at(key).get_to(value);
+    }
+    catch (const nlohmann::json::exception &error)
+    {
+      log("Could not parse state field \"{}\", using default: {}", help::trail, error.what());
+    }
   }
 }
