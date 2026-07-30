@@ -121,6 +121,7 @@ private:                                                                        
 #define STORE(...)                                                                                                     \
 private:                                                                                                               \
   void enroll() final { CSE_FOR_EACH(CSE_STORE_ENROLL, __VA_ARGS__) }                                                  \
+                                                                                                                       \
 public:                                                                                                                \
   CSE_FOR_EACH(CSE_STORE_DECLARE, __VA_ARGS__)                                                                         \
   static_assert(true)
