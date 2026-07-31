@@ -26,7 +26,7 @@ namespace cse
     }
     catch (const nlohmann::json::exception &error)
     {
-      log("Could not parse state field \"{}\", using default: {}", help::trail, error.what());
+      log("Could not parse state field \"{}\", using default: {}", help::marker_trail, error.what());
     }
   }
 }

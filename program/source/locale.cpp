@@ -15,14 +15,13 @@
 namespace cse::help::locale
 {
   key::key(const std::string_view label_, const std::span<const entry> entries_)
-    : identity{label_}, entries{entries_}, index{registry().keys.size()}
+    : identity{label_}, entries{entries_}, index{store.keys.size()}
   { enlist(*this); }
 
   std::string_view key::label() const { return identity; }
 
   std::string_view key::string() const
   {
-    const auto &store{registry()};
     if (!store.resolved) throw exception("Tried to read translation key '{}' before the language was set", identity);
     return store.table.at((index * store.languages.size()) + store.current);
   }
@@ -37,15 +36,8 @@ namespace cse::help::locale
 
   store::segment::segment(const locale::key &key_) : pointer{&key_} {}
 
-  store &registry()
-  {
-    static store instance{};
-    return instance;
-  }
-
   void enlist(const std::span<const std::string_view> languages)
   {
-    auto &store{registry()};
     if (!store.languages.empty())
     {
       store.duplicated = true;
@@ -57,14 +49,12 @@ namespace cse::help::locale
 
   void enlist(const locale::key &key)
   {
-    auto &store{registry()};
     store.keys.push_back(&key);
     store.resolved = false;
   }
 
   void resolve(std::string &language)
   {
-    auto &store{registry()};
     if (store.languages.empty() && store.keys.empty()) return;
     if (store.duplicated) throw exception("Tried to declare LANGUAGES more than once");
     const auto fallback{store.languages.front()};
@@ -158,15 +148,14 @@ namespace cse
     static const std::string blank{};
     if (!handle) return blank;
     const auto &target{*handle};
-    const auto current{help::locale::registry().current};
-    if (target.cached && (target.constant || target.language == current)) return target.resolved;
+    if (target.cached && (target.constant || target.language == help::locale::store.current)) return target.resolved;
     target.resolved.clear();
     for (const auto &segment : target.segments)
       if (segment.pointer)
         target.resolved += segment.pointer->string();
       else
         target.resolved += segment.literal;
-    target.language = current;
+    target.language = help::locale::store.current;
     target.cached = true;
     return target.resolved;
   }

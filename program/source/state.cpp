@@ -16,13 +16,19 @@
 
 namespace cse::help
 {
-  marker::marker(const std::string_view name_) : length{trail.size()}
+  namespace state
   {
-    if (!trail.empty()) trail += '.';
-    trail += name_;
+    void log(std::string_view reason)
+    { cse::log("Could not parse state field \"{}\", using default{}", marker_trail, reason); }
   }
 
-  marker::~marker() { trail.resize(length); }
+  marker::marker(const std::string_view name_) : length{marker_trail.size()}
+  {
+    if (!marker_trail.empty()) marker_trail += '.';
+    marker_trail += name_;
+  }
+
+  marker::~marker() { marker_trail.resize(length); }
 }
 
 namespace cse

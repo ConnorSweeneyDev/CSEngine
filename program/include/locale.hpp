@@ -70,9 +70,8 @@ namespace cse::help::locale
     std::size_t current{};
     bool resolved{};
     bool duplicated{};
-  };
+  } inline store{};
 
-  store &registry();
   void enlist(const std::span<const std::string_view> languages);
   void enlist(const locale::key &key);
   void resolve(std::string &language);

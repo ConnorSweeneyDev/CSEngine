@@ -8,13 +8,14 @@
 #include "nlohmann/json_fwd.hpp"
 
 #include "core.hpp"
-#include "log.hpp" // IWYU pragma: keep
 #include "macro.hpp"
 #include "name.hpp"
 
 namespace cse::help
 {
-  inline thread_local std::string trail{};
+  namespace state { void log(std::string_view reason); }
+
+  inline thread_local std::string marker_trail{};
 
   class marker
   {
@@ -89,7 +90,7 @@ namespace cse
     }                                                                                                                  \
     catch (const nlohmann::json::exception &error)                                                                     \
     {                                                                                                                  \
-      cse::log("Could not parse state field \"{}\", using default: {}", cse::help::trail, error.what());               \
+      cse::help::state::log(std::format(": {}", error.what()));                                                        \
     }                                                                                                                  \
   }
 #define ENLIST(identifier, ...)                                                                                        \
@@ -102,8 +103,7 @@ private:                                                                        
     {                                                                                                                  \
       if (!json.is_object())                                                                                           \
       {                                                                                                                \
-        cse::log("Could not parse state field \"{}\", using defaults: type must be object, but is {}",                 \
-                 cse::help::trail, json.type_name());                                                                  \
+        cse::help::state::log(std::format("s: type must be object, but is {}", json.type_name()));                     \
         return;                                                                                                        \
       }                                                                                                                \
       CSE_FOR_EACH(CSE_ENLIST_READ, __VA_ARGS__)                                                                       \
