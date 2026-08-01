@@ -31,9 +31,6 @@ namespace cse::help::window
   {
   public:
     previous() = default;
-    previous(const std::string &title_, const SDL_DisplayID display_, const int left_, const int top_,
-             const unsigned int width_, const unsigned int height_, const ::mode mode_, const bool vsync_,
-             const cse::mouse::initial &mouse_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;

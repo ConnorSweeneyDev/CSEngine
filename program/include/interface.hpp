@@ -52,9 +52,6 @@ namespace cse::help::interface
   {
   public:
     previous() = default;
-    previous(const temporal<glm::dvec2> &translation_, const temporal<double> &rotation_,
-             const temporal<glm::dvec2> &scale_, const bool interactable_, const interface::texture &texture_,
-             const interface::text &text_, const interface::priority &priority_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;

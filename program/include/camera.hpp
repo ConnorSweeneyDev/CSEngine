@@ -23,8 +23,6 @@ namespace cse::help::camera
   {
   public:
     previous() = default;
-    previous(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec3> &forward_,
-             const temporal<glm::dvec3> &up_, const temporal<double> &fov_, const camera::clip &clip_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;

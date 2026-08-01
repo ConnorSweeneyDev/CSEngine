@@ -17,12 +17,6 @@
 
 namespace cse::help::object
 {
-  previous::previous(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
-                     const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
-                     const object::text &text_, const object::priority &priority_)
-    : translation{translation_}, rotation{rotation_}, scale{scale_}, collidable{collidable_}, texture{texture_},
-      text{text_}, priority{priority_} {};
-
   active::active(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
                  const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
                  const object::text &text_, const object::priority &priority_)
@@ -189,9 +183,7 @@ namespace cse::help::object
 namespace cse
 {
   object::object(const initial &initial_)
-    : previous{initial_.translation, initial_.rotation, initial_.scale,   initial_.collidable,
-               initial_.texture,     initial_.text,     initial_.priority},
-      active{initial_.translation, initial_.rotation, initial_.scale,   initial_.collidable,
+    : active{initial_.translation, initial_.rotation, initial_.scale,   initial_.collidable,
              initial_.texture,     initial_.text,     initial_.priority} {};
 
   void object::on_prepare() {}

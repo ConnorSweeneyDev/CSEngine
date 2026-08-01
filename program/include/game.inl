@@ -505,7 +505,6 @@ namespace cse
     {
       active.scenes.set(scene);
       active.scene = scene;
-      previous.scene = scene;
     }
     return *scene;
   }

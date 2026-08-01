@@ -59,9 +59,6 @@ namespace cse::help::object
   {
   public:
     previous() = default;
-    previous(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
-             const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
-             const object::text &text_, const object::priority &priority_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;

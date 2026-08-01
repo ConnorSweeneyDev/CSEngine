@@ -27,7 +27,6 @@ namespace cse
     {
       case help::phase::CLEANED:
         active.camera = camera;
-        previous.camera = camera;
         break;
       case help::phase::PREPARED:
         active.camera->clean();

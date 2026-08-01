@@ -15,10 +15,6 @@
 
 namespace cse::help::camera
 {
-  previous::previous(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec3> &forward_,
-                     const temporal<glm::dvec3> &up_, const temporal<double> &fov_, const camera::clip &clip_)
-    : translation{translation_}, forward{forward_}, up{up_}, fov{fov_}, clip{clip_} {};
-
   active::active(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec3> &forward_,
                  const temporal<glm::dvec3> &up_, const temporal<double> &fov_, const camera::clip &clip_)
     : translation{translation_}, forward{forward_}, up{up_}, fov{fov_}, clip{clip_} {};
@@ -68,8 +64,7 @@ namespace cse::help::camera
 namespace cse
 {
   camera::camera(const initial &initial_)
-    : previous{initial_.translation, initial_.forward, initial_.up, initial_.fov, initial_.clip},
-      active{initial_.translation, initial_.forward, initial_.up, initial_.fov, initial_.clip} {};
+    : active{initial_.translation, initial_.forward, initial_.up, initial_.fov, initial_.clip} {};
 
   void camera::on_prepare() {}
   void camera::prepare()

@@ -82,9 +82,6 @@ namespace cse::help::game
   {
   public:
     previous() = default;
-    previous(const double tick_, const double frame_, const game::aspect &aspect_, const temporal<glm::dvec3> &clear_,
-             const game::memory::initial &memory_, const std::string &language_, const temporal<double> &master_,
-             const temporal<double> &sound_, const temporal<double> &music_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;

@@ -27,12 +27,6 @@
 
 namespace cse::help::window
 {
-  previous::previous(const std::string &title_, const SDL_DisplayID display_, const int left_, const int top_,
-                     const unsigned int width_, const unsigned int height_, const ::mode mode_, const bool vsync_,
-                     const cse::mouse::initial &mouse_)
-    : title{title_}, display{display_}, left{left_}, top{top_}, width{width_}, height{height_}, mode{mode_},
-      vsync{vsync_}, mouse{mouse_.visible, mouse_.position} {};
-
   active::active(const std::string &title_, const SDL_DisplayID display_, const int left_, const int top_,
                  const unsigned int width_, const unsigned int height_, const ::mode mode_, const bool vsync_,
                  const cse::mouse::initial &mouse_)
@@ -702,9 +696,7 @@ namespace cse::help::window
 namespace cse
 {
   window::window(const initial &initial_)
-    : previous{initial_.title,  initial_.display, initial_.left,  initial_.top,  initial_.width,
-               initial_.height, initial_.mode,    initial_.vsync, initial_.mouse},
-      active{initial_.title,  initial_.display, initial_.left,  initial_.top,  initial_.width,
+    : active{initial_.title,  initial_.display, initial_.left,  initial_.top,  initial_.width,
              initial_.height, initial_.mode,    initial_.vsync, initial_.mouse} {};
 
   void window::on_prepare() {}

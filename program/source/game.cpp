@@ -56,13 +56,6 @@
 
 namespace cse::help::game
 {
-  previous::previous(const double tick_, const double frame_, const game::aspect &aspect_,
-                     const temporal<glm::dvec3> &clear_, const game::memory::initial &memory_,
-                     const std::string &language_, const temporal<double> &master_, const temporal<double> &sound_,
-                     const temporal<double> &music_)
-    : tick(tick_), frame(frame_), aspect(aspect_), clear(clear_), memory({{}, memory_.vram}, {{}, memory_.ram}),
-      language(language_), master(master_), sound(sound_), music(music_) {};
-
   active::active(const double tick_, const double frame_, const game::aspect &aspect_,
                  const temporal<glm::dvec3> &clear_, const game::memory::initial &memory_, const std::string &language_,
                  const temporal<double> &master_, const temporal<double> &sound_, const temporal<double> &music_)
@@ -1549,9 +1542,7 @@ namespace cse::help::game
 namespace cse
 {
   game::game(const initial &initial_)
-    : previous{initial_.tick,     initial_.frame,  initial_.aspect, initial_.clear, initial_.memory,
-               initial_.language, initial_.master, initial_.sound,  initial_.music},
-      active{initial_.tick,     initial_.frame,  initial_.aspect, initial_.clear, initial_.memory,
+    : active{initial_.tick,     initial_.frame,  initial_.aspect, initial_.clear, initial_.memory,
              initial_.language, initial_.master, initial_.sound,  initial_.music}
   {
     help::meta = {initial_.meta.organization, initial_.meta.application, initial_.meta.version, {}};
@@ -1571,17 +1562,18 @@ namespace cse
     if (active.phase == help::phase::CREATED)
       next.scene = {scene_name, {}};
     else
-    {
       active.scene = scene;
-      previous.scene = scene;
-    }
     return *scene;
   }
 
   SDL_AppResult game::initialize()
   {
     if (active.phase == help::phase::CLEANED) prepare();
-    if (active.phase == help::phase::PREPARED) create();
+    if (active.phase == help::phase::PREPARED)
+    {
+      create();
+      synchronize();
+    }
     return SDL_APP_CONTINUE;
   }
 
@@ -1884,20 +1876,21 @@ namespace cse
   void game::tps()
   {
     static std::optional<double> start{};
-    static double deadline{};
+    static std::optional<double> deadline{};
     static double accumulator{};
     static unsigned int count{};
     if (!start)
     {
       start = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+      if (!deadline) deadline = active.time;
       return;
     }
 
     count++;
     accumulator += (static_cast<double>(SDL_GetTicksNS()) / 1e9) - start.value();
-    if (active.time - deadline >= 1.0)
+    if (const auto span{active.time - deadline.value()}; span >= 1.0)
     {
-      active.tick.count = count;
+      active.tick.count = static_cast<unsigned int>(std::llround(count / span));
       active.tick.average = (accumulator / count) * 1000.0;
       deadline = active.time;
       accumulator = 0.0;
@@ -1909,20 +1902,21 @@ namespace cse
   void game::fps()
   {
     static std::optional<double> start{};
-    static double deadline{};
+    static std::optional<double> deadline{};
     static double accumulator{};
     static unsigned int count{};
     if (!start)
     {
       start = static_cast<double>(SDL_GetTicksNS()) / 1e9;
+      if (!deadline) deadline = active.time;
       return;
     }
 
     count++;
     accumulator += (static_cast<double>(SDL_GetTicksNS()) / 1e9) - start.value();
-    if (active.time - deadline >= 1.0)
+    if (const auto span{active.time - deadline.value()}; span >= 1.0)
     {
-      active.frame.count = count;
+      active.frame.count = static_cast<unsigned int>(std::llround(count / span));
       active.frame.average = (accumulator / count) * 1000.0;
       deadline = active.time;
       accumulator = 0.0;

@@ -33,8 +33,6 @@ namespace cse::help::light
   {
   public:
     previous() = default;
-    previous(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec2> &rotation_,
-             const light::illumination &illumination_, const light::shadow &shadow_, const int priority_);
     ~previous() = default;
     previous(const previous &) = delete;
     previous &operator=(const previous &) = delete;

@@ -247,7 +247,11 @@ The best way to describe the lifecycle of an entity is to show you the game's SD
 SDL_AppResult game::initialize()
 {
   if (active.phase == help::phase::CLEANED) prepare();
-  if (active.phase == help::phase::PREPARED) create();
+  if (active.phase == help::phase::PREPARED)
+  {
+    create();
+    synchronize();
+  }
   return SDL_APP_CONTINUE;
 }
 
