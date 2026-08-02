@@ -25,9 +25,7 @@ namespace cse
     camera->scene = this;
     switch (active.phase)
     {
-      case help::phase::CLEANED:
-        active.camera = camera;
-        break;
+      case help::phase::CLEANED: active.camera = camera; break;
       case help::phase::PREPARED:
         active.camera->clean();
         active.camera = camera;

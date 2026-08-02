@@ -73,7 +73,7 @@ namespace cse::help::scene
 
   private:
     void synchronize(previous &last);
-    void render(game::active &active, const double aspect, const double alpha);
+    void render(game::active &game_active, const double aspect, const double alpha);
 
     void generate_simulation_order();
     void generate_contacts();

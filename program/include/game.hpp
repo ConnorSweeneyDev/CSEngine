@@ -349,7 +349,6 @@ namespace cse::help::game
                                                       const char *tag, const bool predecode, const double bus);
     std::int64_t seconds_to_frames(const double seconds) const;
     double frames_to_seconds(const std::int64_t frames) const;
-    static double gain(const double volume);
     MIX_Audio *require_audio(const unsigned char *data, const std::size_t size, const bool predecode);
 
   public:

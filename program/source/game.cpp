@@ -1513,12 +1513,6 @@ namespace cse::help::game
     return static_cast<double>(frames) / static_cast<double>(frequency);
   }
 
-  double active::gain(const double volume)
-  {
-    if (volume <= 0.0) return 0.0;
-    return volume * volume;
-  }
-
   MIX_Audio *active::require_audio(const unsigned char *data, const std::size_t size, const bool predecode)
   {
     const audio_cache::source_key key{data, size};

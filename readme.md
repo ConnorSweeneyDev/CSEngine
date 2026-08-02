@@ -162,7 +162,10 @@ you declare languages with the `LANGUAGES` macro; if you do declare them, leavin
 never declared logs a warning and falls back to the first language you declared, overwriting the value.
 
 `master`, `sound` and `music` are the global volume buses for all audio. Each is a `temporal<double>` in the range
-[0.0, 1.0] that multiplies every track's own `volume` temporal.
+[0.0, 1.0] that multiplies every track's own `volume` temporal. Every volume in the engine is plain linear amplitude
+and nothing is curved on the way to the device, so fades, crossfades and attenuation do exactly the arithmetic you
+write. Note that the ear does not hear amplitude linearly - a bus at 0.5 sounds louder than half volume - so shape the
+value yourself (squaring it is the usual cheap approximation) if you are driving a bus from a settings slider.
 
 The `setup` function builds the whole entity tree. `set<...>` registers an entity; `current` registers a scene *and*
 makes it the active one, but calling it without a config function just switches to an already-registered scene:
@@ -373,7 +376,7 @@ active.mixer.remove<cse::music>("main");
 
 Removing is optional; the mixer will automatically clear tracks when the entity is destroyed.\
 The game's `master`, `sound` and `music` temporals act as global buses for volume, all affecting each track's own
-`volume` temporal.\
+`volume` temporal.
 
 A track's `elapsed` is a `cse::elapsed`, which carries one clock per owner - and which one you read matters:
 
