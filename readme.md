@@ -217,7 +217,7 @@ player::player(const glm::dvec3 &translation_)
   : cse::object({.translation = {translation_},
                  .rotation = {0.0},
                  .scale = {{1.0, 1.0}},
-                 .collider = {.self = collider::player, .target = collider::wall | collider::enemy},
+                 .collider = {.self = collider::character, .target = collider::none},
                  .texture = {.source = {.image = image::redhood, .animation = animation::redhood.idle},
                              .playback = {.frame = 0, .elapsed = 0.0, .playing = true, .speed = {1.0}, .loop = true},
                              .flip = {.horizontal = false, .vertical = false},
@@ -346,30 +346,26 @@ namespace nested in whatever namespace you expand it in, holding one `cse::colli
 ```cpp
 namespace custom
 {
-  COLLIDERS(wall, floor, player, enemy, bullet, pickup);
+  COLLIDERS(wall, floor, character, projectile, pickup);
 }
 ```
 
 Each object then declares what it *is* (`self`) and what it *asks about* (`target`):
 
 ```cpp
-.collider = {.self = collider::wall}                                              // is a wall, asks about nothing
-.collider = {.self = collider::player, .target = collider::wall | collider::pickup} // asks about walls and pickups
+.collider = {.self = collider::wall, .target = collider::character | collider::projectile};
+.collider = {.self = collider::character, .target = collider::none};
 ```
 
-Both fields default to `none`, so **an object collides with nothing until you give it a collider**. An object that is
-neither targeted by anything nor targets anything present is skipped by the broadphase entirely, so unused objects and
-colliderless scenes cost nothing.
+Both fields default to `none`, so **an object collides with nothing until you give it a collider**.
 
 A pair is tested when either side asks about the other, and **a contact is only generated for the side that asked**. If
 the player targets `wall` but the wall targets nothing, you get one contact - `self` is the player, `target` is the
-wall. Nothing is lost: the pair is still in the list, just from the asker's perspective. To see a collision from the
-wall's own perspective, give the wall a `target` too. Every contact in `active.contacts` is therefore one that its
-`self` asked for, and any entity can read the whole list:
+wall.
 
 ```cpp
 for (const auto &contact : scene->active.contacts)
-  if (contact.self.name == name && contact.self.hitbox == hitbox::feet)
+  if (contact.self.name == name && contact.self.hitbox == hitbox::body)
     translation.value += contact.penetration;
 ```
 
@@ -560,15 +556,14 @@ and a non-throwing `try_` form:
 - `cse::axis` (`NONE/X/Y/Z`) and `cse::rectangle` (`left/top/right/bottom`).
 - `has(flags, bits)`, plus `any` / `all` / `none` - readable flag *testing* against SDL-style bitmasks, or against any
   type supporting `&` and `!=` (so `cse::collider` works too: `any(collider.target, collider::wall, collider::enemy)`).
-- `with` / `without` / `shared` / `missing` / `toggled` / `inverted` - readable flag *editing*, so you never have to
-  remember which combination of `&`, `|` and `~` does what. Each takes one or more masks and returns a new value:
+- `with` / `without` / `shared` / `missing` / `toggled` - readable flag *editing*, so you don't have to remember which
+  combination of `&`, `|`, `^` and `~` does what. Each takes one or more masks and returns a new value:
   ```cpp
   target = with(target, collider::enemy, collider::pickup); // target | enemy | pickup   (set those bits)
   target = without(target, collider::wall);                 // target & ~wall            (clear those bits)
   auto both = shared(target, other.target);                 // target & other            (keep only what overlaps)
   auto todo = missing(target, collider::floor);             // floor & ~target           (which are NOT set)
   target = toggled(target, collider::enemy);                // flip just those bits
-  auto rest = inverted(target);                             // ~target                   (everything else)
   ```
 - `cse::collider` - a 64-bit collider set built by `COLLIDERS`. Supports `|` `&` `^` `~` and their `|=` `&=` `^=`
   forms, plus `==`, `empty()` and `bits()`; everything above works on it, and all of it is `constexpr`.
