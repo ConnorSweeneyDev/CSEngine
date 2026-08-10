@@ -16,6 +16,7 @@
 #include "core.hpp"
 #include "mixer.hpp"
 #include "name.hpp"
+#include "resource.hpp"
 #include "timer.hpp"
 
 namespace cse::help::scene
@@ -105,8 +106,11 @@ namespace cse::help::scene
     std::vector<cse::light *> light_graphics_order{};
 
     std::vector<collision::entry> contact_entries{};
+    std::vector<cse::hitbox> contact_hitboxes{};
+    std::vector<std::uint32_t> contact_counts{};
+    std::vector<std::uint32_t> contact_cursor{};
+    std::vector<collision::slot> contact_table{};
     std::unordered_map<contact_key, std::size_t, contact_key::hash> contact_lookup{};
-    std::vector<std::size_t> contact_sweep{};
   };
 
   struct next

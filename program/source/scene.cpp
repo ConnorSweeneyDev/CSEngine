@@ -1,12 +1,15 @@
 #include "scene.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "SDL3/SDL_events.h"
@@ -20,6 +23,7 @@
 #include "game.hpp"
 #include "interface.hpp"
 #include "light.hpp"
+#include "mask.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
 #include "object.hpp"
@@ -42,7 +46,8 @@ namespace cse::help::scene
     last.interfaces = interfaces;
     last.objects = objects;
     last.lights = lights;
-    last.contacts = contacts;
+    last.contacts.swap(contacts);
+    contacts.clear();
     last.timer = timer;
     last.mixer = mixer;
     last.phase = phase;
@@ -111,100 +116,205 @@ namespace cse::help::scene
     contacts.clear();
     if (objects.empty()) return;
 
+    cse::collider layer_union{};
+    cse::collider target_union{};
+    for (const auto &object : objects)
+    {
+      layer_union = layer_union | object->active.collider.self;
+      target_union = target_union | object->active.collider.target;
+    }
+    if (layer_union.empty() || target_union.empty()) return;
+
     auto &entries{contact_entries};
+    auto &boxes{contact_hitboxes};
     entries.clear();
-    std::size_t total{};
-    for (const auto &object : objects) total += collision::hitboxes(object.get()).size();
-    if (total == 0) return;
-    entries.reserve(total);
+    boxes.clear();
+    bool duplicates{};
     for (std::size_t index{}; index < objects.size(); ++index)
     {
       const auto &object{objects.at(index)};
-      auto object_hitboxes{collision::hitboxes(object.get())};
-      if (object_hitboxes.empty()) continue;
-      auto depth{static_cast<std::int64_t>(std::floor(object->active.translation.value.z + 0.5))};
-      for (const auto &hitbox : object_hitboxes)
-        entries.push_back({index, depth, collision::bounds(object.get(), hitbox)});
+      const auto &filter{object->active.collider};
+      if (none(filter.self, target_union) && none(filter.target, layer_union)) continue;
+      const auto sources{collision::hitboxes(object.get())};
+      if (sources.empty()) continue;
+      const auto depth{collision::quantize(std::floor(object->active.translation.value.z + 0.5))};
+      for (auto source{sources.begin()}; source != sources.end(); ++source)
+      {
+        if (!duplicates)
+          for (auto other{std::next(source)}; other != sources.end(); ++other)
+            if (source->name == other->name) duplicates = true;
+        const auto box{collision::bounds(object.get(), *source)};
+        const auto left{collision::quantize(box.left)};
+        const auto bottom{collision::quantize(box.bottom)};
+        const auto right{collision::quantize(box.right)};
+        const auto top{collision::quantize(box.top)};
+        if (right <= left || top <= bottom) continue;
+        entries.push_back({left, bottom, right, top, depth, static_cast<std::uint32_t>(index), filter.self.bits(),
+                           filter.target.bits()});
+        boxes.push_back(box);
+      }
     }
-
-    auto comparator{[](const collision::entry &first, const collision::entry &second)
-                    {
-                      if (first.z != second.z) return first.z < second.z;
-                      return first.hitbox.left < second.hitbox.left;
-                    }};
-    bool large_disorder{};
-    for (std::size_t index{1}; index < entries.size(); ++index)
-      if (comparator(entries.at(index), entries.at(index - 1)))
-      {
-        large_disorder = true;
-        break;
-      }
-
-    if (large_disorder) { std::ranges::sort(entries, comparator); }
-    else
-      for (std::size_t first{1}; first < entries.size(); ++first)
-      {
-        auto key{entries.at(first)};
-        std::size_t second{first};
-        while (second > 0 && comparator(key, entries.at(second - 1)))
-        {
-          entries.at(second) = entries.at(second - 1);
-          --second;
-        }
-        entries.at(second) = key;
-      }
+    if (entries.size() < 2) return;
 
     contact_lookup.clear();
-    const auto emit{
-      [&](std::size_t self_index, std::size_t target_index, const auto &own, const auto &theirs)
-      {
-        auto contact{collision::describe(objects.at(self_index)->name, objects.at(target_index).get(), own, theirs)};
-        const double area{std::max(contact.overlap.x, 0.0) * std::max(contact.overlap.y, 0.0)};
-        const contact_key key{self_index, target_index, own.name.identifier(), theirs.name.identifier()};
-        const auto found{contact_lookup.find(key)};
-        if (found == contact_lookup.end())
-        {
-          contact_lookup.emplace(key, contacts.size());
-          contacts.push_back(std::move(contact));
-          return;
-        }
-        auto &existing{contacts.at(found->second)};
-        const double existing_area{std::max(existing.overlap.x, 0.0) * std::max(existing.overlap.y, 0.0)};
-        if (area > existing_area) existing = std::move(contact);
-      }};
+    const auto record{[&](contact &&value, const std::size_t self_index, const std::size_t target_index)
+                      {
+                        if (!duplicates)
+                        {
+                          contacts.push_back(std::move(value));
+                          return;
+                        }
+                        const contact_key key{self_index, target_index, value.self.hitbox.name.identifier(),
+                                              value.target.hitbox.name.identifier()};
+                        const auto found{contact_lookup.find(key)};
+                        if (found == contact_lookup.end())
+                        {
+                          contact_lookup.emplace(key, contacts.size());
+                          contacts.push_back(std::move(value));
+                          return;
+                        }
+                        auto &existing{contacts.at(found->second)};
+                        const double area{std::max(value.overlap.x, 0.0) * std::max(value.overlap.y, 0.0)};
+                        const double kept{std::max(existing.overlap.x, 0.0) * std::max(existing.overlap.y, 0.0)};
+                        if (area > kept) existing = std::move(value);
+                      }};
 
-    auto &active_list{contact_sweep};
-    active_list.clear();
-    std::size_t start{0};
-    while (start < entries.size())
+    const auto attempt{[&](const std::size_t first, const std::size_t second)
+                       {
+                         const auto &one{*std::next(entries.begin(), static_cast<std::ptrdiff_t>(first))};
+                         const auto &two{*std::next(entries.begin(), static_cast<std::ptrdiff_t>(second))};
+                         if (one.object == two.object) return;
+                         const auto forward{(one.target & two.layer) != 0};
+                         const auto backward{(two.target & one.layer) != 0};
+                         if (!forward && !backward) return;
+                         if (one.z != two.z) return;
+                         if (one.left >= two.right || one.right <= two.left || one.bottom >= two.top ||
+                             one.top <= two.bottom)
+                           return;
+
+                         const auto &own{*std::next(boxes.begin(), static_cast<std::ptrdiff_t>(first))};
+                         const auto &theirs{*std::next(boxes.begin(), static_cast<std::ptrdiff_t>(second))};
+                         auto *owner{objects.at(one.object).get()};
+                         auto *other{objects.at(two.object).get()};
+                         if (!forward)
+                         {
+                           record(collision::describe(other->name, owner, theirs, own), two.object, one.object);
+                           return;
+                         }
+                         auto primary{collision::describe(owner->name, other, own, theirs)};
+                         if (!backward)
+                         {
+                           record(std::move(primary), one.object, two.object);
+                           return;
+                         }
+                         auto mirrored{collision::mirror(primary, other->name, owner)};
+                         record(std::move(primary), one.object, two.object);
+                         record(std::move(mirrored), two.object, one.object);
+                       }};
+
+    const auto sought{target_union.bits()};
+    const auto present{layer_union.bits()};
+
+    std::int64_t extents{};
+    for (const auto &entry : entries)
     {
-      auto depth{entries.at(start).z};
-      std::size_t end{start + 1};
-      while (end < entries.size() && entries.at(end).z == depth) ++end;
+      extents += static_cast<std::int64_t>(entry.right) - entry.left;
+      extents += static_cast<std::int64_t>(entry.top) - entry.bottom;
+    }
+    const auto average{extents / static_cast<std::int64_t>(entries.size() * 2)};
+    const auto typical{std::max<std::int64_t>(1, (average * 2) - 1)};
+    const auto span{static_cast<std::size_t>(std::bit_width(static_cast<std::uint64_t>(typical)))};
+    const auto shift{static_cast<std::int32_t>(std::min(std::size_t{30}, span))};
 
-      active_list.clear();
-      for (std::size_t first{start}; first < end; ++first)
+    std::size_t insertions{};
+    for (const auto &entry : entries)
+    {
+      const auto carried{static_cast<std::size_t>(std::popcount(entry.layer & sought))};
+      if (carried == 0) continue;
+      const auto columns{static_cast<std::size_t>(((entry.right - 1) >> shift) - (entry.left >> shift) + 1)};
+      const auto rows{static_cast<std::size_t>(((entry.top - 1) >> shift) - (entry.bottom >> shift) + 1)};
+      insertions += carried * columns * rows;
+    }
+    if (insertions == 0) return;
+    const auto buckets{std::bit_ceil(std::max<std::size_t>(16, insertions))};
+    const auto bucket{[&](const std::int32_t z, const std::int32_t x, const std::int32_t y, const int bit)
+                      { return collision::cell(z, x, y, bit) & (buckets - 1); }};
+
+    auto &counts{contact_counts};
+    auto &cursor{contact_cursor};
+    auto &table{contact_table};
+    counts.assign(buckets + 1, 0);
+    for (const auto &entry : entries)
+    {
+      const auto first_x{entry.left >> shift};
+      const auto last_x{(entry.right - 1) >> shift};
+      const auto first_y{entry.bottom >> shift};
+      const auto last_y{(entry.top - 1) >> shift};
+      for (auto bits{entry.layer & sought}; bits != 0; bits &= bits - 1)
       {
-        const auto &current{entries.at(first)};
-        for (std::size_t second{}; second < active_list.size();)
-        {
-          const auto &other{entries.at(active_list.at(second))};
-          if (other.hitbox.right < current.hitbox.left)
-          {
-            active_list.at(second) = active_list.back();
-            active_list.pop_back();
-            continue;
-          }
-          if (current.index != other.index && collision::overlaps(current.hitbox, other.hitbox))
-          {
-            emit(current.index, other.index, current.hitbox, other.hitbox);
-            emit(other.index, current.index, other.hitbox, current.hitbox);
-          }
-          ++second;
-        }
-        active_list.push_back(first);
+        const auto bit{std::countr_zero(bits)};
+        for (auto y{first_y}; y <= last_y; ++y)
+          for (auto x{first_x}; x <= last_x; ++x) ++counts.at(bucket(entry.z, x, y, bit) + 1);
       }
-      start = end;
+    }
+    for (std::size_t index{}; index < buckets; ++index) counts.at(index + 1) += counts.at(index);
+    cursor.assign(counts.begin(), std::prev(counts.end()));
+    table.assign(insertions, collision::slot{});
+    for (std::size_t index{}; index < entries.size(); ++index)
+    {
+      const auto &entry{entries.at(index)};
+      const auto first_x{entry.left >> shift};
+      const auto last_x{(entry.right - 1) >> shift};
+      const auto first_y{entry.bottom >> shift};
+      const auto last_y{(entry.top - 1) >> shift};
+      for (auto bits{entry.layer & sought}; bits != 0; bits &= bits - 1)
+      {
+        const auto bit{std::countr_zero(bits)};
+        for (auto y{first_y}; y <= last_y; ++y)
+          for (auto x{first_x}; x <= last_x; ++x)
+          {
+            auto &position{cursor.at(bucket(entry.z, x, y, bit))};
+            table.at(position) = {static_cast<std::uint32_t>(index), x, y, bit};
+            ++position;
+          }
+      }
+    }
+
+    const auto examine{[&](const std::size_t self_index, const collision::entry &self, const std::int32_t x,
+                           const std::int32_t y, const int bit)
+                       {
+                         const auto place{bucket(self.z, x, y, bit)};
+                         const auto first{counts.at(place)};
+                         const auto last{counts.at(place + 1)};
+                         for (auto position{first}; position != last; ++position)
+                         {
+                           const auto &held{*std::next(table.begin(), static_cast<std::ptrdiff_t>(position))};
+                           if (held.bit != bit || held.x != x || held.y != y) continue;
+                           const std::size_t candidate{held.entry};
+                           const auto &other{*std::next(entries.begin(), static_cast<std::ptrdiff_t>(candidate))};
+                           const auto shared{self.target & other.layer};
+                           if (shared == 0 || std::countr_zero(shared) != bit) continue;
+                           if ((other.target & self.layer) != 0 && candidate <= self_index) continue;
+                           if (std::max(self.left >> shift, other.left >> shift) != x) continue;
+                           if (std::max(self.bottom >> shift, other.bottom >> shift) != y) continue;
+                           attempt(self_index, candidate);
+                         }
+                       }};
+
+    for (std::size_t index{}; index < entries.size(); ++index)
+    {
+      const auto &self{entries.at(index)};
+      if ((self.target & present) == 0) continue;
+      const auto first_x{self.left >> shift};
+      const auto last_x{(self.right - 1) >> shift};
+      const auto first_y{self.bottom >> shift};
+      const auto last_y{(self.top - 1) >> shift};
+      for (auto bits{self.target & present}; bits != 0; bits &= bits - 1)
+      {
+        const auto bit{std::countr_zero(bits)};
+        for (auto y{first_y}; y <= last_y; ++y)
+          for (auto x{first_x}; x <= last_x; ++x) examine(index, self, x, y, bit);
+      }
     }
   }
 

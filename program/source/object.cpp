@@ -18,9 +18,9 @@
 namespace cse::help::object
 {
   active::active(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
-                 const temporal<glm::dvec2> &scale_, const bool collidable_, const object::texture &texture_,
+                 const temporal<glm::dvec2> &scale_, const object::collider &collider_, const object::texture &texture_,
                  const object::text &text_, const object::priority &priority_)
-    : translation{translation_}, rotation{rotation_}, scale{scale_}, collidable{collidable_}, texture{texture_},
+    : translation{translation_}, rotation{rotation_}, scale{scale_}, collider{collider_}, texture{texture_},
       text{text_}, priority{priority_} {};
 
   void active::synchronize(previous &last)
@@ -28,7 +28,7 @@ namespace cse::help::object
     last.translation = translation;
     last.rotation = rotation;
     last.scale = scale;
-    last.collidable = collidable;
+    last.collider = collider;
     last.texture = texture;
     last.text = text;
     last.priority = priority;
@@ -183,7 +183,7 @@ namespace cse::help::object
 namespace cse
 {
   object::object(const initial &initial_)
-    : active{initial_.translation, initial_.rotation, initial_.scale,   initial_.collidable,
+    : active{initial_.translation, initial_.rotation, initial_.scale,   initial_.collider,
              initial_.texture,     initial_.text,     initial_.priority} {};
 
   void object::on_prepare() {}

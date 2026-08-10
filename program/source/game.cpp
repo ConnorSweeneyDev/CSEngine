@@ -88,6 +88,7 @@ namespace cse::help::game
       audio_ready = true;
 
     help::locale::resolve(language);
+    help::collision::verify();
   }
 
   void active::create()

@@ -2,12 +2,16 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <span>
+#include <string_view>
 #include <utility>
 
 #include "glm/ext/vector_double2.hpp"
 #include "glm/trigonometric.hpp"
 
+#include "exception.hpp"
 #include "interface.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
@@ -17,6 +21,40 @@
 
 namespace cse::help::collision
 {
+  store::registrar::registrar(const std::span<const std::string_view> colliders_) { enlist(colliders_); }
+
+  void enlist(const std::span<const std::string_view> colliders)
+  {
+    if (!store.colliders.empty())
+    {
+      store.duplicated = true;
+      return;
+    }
+    store.colliders = colliders;
+  }
+
+  void verify()
+  {
+    if (store.duplicated) throw exception("Tried to declare COLLIDERS more than once");
+  }
+
+  std::int32_t quantize(const double value)
+  {
+    constexpr double minimum{-2147483648.0};
+    constexpr double maximum{2147483647.0};
+    return static_cast<std::int32_t>(std::clamp(value, minimum, maximum));
+  }
+
+  std::size_t cell(const std::int32_t z, const std::int32_t x, const std::int32_t y, const int bit)
+  {
+    auto seed{static_cast<std::size_t>(static_cast<std::uint32_t>(x))};
+    const auto mix{[&seed](std::size_t value) { seed ^= value + 0x9e3779b97f4a7c15ull + (seed << 6u) + (seed >> 2u); }};
+    mix(static_cast<std::size_t>(static_cast<std::uint32_t>(y)));
+    mix(static_cast<std::size_t>(static_cast<std::uint32_t>(z)));
+    mix(static_cast<std::size_t>(static_cast<std::uint32_t>(bit)));
+    return seed;
+  }
+
   bool overlaps(const rectangle &first, const rectangle &second)
   {
     return first.left < second.right && first.right > second.left && first.bottom < second.top &&
@@ -31,7 +69,6 @@ namespace cse::help::collision
 
   std::span<const cse::hitbox> hitboxes(const cse::object *object)
   {
-    if (!object->active.collidable) return {};
     const auto &animation{object->active.texture.source.animation};
     auto frame{object->active.texture.playback.frame};
     if (frame >= animation.frames.size()) return {};
@@ -122,6 +159,16 @@ namespace cse::help::collision
             .overlap = overlap,
             .normal = normal,
             .penetration = penetration};
+  }
+
+  contact mirror(const contact &source, const name self_name, cse::object *target)
+  {
+    return {.self = {self_name, source.target.hitbox},
+            .target = {target, source.self.hitbox},
+            .axis = source.axis,
+            .overlap = source.overlap,
+            .normal = -source.normal,
+            .penetration = -source.penetration};
   }
 
   cse::hitbox hit(const cse::interface *interface, const glm::dvec2 &point)
