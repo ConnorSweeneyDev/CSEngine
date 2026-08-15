@@ -10,7 +10,7 @@
 
 #include "SDL3/SDL_error.h"
 
-#include "core.hpp"
+#include "meta.hpp"
 #include "print.hpp"
 
 namespace cse
@@ -26,13 +26,13 @@ namespace cse
   {
     auto formatted_message{std::format(message, std::forward<message_arguments>(arguments)...)};
     print<CLOG>("{}.\n", formatted_message);
-    if (help::meta.output.empty())
+    if (!meta.output)
     {
-      print<CLOG>("Could not resolve the log directory; skipping log write\n");
+      print<CLOG>("No access to user local directory, skipping log write\n");
       return;
     }
     const std::scoped_lock<std::mutex> lock(help::log_mutex);
-    std::ofstream stream{help::meta.output / "log.txt", help::log_started ? std::ios::app : std::ios::trunc};
+    std::ofstream stream{meta.output.value() / "log.txt", help::log_started ? std::ios::app : std::ios::trunc};
     if (!stream) return;
     help::log_started = true;
     stream << formatted_message << ".\n";

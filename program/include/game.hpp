@@ -424,7 +424,6 @@ namespace cse
   protected:
     struct initial
     {
-      const help::meta::initial meta{};
       const double tick{100.0};
       const double frame{144.0};
       const help::game::aspect aspect{};

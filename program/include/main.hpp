@@ -5,5 +5,16 @@
 #include <vector>
 
 #include "core.hpp"
+#include "meta.hpp"
 
-namespace cse { std::shared_ptr<game> main(const std::vector<std::string_view> &arguments); }
+namespace cse
+{
+  struct application
+  {
+    std::shared_ptr<cse::game> instance{};
+    cse::meta::initial meta{};
+  };
+  using arguments = std::vector<std::string_view>;
+
+  application main(const arguments &arguments);
+}

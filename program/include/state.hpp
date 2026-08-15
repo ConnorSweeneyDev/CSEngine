@@ -67,6 +67,7 @@ namespace cse
   private:
     nlohmann::json *document{};
     bool writing{};
+    bool fallback{};
   };
 }
 
@@ -88,8 +89,9 @@ namespace cse
     {                                                                                                                  \
       json.at(#name).get_to(value.name);                                                                               \
     }                                                                                                                  \
-    catch (const nlohmann::json::exception &error)                                                                     \
+    catch (const std::exception &error)                                                                                \
     {                                                                                                                  \
+      failed = true;                                                                                                   \
       cse::help::state::log(std::format(": {}", error.what()));                                                        \
     }                                                                                                                  \
   }
@@ -104,9 +106,11 @@ private:                                                                        
       if (!json.is_object())                                                                                           \
       {                                                                                                                \
         cse::help::state::log(std::format("s: type must be object, but is {}", json.type_name()));                     \
-        return;                                                                                                        \
+        throw cse::exception("state field group is not an object");                                                    \
       }                                                                                                                \
+      bool failed{};                                                                                                   \
       CSE_FOR_EACH(CSE_ENLIST_READ, __VA_ARGS__)                                                                       \
+      if (failed) throw cse::exception("nested state fields were malformed");                                          \
     }                                                                                                                  \
   }
 

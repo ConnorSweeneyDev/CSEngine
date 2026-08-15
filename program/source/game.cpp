@@ -13,7 +13,6 @@
 
 #include "SDL3/SDL_audio.h"
 #include "SDL3/SDL_events.h"
-#include "SDL3/SDL_filesystem.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_iostream.h"
@@ -43,6 +42,7 @@
 #include "locale.hpp"
 #include "log.hpp"
 #include "mask.hpp"
+#include "meta.hpp"
 #include "mixer.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
@@ -67,15 +67,14 @@ namespace cse::help::game
     SDL_SetLogPriorities(debug ? SDL_LOG_PRIORITY_DEBUG : SDL_LOG_PRIORITY_ERROR);
     if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "game"))
       sdl_log("Could not set app metadata type");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, help::meta.organization.c_str()))
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_CREATOR_STRING, meta.organization.c_str()))
       sdl_log("Could not set app metadata creator");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, help::meta.application.c_str()))
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_NAME_STRING, meta.application.c_str()))
       sdl_log("Could not set app metadata name");
-    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, help::meta.version.c_str()))
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_VERSION_STRING, meta.version.c_str()))
       sdl_log("Could not set app metadata version");
-    if (!SDL_SetAppMetadataProperty(
-          SDL_PROP_APP_METADATA_IDENTIFIER_STRING,
-          (help::meta.organization + "-" + help::meta.application + "-" + help::meta.version).c_str()))
+    if (!SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_IDENTIFIER_STRING,
+                                    (meta.organization + "-" + meta.application + "-" + meta.version).c_str()))
       sdl_log("Could not set app metadata identifier");
 
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) throw sdl_exception("SDL could not be prepared");
@@ -1540,15 +1539,6 @@ namespace cse
     : active{initial_.tick,     initial_.frame,  initial_.aspect, initial_.clear, initial_.memory,
              initial_.language, initial_.master, initial_.sound,  initial_.music}
   {
-    help::meta = {initial_.meta.organization, initial_.meta.application, initial_.meta.version, {}};
-    char *path{SDL_GetPrefPath(help::meta.organization.c_str(), help::meta.application.c_str())};
-    if (!path)
-    {
-      sdl_log("Failed to get preferred system path");
-      return;
-    }
-    help::meta.output = path;
-    SDL_free(path);
   }
 
   scene &game::current(const name scene_name)

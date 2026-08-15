@@ -84,19 +84,20 @@ should do the following:
 
 ### Entry Point
 Define `cse::main` - the engine provides the real entry point (SDL's app callbacks) and wraps your code in error
-handling. Create the game from a setup function and return it; the engine then drives it through `SDL_AppInit`,
-`SDL_AppEvent`, `SDL_AppIterate` and `SDL_AppQuit`:
+handling. Create the game from a setup function and return it along with the app's metadata; the engine then drives it
+through `SDL_AppInit`, `SDL_AppEvent`, `SDL_AppIterate` and `SDL_AppQuit`:
 
 ```cpp
+#include "cse/exception.hpp"
 #include "cse/main.hpp"
 #include "cse/game.hpp"
 
 #include "game.hpp"
 
-std::shared_ptr<cse::game> cse::main(const std::vector<std::string_view> &arguments)
+auto cse::main(const arguments &arguments) -> application // arguments is a std::vector<std::string_view>
 {
   if (arguments.size() != 1) throw exception("Expected 1 argument, got {}", arguments.size());
-  return game::create(custom::game::setup);
+  return {game::create(custom::game::setup), {"MyName", "MyGame", "1.0.0"}};
 }
 ```
 
@@ -120,13 +121,12 @@ namespace custom
   };
 
   game::game()
-    : cse::game({.meta = {.organization = "ConnorSweeneyDev", .application = "CSGame", .version = "1.0.0"},
-                 .tick = 300.0,
+    : cse::game({.tick = 300.0,
                  .frame = 144.0,
                  .aspect = {.ratio = 16.0 / 9.0, .resolution = 180, .scaling = VIRTUAL},
                  .clear = {{0.0, 0.0, 0.0}},
                  .memory = {.vram = 512, .ram = 128},
-                 .language = language::EN,
+                 .language = language::en,
                  .master = {0.5},
                  .sound = {1.0},
                  .music = {1.0}}) {};
@@ -437,8 +437,8 @@ if (!sfx.loop && sfx.elapsed.tick >= sfx.source.duration) do_something();
 ### Persistent State
 A `state` is a JSON-backed settings blob saved under the OS user-data directory. Declare fields with the `ENLIST` macro
 (it builds a plain struct *and* its JSON serializers in one place - pass each field as a `(name, type, init)` tuple, add
-as many as you like), expose them with `STORE`, and call `read()`/`write()` which return `false` if anything unexpected
-happens (missing file does not count as unexpected) and `true` otherwise:
+as many as you like), expose them with `STORE`, and call `read()` (which returns false if defaults are fallen back on)
+and `write()` (which returns false if the current state cannot be saved):
 
 ```cpp
 class settings final : public cse::state
@@ -463,8 +463,7 @@ the preprocessor reads the tuple correctly. Both macros take the same `(name, ty
 fields per struct.
 
 State I/O never crashes the game: a file that can't be opened or parsed is renamed to `.bak` and defaults are used, and
-a failed write is skipped - both with a logged warning. A field whose JSON value does not match its type is
-handled on its own by taking it's default value, and a logged warning tracks this.
+a failed write is skipped - both with a logged warning.
 
 Then load and save whenever you want:
 
@@ -472,10 +471,11 @@ Then load and save whenever you want:
 void window::on_create()
 {
   const auto &settings = find_as<csg::settings>(game->active.states, "settings");
-  if (!settings->read()) throw cse::exception("Failed to read settings");
-  active.width = settings->window.size.first;
-  active.mode  = settings->window.mode;
-  active.vsync = settings->window.vsync;
+  if (!settings->read()) { /* Special handling for if defaults are unexpectedly relied on */ }
+  active.width  = settings->window.size.first;
+  active.height = settings->window.size.second;
+  active.mode   = settings->window.mode;
+  active.vsync  = settings->window.vsync;
 }
 void window::on_destroy()
 {
@@ -483,7 +483,7 @@ void window::on_destroy()
   settings->window.size  = {active.width, active.height};
   settings->window.mode  = active.mode;
   settings->window.vsync = active.vsync;
-  if (!settings->write()) throw cse::exception("Failed to write settings");
+  if (!settings->write()) { /* Special handling for if state cannot be written */ }
 }
 ```
 
@@ -495,14 +495,14 @@ namespace, both nested in whatever namespace you expand them in:
 ```cpp
 namespace custom
 {
-  LANGUAGES(EN, SP, FR);
+  LANGUAGES(en, sp, fr);
 
-  TRANSLATE(welcome_message, (EN, "Welcome!"), (SP, "¡Bienvenido!"), (FR, "Bienvenue!"));
-  TRANSLATE(menu_play,       (EN, "Play"),     (SP, "Jugar"),        (FR, "Jouer"));
+  TRANSLATE(welcome_message, (en, "Welcome!"), (sp, "¡Bienvenido!"), (fr, "Bienvenue!"));
+  TRANSLATE(menu_play,       (en, "Play"),     (sp, "Jugar"),        (fr, "Jouer"));
 }
 ```
 
-That gives you `custom::language::EN` (a `const char *`) and `custom::lexeme::welcome_message` (a translation key).
+That gives you `custom::language::en` (a `const char *`) and `custom::lexeme::welcome_message` (a translation key).
 Text `content` is a `cse::lexeme`, which is any mix of literals and keys that automatically translates based on the
 current language:
 
@@ -516,7 +516,7 @@ Assign `game->active.language` to switch; every lexeme holding a key re-resolves
 on your part:
 
 ```cpp
-active.language = language::FR;
+active.language = language::fr;
 ```
 
 ## Miscellaneous

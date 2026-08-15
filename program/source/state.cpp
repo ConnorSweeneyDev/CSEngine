@@ -1,5 +1,6 @@
 #include "state.hpp"
 
+#include <exception>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -13,13 +14,13 @@
 #include "core.hpp"
 #include "exception.hpp"
 #include "log.hpp"
+#include "meta.hpp"
 
 namespace cse::help
 {
   namespace state
   {
-    void log(std::string_view reason)
-    { cse::log("Could not parse state field \"{}\", using default{}", marker_trail, reason); }
+    void log(std::string_view reason) { cse::log("Could not parse state field \"{}\"{}", marker_trail, reason); }
   }
 
   marker::marker(const std::string_view name_) : length{marker_trail.size()}
@@ -44,23 +45,13 @@ namespace cse
 
   bool state::read()
   {
-    if (help::meta.output.empty())
+    if (!meta.output)
     {
-      log("Could not read state '{}': Failed to resolve the state directory", storage.string());
+      log("No access to user local directory, skipping read", storage.string());
       return false;
     }
-    std::filesystem::path file{help::meta.output / storage += ".json"};
-    std::error_code error{};
-    if (!std::filesystem::exists(file, error))
-    {
-      if (error)
-      {
-        log("Could not check state file '{}': {}", file.string(), error.message());
-        return false;
-      }
-      return true;
-    }
 
+    std::filesystem::path file{meta.output.value() / storage += ".json"};
     const auto discard{[&file](const std::string &reason)
                        {
                          auto backup{file};
@@ -72,8 +63,19 @@ namespace cse
                          std::filesystem::rename(file, backup, backup_error);
                          if (backup_error) log("Could not rename state file '{}'", file.string());
                        }};
+
     nlohmann::json json{};
     {
+      std::error_code error{};
+      if (!std::filesystem::exists(file, error))
+      {
+        if (error)
+        {
+          log("Could not check state file '{}': {}", file.string(), error.message());
+          return false;
+        }
+        return true;
+      }
       std::ifstream stream{file, std::ios::binary};
       if (!stream)
       {
@@ -96,30 +98,37 @@ namespace cse
       discard(std::format("type must be object, but is {}", json.type_name()));
       return false;
     }
+
     document = &json;
     writing = false;
+    fallback = false;
     try
     {
       enroll();
     }
-    catch (const nlohmann::json::exception &read_error)
+    catch (const std::exception &read_error)
     {
       document = nullptr;
       discard(read_error.what());
       return false;
     }
     document = nullptr;
+    if (fallback)
+    {
+      discard("fields were malformed");
+      return false;
+    }
     return true;
   }
 
   bool state::write()
   {
-    if (help::meta.output.empty())
+    if (!meta.output)
     {
-      log("Could not write state '{}': Failed to resolve the state directory", storage.string());
+      log("No access to user local directory, skipping write", storage.string());
       return false;
     }
-    std::filesystem::path file{help::meta.output / storage += ".json"};
+    std::filesystem::path file{meta.output.value() / storage += ".json"};
     std::error_code error{};
     std::filesystem::create_directories(file.parent_path(), error);
     if (error)
@@ -146,7 +155,7 @@ namespace cse
       stream.close();
       if (!stream)
       {
-        log("Could not write state file '{}'", temporary.string());
+        log("Could not write state file '{}'; skipping write", temporary.string());
         std::filesystem::remove(temporary);
         return false;
       }
@@ -154,7 +163,7 @@ namespace cse
     std::filesystem::rename(temporary, file, error);
     if (error)
     {
-      log("Could not rename temporary state file to '{}'", file.string());
+      log("Could not rename temporary state file to '{}'; skipping write", file.string());
       std::filesystem::remove(temporary);
       return false;
     }

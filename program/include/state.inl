@@ -1,11 +1,13 @@
 #pragma once
 
-#include "exception.hpp"
 #include "state.hpp"
+
+#include <exception>
 
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 
+#include "exception.hpp"
 #include "log.hpp"
 
 namespace cse
@@ -24,9 +26,10 @@ namespace cse
     {
       document->at(key).get_to(value);
     }
-    catch (const nlohmann::json::exception &error)
+    catch (const std::exception &error)
     {
-      log("Could not parse state field \"{}\", using default: {}", help::marker_trail, error.what());
+      fallback = true;
+      log("Could not parse state field \"{}\": {}", help::marker_trail, error.what());
     }
   }
 }
