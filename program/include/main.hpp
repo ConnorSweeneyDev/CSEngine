@@ -14,7 +14,7 @@ namespace cse
     std::shared_ptr<cse::game> instance{};
     cse::meta::initial meta{};
   };
-  using arguments = std::vector<std::string_view>;
+  using arglist = std::vector<std::string_view>;
 
-  application main(const arguments &arguments);
+  application main(const arglist &arguments);
 }

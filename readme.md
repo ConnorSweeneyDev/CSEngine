@@ -94,7 +94,7 @@ through `SDL_AppInit`, `SDL_AppEvent`, `SDL_AppIterate` and `SDL_AppQuit`:
 
 #include "game.hpp"
 
-auto cse::main(const arguments &arguments) -> application // arguments is a std::vector<std::string_view>
+auto cse::main(const arglist &arguments) -> application // arglist == std::vector<std::string_view>
 {
   if (arguments.size() != 1) throw exception("Expected 1 argument, got {}", arguments.size());
   return {game::create(custom::game::setup), {"MyName", "MyGame", "1.0.0"}};
