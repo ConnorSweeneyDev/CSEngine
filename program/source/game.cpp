@@ -647,9 +647,8 @@ namespace cse::help::game
     graphics_bounds.bounded = true;
     for (int index{}; index < 8 && graphics_bounds.bounded; ++index)
     {
-      const glm::dvec4 corner{(index & 1) != 0 ? 1.0 : -1.0, (index & 2) != 0 ? 1.0 : -1.0,
-                              (index & 4) != 0 ? 1.0 : 0.0, 1.0};
-      const auto point{inverse * corner};
+      const auto point{inverse * glm::dvec4{(index & 1) != 0 ? 1.0 : -1.0, (index & 2) != 0 ? 1.0 : -1.0,
+                                            (index & 4) != 0 ? 1.0 : 0.0, 1.0}};
       const glm::dvec3 world{glm::dvec3{point} / point.w};
       if (std::abs(point.w) < 1e-9 || !std::isfinite(world.x) || !std::isfinite(world.y) || !std::isfinite(world.z))
       {
@@ -1010,7 +1009,6 @@ namespace cse::help::game
         const auto &image{entry.image};
         const std::size_t stride{image.width + 1};
         const std::size_t step{image.channels};
-        const std::size_t channel{image.channels - 1};
         auto *table{pixels + cursor};
         for (std::size_t column{}; column <= image.width; ++column) table[column] = 0;
         for (std::size_t row{}; row < image.height; ++row)
@@ -1021,7 +1019,7 @@ namespace cse::help::game
           Uint32 running{};
           for (std::size_t column{}; column < image.width; ++column)
           {
-            running += image.data[(((row * image.width) + column) * step) + channel];
+            running += image.data[(((row * image.width) + column) * step) + step - 1];
             current[column + 1] = behind[column + 1] + running;
           }
         }
