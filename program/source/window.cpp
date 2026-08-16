@@ -157,6 +157,34 @@ namespace cse::help::window
       const SDL_GPUTexture *texture{};
       const auto &batches{game_active.graphics_object.batches};
       const auto split{game_active.graphics_object.split};
+
+      if (split > 0 && game_active.graphics_pipeline.depth)
+      {
+        const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.world.first},
+                                                glm::mat4{game_active.graphics_object.world.second}};
+        auto prepass_data{game_active.graphics_light.data};
+        prepass_data.meta.at(0) = 0.0f;
+        prepass_data.meta.at(1) = 0.0f;
+        SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
+        SDL_PushGPUFragmentUniformData(command_buffer, 0, &prepass_data, sizeof(prepass_data));
+        SDL_BindGPUGraphicsPipeline(render_pass, game_active.graphics_pipeline.depth);
+        for (std::size_t index{}; index < split; ++index)
+        {
+          const auto &group{batches.at(index)};
+          if (group.pipeline != game_active.graphics_pipeline.opaque) continue;
+          if (group.texture != texture)
+          {
+            const SDL_GPUTextureSamplerBinding texture_binding{.texture = group.texture,
+                                                               .sampler = game_active.graphics_buffer.nearest};
+            SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_binding, 1);
+            texture = group.texture;
+          }
+          SDL_DrawGPUIndexedPrimitives(render_pass, 6, static_cast<Uint32>(group.count), 0, 0,
+                                       static_cast<Uint32>(group.first));
+        }
+        texture = nullptr;
+      }
+
       for (std::size_t index{}; index < batches.size(); ++index)
       {
         if (index == 0 && split > 0)

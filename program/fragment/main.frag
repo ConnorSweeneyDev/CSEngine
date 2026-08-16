@@ -19,6 +19,14 @@ struct Occluder
   float4 surface;   // x = z plane, y = array layer, z = transparency, w = rotated (odd quarter turn)
   float4 shadow;    // x = penetration, y = cast (0 = only absorbs its own light), z = darkness, w = softness
 };
+struct Region
+{
+  float2 lower; // frame uv minimum
+  float2 upper; // frame uv maximum
+  float2 texel; // one layer texel in uv
+  float2 inset; // half a layer texel in uv
+  float layer;  // occluder array layer
+};
 
 Texture2D<float4> texture_buffer : register(t0, space2);
 SamplerState texture_sampler : register(s0, space2);
@@ -31,28 +39,35 @@ cbuffer light_data : register(b0, space3)
   float4 meta; // x = active light count, y = active occluder count, z = occluder array width, w = height
 };
 
-static const float SHADOW_RADIUS = 8.0f;       // max penumbra radius (world units) at softness 1
-static const float SHADOW_GOLDEN = 2.3999632f; // golden angle (radians)
+static const float SHADOW_RADIUS = 8.0f; // penumbra radius (world units) at softness 1, caster adjacent to the light
+static const float2 SHADOW_TURN = float2(-0.7373689f, 0.6754903f); // cos/sin of the golden angle (2.3999632 radians)
 
 float2 layer_texel() { return 1.0f / float2(max(meta.z, 1.0f), max(meta.w, 1.0f)); }
-float occluder_sharp(Occluder occluder, float2 uv)
+Region occluder_region(Occluder occluder)
 {
-  float2 lo = min(occluder.frame.xy, occluder.frame.zw);
-  float2 hi = max(occluder.frame.xy, occluder.frame.zw);
-  float2 texel = layer_texel();
-  float2 inset = 0.5f * texel;
-  if (uv.x < lo.x - inset.x || uv.x > hi.x + inset.x || uv.y < lo.y - inset.y || uv.y > hi.y + inset.y) return 0.0f;
-  float2 snapped = clamp((floor(uv / texel) + 0.5f) * texel, lo + inset, hi - inset);
-  return occluder_buffers.SampleLevel(occluder_sampler, float3(snapped, occluder.surface.y), 0).a;
+  Region region;
+  region.lower = min(occluder.frame.xy, occluder.frame.zw);
+  region.upper = max(occluder.frame.xy, occluder.frame.zw);
+  region.texel = layer_texel();
+  region.inset = 0.5f * region.texel;
+  region.layer = occluder.surface.y;
+  return region;
 }
-float occluder_soft(Occluder occluder, float2 uv)
+float occluder_sharp(Region region, float2 uv)
 {
-  float2 lo = min(occluder.frame.xy, occluder.frame.zw);
-  float2 hi = max(occluder.frame.xy, occluder.frame.zw);
-  if (uv.x < lo.x || uv.x > hi.x || uv.y < lo.y || uv.y > hi.y) return 0.0f;
-  float2 inset = 0.5f * layer_texel();
+  if (uv.x < region.lower.x - region.inset.x || uv.x > region.upper.x + region.inset.x ||
+      uv.y < region.lower.y - region.inset.y || uv.y > region.upper.y + region.inset.y)
+    return 0.0f;
+  float2 snapped =
+    clamp((floor(uv / region.texel) + 0.5f) * region.texel, region.lower + region.inset, region.upper - region.inset);
+  return occluder_buffers.SampleLevel(occluder_sampler, float3(snapped, region.layer), 0).a;
+}
+float occluder_soft(Region region, float2 uv)
+{
+  if (uv.x < region.lower.x || uv.x > region.upper.x || uv.y < region.lower.y || uv.y > region.upper.y) return 0.0f;
   return occluder_buffers
-    .SampleLevel(occluder_sampler, float3(clamp(uv, lo + inset, hi - inset), occluder.surface.y), 0)
+    .SampleLevel(occluder_sampler,
+                 float3(clamp(uv, region.lower + region.inset, region.upper - region.inset), region.layer), 0)
     .a;
 }
 float2 occluder_uv(Occluder occluder, float2 hit)
@@ -81,14 +96,15 @@ float transmittance(float3 pixel, float3 towards, int count, float shadow, float
     if (t <= 0.0f || t >= 1.0f - 1e-4f) continue;
     float2 hit = lerp(pixel.xy, towards.xy, t);
     float world_softness = saturate(occluder.shadow.w * softness);
-    float world_blur = world_softness * SHADOW_RADIUS;
+    float world_blur = world_softness * SHADOW_RADIUS * t;
     if (hit.x < occluder.rectangle.x - world_blur || hit.x > occluder.rectangle.z + world_blur ||
         hit.y < occluder.rectangle.y - world_blur || hit.y > occluder.rectangle.w + world_blur)
       continue;
+    Region region = occluder_region(occluder);
     float2 uv = occluder_uv(occluder, hit);
     float alpha;
     if (world_blur <= 1e-3f)
-      alpha = occluder_sharp(occluder, uv);
+      alpha = occluder_sharp(region, uv);
     else
     {
       float2 world_size =
@@ -97,13 +113,15 @@ float transmittance(float3 pixel, float3 towards, int count, float shadow, float
       float2 uv_per_world = float2((occluder.frame.z - occluder.frame.x) / world_size.x,
                                    (occluder.frame.w - occluder.frame.y) / world_size.y);
       float2 radius = uv_per_world * world_blur;
-      int taps = (int)clamp(world_blur * 4.0f, 16.0f, 64.0f);
+      int taps = (int)clamp(world_blur * 4.0f, 4.0f, 32.0f);
+      float2 spin = float2(1.0f, 0.0f);
       float sum = 0.0f;
       for (int k = 0; k < taps; ++k)
       {
         float fraction = (k + 0.5f) / taps;
-        float2 offset = sqrt(fraction) * float2(cos(k * SHADOW_GOLDEN), sin(k * SHADOW_GOLDEN));
-        sum += occluder_soft(occluder, uv + offset * radius);
+        sum += occluder_soft(region, uv + (sqrt(fraction) * spin * radius));
+        spin = float2((spin.x * SHADOW_TURN.x) - (spin.y * SHADOW_TURN.y),
+                      (spin.x * SHADOW_TURN.y) + (spin.y * SHADOW_TURN.x));
       }
       alpha = sum / taps;
     }
@@ -162,23 +180,24 @@ float penetration(float3 pixel, float3 source, int count, float strength, float 
       exit = min(exit, max(first, second));
     }
     if (exit <= enter) continue;
+    Region region = occluder_region(occluder);
     float crossing = (exit - enter) * span;
-    int taps = (int)clamp(crossing, 4.0f, 32.0f);
-    int blurs = world_blur <= 1e-3f ? 1 : (int)clamp(world_blur * 2.0f, 2.0f, 8.0f);
+    int taps = (int)clamp(crossing, 4.0f, 16.0f);
+    int blurs = world_blur <= 1e-3f ? 1 : (int)clamp(world_blur * 2.0f, 2.0f, 4.0f);
     float sum = 0.0f;
     for (int k = 0; k < taps; ++k)
     {
       float t = lerp(enter, exit, (k + 0.5f) / taps);
       float2 hit = source.xy + delta * t;
       if (blurs == 1)
-        sum += occluder_sharp(occluder, occluder_uv(occluder, hit));
+        sum += occluder_sharp(region, occluder_uv(occluder, hit));
       else
       {
         float total = 0.0f;
         for (int j = 0; j < blurs; ++j)
         {
           float2 shifted = hit + normal * (((j + 0.5f) / blurs) * 2.0f - 1.0f) * world_blur;
-          total += occluder_soft(occluder, occluder_uv(occluder, shifted));
+          total += occluder_soft(region, occluder_uv(occluder, shifted));
         }
         sum += total / blurs;
       }

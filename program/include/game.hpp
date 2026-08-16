@@ -142,13 +142,66 @@ namespace cse::help::game
     };
     struct graphics_pipeline
     {
+      SDL_GPUGraphicsPipeline *depth{};
       SDL_GPUGraphicsPipeline *opaque{};
       SDL_GPUGraphicsPipeline *transparent{};
       SDL_GPUGraphicsPipeline *interface{};
     };
-    struct graphics_interface
+    struct graphics_cache
     {
-      std::vector<cse::interface *> order{};
+      using texture_key = std::pair<const unsigned char *, std::size_t>;
+      std::unordered_map<texture_key, cached<SDL_GPUTexture *>, pair_hash> texture{};
+    };
+    struct graphics_bounds
+    {
+      glm::dvec3 upper{};
+      glm::dvec3 lower{};
+      bool bounded;
+    };
+    struct graphics_light
+    {
+      struct header
+      {
+        std::array<float, 4> meta{};
+      };
+      struct entry
+      {
+        std::array<float, 4> position{};
+        std::array<float, 4> brightness{};
+        std::array<float, 4> direction{};
+        std::array<float, 4> cone{};
+      };
+      header data{};
+      std::vector<entry> samples{};
+      std::size_t capacity{};
+      SDL_GPUBuffer *buffer{};
+      SDL_GPUTransferBuffer *transfer_buffer{};
+    };
+    struct graphics_occluder
+    {
+      struct entry
+      {
+        std::array<float, 4> rectangle{};
+        std::array<float, 4> frame{};
+        std::array<float, 4> surface{};
+        std::array<float, 4> shadow{};
+      };
+      struct layer
+      {
+        cse::image image{};
+        double stamp{};
+      };
+      std::vector<entry> samples{};
+      std::vector<float> indices{};
+      std::vector<layer> layers{};
+      std::vector<std::uint8_t> doomed{};
+      std::vector<float> remap{};
+      std::vector<float> compact{};
+      std::size_t capacity{};
+      SDL_GPUBuffer *buffer{};
+      SDL_GPUTransferBuffer *transfer_buffer{};
+      SDL_GPUTexture *texture{};
+      unsigned int width{}, height{};
     };
     struct graphics_object
     {
@@ -225,54 +278,9 @@ namespace cse::help::game
       std::vector<quad> quads{};
       std::vector<block> blocks{};
     };
-    struct graphics_light
+    struct graphics_interface
     {
-      struct header
-      {
-        std::array<float, 4> meta{};
-      };
-      struct entry
-      {
-        std::array<float, 4> position{};
-        std::array<float, 4> brightness{};
-        std::array<float, 4> direction{};
-        std::array<float, 4> cone{};
-      };
-      header data{};
-      std::vector<entry> samples{};
-      std::size_t capacity{};
-      SDL_GPUBuffer *buffer{};
-      SDL_GPUTransferBuffer *transfer_buffer{};
-    };
-    struct graphics_occluder
-    {
-      struct entry
-      {
-        std::array<float, 4> rectangle{};
-        std::array<float, 4> frame{};
-        std::array<float, 4> surface{};
-        std::array<float, 4> shadow{};
-      };
-      struct layer
-      {
-        cse::image image{};
-        double stamp{};
-      };
-      std::vector<entry> samples{};
-      std::vector<float> indices{};
-      std::vector<layer> layers{};
-      std::vector<std::uint8_t> doomed{};
-      std::vector<float> remap{};
-      std::size_t capacity{};
-      SDL_GPUBuffer *buffer{};
-      SDL_GPUTransferBuffer *transfer_buffer{};
-      SDL_GPUTexture *texture{};
-      unsigned int width{}, height{};
-    };
-    struct graphics_cache
-    {
-      using texture_key = std::pair<const unsigned char *, std::size_t>;
-      std::unordered_map<texture_key, cached<SDL_GPUTexture *>, pair_hash> texture{};
+      std::vector<cse::interface *> order{};
     };
 
     struct channel
@@ -389,6 +397,7 @@ namespace cse::help::game
     active::graphics_pipeline graphics_pipeline{};
     active::graphics_cache graphics_cache{};
     std::array<glm::dvec4, 6> graphics_frustum{};
+    active::graphics_bounds graphics_bounds{};
     active::graphics_light graphics_light{};
     active::graphics_occluder graphics_occluder{};
     active::graphics_object graphics_object{};

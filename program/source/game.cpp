@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -22,15 +23,18 @@
 #include "SDL3/SDL_timer.h"
 #include "SDL3_mixer/SDL_mixer.h"
 #include "csp/csp.hpp"
+#include "glm/common.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
+#include "glm/ext/vector_double4.hpp"
 #include "glm/ext/vector_float4.hpp"
 #include "glm/geometric.hpp"
 #include "glm/gtc/matrix_access.hpp"
+#include "glm/matrix.hpp"
 #include "glm/trigonometric.hpp"
 
 #include "collision.hpp"
@@ -463,6 +467,7 @@ namespace cse::help::game
     SDL_ReleaseGPUGraphicsPipeline(video, graphics_pipeline.interface);
     SDL_ReleaseGPUGraphicsPipeline(video, graphics_pipeline.transparent);
     SDL_ReleaseGPUGraphicsPipeline(video, graphics_pipeline.opaque);
+    SDL_ReleaseGPUGraphicsPipeline(video, graphics_pipeline.depth);
     SDL_ReleaseGPUSampler(video, graphics_buffer.linear);
     SDL_ReleaseGPUSampler(video, graphics_buffer.nearest);
     SDL_ReleaseGPUBuffer(video, graphics_buffer.index);
@@ -495,6 +500,7 @@ namespace cse::help::game
     graphics_pipeline.interface = nullptr;
     graphics_pipeline.transparent = nullptr;
     graphics_pipeline.opaque = nullptr;
+    graphics_pipeline.depth = nullptr;
     graphics_buffer.linear = nullptr;
     graphics_buffer.nearest = nullptr;
     graphics_buffer.index = nullptr;
@@ -635,6 +641,25 @@ namespace cse::help::game
     graphics_frustum.at(5) = glm::row(matrix, 3) - glm::row(matrix, 2);
     for (auto &plane : graphics_frustum)
       if (const auto length{glm::length(glm::dvec3{plane})}; length > 0.0) plane /= length;
+
+    const auto inverse{glm::inverse(matrix)};
+    graphics_bounds.upper = glm::dvec3{std::numeric_limits<double>::max()};
+    graphics_bounds.lower = glm::dvec3{std::numeric_limits<double>::lowest()};
+    graphics_bounds.bounded = true;
+    for (int index{}; index < 8 && graphics_bounds.bounded; ++index)
+    {
+      const glm::dvec4 corner{(index & 1) != 0 ? 1.0 : -1.0, (index & 2) != 0 ? 1.0 : -1.0,
+                              (index & 4) != 0 ? 1.0 : 0.0, 1.0};
+      const auto point{inverse * corner};
+      const glm::dvec3 world{glm::dvec3{point} / point.w};
+      if (std::abs(point.w) < 1e-9 || !std::isfinite(world.x) || !std::isfinite(world.y) || !std::isfinite(world.z))
+      {
+        graphics_bounds.bounded = false;
+        break;
+      }
+      graphics_bounds.upper = glm::min(graphics_bounds.upper, world);
+      graphics_bounds.lower = glm::max(graphics_bounds.lower, world);
+    }
   }
 
   void active::generate_text(const std::vector<cse::object *> &object_order)
@@ -1042,6 +1067,79 @@ namespace cse::help::game
                     return !inside_frustum(center, range + cull_margin);
                   });
     graphics_light.data.meta.at(0) = static_cast<float>(graphics_light.samples.size());
+
+    static constexpr double shadow_reach{8.0};
+    const auto reachable{
+      [this, amplification](const graphics_occluder::entry &entry)
+      {
+        const auto plane{static_cast<double>(entry.surface.at(0))};
+        const auto left{static_cast<double>(entry.rectangle.at(0)) - shadow_reach};
+        const auto bottom{static_cast<double>(entry.rectangle.at(1)) - shadow_reach};
+        const auto right{static_cast<double>(entry.rectangle.at(2)) + shadow_reach};
+        const auto top{static_cast<double>(entry.rectangle.at(3)) + shadow_reach};
+        for (const auto &light : graphics_light.samples)
+        {
+          const glm::dvec3 position{light.position.at(0), light.position.at(1), light.position.at(2)};
+          const auto range{std::max(static_cast<double>(light.position.at(3)), 1e-4)};
+          if (light.direction.at(3) > 0.5f)
+          {
+            if (!graphics_bounds.bounded) return true;
+            const auto depth{static_cast<double>(light.direction.at(2))};
+            auto first_x{left}, first_y{bottom}, second_x{right}, second_y{top};
+            if (std::abs(depth) > 1e-6)
+            {
+              const auto near_shift{graphics_bounds.upper.z - plane};
+              const auto far_shift{graphics_bounds.lower.z - plane};
+              const auto ratio_x{static_cast<double>(light.direction.at(0)) / depth};
+              const auto ratio_y{static_cast<double>(light.direction.at(1)) / depth};
+              first_x += std::min(near_shift * ratio_x, far_shift * ratio_x);
+              second_x += std::max(near_shift * ratio_x, far_shift * ratio_x);
+              first_y += std::min(near_shift * ratio_y, far_shift * ratio_y);
+              second_y += std::max(near_shift * ratio_y, far_shift * ratio_y);
+            }
+            if (second_x < graphics_bounds.upper.x - cull_margin || first_x > graphics_bounds.lower.x + cull_margin ||
+                second_y < graphics_bounds.upper.y - cull_margin || first_y > graphics_bounds.lower.y + cull_margin)
+              continue;
+            return true;
+          }
+          if (static_cast<double>(light.cone.at(2)) * amplification > 1.0)
+          {
+            if (!graphics_bounds.bounded) return true;
+            if (right < std::min(graphics_bounds.upper.x, position.x) - cull_margin ||
+                left > std::max(graphics_bounds.lower.x, position.x) + cull_margin ||
+                top < std::min(graphics_bounds.upper.y, position.y) - cull_margin ||
+                bottom > std::max(graphics_bounds.lower.y, position.y) + cull_margin)
+              continue;
+            return true;
+          }
+          if (std::abs(position.z - plane) > range) continue;
+          const auto offset_x{position.x - std::clamp(position.x, left, right)};
+          const auto offset_y{position.y - std::clamp(position.y, bottom, top)};
+          if ((offset_x * offset_x) + (offset_y * offset_y) > range * range) continue;
+          return true;
+        }
+        return false;
+      }};
+
+    auto &compact{graphics_occluder.compact};
+    compact.assign(graphics_occluder.samples.size(), -1.0f);
+    std::size_t kept{};
+    for (std::size_t index{}; index < graphics_occluder.samples.size(); ++index)
+    {
+      if (!reachable(graphics_occluder.samples.at(index))) continue;
+      compact.at(index) = static_cast<float>(kept);
+      if (kept != index) graphics_occluder.samples.at(kept) = graphics_occluder.samples.at(index);
+      ++kept;
+    }
+    if (kept != graphics_occluder.samples.size())
+    {
+      graphics_occluder.samples.resize(kept);
+      for (auto &value : graphics_occluder.indices)
+        if (value >= 0.0f) value = compact.at(static_cast<std::size_t>(value));
+      for (auto &quad : graphics_text.quads)
+        if (quad.occluder >= 0.0f) quad.occluder = compact.at(static_cast<std::size_t>(quad.occluder));
+      graphics_light.data.meta.at(1) = static_cast<float>(kept);
+    }
   }
 
   void active::generate_objects(const std::vector<cse::object *> &object_order)
@@ -1358,10 +1456,14 @@ namespace cse::help::game
     rasterizer_state.enable_depth_clip = true;
     SDL_GPUColorTargetDescription opaque_color_target_description{};
     opaque_color_target_description.format = SDL_GetGPUSwapchainTextureFormat(video, window->active.instance);
+    SDL_GPUDepthStencilState prepass_depth_stencil_state{};
+    prepass_depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+    prepass_depth_stencil_state.enable_depth_test = true;
+    prepass_depth_stencil_state.enable_depth_write = true;
     SDL_GPUDepthStencilState opaque_depth_stencil_state{};
-    opaque_depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+    opaque_depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_EQUAL;
     opaque_depth_stencil_state.enable_depth_test = true;
-    opaque_depth_stencil_state.enable_depth_write = true;
+    opaque_depth_stencil_state.enable_depth_write = false;
     const auto type{SDL_GPU_TEXTURETYPE_2D};
     const std::array<SDL_GPUTextureFormat, 3> potential_formats{
       SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
@@ -1378,6 +1480,21 @@ namespace cse::help::game
     opaque_target_info.has_depth_stencil_target = true;
     if (opaque_target_info.depth_stencil_format == SDL_GPU_TEXTUREFORMAT_INVALID)
       throw sdl_exception("No supported depth stencil format found for game");
+    SDL_GPUColorTargetDescription prepass_color_target_description{opaque_color_target_description};
+    prepass_color_target_description.blend_state.color_write_mask = 0;
+    prepass_color_target_description.blend_state.enable_color_write_mask = true;
+    SDL_GPUGraphicsPipelineTargetInfo prepass_target_info{opaque_target_info};
+    prepass_target_info.color_target_descriptions = &prepass_color_target_description;
+    SDL_GPUGraphicsPipelineCreateInfo prepass_pipeline_info{};
+    prepass_pipeline_info.vertex_shader = vertex_shader;
+    prepass_pipeline_info.fragment_shader = fragment_shader;
+    prepass_pipeline_info.vertex_input_state = vertex_input_state;
+    prepass_pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+    prepass_pipeline_info.rasterizer_state = rasterizer_state;
+    prepass_pipeline_info.depth_stencil_state = prepass_depth_stencil_state;
+    prepass_pipeline_info.target_info = prepass_target_info;
+    graphics_pipeline.depth = SDL_CreateGPUGraphicsPipeline(video, &prepass_pipeline_info);
+    if (!graphics_pipeline.depth) throw sdl_exception("Could not create depth prepass graphics pipeline for game");
     SDL_GPUGraphicsPipelineCreateInfo opaque_pipeline_info{};
     opaque_pipeline_info.vertex_shader = vertex_shader;
     opaque_pipeline_info.fragment_shader = fragment_shader;
