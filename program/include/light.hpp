@@ -18,8 +18,8 @@ namespace cse::help::light
     struct shape
     {
       bool global{};
-      temporal<double> range{};
-      temporal<double> angle{360};
+      temporal<double> range{10.0};
+      temporal<double> angle{360.0};
       temporal<double> feather{};
     };
     temporal<glm::dvec4> brightness{{1.0, 1.0, 1.0, 1.0}};
@@ -28,7 +28,7 @@ namespace cse::help::light
   };
   struct shadow
   {
-    bool cast{true};
+    bool cast{};
     temporal<double> darkness{1.0};
     temporal<double> softness{};
   };

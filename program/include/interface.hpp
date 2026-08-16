@@ -130,7 +130,7 @@ namespace cse
       const temporal<glm::dvec2> translation{};
       const temporal<double> rotation{};
       const temporal<glm::dvec2> scale{{1.0, 1.0}};
-      const bool interactable{true};
+      const bool interactable{};
       const help::interface::texture texture{};
       const help::interface::text text{};
       const help::interface::priority priority{};
