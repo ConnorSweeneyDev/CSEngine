@@ -45,7 +45,6 @@
 #include "light.hpp"
 #include "locale.hpp"
 #include "log.hpp"
-#include "mask.hpp"
 #include "meta.hpp"
 #include "mixer.hpp"
 #include "name.hpp"
@@ -96,7 +95,9 @@ namespace cse::help::game
 
   void active::create()
   {
-    video = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, debug, "vulkan");
+    if (!SDL_GPUSupportsShaderFormats(shader_format, gpu_backend))
+      throw sdl_exception("No supported shader formats found for {}", gpu_backend);
+    video = SDL_CreateGPUDevice(shader_format, debug, gpu_backend);
     if (!video) throw sdl_exception("Could not create GPU device");
 
     const std::array<corner, 4> vertices{
@@ -119,11 +120,6 @@ namespace cse::help::game
     sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     graphics_buffer.nearest = SDL_CreateGPUSampler(video, &sampler_info);
     if (!graphics_buffer.nearest) throw sdl_exception("Could not create nearest sampler for game");
-    SDL_GPUSamplerCreateInfo linear_sampler_info{sampler_info};
-    linear_sampler_info.min_filter = SDL_GPU_FILTER_LINEAR;
-    linear_sampler_info.mag_filter = SDL_GPU_FILTER_LINEAR;
-    graphics_buffer.linear = SDL_CreateGPUSampler(video, &linear_sampler_info);
-    if (!graphics_buffer.linear) throw sdl_exception("Could not create linear sampler for game");
     graphics_light.capacity = 16;
     const SDL_GPUBufferCreateInfo light_buffer_info{
       .usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
@@ -150,11 +146,16 @@ namespace cse::help::game
       .props = 0};
     graphics_occluder.transfer_buffer = SDL_CreateGPUTransferBuffer(video, &occluder_transfer_buffer_info);
     if (!graphics_occluder.transfer_buffer) throw sdl_exception("Could not create occluder transfer buffer for game");
-    const SDL_GPUTextureCreateInfo occluder_array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
-                                                       .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-                                                       .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
-                                                       .width = 1,
-                                                       .height = 1,
+    const auto type{SDL_GPU_TEXTURETYPE_2D_ARRAY};
+    const auto format{SDL_GPU_TEXTUREFORMAT_R32_UINT};
+    const auto usage{SDL_GPU_TEXTUREUSAGE_GRAPHICS_STORAGE_READ};
+    if (!SDL_GPUTextureSupportsFormat(video, format, type, usage))
+      throw sdl_exception("No supported occluder texture format found for game");
+    const SDL_GPUTextureCreateInfo occluder_array_info{.type = type,
+                                                       .format = format,
+                                                       .usage = usage,
+                                                       .width = 2,
+                                                       .height = 2,
                                                        .layer_count_or_depth = 1,
                                                        .num_levels = 1,
                                                        .sample_count = SDL_GPU_SAMPLECOUNT_1,
@@ -468,7 +469,6 @@ namespace cse::help::game
     SDL_ReleaseGPUGraphicsPipeline(video, graphics_pipeline.transparent);
     SDL_ReleaseGPUGraphicsPipeline(video, graphics_pipeline.opaque);
     SDL_ReleaseGPUGraphicsPipeline(video, graphics_pipeline.depth);
-    SDL_ReleaseGPUSampler(video, graphics_buffer.linear);
     SDL_ReleaseGPUSampler(video, graphics_buffer.nearest);
     SDL_ReleaseGPUBuffer(video, graphics_buffer.index);
     SDL_ReleaseGPUBuffer(video, graphics_buffer.vertex);
@@ -501,7 +501,6 @@ namespace cse::help::game
     graphics_pipeline.transparent = nullptr;
     graphics_pipeline.opaque = nullptr;
     graphics_pipeline.depth = nullptr;
-    graphics_buffer.linear = nullptr;
     graphics_buffer.nearest = nullptr;
     graphics_buffer.index = nullptr;
     graphics_buffer.vertex = nullptr;
@@ -715,8 +714,7 @@ namespace cse::help::game
       block.penetration =
         std::max(0.0, illumination.penetration.interpolated(element->previous.text.illumination.penetration, alpha));
       block.darkness = std::max(0.0, shadow.darkness.interpolated(element->previous.text.shadow.darkness, alpha));
-      block.softness =
-        std::clamp(shadow.softness.interpolated(element->previous.text.shadow.softness, alpha), 0.0, 1.0);
+      block.softness = std::max(0.0, shadow.softness.interpolated(element->previous.text.shadow.softness, alpha));
       block.steps =
         static_cast<int>(std::floor(element->active.rotation.interpolated(element->previous.rotation, alpha) + 0.5));
       const bool rotated{(((block.steps % 4) + 4) % 4) % 2 == 1};
@@ -784,11 +782,12 @@ namespace cse::help::game
         element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha)};
       const auto penetration{std::max(
         0.0, element->active.illumination.penetration.interpolated(element->previous.illumination.penetration, alpha))};
-      const auto range{element->active.illumination.range.interpolated(element->previous.illumination.range, alpha)};
-      const auto angle{element->active.illumination.angle.interpolated(element->previous.illumination.angle, alpha)};
+      const auto &shape{element->active.illumination.shape};
+      const auto &last_shape{element->previous.illumination.shape};
+      const auto range{shape.range.interpolated(last_shape.range, alpha)};
+      const auto angle{shape.angle.interpolated(last_shape.angle, alpha)};
       const auto half{angle / 2.0};
-      const auto softness{std::clamp(
-        element->active.illumination.softness.interpolated(element->previous.illumination.softness, alpha), 0.0, 1.0)};
+      const auto feather{std::clamp(shape.feather.interpolated(last_shape.feather, alpha), 0.0, 1.0)};
       const auto &shadow{element->active.shadow};
       const auto shadow_darkness{shadow.darkness.interpolated(element->previous.shadow.darkness, alpha)};
       const auto shadow_softness{shadow.softness.interpolated(element->previous.shadow.softness, alpha)};
@@ -804,11 +803,11 @@ namespace cse::help::game
       entry.direction.at(0) = static_cast<float>(direction.x);
       entry.direction.at(1) = static_cast<float>(direction.y);
       entry.direction.at(2) = static_cast<float>(direction.z);
-      entry.direction.at(3) = element->active.illumination.global ? 1.0f : 0.0f;
+      entry.direction.at(3) = shape.global ? 1.0f : 0.0f;
       entry.cone.at(0) = static_cast<float>(std::cos(glm::radians(half)));
-      entry.cone.at(1) = static_cast<float>(std::cos(glm::radians(half * (1.0 - softness))));
+      entry.cone.at(1) = static_cast<float>(std::cos(glm::radians(half * (1.0 - feather))));
       entry.cone.at(2) = static_cast<float>(penetration);
-      entry.cone.at(3) = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
+      entry.cone.at(3) = static_cast<float>(std::max(0.0, shadow_softness));
       graphics_light.samples.push_back(entry);
     }
   }
@@ -827,7 +826,8 @@ namespace cse::help::game
                               return static_cast<int>(index);
                             }
                           graphics_occluder.layers.push_back({image, time});
-                          actual_vram.current += static_cast<std::size_t>(image.width) * image.height * image.channels;
+                          actual_vram.current +=
+                            static_cast<std::size_t>(image.width + 1) * (image.height + 1) * sizeof(Uint32);
                           additions = true;
                           return static_cast<int>(graphics_occluder.layers.size() - 1);
                         }};
@@ -900,7 +900,7 @@ namespace cse::help::game
       entry.shadow.at(0) = static_cast<float>(penetration);
       entry.shadow.at(1) = element->active.texture.shadow.cast ? 1.0f : 0.0f;
       entry.shadow.at(2) = static_cast<float>(std::max(0.0, shadow_darkness));
-      entry.shadow.at(3) = static_cast<float>(std::clamp(shadow_softness, 0.0, 1.0));
+      entry.shadow.at(3) = static_cast<float>(std::max(0.0, shadow_softness));
       graphics_occluder.indices.at(position) = static_cast<float>(graphics_occluder.samples.size());
       graphics_occluder.samples.push_back(entry);
     }
@@ -944,7 +944,7 @@ namespace cse::help::game
 
     const auto weight{
       [](const graphics_occluder::layer &entry)
-      { return static_cast<std::size_t>(entry.image.width) * entry.image.height * entry.image.channels; }};
+      { return static_cast<std::size_t>(entry.image.width + 1) * (entry.image.height + 1) * sizeof(Uint32); }};
     auto &doomed{graphics_occluder.doomed};
     doomed.assign(graphics_occluder.layers.size(), 0);
     bool pruned{false};
@@ -983,14 +983,14 @@ namespace cse::help::game
       {
         max_width = std::max(max_width, entry.image.width);
         max_height = std::max(max_height, entry.image.height);
-        total += entry.image.width * entry.image.height * entry.image.channels;
+        total += (entry.image.width + 1) * (entry.image.height + 1) * static_cast<Uint32>(sizeof(Uint32));
       }
       SDL_ReleaseGPUTexture(video, graphics_occluder.texture);
       const SDL_GPUTextureCreateInfo array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
-                                                .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-                                                .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
-                                                .width = max_width,
-                                                .height = max_height,
+                                                .format = SDL_GPU_TEXTUREFORMAT_R32_UINT,
+                                                .usage = SDL_GPU_TEXTUREUSAGE_GRAPHICS_STORAGE_READ,
+                                                .width = max_width + 1,
+                                                .height = max_height + 1,
                                                 .layer_count_or_depth =
                                                   static_cast<Uint32>(graphics_occluder.layers.size()),
                                                 .num_levels = 1,
@@ -1002,21 +1002,37 @@ namespace cse::help::game
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = total, .props = 0};
       auto *transfer{SDL_CreateGPUTransferBuffer(video, &transfer_info)};
       if (!transfer) throw sdl_exception("Could not create occluder layer transfer buffer for game");
-      auto *pixels{static_cast<char *>(SDL_MapGPUTransferBuffer(video, transfer, false))};
+      auto *pixels{static_cast<Uint32 *>(SDL_MapGPUTransferBuffer(video, transfer, false))};
       if (!pixels) throw sdl_exception("Could not map occluder layer data for game");
-      Uint32 offset{};
+      std::size_t cursor{};
       for (const auto &entry : graphics_occluder.layers)
       {
-        const auto bytes{entry.image.width * entry.image.height * entry.image.channels};
-        SDL_memcpy(pixels + offset, entry.image.data.data(), bytes);
-        offset += bytes;
+        const auto &image{entry.image};
+        const std::size_t stride{image.width + 1};
+        const std::size_t step{image.channels};
+        const std::size_t channel{image.channels - 1};
+        auto *table{pixels + cursor};
+        for (std::size_t column{}; column <= image.width; ++column) table[column] = 0;
+        for (std::size_t row{}; row < image.height; ++row)
+        {
+          auto *behind{table + (row * stride)};
+          auto *current{behind + stride};
+          current[0] = 0;
+          Uint32 running{};
+          for (std::size_t column{}; column < image.width; ++column)
+          {
+            running += image.data[(((row * image.width) + column) * step) + channel];
+            current[column + 1] = behind[column + 1] + running;
+          }
+        }
+        cursor += stride * (image.height + 1);
       }
       SDL_UnmapGPUTransferBuffer(video, transfer);
       auto *command_buffer{SDL_AcquireGPUCommandBuffer(video)};
       if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
       auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
       if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
-      offset = 0;
+      Uint32 offset{};
       for (std::size_t layer{}; layer < graphics_occluder.layers.size(); ++layer)
       {
         const auto &image{graphics_occluder.layers.at(layer).image};
@@ -1028,11 +1044,11 @@ namespace cse::help::game
                                           .x = 0,
                                           .y = 0,
                                           .z = 0,
-                                          .w = image.width,
-                                          .h = image.height,
+                                          .w = image.width + 1,
+                                          .h = image.height + 1,
                                           .d = 1};
         SDL_UploadToGPUTexture(copy_pass, &source, &region, false);
-        offset += image.width * image.height * image.channels;
+        offset += (image.width + 1) * (image.height + 1) * static_cast<Uint32>(sizeof(Uint32));
       }
       SDL_EndGPUCopyPass(copy_pass);
       SDL_SubmitGPUCommandBuffer(command_buffer);
@@ -1068,19 +1084,19 @@ namespace cse::help::game
                   });
     graphics_light.data.meta.at(0) = static_cast<float>(graphics_light.samples.size());
 
-    static constexpr double shadow_reach{8.0};
     const auto reachable{
       [this, amplification](const graphics_occluder::entry &entry)
       {
         const auto plane{static_cast<double>(entry.surface.at(0))};
-        const auto left{static_cast<double>(entry.rectangle.at(0)) - shadow_reach};
-        const auto bottom{static_cast<double>(entry.rectangle.at(1)) - shadow_reach};
-        const auto right{static_cast<double>(entry.rectangle.at(2)) + shadow_reach};
-        const auto top{static_cast<double>(entry.rectangle.at(3)) + shadow_reach};
         for (const auto &light : graphics_light.samples)
         {
           const glm::dvec3 position{light.position.at(0), light.position.at(1), light.position.at(2)};
           const auto range{std::max(static_cast<double>(light.position.at(3)), 1e-4)};
+          const auto reach{static_cast<double>(light.cone.at(3)) * static_cast<double>(entry.shadow.at(3))};
+          const auto left{static_cast<double>(entry.rectangle.at(0)) - reach};
+          const auto bottom{static_cast<double>(entry.rectangle.at(1)) - reach};
+          const auto right{static_cast<double>(entry.rectangle.at(2)) + reach};
+          const auto top{static_cast<double>(entry.rectangle.at(3)) + reach};
           if (light.direction.at(3) > 0.5f)
           {
             if (!graphics_bounds.bounded) return true;
@@ -1402,13 +1418,10 @@ namespace cse::help::game
   struct active::graphics_pipeline &active::require_pipelines()
   {
     if (graphics_pipeline.opaque) return graphics_pipeline;
-    const auto backend_formats{SDL_GetGPUShaderFormats(video)};
-    if (!has(backend_formats, SDL_GPU_SHADERFORMAT_SPIRV))
-      throw sdl_exception("No supported vulkan shader formats for game");
     const SDL_GPUShaderCreateInfo vertex_shader_info{.code_size = shader::vertex.size(),
                                                      .code = shader::vertex.data(),
                                                      .entrypoint = "main",
-                                                     .format = SDL_GPU_SHADERFORMAT_SPIRV,
+                                                     .format = shader_format,
                                                      .stage = SDL_GPU_SHADERSTAGE_VERTEX,
                                                      .num_samplers = 0,
                                                      .num_storage_textures = 0,
@@ -1420,10 +1433,10 @@ namespace cse::help::game
     const SDL_GPUShaderCreateInfo fragment_shader_info{.code_size = shader::fragment.size(),
                                                        .code = shader::fragment.data(),
                                                        .entrypoint = "main",
-                                                       .format = SDL_GPU_SHADERFORMAT_SPIRV,
+                                                       .format = shader_format,
                                                        .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
-                                                       .num_samplers = 2,
-                                                       .num_storage_textures = 0,
+                                                       .num_samplers = 1,
+                                                       .num_storage_textures = 1,
                                                        .num_storage_buffers = 2,
                                                        .num_uniform_buffers = 1,
                                                        .props = 0};

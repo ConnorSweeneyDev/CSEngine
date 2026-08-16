@@ -46,9 +46,9 @@ namespace cse::help::light
     rotation.instant = false;
     illumination.brightness.instant = false;
     illumination.penetration.instant = false;
-    illumination.softness.instant = false;
-    illumination.range.instant = false;
-    illumination.angle.instant = false;
+    illumination.shape.range.instant = false;
+    illumination.shape.angle.instant = false;
+    illumination.shape.feather.instant = false;
     shadow.darkness.instant = false;
     shadow.softness.instant = false;
   }

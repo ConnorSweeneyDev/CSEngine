@@ -15,12 +15,16 @@ namespace cse::help::light
 {
   struct illumination
   {
-    bool global{};
+    struct shape
+    {
+      bool global{};
+      temporal<double> range{};
+      temporal<double> angle{360};
+      temporal<double> feather{};
+    };
     temporal<glm::dvec4> brightness{{1.0, 1.0, 1.0, 1.0}};
     temporal<double> penetration{1.0};
-    temporal<double> softness{};
-    temporal<double> range{};
-    temporal<double> angle{360};
+    illumination::shape shape{};
   };
   struct shadow
   {

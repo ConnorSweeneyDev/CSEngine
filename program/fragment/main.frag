@@ -17,60 +17,36 @@ struct Occluder
   float4 rectangle; // world-space xy bounds: minx, miny, maxx, maxy
   float4 frame;     // layer-space uv of the current frame: left, bottom, right, top
   float4 surface;   // x = z plane, y = array layer, z = transparency, w = rotated (odd quarter turn)
-  float4 shadow;    // x = penetration, y = cast (0 = only absorbs its own light), z = darkness, w = softness
+  float4 shadow;    // x = penetration, y = cast (0 = only absorbs its own light), z = darkness, w = softness scale
 };
 struct Region
 {
-  float2 lower; // frame uv minimum
-  float2 upper; // frame uv maximum
-  float2 texel; // one layer texel in uv
-  float2 inset; // half a layer texel in uv
+  float2 lower; // frame lower bound in layer texels
+  float2 upper; // frame upper bound in layer texels
   float layer;  // occluder array layer
 };
 
 Texture2D<float4> texture_buffer : register(t0, space2);
 SamplerState texture_sampler : register(s0, space2);
-Texture2DArray<float4> occluder_buffers : register(t1, space2);
-SamplerState occluder_sampler : register(s1, space2);
+Texture2DArray<uint> occluder_buffers : register(t1, space2);
 StructuredBuffer<Light> lights : register(t2, space2);
 StructuredBuffer<Occluder> occluders : register(t3, space2);
 cbuffer light_data : register(b0, space3)
 {
-  float4 meta; // x = active light count, y = active occluder count, z = occluder array width, w = height
+  float4 meta; // x = active light count, y = active occluder count, z = occluder layer width, w = height
 };
 
-static const float SHADOW_RADIUS = 8.0f; // penumbra radius (world units) at softness 1, caster adjacent to the light
-static const float2 SHADOW_TURN = float2(-0.7373689f, 0.6754903f); // cos/sin of the golden angle (2.3999632 radians)
-
-float2 layer_texel() { return 1.0f / float2(max(meta.z, 1.0f), max(meta.w, 1.0f)); }
+float2 layer_scale() { return float2(max(meta.z, 1.0f), max(meta.w, 1.0f)); }
 Region occluder_region(Occluder occluder)
 {
+  float2 scale = layer_scale();
   Region region;
-  region.lower = min(occluder.frame.xy, occluder.frame.zw);
-  region.upper = max(occluder.frame.xy, occluder.frame.zw);
-  region.texel = layer_texel();
-  region.inset = 0.5f * region.texel;
+  region.lower = min(occluder.frame.xy, occluder.frame.zw) * scale;
+  region.upper = max(occluder.frame.xy, occluder.frame.zw) * scale;
   region.layer = occluder.surface.y;
   return region;
 }
-float occluder_sharp(Region region, float2 uv)
-{
-  if (uv.x < region.lower.x - region.inset.x || uv.x > region.upper.x + region.inset.x ||
-      uv.y < region.lower.y - region.inset.y || uv.y > region.upper.y + region.inset.y)
-    return 0.0f;
-  float2 snapped =
-    clamp((floor(uv / region.texel) + 0.5f) * region.texel, region.lower + region.inset, region.upper - region.inset);
-  return occluder_buffers.SampleLevel(occluder_sampler, float3(snapped, region.layer), 0).a;
-}
-float occluder_soft(Region region, float2 uv)
-{
-  if (uv.x < region.lower.x || uv.x > region.upper.x || uv.y < region.lower.y || uv.y > region.upper.y) return 0.0f;
-  return occluder_buffers
-    .SampleLevel(occluder_sampler,
-                 float3(clamp(uv, region.lower + region.inset, region.upper - region.inset), region.layer), 0)
-    .a;
-}
-float2 occluder_uv(Occluder occluder, float2 hit)
+float2 occluder_texel(Occluder occluder, float2 hit)
 {
   float u = (hit.x - occluder.rectangle.x) / (occluder.rectangle.z - occluder.rectangle.x);
   float v = (hit.y - occluder.rectangle.y) / (occluder.rectangle.w - occluder.rectangle.y);
@@ -80,7 +56,48 @@ float2 occluder_uv(Occluder occluder, float2 hit)
     u = v;
     v = temporary;
   }
-  return lerp(occluder.frame.xy, occluder.frame.zw, float2(u, v));
+  return lerp(occluder.frame.xy, occluder.frame.zw, float2(u, v)) * layer_scale();
+}
+
+float occluder_prefix(Region region, float2 at)
+{
+  float2 base = floor(at);
+  float2 portion = at - base;
+  int2 corner = (int2)base;
+  int layer = (int)region.layer;
+  float first = (float)occluder_buffers.Load(int4(corner.x, corner.y, layer, 0));
+  float second = (float)occluder_buffers.Load(int4(corner.x + 1, corner.y, layer, 0));
+  float third = (float)occluder_buffers.Load(int4(corner.x, corner.y + 1, layer, 0));
+  float fourth = (float)occluder_buffers.Load(int4(corner.x + 1, corner.y + 1, layer, 0));
+  return lerp(lerp(first, second, portion.x), lerp(third, fourth, portion.x), portion.y);
+}
+float occluder_sharp(Region region, float2 at)
+{
+  if (at.x < region.lower.x || at.x > region.upper.x || at.y < region.lower.y || at.y > region.upper.y) return 0.0f;
+  int2 corner = clamp((int2)floor(at), (int2)region.lower, (int2)region.upper - 1);
+  int layer = (int)region.layer;
+  float total = (float)occluder_buffers.Load(int4(corner.x + 1, corner.y + 1, layer, 0)) -
+                (float)occluder_buffers.Load(int4(corner.x, corner.y + 1, layer, 0)) -
+                (float)occluder_buffers.Load(int4(corner.x + 1, corner.y, layer, 0)) +
+                (float)occluder_buffers.Load(int4(corner.x, corner.y, layer, 0));
+  return saturate(total / 255.0f);
+}
+float occluder_coverage(Region region, float2 at, float2 extent)
+{
+  float2 lower = at - extent;
+  float2 upper = at + extent;
+  float area = max((upper.x - lower.x) * (upper.y - lower.y), 1e-6f);
+  float2 first = clamp(lower, region.lower, region.upper);
+  float2 second = clamp(upper, region.lower, region.upper);
+  float total = occluder_prefix(region, second) - occluder_prefix(region, float2(first.x, second.y)) -
+                occluder_prefix(region, float2(second.x, first.y)) + occluder_prefix(region, first);
+  return saturate(total / (255.0f * area));
+}
+float2 occluder_extent(Occluder occluder, Region region, float world_blur)
+{
+  float2 world_size = float2(occluder.rectangle.z - occluder.rectangle.x, occluder.rectangle.w - occluder.rectangle.y);
+  if (occluder.surface.w > 0.5f) world_size = world_size.yx;
+  return ((region.upper - region.lower) / max(world_size, 1e-4f)) * world_blur;
 }
 float transmittance(float3 pixel, float3 towards, int count, float shadow, float softness)
 {
@@ -95,36 +112,14 @@ float transmittance(float3 pixel, float3 towards, int count, float shadow, float
     float t = (occluder.surface.x - pixel.z) / denominator;
     if (t <= 0.0f || t >= 1.0f - 1e-4f) continue;
     float2 hit = lerp(pixel.xy, towards.xy, t);
-    float world_softness = saturate(occluder.shadow.w * softness);
-    float world_blur = world_softness * SHADOW_RADIUS * t;
+    float world_blur = occluder.shadow.w * softness * t;
     if (hit.x < occluder.rectangle.x - world_blur || hit.x > occluder.rectangle.z + world_blur ||
         hit.y < occluder.rectangle.y - world_blur || hit.y > occluder.rectangle.w + world_blur)
       continue;
     Region region = occluder_region(occluder);
-    float2 uv = occluder_uv(occluder, hit);
-    float alpha;
-    if (world_blur <= 1e-3f)
-      alpha = occluder_sharp(region, uv);
-    else
-    {
-      float2 world_size =
-        float2(occluder.rectangle.z - occluder.rectangle.x, occluder.rectangle.w - occluder.rectangle.y);
-      if (occluder.surface.w > 0.5f) world_size = world_size.yx;
-      float2 uv_per_world = float2((occluder.frame.z - occluder.frame.x) / world_size.x,
-                                   (occluder.frame.w - occluder.frame.y) / world_size.y);
-      float2 radius = uv_per_world * world_blur;
-      int taps = (int)clamp(world_blur * 4.0f, 4.0f, 32.0f);
-      float2 spin = float2(1.0f, 0.0f);
-      float sum = 0.0f;
-      for (int k = 0; k < taps; ++k)
-      {
-        float fraction = (k + 0.5f) / taps;
-        sum += occluder_soft(region, uv + (sqrt(fraction) * spin * radius));
-        spin = float2((spin.x * SHADOW_TURN.x) - (spin.y * SHADOW_TURN.y),
-                      (spin.x * SHADOW_TURN.y) + (spin.y * SHADOW_TURN.x));
-      }
-      alpha = sum / taps;
-    }
+    float2 at = occluder_texel(occluder, hit);
+    float alpha = world_blur <= 1e-3f ? occluder_sharp(region, at)
+                                      : occluder_coverage(region, at, occluder_extent(occluder, region, world_blur));
     transmission *= 1.0f - saturate(alpha * occluder.surface.z * occluder.shadow.z * shadow);
   }
   return transmission;
@@ -146,7 +141,6 @@ float penetration(float3 pixel, float3 source, int count, float strength, float 
       }
     if (!amplifying) return extra;
   }
-  float2 normal = float2(-delta.y, delta.x) / span;
   for (int index = 0; index < count; ++index)
   {
     Occluder occluder = occluders[index];
@@ -154,7 +148,7 @@ float penetration(float3 pixel, float3 source, int count, float strength, float 
     if (abs(occluder.surface.x - pixel.z) > 1e-3f) continue;
     float combined = strength * occluder.shadow.x;
     if (abs(combined - 1.0f) < 1e-3f || occluder.surface.z <= 0.0f) continue;
-    float world_blur = saturate(occluder.shadow.w * softness) * SHADOW_RADIUS;
+    float world_blur = occluder.shadow.w * softness;
     float enter = 0.0f;
     float exit = 1.0f;
     if (abs(delta.x) < 1e-6f)
@@ -181,26 +175,15 @@ float penetration(float3 pixel, float3 source, int count, float strength, float 
     }
     if (exit <= enter) continue;
     Region region = occluder_region(occluder);
+    float2 extent = occluder_extent(occluder, region, world_blur);
     float crossing = (exit - enter) * span;
     int taps = (int)clamp(crossing, 4.0f, 16.0f);
-    int blurs = world_blur <= 1e-3f ? 1 : (int)clamp(world_blur * 2.0f, 2.0f, 4.0f);
     float sum = 0.0f;
     for (int k = 0; k < taps; ++k)
     {
-      float t = lerp(enter, exit, (k + 0.5f) / taps);
-      float2 hit = source.xy + delta * t;
-      if (blurs == 1)
-        sum += occluder_sharp(region, occluder_uv(occluder, hit));
-      else
-      {
-        float total = 0.0f;
-        for (int j = 0; j < blurs; ++j)
-        {
-          float2 shifted = hit + normal * (((j + 0.5f) / blurs) * 2.0f - 1.0f) * world_blur;
-          total += occluder_soft(region, occluder_uv(occluder, shifted));
-        }
-        sum += total / blurs;
-      }
+      float2 hit = source.xy + (delta * lerp(enter, exit, (k + 0.5f) / taps));
+      float2 at = occluder_texel(occluder, hit);
+      sum += world_blur <= 1e-3f ? occluder_sharp(region, at) : occluder_coverage(region, at, extent);
     }
     float inside = crossing * (sum / taps) * occluder.surface.z;
     extra += inside * (1.0f / max(combined, 1e-4f) - 1.0f);

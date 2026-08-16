@@ -150,9 +150,7 @@ namespace cse::help::window
       const std::array<SDL_GPUBuffer *, 2> storage_buffers{game_active.graphics_light.buffer,
                                                            game_active.graphics_occluder.buffer};
       SDL_BindGPUFragmentStorageBuffers(render_pass, 0, storage_buffers.data(), 2);
-      const SDL_GPUTextureSamplerBinding occluder_binding{.texture = game_active.graphics_occluder.texture,
-                                                          .sampler = game_active.graphics_buffer.linear};
-      SDL_BindGPUFragmentSamplers(render_pass, 1, &occluder_binding, 1);
+      SDL_BindGPUFragmentStorageTextures(render_pass, 0, &game_active.graphics_occluder.texture, 1);
       const SDL_GPUGraphicsPipeline *pipeline{};
       const SDL_GPUTexture *texture{};
       const auto &batches{game_active.graphics_object.batches};
@@ -365,9 +363,9 @@ namespace cse::help::window
       depth_texture = nullptr;
     }
     const auto type{SDL_GPU_TEXTURETYPE_2D};
-    const auto usage{SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET};
     const std::array<SDL_GPUTextureFormat, 3> potential_formats{
       SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
+    const auto usage{SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET};
     const SDL_GPUTextureCreateInfo depth_texture_info{
       .type = type,
       .format = [&video, &potential_formats]() -> SDL_GPUTextureFormat

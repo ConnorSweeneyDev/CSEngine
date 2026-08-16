@@ -138,7 +138,6 @@ namespace cse::help::game
       SDL_GPUBuffer *vertex{};
       SDL_GPUBuffer *index{};
       SDL_GPUSampler *nearest{};
-      SDL_GPUSampler *linear{};
     };
     struct graphics_pipeline
     {
@@ -389,6 +388,8 @@ namespace cse::help::game
     std::vector<cse::interface *> interface_order{};
     std::vector<cse::interface *> interface_pool{};
 
+    static constexpr auto gpu_backend{"vulkan"};
+    static constexpr auto shader_format{SDL_GPU_SHADERFORMAT_SPIRV};
     double actual_frame{1.0 / frame.target};
     game::vram actual_vram{};
     game::ram actual_ram{};
