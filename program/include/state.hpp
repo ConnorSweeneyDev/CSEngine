@@ -39,10 +39,7 @@ namespace cse
     friend class game;
 
   protected:
-    struct initial
-    {
-      const std::filesystem::path storage{};
-    };
+    struct initial { const std::filesystem::path storage{}; };
 
   public:
     virtual ~state() = default;

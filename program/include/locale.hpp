@@ -49,10 +49,7 @@ namespace cse::help::locale
 
   struct store
   {
-    struct registrar
-    {
-      registrar(const std::span<const std::string_view> languages_);
-    };
+    struct registrar { registrar(const std::span<const std::string_view> languages_); };
     struct segment
     {
       segment(const char *literal_);

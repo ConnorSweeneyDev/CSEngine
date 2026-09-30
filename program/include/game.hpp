@@ -159,10 +159,7 @@ namespace cse::help::game
     };
     struct graphics_light
     {
-      struct header
-      {
-        std::array<float, 4> meta{};
-      };
+      struct header { std::array<float, 4> meta{}; };
       struct entry
       {
         std::array<float, 4> position{};
@@ -277,10 +274,7 @@ namespace cse::help::game
       std::vector<quad> quads{};
       std::vector<block> blocks{};
     };
-    struct graphics_interface
-    {
-      std::vector<cse::interface *> order{};
-    };
+    struct graphics_interface { std::vector<cse::interface *> order{}; };
 
     struct channel
     {

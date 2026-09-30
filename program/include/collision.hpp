@@ -79,10 +79,7 @@ namespace cse
 
     struct store
     {
-      struct registrar
-      {
-        registrar(const std::span<const std::string_view> colliders_);
-      };
+      struct registrar { registrar(const std::span<const std::string_view> colliders_); };
 
       std::span<const std::string_view> colliders{};
       bool duplicated{};

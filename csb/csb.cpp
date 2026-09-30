@@ -87,6 +87,7 @@ int csb::build()
                               {"AllowShortLoopsOnASingleLine", "true"},
                               {"AllowShortFunctionsOnASingleLine", "true"},
                               {"AllowShortLambdasOnASingleLine", "true"},
+                              {"AllowShortRecordOnASingleLine", "Always"},
                               {"AllowShortEnumsOnASingleLine", "true"},
                               {"AllowShortNamespacesOnASingleLine", "true"},
                               {"BreakTemplateDeclarations", "No"},
@@ -95,7 +96,7 @@ int csb::build()
                               {"NamespaceIndentation", "All"},
                               {"FixNamespaceComments", "false"}});
   if (!csb::is_subproject)
-    csb::format("22.1.8", csb::choose_files({"program/vertex", "program/fragment"}),
+    csb::format("23.1.1", csb::choose_files({"program/vertex", "program/fragment"}),
                 {"program/include/shader.hpp", "program/source/shader.cpp"});
 
   csb::archive_install(

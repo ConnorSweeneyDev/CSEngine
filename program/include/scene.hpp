@@ -51,10 +51,7 @@ namespace cse::help::scene
   private:
     struct contact_key
     {
-      struct hash
-      {
-        std::size_t operator()(const contact_key &key) const;
-      };
+      struct hash { std::size_t operator()(const contact_key &key) const; };
 
       bool operator==(const contact_key &other) const = default;
 
