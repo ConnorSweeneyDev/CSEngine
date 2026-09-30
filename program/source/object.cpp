@@ -18,9 +18,9 @@
 namespace cse::help::object
 {
   active::active(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
-                 const temporal<glm::dvec2> &scale_, const object::collider &collider_, const object::texture &texture_,
-                 const object::text &text_, const object::priority &priority_)
-    : translation{translation_}, rotation{rotation_}, scale{scale_}, collider{collider_}, texture{texture_},
+                 const temporal<glm::dvec2> &scale_, const object::collision &collision_,
+                 const object::texture &texture_, const object::text &text_, const object::priority &priority_)
+    : translation{translation_}, rotation{rotation_}, scale{scale_}, collision{collision_}, texture{texture_},
       text{text_}, priority{priority_} {};
 
   void active::synchronize(previous &last)
@@ -28,7 +28,7 @@ namespace cse::help::object
     last.translation = translation;
     last.rotation = rotation;
     last.scale = scale;
-    last.collider = collider;
+    last.collision = collision;
     last.texture = texture;
     last.text = text;
     last.priority = priority;
@@ -55,8 +55,8 @@ namespace cse::help::object
     texture.color.alpha.instant = false;
     texture.illumination.brightness.instant = false;
     texture.illumination.penetration.instant = false;
-    texture.shadow.darkness.instant = false;
-    texture.shadow.softness.instant = false;
+    texture.occlusion.darkness.instant = false;
+    texture.occlusion.softness.instant = false;
     text.playback.speed.instant = false;
     text.align.horizontal.spacing.instant = false;
     text.align.vertical.spacing.instant = false;
@@ -66,8 +66,8 @@ namespace cse::help::object
     text.color.alpha.instant = false;
     text.illumination.brightness.instant = false;
     text.illumination.penetration.instant = false;
-    text.shadow.darkness.instant = false;
-    text.shadow.softness.instant = false;
+    text.occlusion.darkness.instant = false;
+    text.occlusion.softness.instant = false;
   }
 
   glm::dmat4 active::calculate_model_matrix(const previous &last, const unsigned int frame_width,
@@ -183,7 +183,7 @@ namespace cse::help::object
 namespace cse
 {
   object::object(const initial &initial_)
-    : active{initial_.translation, initial_.rotation, initial_.scale,   initial_.collider,
+    : active{initial_.translation, initial_.rotation, initial_.scale,   initial_.collision,
              initial_.texture,     initial_.text,     initial_.priority} {};
 
   void object::on_prepare() {}

@@ -84,4 +84,4 @@ namespace cse::help
   };
 }
 
-#include "mixer.inl" // IWYU pragma: keep
+#include "mixer.inl" // IWYU pragma: export

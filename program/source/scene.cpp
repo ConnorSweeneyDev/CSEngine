@@ -21,6 +21,7 @@
 #include "core.hpp"
 #include "exception.hpp"
 #include "game.hpp"
+#include "group.hpp"
 #include "interface.hpp"
 #include "light.hpp"
 #include "mask.hpp"
@@ -116,14 +117,14 @@ namespace cse::help::scene
     contacts.clear();
     if (objects.empty()) return;
 
-    cse::collider layer_union{};
-    cse::collider target_union{};
+    cse::group self_union{};
+    cse::group target_union{};
     for (const auto &object : objects)
     {
-      layer_union = layer_union | object->active.collider.self;
-      target_union = target_union | object->active.collider.target;
+      self_union |= object->active.collision.self;
+      target_union |= object->active.collision.target;
     }
-    if (layer_union.empty() || target_union.empty()) return;
+    if (self_union.empty() || target_union.empty()) return;
 
     auto &entries{contact_entries};
     auto &boxes{contact_hitboxes};
@@ -133,8 +134,8 @@ namespace cse::help::scene
     for (std::size_t index{}; index < objects.size(); ++index)
     {
       const auto &object{objects.at(index)};
-      const auto &filter{object->active.collider};
-      if (none(filter.self, target_union) && none(filter.target, layer_union)) continue;
+      const auto &filter{object->active.collision};
+      if (none(filter.self, target_union) && none(filter.target, self_union)) continue;
       const auto sources{collision::hitboxes(object.get())};
       if (sources.empty()) continue;
       const auto depth{collision::quantize(std::floor(object->active.translation.value.z + 0.5))};
@@ -149,8 +150,8 @@ namespace cse::help::scene
         const auto right{collision::quantize(box.right)};
         const auto top{collision::quantize(box.top)};
         if (right <= left || top <= bottom) continue;
-        entries.push_back({left, bottom, right, top, depth, static_cast<std::uint32_t>(index), filter.self.bits(),
-                           filter.target.bits()});
+        entries.push_back(
+          {left, bottom, right, top, depth, static_cast<std::uint32_t>(index), filter.self, filter.target});
         boxes.push_back(box);
       }
     }
@@ -184,8 +185,8 @@ namespace cse::help::scene
                          const auto &one{*std::next(entries.begin(), static_cast<std::ptrdiff_t>(first))};
                          const auto &two{*std::next(entries.begin(), static_cast<std::ptrdiff_t>(second))};
                          if (one.object == two.object) return;
-                         const auto forward{(one.target & two.layer) != 0};
-                         const auto backward{(two.target & one.layer) != 0};
+                         const auto forward{has(one.target, two.self)};
+                         const auto backward{has(two.target, one.self)};
                          if (!forward && !backward) return;
                          if (one.z != two.z) return;
                          if (one.left >= two.right || one.right <= two.left || one.bottom >= two.top ||
@@ -212,8 +213,8 @@ namespace cse::help::scene
                          record(std::move(mirrored), two.object, one.object);
                        }};
 
-    const auto sought{target_union.bits()};
-    const auto present{layer_union.bits()};
+    const auto &sought{target_union};
+    const auto &present{self_union};
 
     std::int64_t extents{};
     for (const auto &entry : entries)
@@ -229,7 +230,7 @@ namespace cse::help::scene
     std::size_t insertions{};
     for (const auto &entry : entries)
     {
-      const auto carried{static_cast<std::size_t>(std::popcount(entry.layer & sought))};
+      const auto carried{group::count(entry.self & sought)};
       if (carried == 0) continue;
       const auto columns{static_cast<std::size_t>(((entry.right - 1) >> shift) - (entry.left >> shift) + 1)};
       const auto rows{static_cast<std::size_t>(((entry.top - 1) >> shift) - (entry.bottom >> shift) + 1)};
@@ -250,12 +251,12 @@ namespace cse::help::scene
       const auto last_x{(entry.right - 1) >> shift};
       const auto first_y{entry.bottom >> shift};
       const auto last_y{(entry.top - 1) >> shift};
-      for (auto bits{entry.layer & sought}; bits != 0; bits &= bits - 1)
-      {
-        const auto bit{std::countr_zero(bits)};
-        for (auto y{first_y}; y <= last_y; ++y)
-          for (auto x{first_x}; x <= last_x; ++x) ++counts.at(bucket(entry.z, x, y, bit) + 1);
-      }
+      group::visit(entry.self & sought,
+                   [&](const int bit)
+                   {
+                     for (auto y{first_y}; y <= last_y; ++y)
+                       for (auto x{first_x}; x <= last_x; ++x) ++counts.at(bucket(entry.z, x, y, bit) + 1);
+                   });
     }
     for (std::size_t index{}; index < buckets; ++index) counts.at(index + 1) += counts.at(index);
     cursor.assign(counts.begin(), std::prev(counts.end()));
@@ -267,23 +268,23 @@ namespace cse::help::scene
       const auto last_x{(entry.right - 1) >> shift};
       const auto first_y{entry.bottom >> shift};
       const auto last_y{(entry.top - 1) >> shift};
-      for (auto bits{entry.layer & sought}; bits != 0; bits &= bits - 1)
-      {
-        const auto bit{std::countr_zero(bits)};
-        for (auto y{first_y}; y <= last_y; ++y)
-          for (auto x{first_x}; x <= last_x; ++x)
-          {
-            auto &position{cursor.at(bucket(entry.z, x, y, bit))};
-            table.at(position) = {static_cast<std::uint32_t>(index), x, y, bit};
-            ++position;
-          }
-      }
+      group::visit(entry.self & sought,
+                   [&](const int bit)
+                   {
+                     for (auto y{first_y}; y <= last_y; ++y)
+                       for (auto x{first_x}; x <= last_x; ++x)
+                       {
+                         auto &position{cursor.at(bucket(entry.z, x, y, bit))};
+                         table.at(position) = {static_cast<std::uint32_t>(index), x, y, bit};
+                         ++position;
+                       }
+                   });
     }
 
-    const auto examine{[&](const std::size_t self_index, const collision::entry &self, const std::int32_t x,
+    const auto examine{[&](const std::size_t asker_index, const collision::entry &asker, const std::int32_t x,
                            const std::int32_t y, const int bit)
                        {
-                         const auto place{bucket(self.z, x, y, bit)};
+                         const auto place{bucket(asker.z, x, y, bit)};
                          const auto first{counts.at(place)};
                          const auto last{counts.at(place + 1)};
                          for (auto position{first}; position != last; ++position)
@@ -292,29 +293,28 @@ namespace cse::help::scene
                            if (held.bit != bit || held.x != x || held.y != y) continue;
                            const std::size_t candidate{held.entry};
                            const auto &other{*std::next(entries.begin(), static_cast<std::ptrdiff_t>(candidate))};
-                           const auto shared{self.target & other.layer};
-                           if (shared == 0 || std::countr_zero(shared) != bit) continue;
-                           if ((other.target & self.layer) != 0 && candidate <= self_index) continue;
-                           if (std::max(self.left >> shift, other.left >> shift) != x) continue;
-                           if (std::max(self.bottom >> shift, other.bottom >> shift) != y) continue;
-                           attempt(self_index, candidate);
+                           if (group::lowest(asker.target & other.self) != bit) continue;
+                           if (has(other.target, asker.self) && candidate <= asker_index) continue;
+                           if (std::max(asker.left >> shift, other.left >> shift) != x) continue;
+                           if (std::max(asker.bottom >> shift, other.bottom >> shift) != y) continue;
+                           attempt(asker_index, candidate);
                          }
                        }};
 
     for (std::size_t index{}; index < entries.size(); ++index)
     {
-      const auto &self{entries.at(index)};
-      if ((self.target & present) == 0) continue;
-      const auto first_x{self.left >> shift};
-      const auto last_x{(self.right - 1) >> shift};
-      const auto first_y{self.bottom >> shift};
-      const auto last_y{(self.top - 1) >> shift};
-      for (auto bits{self.target & present}; bits != 0; bits &= bits - 1)
-      {
-        const auto bit{std::countr_zero(bits)};
-        for (auto y{first_y}; y <= last_y; ++y)
-          for (auto x{first_x}; x <= last_x; ++x) examine(index, self, x, y, bit);
-      }
+      const auto &asker{entries.at(index)};
+      if (!has(asker.target, present)) continue;
+      const auto first_x{asker.left >> shift};
+      const auto last_x{(asker.right - 1) >> shift};
+      const auto first_y{asker.bottom >> shift};
+      const auto last_y{(asker.top - 1) >> shift};
+      group::visit(asker.target & present,
+                   [&](const int bit)
+                   {
+                     for (auto y{first_y}; y <= last_y; ++y)
+                       for (auto x{first_x}; x <= last_x; ++x) examine(index, asker, x, y, bit);
+                   });
     }
   }
 

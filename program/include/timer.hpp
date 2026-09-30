@@ -77,4 +77,4 @@ namespace cse::help
   };
 }
 
-#include "timer.inl" // IWYU pragma: keep
+#include "timer.inl" // IWYU pragma: export

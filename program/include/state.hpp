@@ -127,4 +127,4 @@ public:                                                                         
   CSE_FOR_EACH(CSE_STORE_DECLARE, __VA_ARGS__)                                                                         \
   static_assert(true)
 
-#include "state.inl" // IWYU pragma: keep
+#include "state.inl" // IWYU pragma: export

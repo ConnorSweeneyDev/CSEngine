@@ -17,4 +17,4 @@ namespace cse
   };
 }
 
-#include "temporal.inl" // IWYU pragma: keep
+#include "temporal.inl" // IWYU pragma: export

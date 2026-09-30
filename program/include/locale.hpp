@@ -14,15 +14,7 @@ namespace cse::help::locale
 {
   class key
   {
-    friend void resolve(std::string &language);
-    template <const auto &entries, const auto &languages> friend key forge(const std::string_view label);
-
-  public:
-    struct entry
-    {
-      std::string_view language{};
-      std::string_view value{};
-    };
+    template <const auto &values, const auto &languages> friend key forge(const std::string_view label);
 
   public:
     ~key() = default;
@@ -35,17 +27,14 @@ namespace cse::help::locale
     std::string_view string() const;
 
   private:
-    key(const std::string_view label_, const std::span<const entry> entries_);
+    key(const std::string_view label_, const std::span<const std::string_view> values_);
 
   private:
     std::string_view identity{};
-    std::span<const entry> entries{};
-    std::size_t index{};
+    std::span<const std::string_view> values{};
   };
 
-  constexpr bool distinct(const std::span<const key::entry> entries);
-  constexpr bool complete(const std::span<const key::entry> entries, const std::span<const std::string_view> languages);
-  template <const auto &entries, const auto &languages> key forge(const std::string_view label);
+  template <const auto &values, const auto &languages> key forge(const std::string_view label);
 
   struct store
   {
@@ -62,15 +51,12 @@ namespace cse::help::locale
     };
 
     std::span<const std::string_view> languages{};
-    std::vector<const locale::key *> keys{};
-    std::vector<std::string_view> table{};
     std::size_t current{};
     bool resolved{};
     bool duplicated{};
   } inline store{};
 
   void enlist(const std::span<const std::string_view> languages);
-  void enlist(const locale::key &key);
   void resolve(std::string &language);
 }
 
@@ -131,18 +117,13 @@ namespace cse
   }                                                                                                                    \
   static_assert(true)
 
-#define CSE_TRANSLATE_ENTRY(element) CSE_TRANSLATE_ENTRY_ element
-#define CSE_TRANSLATE_ENTRY_(name, value) {language::name, value},
 #define TRANSLATE(identifier, ...)                                                                                     \
   namespace lexeme                                                                                                     \
   {                                                                                                                    \
-    namespace detail                                                                                                   \
-    {                                                                                                                  \
-      inline constexpr cse::help::locale::key::entry identifier[]{CSE_FOR_EACH(CSE_TRANSLATE_ENTRY, __VA_ARGS__)};     \
-    }                                                                                                                  \
+    namespace detail { inline constexpr std::string_view identifier[]{__VA_ARGS__}; }                                  \
     inline const cse::help::locale::key identifier{                                                                    \
       cse::help::locale::forge<detail::identifier, language::detail::list>(#identifier)};                              \
   }                                                                                                                    \
   static_assert(true)
 
-#include "locale.inl" // IWYU pragma: keep
+#include "locale.inl" // IWYU pragma: export

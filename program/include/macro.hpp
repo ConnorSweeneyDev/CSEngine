@@ -15,6 +15,15 @@
 #define CSE_FOR_EACH_(opt, item, ...) opt(item) __VA_OPT__(CSE_FOR_EACH_AGAIN CSE_PARENS(opt, __VA_ARGS__))
 #define CSE_FOR_EACH_AGAIN() CSE_FOR_EACH_
 
+#define CSE_EXPAND_WITH(...) CSE_EXPAND_WITH3(CSE_EXPAND_WITH3(CSE_EXPAND_WITH3(CSE_EXPAND_WITH3(__VA_ARGS__))))
+#define CSE_EXPAND_WITH3(...) CSE_EXPAND_WITH2(CSE_EXPAND_WITH2(CSE_EXPAND_WITH2(CSE_EXPAND_WITH2(__VA_ARGS__))))
+#define CSE_EXPAND_WITH2(...) CSE_EXPAND_WITH1(CSE_EXPAND_WITH1(CSE_EXPAND_WITH1(CSE_EXPAND_WITH1(__VA_ARGS__))))
+#define CSE_EXPAND_WITH1(...) __VA_ARGS__
+#define CSE_FOR_EACH_WITH(opt, context, ...) __VA_OPT__(CSE_EXPAND_WITH(CSE_FOR_EACH_WITH_(opt, context, __VA_ARGS__)))
+#define CSE_FOR_EACH_WITH_(opt, context, item, ...)                                                                    \
+  opt(context, item) __VA_OPT__(CSE_FOR_EACH_WITH_AGAIN CSE_PARENS(opt, context, __VA_ARGS__))
+#define CSE_FOR_EACH_WITH_AGAIN() CSE_FOR_EACH_WITH_
+
 #define CSE_JOIN(first, second) CSE_JOIN_(first, second)
 #define CSE_JOIN_(first, second) first##second
 #define CSE_FILLED(...) __VA_OPT__(FILLED)

@@ -5,13 +5,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <string_view>
 #include <utility>
 
 #include "glm/ext/vector_double2.hpp"
 #include "glm/trigonometric.hpp"
 
-#include "exception.hpp"
 #include "interface.hpp"
 #include "name.hpp"
 #include "numeric.hpp"
@@ -21,23 +19,6 @@
 
 namespace cse::help::collision
 {
-  store::registrar::registrar(const std::span<const std::string_view> colliders_) { enlist(colliders_); }
-
-  void enlist(const std::span<const std::string_view> colliders)
-  {
-    if (!store.colliders.empty())
-    {
-      store.duplicated = true;
-      return;
-    }
-    store.colliders = colliders;
-  }
-
-  void verify()
-  {
-    if (store.duplicated) throw exception("Tried to declare COLLIDERS more than once");
-  }
-
   std::int32_t quantize(const double value)
   {
     constexpr double minimum{-2147483648.0};

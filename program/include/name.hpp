@@ -56,4 +56,4 @@ namespace cse
 
 template <> struct std::hash<cse::name> { std::size_t operator()(const cse::name &name) const; };
 
-#include "name.inl" // IWYU pragma: keep
+#include "name.inl" // IWYU pragma: export

@@ -217,13 +217,21 @@ player::player(const glm::dvec3 &translation_)
   : cse::object({.translation = {translation_},
                  .rotation = {0.0},
                  .scale = {{1.0, 1.0}},
-                 .collider = {.self = collider::character, .target = collider::none},
+                 .collision = {.self = collider::character, .target = cse::nothing},
                  .texture = {.source = {.image = image::redhood, .animation = animation::redhood.idle},
                              .playback = {.frame = 0, .elapsed = 0.0, .playing = true, .speed = {1.0}, .loop = true},
                              .flip = {.horizontal = false, .vertical = false},
                              .color = {.tint = {{0.5, 0.5, 0.5, 1.0}}, .alpha = {1.0}},
-                             .illumination = {.show = true, .brightness = {1.0}, .penetration = {1.0}},
-                             .shadow = {.show = true, .cast = true, .darkness = {1.0}, .softness = {1.0}}},
+                             .illumination = {.self = cse::everything,
+                                              .target = cse::everything,
+                                              .brightness = {1.0},
+                                              .penetration = {1.0}},
+                             .occlusion = {.self = occluder::character,
+                                           .target = {.block = cse::everything,
+                                                      .show = cse::everything,
+                                                      .cast = cse::everything},
+                                           .darkness = {1.0},
+                                           .softness = {1.0}}},
                  .text = {.content = {"[", lexeme::player, "]"},
                           .source = {.font = font::text, .animation = animation::text.main},
                           .playback = {.frame = 0, .elapsed = 0.0, .playing = false, .speed = {0.0}, .loop = false},
@@ -233,8 +241,16 @@ player::player(const glm::dvec3 &translation_)
                           .scale = {{1.0, 1.0}},
                           .overflow = {.wrap = false, .clip = false},
                           .color = {.tint = {{0.5, 0.5, 0.5, 1.0}}, .alpha = {1.0}},
-                          .illumination = {.show = true, .brightness = {1.0}, .penetration = {1.0}},
-                          .shadow = {.show = false, .cast = true, .darkness = {1.0}, .softness = {0.5}}},
+                          .illumination = {.self = cse::everything,
+                                           .target = cse::everything,
+                                           .brightness = {1.0},
+                                           .penetration = {1.0}},
+                          .occlusion = {.self = occluder::character,
+                                        .target = {.block = cse::everything,
+                                                   .show = cse::nothing,
+                                                   .cast = cse::everything},
+                                        .darkness = {1.0},
+                                        .softness = {0.5}}},
                  .priority = {.simulation = 0, .rendering = 1}}) {};
 ```
 
@@ -337,29 +353,38 @@ Set `.instant = true` on a temporal when you want a hard cut (no interpolation) 
   if (is<player>(contact.target.pointer)) { ... }                     // throws if nullptr
   ```
 
-### Collision & Colliders
-Declare every collider you use with a single `COLLIDERS` expansion - like `LANGUAGES`, it is once per *program*, not
-per namespace or per file, and a second declaration anywhere throws during game preparation. It emits a `collider`
-namespace nested in whatever namespace you expand it in, holding one `cse::collider` constant per name plus `none` and
-`all`:
+### Groups
+Collision, illumination and occlusion all decide *who interacts with whom* using tags. Declare every tag you use with a
+single `GROUPS` expansion - like `LANGUAGES`, it is once per *program*, not per namespace or per file, and a second
+declaration anywhere throws during game preparation. Each parenthesised group becomes a namespace nested in whatever
+namespace you expand it in, holding one `cse::group` constant per tag plus `all` (every tag of *that* group):
 
 ```cpp
 namespace custom
 {
-  COLLIDERS(wall, floor, character, projectile, pickup);
+  GROUPS((collider, wall, floor, character, projectile, pickup),
+         (illuminator, sun, torch, indoor),
+         (occluder, character, scenery));
 }
 ```
 
-Each object then declares what it *is* (`self`) and what it *asks about* (`target`):
+A `cse::group` is a set of up to 64 tags *in total* across all groups, so tags from different groups combine freely:
+`with(collider::character, occluder::scenery)`. `cse::nothing` and `cse::everything` are the empty and full sets, and
+aren't tied to any group. Note that `~` flips all 64 tags, so use `without(collider::all, collider::wall)` for "every
+collider except walls".
 
+Every relationship is expressed the same way: each side declares what it *is* (`self`) and what it *interacts with*
+(`target`), and a `target` matches another side when the two share at least one tag.
+
+### Collision
 ```cpp
-.collider = {.self = collider::wall, .target = collider::character | collider::projectile};
-.collider = {.self = collider::character, .target = collider::none};
+.collision = {.self = collider::wall, .target = with(collider::character, collider::projectile)};
+.collision = {.self = collider::character, .target = cse::nothing};
 ```
 
-Both fields default to `none`, so **an object collides with nothing until you give it a collider**.
+Both fields default to `cse::nothing`, so **an object collides with nothing until you give it collision tags**.
 
-A pair is tested when either side asks about the other, and **a contact is only generated for the side that asked**. If
+A pair is tested when either side targets the other, and **a contact is only generated for the side that asked**. If
 the player targets `wall` but the wall targets nothing, you get one contact - `self` is the player, `target` is the
 wall.
 
@@ -371,6 +396,50 @@ for (const auto &contact : scene->active.contacts)
 
 `active.contacts` is filled during `collide()`, which runs after `simulate()`. Before that point in the tick it is
 empty - read `previous.contacts` for last tick's results.
+
+### Illumination & Occlusion
+Lighting is the opposite of collision: every field defaults to `cse::everything`, so everything is lit and shadowed by
+everything until you opt out, and **both sides must agree** for an effect to happen - either side can refuse.
+
+- **Illumination** - a light lights an object when the light's `illumination.target` matches the object's
+  `illumination.self` *and* the object's `illumination.target` matches the light's `illumination.self`. An empty
+  `target` refuses every light, so the object renders black.
+- **Occlusion** - an object plays two roles: it can block light (as an occluder) and have shadows fall on it (as a
+  receiver). So `object.occlusion` has one `self` and a `target` of three sets: `block` (which lights it blocks),
+  `show` (which occluders may fall on it) and `cast` (which receivers it may fall on). Occluder `X` shadows receiver `O`
+  under light `L` when `L` lights `O` and all four of these match:
+  - `X.target.cast` against `O.self`, and `O.target.show` against `X.self`,
+  - `X.target.block` against `L.occlusion.self`, and `L.occlusion.target` against `X.self`.
+
+The same rule governs penetration (light losing reach as it passes through objects on its own plane), including an
+object's own pixels - an object only absorbs light passing through itself when its own `self` is in its own `cast` and
+`show`, which the defaults satisfy.
+
+```cpp
+// sun light: lights everything except objects tagged indoor
+.illumination = {.self = illuminator::sun,
+                 .target = without(cse::everything, illuminator::indoor),
+                 .brightness = {{1.0, 1.0, 1.0, 1.0}},
+                 .penetration = {1.0},
+                 .shape = {.global = true, .range = {0.0}, .angle = {0.0}, .feather = {0.0}}};
+// furniture object: indoor, so the sun skips it
+.illumination = {.self = illuminator::indoor, .target = cse::everything, .brightness = {1.0}, .penetration = {1.0}};
+
+// player object: its shadow never falls on objects tagged scenery
+.occlusion = {.self = occluder::character,
+              .target = {.block = cse::everything,
+                         .show = cse::everything,
+                         .cast = without(cse::everything, occluder::scenery)},
+              .darkness = {1.0},
+              .softness = {1.0}};
+// background object: scenery, so the player's shadow skips it
+.occlusion = {.self = occluder::scenery,
+              .target = {.block = cse::everything, .show = cse::everything, .cast = cse::everything},
+              .darkness = {1.0},
+              .softness = {1.0}};
+```
+
+To exclude something, give it a tag first: a `self` left at `cse::everything` matches every `target`.
 
 ### Starting and Calling Timers
 Schedule one-shot or repeating callbacks on any entity's `active.timer`. `set` returns the timer's modifiable `state`.
@@ -489,18 +558,22 @@ void window::on_destroy()
 
 ### Localization
 Declare the languages you support once with `LANGUAGES`, then declare each translation key once with `TRANSLATE`,
-listing every language's value beside it. `LANGUAGES` emits into a `language` namespace and `TRANSLATE` into a `lexeme`
-namespace, both nested in whatever namespace you expand them in:
+giving one value per language *in the order `LANGUAGES` declared them*. `LANGUAGES` emits into a `language` namespace
+and `TRANSLATE` into a `lexeme` namespace, both nested in whatever namespace you expand them in:
 
 ```cpp
 namespace custom
 {
   LANGUAGES(en, sp, fr);
 
-  TRANSLATE(welcome_message, (en, "Welcome!"), (sp, "¡Bienvenido!"), (fr, "Bienvenue!"));
-  TRANSLATE(menu_play,       (en, "Play"),     (sp, "Jugar"),        (fr, "Jouer"));
+  TRANSLATE(welcome_message, "Welcome!", "¡Bienvenido!", "Bienvenue!");
+  TRANSLATE(menu_play, "Play", "Jugar", "Jouer");
 }
 ```
+
+A key with the wrong number of values fails to compile, so adding or removing a language flags every key that needs
+updating. Reordering `LANGUAGES` can't be caught that way - every key still has the right count - so treat its order as
+fixed and only append to it. The first language is the fallback when the game's language is empty or unknown.
 
 That gives you `custom::language::en` (a `const char *`) and `custom::lexeme::welcome_message` (a translation key).
 Text `content` is a `cse::lexeme`, which is any mix of literals and keys that automatically translates based on the
@@ -555,7 +628,7 @@ and a non-throwing `try_` form:
 - `between(value, min, max)` - inclusive integral range test.
 - `cse::axis` (`NONE/X/Y/Z`) and `cse::rectangle` (`left/top/right/bottom`).
 - `has(flags, bits)`, plus `any` / `all` / `none` - readable flag *testing* against SDL-style bitmasks, or against any
-  type supporting `&` and `!=` (so `cse::collider` works too: `any(collider.target, collider::wall, collider::enemy)`).
+  type supporting `&` and `!=` (so `cse::group` works too: `any(collision.target, collider::wall, collider::enemy)`).
 - `with` / `without` / `shared` / `missing` / `toggled` - readable flag *editing*, so you don't have to remember which
   combination of `&`, `|`, `^` and `~` does what. Each takes one or more masks and returns a new value:
   ```cpp
@@ -565,8 +638,8 @@ and a non-throwing `try_` form:
   auto todo = missing(target, collider::floor);             // floor & ~target           (which are NOT set)
   target = toggled(target, collider::enemy);                // flip just those bits
   ```
-- `cse::collider` - a 64-bit collider set built by `COLLIDERS`. Supports `|` `&` `^` `~` and their `|=` `&=` `^=`
-  forms, plus `==`, `empty()` and `bits()`; everything above works on it, and all of it is `constexpr`.
+- `cse::group` - a 64-tag set built by `GROUPS`. Supports `|` `&` `^` `~` and their `|=` `&=` `^=` forms, plus `==`,
+  `empty()` and `words()`; everything above works on it, and all of it is `constexpr`.
 
 ### Thread-Safe Printing & Exceptions
 - `cse::print<COUT>("hello {}\n", name)` - mutex-guarded, `std::format`-based logging to `COUT` / `CERR` / `CLOG`.

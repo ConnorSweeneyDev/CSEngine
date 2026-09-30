@@ -5,8 +5,8 @@
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
 
-#include "collision.hpp"
 #include "core.hpp"
+#include "group.hpp"
 #include "locale.hpp"
 #include "mixer.hpp"
 #include "name.hpp"
@@ -16,21 +16,28 @@
 
 namespace cse::help::object
 {
-  struct collider
+  struct collision
   {
-    cse::collider self{};
-    cse::collider target{};
+    cse::group self{};
+    cse::group target{};
   };
   struct illumination
   {
-    bool show{true};
+    cse::group self{cse::everything};
+    cse::group target{cse::everything};
     temporal<double> brightness{1.0};
     temporal<double> penetration{1.0};
   };
-  struct shadow
+  struct occlusion
   {
-    bool show{true};
-    bool cast{true};
+    struct target
+    {
+      cse::group block{cse::everything};
+      cse::group show{cse::everything};
+      cse::group cast{cse::everything};
+    };
+    cse::group self{cse::everything};
+    occlusion::target target{};
     temporal<double> darkness{1.0};
     temporal<double> softness{1.0};
   };
@@ -41,7 +48,7 @@ namespace cse::help::object
     cse::flip flip{};
     cse::color color{};
     object::illumination illumination{};
-    object::shadow shadow{};
+    object::occlusion occlusion{};
   };
   struct text
   {
@@ -53,7 +60,7 @@ namespace cse::help::object
     cse::overflow overflow{};
     cse::color color{};
     object::illumination illumination{};
-    object::shadow shadow{};
+    object::occlusion occlusion{};
   };
   struct priority
   {
@@ -75,7 +82,7 @@ namespace cse::help::object
     temporal<glm::dvec3> translation{};
     temporal<double> rotation{};
     temporal<glm::dvec2> scale{};
-    object::collider collider{};
+    object::collision collision{};
     object::texture texture{};
     object::text text{};
     object::priority priority{};
@@ -94,7 +101,7 @@ namespace cse::help::object
   public:
     active() = default;
     active(const temporal<glm::dvec3> &translation_, const temporal<double> &rotation_,
-           const temporal<glm::dvec2> &scale_, const object::collider &collider_, const object::texture &texture_,
+           const temporal<glm::dvec2> &scale_, const object::collision &collision_, const object::texture &texture_,
            const object::text &text_, const object::priority &priority_);
     ~active() = default;
     active(const active &) = delete;
@@ -116,7 +123,7 @@ namespace cse::help::object
     temporal<glm::dvec3> translation{};
     temporal<double> rotation{};
     temporal<glm::dvec2> scale{};
-    object::collider collider{};
+    object::collision collision{};
     object::texture texture{};
     object::text text{};
     object::priority priority{};
@@ -139,7 +146,7 @@ namespace cse
       const temporal<glm::dvec3> translation{};
       const temporal<double> rotation{};
       const temporal<glm::dvec2> scale{{1.0, 1.0}};
-      const help::object::collider collider{};
+      const help::object::collision collision{};
       const help::object::texture texture{};
       const help::object::text text{};
       const help::object::priority priority{};

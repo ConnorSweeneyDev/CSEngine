@@ -191,4 +191,4 @@ namespace cse
   };
 }
 
-#include "scene.inl" // IWYU pragma: keep
+#include "scene.inl" // IWYU pragma: export

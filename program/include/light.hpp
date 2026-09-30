@@ -6,6 +6,7 @@
 #include "glm/ext/vector_double4.hpp"
 
 #include "core.hpp"
+#include "group.hpp"
 #include "mixer.hpp"
 #include "name.hpp"
 #include "temporal.hpp"
@@ -22,13 +23,16 @@ namespace cse::help::light
       temporal<double> angle{360.0};
       temporal<double> feather{};
     };
+    cse::group self{cse::everything};
+    cse::group target{cse::everything};
     temporal<glm::dvec4> brightness{{1.0, 1.0, 1.0, 1.0}};
     temporal<double> penetration{1.0};
     illumination::shape shape{};
   };
-  struct shadow
+  struct occlusion
   {
-    bool cast{};
+    cse::group self{cse::everything};
+    cse::group target{cse::everything};
     temporal<double> darkness{1.0};
     temporal<double> softness{};
   };
@@ -47,7 +51,7 @@ namespace cse::help::light
     temporal<glm::dvec3> translation{};
     temporal<glm::dvec2> rotation{};
     light::illumination illumination{};
-    light::shadow shadow{};
+    light::occlusion occlusion{};
     int priority{};
 
     help::timer timer{};
@@ -65,7 +69,7 @@ namespace cse::help::light
   public:
     active() = default;
     active(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec2> &rotation_,
-           const light::illumination &illumination_, const light::shadow &shadow_, const int priority_);
+           const light::illumination &illumination_, const light::occlusion &occlusion_, const int priority_);
     ~active() = default;
     active(const active &) = delete;
     active &operator=(const active &) = delete;
@@ -81,7 +85,7 @@ namespace cse::help::light
     temporal<glm::dvec3> translation{};
     temporal<glm::dvec2> rotation{};
     light::illumination illumination{};
-    light::shadow shadow{};
+    light::occlusion occlusion{};
     int priority{};
 
     help::timer timer{};
@@ -102,7 +106,7 @@ namespace cse
       const temporal<glm::dvec3> translation{};
       const temporal<glm::dvec2> rotation{};
       const help::light::illumination illumination{};
-      const help::light::shadow shadow{};
+      const help::light::occlusion occlusion{};
       const int priority{};
     };
 

@@ -16,8 +16,8 @@
 namespace cse::help::light
 {
   active::active(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec2> &rotation_,
-                 const light::illumination &illumination_, const light::shadow &shadow_, const int priority_)
-    : translation{translation_}, rotation{rotation_}, illumination{illumination_}, shadow{shadow_},
+                 const light::illumination &illumination_, const light::occlusion &occlusion_, const int priority_)
+    : translation{translation_}, rotation{rotation_}, illumination{illumination_}, occlusion{occlusion_},
       priority{priority_} {};
 
   void active::synchronize(previous &last)
@@ -25,7 +25,7 @@ namespace cse::help::light
     last.translation = translation;
     last.rotation = rotation;
     last.illumination = illumination;
-    last.shadow = shadow;
+    last.occlusion = occlusion;
     last.priority = priority;
 
     last.timer = timer;
@@ -49,8 +49,8 @@ namespace cse::help::light
     illumination.shape.range.instant = false;
     illumination.shape.angle.instant = false;
     illumination.shape.feather.instant = false;
-    shadow.darkness.instant = false;
-    shadow.softness.instant = false;
+    occlusion.darkness.instant = false;
+    occlusion.softness.instant = false;
   }
 
   glm::dvec3 active::calculate_direction(const previous &last, const double alpha) const
@@ -68,7 +68,7 @@ namespace cse::help::light
 namespace cse
 {
   light::light(const initial &initial_)
-    : active{initial_.translation, initial_.rotation, initial_.illumination, initial_.shadow, initial_.priority} {};
+    : active{initial_.translation, initial_.rotation, initial_.illumination, initial_.occlusion, initial_.priority} {};
 
   void light::on_prepare() {}
   void light::prepare()

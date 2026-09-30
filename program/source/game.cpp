@@ -5,10 +5,13 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -41,6 +44,7 @@
 #include "container.hpp"
 #include "core.hpp"
 #include "exception.hpp"
+#include "group.hpp"
 #include "interface.hpp"
 #include "light.hpp"
 #include "locale.hpp"
@@ -90,7 +94,7 @@ namespace cse::help::game
       audio_ready = true;
 
     help::locale::resolve(language);
-    help::collision::verify();
+    help::group::verify();
   }
 
   void active::create()
@@ -698,22 +702,25 @@ namespace cse::help::game
 
       const auto color{glm::vec4{text.color.tint.interpolated(element->previous.text.color.tint, alpha)}};
       const auto &illumination{text.illumination};
-      const auto &shadow{text.shadow};
+      const auto &occlusion{text.occlusion};
       block.image = text.source.font.image;
       block.red = color.r;
       block.green = color.g;
       block.blue = color.b;
       block.alpha = color.a;
-      block.lit = illumination.show;
-      block.shadowed = shadow.show;
-      block.cast = shadow.cast;
+      block.illumination_self = illumination.self;
+      block.illumination_target = illumination.target;
+      block.occlusion_self = occlusion.self;
+      block.occlusion_block = occlusion.target.block;
+      block.occlusion_show = occlusion.target.show;
+      block.occlusion_cast = occlusion.target.cast;
       block.brightness = illumination.brightness.interpolated(element->previous.text.illumination.brightness, alpha);
       block.transparency =
         std::clamp(text.color.alpha.interpolated(element->previous.text.color.alpha, alpha), 0.0, 1.0);
       block.penetration =
         std::max(0.0, illumination.penetration.interpolated(element->previous.text.illumination.penetration, alpha));
-      block.darkness = std::max(0.0, shadow.darkness.interpolated(element->previous.text.shadow.darkness, alpha));
-      block.softness = std::max(0.0, shadow.softness.interpolated(element->previous.text.shadow.softness, alpha));
+      block.darkness = std::max(0.0, occlusion.darkness.interpolated(element->previous.text.occlusion.darkness, alpha));
+      block.softness = std::max(0.0, occlusion.softness.interpolated(element->previous.text.occlusion.softness, alpha));
       block.steps =
         static_cast<int>(std::floor(element->active.rotation.interpolated(element->previous.rotation, alpha) + 0.5));
       const bool rotated{(((block.steps % 4) + 4) % 4) % 2 == 1};
@@ -787,9 +794,10 @@ namespace cse::help::game
       const auto angle{shape.angle.interpolated(last_shape.angle, alpha)};
       const auto half{angle / 2.0};
       const auto feather{std::clamp(shape.feather.interpolated(last_shape.feather, alpha), 0.0, 1.0)};
-      const auto &shadow{element->active.shadow};
-      const auto shadow_darkness{shadow.darkness.interpolated(element->previous.shadow.darkness, alpha)};
-      const auto shadow_softness{shadow.softness.interpolated(element->previous.shadow.softness, alpha)};
+      const auto &illumination{element->active.illumination};
+      const auto &occlusion{element->active.occlusion};
+      const auto shadow_darkness{occlusion.darkness.interpolated(element->previous.occlusion.darkness, alpha)};
+      const auto shadow_softness{occlusion.softness.interpolated(element->previous.occlusion.softness, alpha)};
       graphics_light::entry entry{};
       entry.position.at(0) = static_cast<float>(position.x);
       entry.position.at(1) = static_cast<float>(position.y);
@@ -798,7 +806,7 @@ namespace cse::help::game
       entry.brightness.at(0) = static_cast<float>(brightness.x * brightness.w);
       entry.brightness.at(1) = static_cast<float>(brightness.y * brightness.w);
       entry.brightness.at(2) = static_cast<float>(brightness.z * brightness.w);
-      entry.brightness.at(3) = shadow.cast ? static_cast<float>(std::max(0.0, shadow_darkness)) : 0.0f;
+      entry.brightness.at(3) = occlusion.target.empty() ? 0.0f : static_cast<float>(std::max(0.0, shadow_darkness));
       entry.direction.at(0) = static_cast<float>(direction.x);
       entry.direction.at(1) = static_cast<float>(direction.y);
       entry.direction.at(2) = static_cast<float>(direction.z);
@@ -807,6 +815,10 @@ namespace cse::help::game
       entry.cone.at(1) = static_cast<float>(std::cos(glm::radians(half * (1.0 - feather))));
       entry.cone.at(2) = static_cast<float>(penetration);
       entry.cone.at(3) = static_cast<float>(std::max(0.0, shadow_softness));
+      entry.illumination_self = pack(illumination.self);
+      entry.illumination_target = pack(illumination.target);
+      entry.occlusion_self = pack(occlusion.self);
+      entry.occlusion_target = pack(occlusion.target);
       graphics_light.samples.push_back(entry);
     }
   }
@@ -831,22 +843,13 @@ namespace cse::help::game
                           return static_cast<int>(graphics_occluder.layers.size() - 1);
                         }};
 
-    bool penetrating{false};
-    for (const auto &sample : graphics_light.samples)
-      if (sample.direction.at(3) < 0.5f && std::abs(sample.cone.at(2) - 1.0f) > 1e-3f)
-      {
-        penetrating = true;
-        break;
-      }
-
-    graphics_occluder.indices.assign(object_order.size(), -1.0f);
-    for (std::size_t position{}; position < object_order.size(); ++position)
+    for (auto *element : object_order)
     {
-      auto *element{object_order.at(position)};
       const auto &illumination{element->active.texture.illumination};
+      const auto &occlusion{element->active.texture.occlusion};
+      if (occlusion.target.cast.empty() || occlusion.target.block.empty()) continue;
       const auto penetration{std::max(
         0.0, illumination.penetration.interpolated(element->previous.texture.illumination.penetration, alpha))};
-      if (!element->active.texture.shadow.cast && !penetrating && std::abs(penetration - 1.0) < 1e-6) continue;
       const auto &image{element->active.texture.source.image};
       const auto frame_count{element->active.texture.source.animation.frames.size()};
       if (!usable(image) || frame_count == 0) continue;
@@ -888,28 +891,28 @@ namespace cse::help::game
       entry.frame.at(1) = static_cast<float>(swap_v ? second_v : first_v);
       entry.frame.at(2) = static_cast<float>(swap_u ? first_u : second_u);
       entry.frame.at(3) = static_cast<float>(swap_v ? first_v : second_v);
-      const auto shadow_darkness{
-        element->active.texture.shadow.darkness.interpolated(element->previous.texture.shadow.darkness, alpha)};
-      const auto shadow_softness{
-        element->active.texture.shadow.softness.interpolated(element->previous.texture.shadow.softness, alpha)};
+      const auto shadow_darkness{occlusion.darkness.interpolated(element->previous.texture.occlusion.darkness, alpha)};
+      const auto shadow_softness{occlusion.softness.interpolated(element->previous.texture.occlusion.softness, alpha)};
       entry.surface.at(0) = static_cast<float>(snapped_z);
       entry.surface.at(1) = static_cast<float>(layer_of(image));
       entry.surface.at(2) = static_cast<float>(transparency);
       entry.surface.at(3) = rotated ? 1.0f : 0.0f;
       entry.shadow.at(0) = static_cast<float>(penetration);
-      entry.shadow.at(1) = element->active.texture.shadow.cast ? 1.0f : 0.0f;
       entry.shadow.at(2) = static_cast<float>(std::max(0.0, shadow_darkness));
       entry.shadow.at(3) = static_cast<float>(std::max(0.0, shadow_softness));
-      graphics_occluder.indices.at(position) = static_cast<float>(graphics_occluder.samples.size());
+      entry.self = pack(occlusion.self);
+      entry.block = pack(occlusion.target.block);
+      entry.cast = pack(occlusion.target.cast);
       graphics_occluder.samples.push_back(entry);
     }
 
-    for (auto &block : graphics_text.blocks)
+    for (const auto &block : graphics_text.blocks)
     {
-      for (std::size_t index{block.first}; index < block.first + block.count; ++index)
-        graphics_text.quads.at(index).occluder = -1.0f;
       if (block.count == 0 || block.transparency <= 0.0) continue;
-      if (!block.cast && !penetrating && std::abs(block.penetration - 1.0) < 1e-6) continue;
+      if (block.occlusion_cast.empty() || block.occlusion_block.empty()) continue;
+      const auto self{pack(block.occlusion_self)};
+      const auto blocked{pack(block.occlusion_block)};
+      const auto cast{pack(block.occlusion_cast)};
       const auto layer{static_cast<float>(layer_of(block.image))};
       const int turns{((block.steps % 4) + 4) % 4};
       const bool rotated{turns % 2 == 1};
@@ -917,7 +920,7 @@ namespace cse::help::game
       const bool swap_v{turns == 2 || turns == 3};
       for (std::size_t index{block.first}; index < block.first + block.count; ++index)
       {
-        auto &quad{graphics_text.quads.at(index)};
+        const auto &quad{graphics_text.quads.at(index)};
         graphics_occluder::entry entry{};
         entry.rectangle.at(0) = static_cast<float>(quad.minimum_x);
         entry.rectangle.at(1) = static_cast<float>(quad.minimum_y);
@@ -932,10 +935,11 @@ namespace cse::help::game
         entry.surface.at(2) = static_cast<float>(block.transparency);
         entry.surface.at(3) = rotated ? 1.0f : 0.0f;
         entry.shadow.at(0) = static_cast<float>(block.penetration);
-        entry.shadow.at(1) = block.cast ? 1.0f : 0.0f;
         entry.shadow.at(2) = static_cast<float>(block.darkness);
         entry.shadow.at(3) = static_cast<float>(block.softness);
-        quad.occluder = static_cast<float>(graphics_occluder.samples.size());
+        entry.self = self;
+        entry.block = blocked;
+        entry.cast = cast;
         graphics_occluder.samples.push_back(entry);
       }
     }
@@ -1082,12 +1086,18 @@ namespace cse::help::game
                   });
     graphics_light.data.meta.at(0) = static_cast<float>(graphics_light.samples.size());
 
+    const auto meets{[](const graphics_group &first, const graphics_group &second)
+                     {
+                       return std::inner_product(first.begin(), first.end(), second.begin(), std::uint32_t{},
+                                                 std::bit_or{}, std::bit_and{}) != 0;
+                     }};
     const auto reachable{
-      [this, amplification](const graphics_occluder::entry &entry)
+      [this, amplification, &meets](const graphics_occluder::entry &entry)
       {
         const auto plane{static_cast<double>(entry.surface.at(0))};
         for (const auto &light : graphics_light.samples)
         {
+          if (!meets(light.occlusion_target, entry.self) || !meets(entry.block, light.occlusion_self)) continue;
           const glm::dvec3 position{light.position.at(0), light.position.at(1), light.position.at(2)};
           const auto range{std::max(static_cast<double>(light.position.at(3)), 1e-4)};
           const auto reach{static_cast<double>(light.cone.at(3)) * static_cast<double>(entry.shadow.at(3))};
@@ -1135,25 +1145,9 @@ namespace cse::help::game
         return false;
       }};
 
-    auto &compact{graphics_occluder.compact};
-    compact.assign(graphics_occluder.samples.size(), -1.0f);
-    std::size_t kept{};
-    for (std::size_t index{}; index < graphics_occluder.samples.size(); ++index)
-    {
-      if (!reachable(graphics_occluder.samples.at(index))) continue;
-      compact.at(index) = static_cast<float>(kept);
-      if (kept != index) graphics_occluder.samples.at(kept) = graphics_occluder.samples.at(index);
-      ++kept;
-    }
-    if (kept != graphics_occluder.samples.size())
-    {
-      graphics_occluder.samples.resize(kept);
-      for (auto &value : graphics_occluder.indices)
-        if (value >= 0.0f) value = compact.at(static_cast<std::size_t>(value));
-      for (auto &quad : graphics_text.quads)
-        if (quad.occluder >= 0.0f) quad.occluder = compact.at(static_cast<std::size_t>(quad.occluder));
-      graphics_light.data.meta.at(1) = static_cast<float>(kept);
-    }
+    std::erase_if(graphics_occluder.samples,
+                  [&reachable](const graphics_occluder::entry &entry) { return !reachable(entry); });
+    graphics_light.data.meta.at(1) = static_cast<float>(graphics_occluder.samples.size());
   }
 
   void active::generate_objects(const std::vector<cse::object *> &object_order)
@@ -1257,12 +1251,10 @@ namespace cse::help::game
           data.bottom = quad.bottom;
           data.right = quad.right;
           data.top = quad.top;
-          data.lit = block.lit ? 1.0f : 0.0f;
-          data.shadowed = block.shadowed ? 1.0f : 0.0f;
+          receive(data, block.illumination_self, block.illumination_target, block.occlusion_self, block.occlusion_show);
+          data.depth = depth;
           data.brightness = static_cast<float>(block.brightness);
           data.transparency = static_cast<float>(block.transparency);
-          data.depth = depth;
-          data.occluder = quad.occluder;
           if (!graphics_object.batches.empty() && graphics_object.batches.back().pipeline == pipe &&
               graphics_object.batches.back().texture == atlas)
             graphics_object.batches.back().count++;
@@ -1292,13 +1284,13 @@ namespace cse::help::game
       data.bottom = static_cast<float>(flip.vertical ? coordinates.top : coordinates.bottom);
       data.right = static_cast<float>(flip.horizontal ? coordinates.left : coordinates.right);
       data.top = static_cast<float>(flip.vertical ? coordinates.bottom : coordinates.top);
-      data.lit = element->active.texture.illumination.show ? 1.0f : 0.0f;
-      data.shadowed = element->active.texture.shadow.show ? 1.0f : 0.0f;
-      data.brightness = static_cast<float>(element->active.texture.illumination.brightness.interpolated(
-        element->previous.texture.illumination.brightness, alpha));
-      data.transparency = static_cast<float>(transparency);
+      const auto &illumination{element->active.texture.illumination};
+      const auto &occlusion{element->active.texture.occlusion};
+      receive(data, illumination.self, illumination.target, occlusion.self, occlusion.target.show);
       data.depth = depth;
-      data.occluder = position < graphics_occluder.indices.size() ? graphics_occluder.indices.at(position) : -1.0f;
+      data.brightness = static_cast<float>(
+        illumination.brightness.interpolated(element->previous.texture.illumination.brightness, alpha));
+      data.transparency = static_cast<float>(transparency);
       auto &available{require_pipelines()};
       auto *pipe{transparency < 1.0 ? available.transparent : available.opaque};
       auto *texture{require_texture(element->active.texture.source.image)};
@@ -1413,6 +1405,35 @@ namespace cse::help::game
            image.frame_height > 0 && image.channels > 0;
   }
 
+  active::graphics_group active::pack(const cse::group &value)
+  {
+    graphics_group packed{};
+    for (std::size_t index{}; index < value.words().size(); ++index)
+    {
+      const auto word{value.words().at(index)};
+      packed.at(index * 2) = static_cast<std::uint32_t>(word);
+      packed.at((index * 2) + 1) = static_cast<std::uint32_t>(word >> 32u);
+    }
+    return packed;
+  }
+
+  void active::receive(graphics_object::sample &data, const cse::group &illumination_self,
+                       const cse::group &illumination_target, const cse::group &occlusion_self,
+                       const cse::group &occlusion_show)
+  {
+    static_assert(std::tuple_size_v<graphics_group> == 2, "receiver groups must fit a uint4 attribute in pairs");
+    const auto combine{[](const cse::group &low, const cse::group &high)
+                       {
+                         const auto packed_low{pack(low)};
+                         const auto packed_high{pack(high)};
+                         return std::array<std::uint32_t, 4>{packed_low.front(), packed_low.back(), packed_high.front(),
+                                                             packed_high.back()};
+                       }};
+    data.lit = 1.0f;
+    data.illumination = combine(illumination_self, illumination_target);
+    data.occlusion = combine(occlusion_self, occlusion_show);
+  }
+
   struct active::graphics_pipeline &active::require_pipelines()
   {
     if (graphics_pipeline.opaque) return graphics_pipeline;
@@ -1446,7 +1467,7 @@ namespace cse::help::game
         .pitch = sizeof(graphics_object::sample),
         .input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
         .instance_step_rate = 0}}};
-    const std::array<SDL_GPUVertexAttribute, 9> vertex_attributes{
+    const std::array<SDL_GPUVertexAttribute, 10> vertex_attributes{
       {{0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(corner, x)},
        {1, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model)},
        {2, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, model) + (sizeof(float) * 4)},
@@ -1455,11 +1476,12 @@ namespace cse::help::game
        {5, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, red)},
        {6, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, left)},
        {7, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(graphics_object::sample, lit)},
-       {8, 1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(graphics_object::sample, depth)}}};
+       {8, 1, SDL_GPU_VERTEXELEMENTFORMAT_UINT4, offsetof(graphics_object::sample, illumination)},
+       {9, 1, SDL_GPU_VERTEXELEMENTFORMAT_UINT4, offsetof(graphics_object::sample, occlusion)}}};
     const SDL_GPUVertexInputState vertex_input_state{.vertex_buffer_descriptions = vertex_buffer_descriptions.data(),
                                                      .num_vertex_buffers = 2,
                                                      .vertex_attributes = vertex_attributes.data(),
-                                                     .num_vertex_attributes = 9};
+                                                     .num_vertex_attributes = 10};
     SDL_GPURasterizerState rasterizer_state{};
     rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
     rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;

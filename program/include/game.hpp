@@ -25,6 +25,7 @@
 #include "container.hpp"
 #include "core.hpp"
 #include "function.hpp"
+#include "group.hpp"
 #include "mixer.hpp"
 #include "name.hpp"
 #include "resource.hpp"
@@ -157,6 +158,7 @@ namespace cse::help::game
       glm::dvec3 lower{};
       bool bounded;
     };
+    using graphics_group = std::array<std::uint32_t, cse::group::capacity / 32>;
     struct graphics_light
     {
       struct header { std::array<float, 4> meta{}; };
@@ -166,6 +168,10 @@ namespace cse::help::game
         std::array<float, 4> brightness{};
         std::array<float, 4> direction{};
         std::array<float, 4> cone{};
+        graphics_group illumination_self{};
+        graphics_group illumination_target{};
+        graphics_group occlusion_self{};
+        graphics_group occlusion_target{};
       };
       header data{};
       std::vector<entry> samples{};
@@ -181,6 +187,10 @@ namespace cse::help::game
         std::array<float, 4> frame{};
         std::array<float, 4> surface{};
         std::array<float, 4> shadow{};
+        graphics_group self{};
+        graphics_group block{};
+        graphics_group cast{};
+        graphics_group padding{};
       };
       struct layer
       {
@@ -188,11 +198,9 @@ namespace cse::help::game
         double stamp{};
       };
       std::vector<entry> samples{};
-      std::vector<float> indices{};
       std::vector<layer> layers{};
       std::vector<std::uint8_t> doomed{};
       std::vector<float> remap{};
-      std::vector<float> compact{};
       std::size_t capacity{};
       SDL_GPUBuffer *buffer{};
       SDL_GPUTransferBuffer *transfer_buffer{};
@@ -213,9 +221,9 @@ namespace cse::help::game
         std::array<float, 16> model{};
         float red{}, green{}, blue{}, alpha{};
         float left{}, bottom{}, right{}, top{};
-        float lit{}, shadowed{}, brightness{}, transparency{};
-        float depth{};
-        float occluder{-1.0f};
+        float lit{}, depth{}, brightness{}, transparency{};
+        std::array<std::uint32_t, 4> illumination{};
+        std::array<std::uint32_t, 4> occlusion{};
       };
       std::vector<batch> batches{};
       std::vector<sample> samples{};
@@ -252,7 +260,6 @@ namespace cse::help::game
         std::array<float, 16> model{};
         float left{}, bottom{}, right{}, top{};
         double minimum_x{}, minimum_y{}, maximum_x{}, maximum_y{};
-        float occluder{-1.0f};
       };
       struct block
       {
@@ -260,7 +267,8 @@ namespace cse::help::game
         cse::image image{};
         float red{}, green{}, blue{}, alpha{};
         bool visible{};
-        bool lit{}, shadowed{}, cast{};
+        cse::group illumination_self{}, illumination_target{};
+        cse::group occlusion_self{}, occlusion_block{}, occlusion_show{}, occlusion_cast{};
         double brightness{}, transparency{};
         double penetration{}, darkness{}, softness{};
         double plane{};
@@ -340,6 +348,10 @@ namespace cse::help::game
     void generate_interfaces();
     bool inside_frustum(const glm::dvec3 &center, const double radius) const;
     static bool usable(const cse::image &image);
+    static graphics_group pack(const cse::group &value);
+    static void receive(graphics_object::sample &data, const cse::group &illumination_self,
+                        const cse::group &illumination_target, const cse::group &occlusion_self,
+                        const cse::group &occlusion_show);
     template <typename type> void compose_text(type &text, const type &last, const cse::name &element,
                                                const double box_left, const double box_right, const double box_top,
                                                const double box_bottom, std::vector<graphics_text::composed> &output);
@@ -535,4 +547,4 @@ namespace cse
   };
 }
 
-#include "game.inl" // IWYU pragma: keep
+#include "game.inl" // IWYU pragma: export
