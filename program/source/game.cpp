@@ -256,7 +256,7 @@ namespace cse::help::game
     generate_interfaces();
     graphics_object.overlay = [&]()
     {
-      const auto height{static_cast<double>(std::max(1u, aspect.resolution))};
+      const auto height{static_cast<double>(std::max(1u, aspect.resolution.canvas))};
       const auto width{height * aspect.ratio};
       const auto projection{glm::ortho(-width / 2.0, width / 2.0, -height / 2.0, height / 2.0, -1.0, 1.0)};
       const glm::dvec3 origin{std::llround(width) % 2 == 0 ? -0.5 : 0.0, std::llround(height) % 2 == 0 ? 0.5 : 0.0,
@@ -554,7 +554,7 @@ namespace cse::help::game
 
   bool active::inside(const glm::dvec2 &position) const
   {
-    const auto canvas_height{static_cast<double>(std::max(1u, aspect.resolution))};
+    const auto canvas_height{static_cast<double>(std::max(1u, aspect.resolution.canvas))};
     const auto canvas_width{canvas_height * aspect.ratio};
     const auto left{position.x - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0)};
     const auto top{position.y + (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};

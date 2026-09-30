@@ -52,10 +52,15 @@ namespace cse::help::game
     unsigned int count{};
     double average{};
   };
+  struct resolution
+  {
+    unsigned int world{};
+    unsigned int canvas{180};
+  };
   struct aspect
   {
     double ratio{16.0 / 9.0};
-    unsigned int resolution{180};
+    game::resolution resolution{};
     ::scaling scaling{VIRTUAL};
   };
   struct vram

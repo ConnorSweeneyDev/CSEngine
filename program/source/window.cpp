@@ -10,6 +10,7 @@
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_mouse.h"
+#include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_rect.h"
 #include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
@@ -114,14 +115,79 @@ namespace cse::help::window
 
   void active::render(const help::game::active &game_active, const glm::dvec3 &clear)
   {
+    const SDL_FColor background{static_cast<float>(clear.r), static_cast<float>(clear.g), static_cast<float>(clear.b),
+                                1.0f};
+    const auto view{letterbox(game_active.aspect)};
+    const SDL_GPUViewport canvas_port{.x = static_cast<float>(view.left),
+                                      .y = static_cast<float>(view.top),
+                                      .w = static_cast<float>(view.width),
+                                      .h = static_cast<float>(view.height),
+                                      .min_depth = 0.0f,
+                                      .max_depth = 1.0f};
+    const auto count{game_active.graphics_object.batches.size()};
+    const auto split{game_active.graphics_object.split};
+    const auto tall{game_active.aspect.resolution.world};
+
+    if (tall > 0)
+    {
+      const auto wide{
+        std::max(1u, static_cast<unsigned int>(std::llround(static_cast<double>(tall) * game_active.aspect.ratio)))};
+      if (!world_texture || wide != world_width || tall != world_height)
+        generate_world_textures(game_active.video, wide, tall);
+      begin(world_texture, world_depth_texture, SDL_GPU_LOADOP_CLEAR, background);
+      const SDL_GPUViewport world_port{.x = 0.0f,
+                                       .y = 0.0f,
+                                       .w = static_cast<float>(wide),
+                                       .h = static_cast<float>(tall),
+                                       .min_depth = 0.0f,
+                                       .max_depth = 1.0f};
+      SDL_SetGPUViewport(render_pass, &world_port);
+      draw(game_active, 0, split);
+      SDL_EndGPURenderPass(render_pass);
+
+      const auto x{std::min(static_cast<Uint32>(std::max(0.0, view.left)), render_width)};
+      const auto y{std::min(static_cast<Uint32>(std::max(0.0, view.top)), render_height)};
+      SDL_GPUBlitInfo blit{};
+      blit.source = {
+        .texture = world_texture, .mip_level = 0, .layer_or_depth_plane = 0, .x = 0, .y = 0, .w = wide, .h = tall};
+      blit.destination = {.texture = swapchain_texture,
+                          .mip_level = 0,
+                          .layer_or_depth_plane = 0,
+                          .x = x,
+                          .y = y,
+                          .w = std::min(static_cast<Uint32>(std::llround(view.width)), render_width - x),
+                          .h = std::min(static_cast<Uint32>(std::llround(view.height)), render_height - y)};
+      blit.load_op = SDL_GPU_LOADOP_CLEAR;
+      blit.clear_color = background;
+      blit.filter = SDL_GPU_FILTER_NEAREST;
+      SDL_BlitGPUTexture(command_buffer, &blit);
+
+      begin(swapchain_texture, depth_texture, SDL_GPU_LOADOP_LOAD, background);
+      SDL_SetGPUViewport(render_pass, &canvas_port);
+      draw(game_active, split, count);
+    }
+    else
+    {
+      if (world_texture) generate_world_textures(game_active.video, 0, 0);
+      begin(swapchain_texture, depth_texture, SDL_GPU_LOADOP_CLEAR, background);
+      SDL_SetGPUViewport(render_pass, &canvas_port);
+      draw(game_active, 0, count);
+    }
+
+    SDL_EndGPURenderPass(render_pass);
+    if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
+  }
+
+  void active::begin(SDL_GPUTexture *color, SDL_GPUTexture *depth, const SDL_GPULoadOp load,
+                     const SDL_FColor &background)
+  {
     SDL_GPUColorTargetInfo color_target_info{};
-    color_target_info.texture = swapchain_texture;
-    color_target_info.clear_color = {static_cast<float>(clear.r), static_cast<float>(clear.g),
-                                     static_cast<float>(clear.b), 1.0f};
-    color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
+    color_target_info.texture = color;
+    color_target_info.clear_color = background;
+    color_target_info.load_op = load;
     color_target_info.store_op = SDL_GPU_STOREOP_STORE;
     SDL_GPUDepthStencilTargetInfo depth_stencil_target_info{};
-    depth_stencil_target_info.texture = depth_texture;
+    depth_stencil_target_info.texture = depth;
     depth_stencil_target_info.clear_depth = 1.0f;
     depth_stencil_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
     depth_stencil_target_info.store_op = SDL_GPU_STOREOP_DONT_CARE;
@@ -130,85 +196,40 @@ namespace cse::help::window
     depth_stencil_target_info.cycle = true;
     render_pass = SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, &depth_stencil_target_info);
     if (!render_pass) throw sdl_exception("Could not begin GPU render pass");
-    const auto view{letterbox(game_active.aspect)};
-    const SDL_GPUViewport port{.x = static_cast<float>(view.left),
-                               .y = static_cast<float>(view.top),
-                               .w = static_cast<float>(view.width),
-                               .h = static_cast<float>(view.height),
-                               .min_depth = 0.0f,
-                               .max_depth = 1.0f};
-    SDL_SetGPUViewport(render_pass, &port);
+  }
 
-    if (!game_active.graphics_object.batches.empty())
+  void active::draw(const help::game::active &game_active, const std::size_t first, const std::size_t last)
+  {
+    if (first >= last) return;
+    const std::array<SDL_GPUBufferBinding, 2> vertex_buffer_bindings{
+      {{.buffer = game_active.graphics_buffer.vertex, .offset = 0},
+       {.buffer = game_active.graphics_object.buffer, .offset = 0}}};
+    SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffer_bindings.data(), 2);
+    const SDL_GPUBufferBinding index_buffer_binding{.buffer = game_active.graphics_buffer.index, .offset = 0};
+    SDL_BindGPUIndexBuffer(render_pass, &index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+    const std::array<SDL_GPUBuffer *, 2> storage_buffers{game_active.graphics_light.buffer,
+                                                         game_active.graphics_occluder.buffer};
+    SDL_BindGPUFragmentStorageBuffers(render_pass, 0, storage_buffers.data(), 2);
+    SDL_BindGPUFragmentStorageTextures(render_pass, 0, &game_active.graphics_occluder.texture, 1);
+    const SDL_GPUGraphicsPipeline *pipeline{};
+    const SDL_GPUTexture *texture{};
+    const auto &batches{game_active.graphics_object.batches};
+    const auto split{game_active.graphics_object.split};
+
+    if (first == 0 && split > 0 && game_active.graphics_pipeline.depth)
     {
-      const std::array<SDL_GPUBufferBinding, 2> vertex_buffer_bindings{
-        {{.buffer = game_active.graphics_buffer.vertex, .offset = 0},
-         {.buffer = game_active.graphics_object.buffer, .offset = 0}}};
-      SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffer_bindings.data(), 2);
-      const SDL_GPUBufferBinding index_buffer_binding{.buffer = game_active.graphics_buffer.index, .offset = 0};
-      SDL_BindGPUIndexBuffer(render_pass, &index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-      const std::array<SDL_GPUBuffer *, 2> storage_buffers{game_active.graphics_light.buffer,
-                                                           game_active.graphics_occluder.buffer};
-      SDL_BindGPUFragmentStorageBuffers(render_pass, 0, storage_buffers.data(), 2);
-      SDL_BindGPUFragmentStorageTextures(render_pass, 0, &game_active.graphics_occluder.texture, 1);
-      const SDL_GPUGraphicsPipeline *pipeline{};
-      const SDL_GPUTexture *texture{};
-      const auto &batches{game_active.graphics_object.batches};
-      const auto split{game_active.graphics_object.split};
-
-      if (split > 0 && game_active.graphics_pipeline.depth)
+      const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.world.first},
+                                              glm::mat4{game_active.graphics_object.world.second}};
+      auto prepass_data{game_active.graphics_light.data};
+      prepass_data.meta.at(0) = 0.0f;
+      prepass_data.meta.at(1) = 0.0f;
+      SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
+      SDL_PushGPUFragmentUniformData(command_buffer, 0, &prepass_data, sizeof(prepass_data));
+      SDL_BindGPUGraphicsPipeline(render_pass, game_active.graphics_pipeline.depth);
+      for (std::size_t index{}; index < split; ++index)
       {
-        const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.world.first},
-                                                glm::mat4{game_active.graphics_object.world.second}};
-        auto prepass_data{game_active.graphics_light.data};
-        prepass_data.meta.at(0) = 0.0f;
-        prepass_data.meta.at(1) = 0.0f;
-        SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
-        SDL_PushGPUFragmentUniformData(command_buffer, 0, &prepass_data, sizeof(prepass_data));
-        SDL_BindGPUGraphicsPipeline(render_pass, game_active.graphics_pipeline.depth);
-        for (std::size_t index{}; index < split; ++index)
-        {
-          const auto &group{batches.at(index)};
-          if (group.pipeline != game_active.graphics_pipeline.opaque) continue;
-          if (group.texture != texture)
-          {
-            const SDL_GPUTextureSamplerBinding texture_binding{.texture = group.texture,
-                                                               .sampler = game_active.graphics_buffer.nearest};
-            SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_binding, 1);
-            texture = group.texture;
-          }
-          SDL_DrawGPUIndexedPrimitives(render_pass, 6, static_cast<Uint32>(group.count), 0, 0,
-                                       static_cast<Uint32>(group.first));
-        }
-        texture = nullptr;
-      }
-
-      for (std::size_t index{}; index < batches.size(); ++index)
-      {
-        if (index == 0 && split > 0)
-        {
-          const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.world.first},
-                                                  glm::mat4{game_active.graphics_object.world.second}};
-          SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
-          SDL_PushGPUFragmentUniformData(command_buffer, 0, &game_active.graphics_light.data,
-                                         sizeof(game_active.graphics_light.data));
-        }
-        if (index == split)
-        {
-          const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.overlay.first},
-                                                  glm::mat4{game_active.graphics_object.overlay.second}};
-          auto overlay_data{game_active.graphics_light.data};
-          overlay_data.meta.at(0) = 0.0f;
-          overlay_data.meta.at(1) = 0.0f;
-          SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
-          SDL_PushGPUFragmentUniformData(command_buffer, 0, &overlay_data, sizeof(overlay_data));
-        }
         const auto &group{batches.at(index)};
-        if (group.pipeline != pipeline)
-        {
-          SDL_BindGPUGraphicsPipeline(render_pass, group.pipeline);
-          pipeline = group.pipeline;
-        }
+        if (group.pipeline != game_active.graphics_pipeline.opaque) continue;
         if (group.texture != texture)
         {
           const SDL_GPUTextureSamplerBinding texture_binding{.texture = group.texture,
@@ -219,14 +240,50 @@ namespace cse::help::window
         SDL_DrawGPUIndexedPrimitives(render_pass, 6, static_cast<Uint32>(group.count), 0, 0,
                                      static_cast<Uint32>(group.first));
       }
+      texture = nullptr;
     }
 
-    SDL_EndGPURenderPass(render_pass);
-    if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
+    for (std::size_t index{first}; index < last; ++index)
+    {
+      if (index == 0 && split > 0)
+      {
+        const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.world.first},
+                                                glm::mat4{game_active.graphics_object.world.second}};
+        SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
+        SDL_PushGPUFragmentUniformData(command_buffer, 0, &game_active.graphics_light.data,
+                                       sizeof(game_active.graphics_light.data));
+      }
+      if (index == split)
+      {
+        const std::array<glm::mat4, 2> matrices{glm::mat4{game_active.graphics_object.overlay.first},
+                                                glm::mat4{game_active.graphics_object.overlay.second}};
+        auto overlay_data{game_active.graphics_light.data};
+        overlay_data.meta.at(0) = 0.0f;
+        overlay_data.meta.at(1) = 0.0f;
+        SDL_PushGPUVertexUniformData(command_buffer, 0, &matrices, sizeof(matrices));
+        SDL_PushGPUFragmentUniformData(command_buffer, 0, &overlay_data, sizeof(overlay_data));
+      }
+      const auto &group{batches.at(index)};
+      if (group.pipeline != pipeline)
+      {
+        SDL_BindGPUGraphicsPipeline(render_pass, group.pipeline);
+        pipeline = group.pipeline;
+      }
+      if (group.texture != texture)
+      {
+        const SDL_GPUTextureSamplerBinding texture_binding{.texture = group.texture,
+                                                           .sampler = game_active.graphics_buffer.nearest};
+        SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_binding, 1);
+        texture = group.texture;
+      }
+      SDL_DrawGPUIndexedPrimitives(render_pass, 6, static_cast<Uint32>(group.count), 0, 0,
+                                   static_cast<Uint32>(group.first));
+    }
   }
 
   void active::destroy(SDL_GPUDevice *video)
   {
+    generate_world_textures(video, 0, 0);
     SDL_ReleaseGPUTexture(video, depth_texture);
     SDL_ReleaseWindowFromGPUDevice(video, instance);
     SDL_DestroyWindow(instance);
@@ -268,7 +325,7 @@ namespace cse::help::window
   {
     const auto window_width{static_cast<double>(render_width)};
     const auto window_height{static_cast<double>(render_height)};
-    const auto canvas_height{std::max(1u, aspect.resolution)};
+    const auto canvas_height{std::max(1u, aspect.resolution.canvas)};
     const auto canvas_width{
       std::max(1u, static_cast<unsigned int>(std::llround(static_cast<double>(canvas_height) * aspect.ratio)))};
     const auto scale{aspect.scaling == VIRTUAL ? std::min(render_width / canvas_width, render_height / canvas_height)
@@ -316,7 +373,7 @@ namespace cse::help::window
   glm::dvec2 active::to_virtual(const double horizontal, const double vertical, const help::game::aspect &aspect)
   {
     const auto view{letterbox(aspect)};
-    const auto canvas_height{static_cast<double>(std::max(1u, aspect.resolution))};
+    const auto canvas_height{static_cast<double>(std::max(1u, aspect.resolution.canvas))};
     const auto canvas_width{canvas_height * aspect.ratio};
     const glm::dvec2 canvas{((horizontal - view.left) / view.width * canvas_width) - (canvas_width / 2.0),
                             ((vertical - view.top) / view.height * canvas_height) - (canvas_height / 2.0)};
@@ -327,7 +384,7 @@ namespace cse::help::window
   glm::dvec2 active::to_pixel(const double horizontal, const double vertical, const help::game::aspect &aspect)
   {
     const auto view{letterbox(aspect)};
-    const auto canvas_height{static_cast<double>(std::max(1u, aspect.resolution))};
+    const auto canvas_height{static_cast<double>(std::max(1u, aspect.resolution.canvas))};
     const auto canvas_width{canvas_height * aspect.ratio};
     const glm::dvec2 canvas{horizontal - (std::llround(canvas_width) % 2 == 0 ? 0.5 : 0.0),
                             -vertical - (std::llround(canvas_height) % 2 == 0 ? 0.5 : 0.0)};
@@ -355,6 +412,17 @@ namespace cse::help::window
     shadow.vsync = vsync;
   }
 
+  SDL_GPUTextureFormat active::depth_format(SDL_GPUDevice *video)
+  {
+    const std::array<SDL_GPUTextureFormat, 3> potential_formats{
+      SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
+    for (const auto &potential_format : potential_formats)
+      if (SDL_GPUTextureSupportsFormat(video, potential_format, SDL_GPU_TEXTURETYPE_2D,
+                                       SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET))
+        return potential_format;
+    throw sdl_exception("No supported depth texture format found");
+  }
+
   void active::generate_depth_texture(SDL_GPUDevice *video)
   {
     if (depth_texture)
@@ -362,36 +430,67 @@ namespace cse::help::window
       SDL_ReleaseGPUTexture(video, depth_texture);
       depth_texture = nullptr;
     }
-    const auto type{SDL_GPU_TEXTURETYPE_2D};
-    const std::array<SDL_GPUTextureFormat, 3> potential_formats{
-      SDL_GPU_TEXTUREFORMAT_D32_FLOAT, SDL_GPU_TEXTUREFORMAT_D24_UNORM, SDL_GPU_TEXTUREFORMAT_D16_UNORM};
-    const auto usage{SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET};
-    const SDL_GPUTextureCreateInfo depth_texture_info{
-      .type = type,
-      .format = [&video, &potential_formats]() -> SDL_GPUTextureFormat
-      {
-        for (const auto &potential_format : potential_formats)
-          if (SDL_GPUTextureSupportsFormat(video, potential_format, type, usage)) return potential_format;
-        return {};
-      }(),
-      .usage = usage,
-      .width = render_width,
-      .height = render_height,
-      .layer_count_or_depth = 1,
-      .num_levels = 1,
-      .sample_count = SDL_GPU_SAMPLECOUNT_1,
-      .props = 0};
-    if (depth_texture_info.format == SDL_GPU_TEXTUREFORMAT_INVALID)
-      throw sdl_exception("No supported depth texture format found");
+    const SDL_GPUTextureCreateInfo depth_texture_info{.type = SDL_GPU_TEXTURETYPE_2D,
+                                                      .format = depth_format(video),
+                                                      .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
+                                                      .width = render_width,
+                                                      .height = render_height,
+                                                      .layer_count_or_depth = 1,
+                                                      .num_levels = 1,
+                                                      .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                                      .props = 0};
     depth_texture = SDL_CreateGPUTexture(video, &depth_texture_info);
     if (!depth_texture) throw sdl_exception("Could not create depth texture");
+  }
+
+  void active::generate_world_textures(SDL_GPUDevice *video, const unsigned int wide, const unsigned int tall)
+  {
+    if (world_texture)
+    {
+      SDL_ReleaseGPUTexture(video, world_texture);
+      world_texture = nullptr;
+    }
+    if (world_depth_texture)
+    {
+      SDL_ReleaseGPUTexture(video, world_depth_texture);
+      world_depth_texture = nullptr;
+    }
+    world_width = wide;
+    world_height = tall;
+    if (wide == 0 || tall == 0) return;
+    const SDL_GPUTextureCreateInfo world_texture_info{.type = SDL_GPU_TEXTURETYPE_2D,
+                                                      .format = SDL_GetGPUSwapchainTextureFormat(video, instance),
+                                                      .usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET |
+                                                               SDL_GPU_TEXTUREUSAGE_SAMPLER,
+                                                      .width = wide,
+                                                      .height = tall,
+                                                      .layer_count_or_depth = 1,
+                                                      .num_levels = 1,
+                                                      .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                                      .props = 0};
+    world_texture = SDL_CreateGPUTexture(video, &world_texture_info);
+    if (!world_texture) throw sdl_exception("Could not create world texture");
+    const SDL_GPUTextureCreateInfo world_depth_texture_info{.type = SDL_GPU_TEXTURETYPE_2D,
+                                                            .format = depth_format(video),
+                                                            .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
+                                                            .width = wide,
+                                                            .height = tall,
+                                                            .layer_count_or_depth = 1,
+                                                            .num_levels = 1,
+                                                            .sample_count = SDL_GPU_SAMPLECOUNT_1,
+                                                            .props = 0};
+    world_depth_texture = SDL_CreateGPUTexture(video, &world_depth_texture_info);
+    if (!world_depth_texture) throw sdl_exception("Could not create world depth texture");
   }
 
   bool active::acquire_swapchain_texture(SDL_GPUDevice *video)
   {
     command_buffer = SDL_AcquireGPUCommandBuffer(video);
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer");
-    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, nullptr, nullptr))
+    Uint32 swapchain_width{};
+    Uint32 swapchain_height{};
+    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, &swapchain_width,
+                                               &swapchain_height))
     {
       sdl_log("Could not acquire GPU swapchain texture; skipping frame");
       if (!SDL_CancelGPUCommandBuffer(command_buffer)) sdl_log("Could not cancel GPU command buffer");
@@ -401,6 +500,12 @@ namespace cse::help::window
     {
       if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
       return false;
+    }
+    if (swapchain_width != render_width || swapchain_height != render_height)
+    {
+      render_width = swapchain_width;
+      render_height = swapchain_height;
+      generate_depth_texture(video);
     }
     return true;
   }

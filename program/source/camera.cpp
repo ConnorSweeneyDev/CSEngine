@@ -1,5 +1,6 @@
 #include "camera.hpp"
 
+#include <cmath>
 #include <utility>
 
 #include "SDL3/SDL_events.h"
@@ -16,8 +17,9 @@
 namespace cse::help::camera
 {
   active::active(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec3> &forward_,
-                 const temporal<glm::dvec3> &up_, const temporal<double> &fov_, const camera::clip &clip_)
-    : translation{translation_}, forward{forward_}, up{up_}, fov{fov_}, clip{clip_} {};
+                 const temporal<glm::dvec3> &up_, const temporal<double> &fov_, const camera::clip &clip_,
+                 const bool snap_)
+    : translation{translation_}, forward{forward_}, up{up_}, fov{fov_}, clip{clip_}, snap{snap_} {};
 
   void active::synchronize(previous &last)
   {
@@ -26,6 +28,7 @@ namespace cse::help::camera
     last.up = up;
     last.fov = fov;
     last.clip = clip;
+    last.snap = snap;
     last.timer = timer;
     last.mixer = mixer;
     last.phase = phase;
@@ -49,6 +52,10 @@ namespace cse::help::camera
   glm::dmat4 active::calculate_view_matrix(const previous &last, const double alpha) const
   {
     auto interpolated_translation = translation.interpolated(last.translation, alpha);
+    if (snap)
+      interpolated_translation = {std::floor(interpolated_translation.x + 0.5),
+                                  std::floor(interpolated_translation.y + 0.5),
+                                  std::floor(interpolated_translation.z + 0.5)};
     return glm::lookAt(interpolated_translation, interpolated_translation + forward.interpolated(last.forward, alpha),
                        up.interpolated(last.up, alpha));
   }
@@ -64,7 +71,7 @@ namespace cse::help::camera
 namespace cse
 {
   camera::camera(const initial &initial_)
-    : active{initial_.translation, initial_.forward, initial_.up, initial_.fov, initial_.clip} {};
+    : active{initial_.translation, initial_.forward, initial_.up, initial_.fov, initial_.clip, initial_.snap} {};
 
   void camera::on_prepare() {}
   void camera::prepare()

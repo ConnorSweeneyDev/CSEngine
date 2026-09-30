@@ -35,6 +35,7 @@ namespace cse::help::camera
     temporal<glm::dvec3> up{};
     temporal<double> fov{};
     camera::clip clip{};
+    bool snap{};
 
     help::timer timer{};
     help::mixer mixer{};
@@ -49,7 +50,8 @@ namespace cse::help::camera
   public:
     active() = default;
     active(const temporal<glm::dvec3> &translation_, const temporal<glm::dvec3> &forward_,
-           const temporal<glm::dvec3> &up_, const temporal<double> &fov_, const camera::clip &clip_);
+           const temporal<glm::dvec3> &up_, const temporal<double> &fov_, const camera::clip &clip_,
+           const bool snap_);
     ~active() = default;
     active(const active &) = delete;
     active &operator=(const active &) = delete;
@@ -68,6 +70,7 @@ namespace cse::help::camera
     temporal<glm::dvec3> up{};
     temporal<double> fov{};
     camera::clip clip{};
+    bool snap{};
 
     help::timer timer{};
     help::mixer mixer{};
@@ -90,6 +93,7 @@ namespace cse
       const temporal<glm::dvec3> up{{0.0, 1.0, 0.0}};
       const temporal<double> fov{60};
       const help::camera::clip clip{};
+      const bool snap{};
     };
 
   public:

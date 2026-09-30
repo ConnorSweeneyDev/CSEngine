@@ -123,7 +123,7 @@ namespace custom
   game::game()
     : cse::game({.tick = 300.0,
                  .frame = 144.0,
-                 .aspect = {.ratio = 16.0 / 9.0, .resolution = 180, .scaling = VIRTUAL},
+                 .aspect = {.ratio = 16.0 / 9.0, .resolution = {.world = 0, .canvas = 180}, .scaling = VIRTUAL},
                  .clear = {{0.0, 0.0, 0.0}},
                  .memory = {.vram = 512, .ram = 128},
                  .language = language::en,
@@ -141,13 +141,23 @@ will run slower than real time. The frame rate is a target; this means that even
 target frame rate, the user's system may be configured to limit it to a lower value, so you should not rely on it.
 
 `aspect` bundles the three things that define the virtual canvas. `ratio` is a `double` that defines the aspect ratio
-the game will adhere to no matter the size of the window. `resolution` is the canvas **height** in virtual pixels; the
-width is derived as `resolution × ratio`. `scaling` chooses how the canvas is fitted to the window:
+the game will adhere to no matter the size of the window. `resolution` holds two **heights** in virtual pixels, each
+with its width derived as `height × ratio`:
+- `canvas` is the interface canvas. Interfaces are laid out on it and mouse positions are reported in it.
+- `world` pixelates the 3D scene: when non-zero, the world is rendered at that resolution and upscaled with
+  nearest-neighbour filtering, so every sprite, shadow and light edge shares one pixel grid regardless of depth.
+  `0` (the default) renders the world at the window's native resolution. For exact, uniform world pixels under
+  `VIRTUAL` scaling, make `canvas` a whole multiple of `world` (equal is simplest). A pixelated world is also much
+  cheaper to light, since the lighting shader runs once per world pixel. Edges can crawl by a pixel while the camera
+  moves in sub-pixel steps; set the camera's `snap` to `true` to snap its position to whole world units, the same way
+  objects are snapped, or leave it `false` (the default) for free movement.
+
+`scaling` chooses how the canvas is fitted to the window:
 - `VIRTUAL` (default) scales by whole multiples only, so every virtual pixel is an exact block of device pixels. The
   remainder is letterboxed. Crisp at any window size, at the cost of black bars when the window is not a clean multiple.
 - `PHYSICAL` fits the canvas to the window and letterboxes only for aspect. Uses the whole screen, but virtual pixels
   land on fractional device pixels, so sprite edges and glyph stems shimmer slightly during motion.
-Pick `resolution` so it divides your target display heights, and is a multiple of your aspect ratio height: at 16:9,
+Pick `canvas` so it divides your target display heights, and is a multiple of your aspect ratio height: at 16:9,
 **180** (320×180) scales exactly 2x/4×/6×/8×/12× at 360p/720p/1080p/1440p/2160p.
 
 `clear` is the background colour for the canvas. This affects the clear colour for the 3D scene, and the colour of the

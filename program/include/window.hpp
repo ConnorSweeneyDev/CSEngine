@@ -1,10 +1,12 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
+#include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
@@ -98,6 +100,8 @@ namespace cse::help::window
     void create(SDL_GPUDevice *video, const help::game::aspect &aspect);
     void synchronize(previous &last);
     void render(const help::game::active &game_active, const glm::dvec3 &clear);
+    void begin(SDL_GPUTexture *color, SDL_GPUTexture *depth, const SDL_GPULoadOp load, const SDL_FColor &background);
+    void draw(const help::game::active &game_active, const std::size_t first, const std::size_t last);
     void destroy(SDL_GPUDevice *video);
 
     void poll(const help::game::aspect &aspect);
@@ -108,7 +112,9 @@ namespace cse::help::window
     glm::dvec2 to_pixel(const double horizontal, const double vertical, const help::game::aspect &aspect);
 
     void reconcile(SDL_GPUDevice *video);
+    static SDL_GPUTextureFormat depth_format(SDL_GPUDevice *video);
     void generate_depth_texture(SDL_GPUDevice *video);
+    void generate_world_textures(SDL_GPUDevice *video, const unsigned int wide, const unsigned int tall);
     bool acquire_swapchain_texture(SDL_GPUDevice *video);
     bool can_move();
     bool display_exists(const SDL_DisplayID target);
@@ -148,11 +154,15 @@ namespace cse::help::window
     SDL_GPUCommandBuffer *command_buffer{};
     SDL_GPUTexture *swapchain_texture{};
     SDL_GPUTexture *depth_texture{};
+    SDL_GPUTexture *world_texture{};
+    SDL_GPUTexture *world_depth_texture{};
     SDL_GPURenderPass *render_pass{};
     int windowed_left{};
     int windowed_top{};
     unsigned int render_width{};
     unsigned int render_height{};
+    unsigned int world_width{};
+    unsigned int world_height{};
   };
 }
 
