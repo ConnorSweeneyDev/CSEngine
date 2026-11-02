@@ -209,6 +209,7 @@ namespace cse::help::game
       std::vector<layer> layers{};
       std::vector<std::uint8_t> doomed{};
       std::vector<float> remap{};
+      std::vector<std::uint32_t> table{};
       std::size_t capacity{};
       SDL_GPUBuffer *buffer{};
       SDL_GPUTransferBuffer *transfer_buffer{};
@@ -291,6 +292,16 @@ namespace cse::help::game
       std::vector<block> blocks{};
     };
     struct graphics_interface { std::vector<cse::interface *> order{}; };
+    struct graphics_upload
+    {
+      struct pending
+      {
+        const void *source{};
+        Uint32 bytes{};
+        SDL_GPUTextureRegion region{};
+      };
+      std::vector<pending> queue{};
+    };
 
     struct channel
     {
@@ -441,6 +452,7 @@ namespace cse::help::game
     active::graphics_object graphics_object{};
     active::graphics_text graphics_text{};
     active::graphics_interface graphics_interface{};
+    active::graphics_upload graphics_upload{};
 
     static constexpr double shortest_ramp{0.001};
     static constexpr double longest_ramp{0.02};

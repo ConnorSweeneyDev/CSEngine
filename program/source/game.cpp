@@ -264,7 +264,7 @@ namespace cse::help::game
     const auto lights{static_cast<Uint32>(sizeof(graphics_light::entry) * graphics_light.samples.size())};
     const auto occluders{static_cast<Uint32>(sizeof(graphics_occluder::entry) * graphics_occluder.samples.size())};
     const auto objects{static_cast<Uint32>(sizeof(graphics_object::sample) * graphics_object.samples.size())};
-    if (lights == 0 && occluders == 0 && objects == 0) return;
+    if (lights == 0 && occluders == 0 && objects == 0 && graphics_upload.queue.empty()) return;
     if (graphics_light.samples.size() > graphics_light.capacity)
     {
       SDL_ReleaseGPUTransferBuffer(video, graphics_light.transfer_buffer);
@@ -365,6 +365,38 @@ namespace cse::help::game
                                                             .offset = 0};
       const SDL_GPUBufferRegion buffer_region{.buffer = graphics_object.buffer, .offset = 0, .size = objects};
       SDL_UploadToGPUBuffer(copy_pass, &transfer_location, &buffer_region, true);
+    }
+    if (!graphics_upload.queue.empty())
+    {
+      static constexpr Uint32 placement{512};
+      const auto aligned{[](const Uint32 offset) { return (offset + placement - 1) / placement * placement; }};
+      Uint32 total{};
+      for (const auto &entry : graphics_upload.queue) total = aligned(total) + entry.bytes;
+      const SDL_GPUTransferBufferCreateInfo transfer_info{
+        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = total, .props = 0};
+      auto *transfer{SDL_CreateGPUTransferBuffer(video, &transfer_info)};
+      if (!transfer) throw sdl_exception("Could not create texture transfer buffer for game");
+      auto *start{static_cast<unsigned char *>(SDL_MapGPUTransferBuffer(video, transfer, false))};
+      if (!start) throw sdl_exception("Could not map texture data for game");
+      Uint32 offset{};
+      for (const auto &entry : graphics_upload.queue)
+      {
+        offset = aligned(offset);
+        SDL_memcpy(start + offset, entry.source, entry.bytes);
+        offset += entry.bytes;
+      }
+      SDL_UnmapGPUTransferBuffer(video, transfer);
+      offset = 0;
+      for (const auto &entry : graphics_upload.queue)
+      {
+        offset = aligned(offset);
+        const SDL_GPUTextureTransferInfo source{
+          .transfer_buffer = transfer, .offset = offset, .pixels_per_row = 0, .rows_per_layer = 0};
+        SDL_UploadToGPUTexture(copy_pass, &source, &entry.region, false);
+        offset += entry.bytes;
+      }
+      SDL_ReleaseGPUTransferBuffer(video, transfer);
+      graphics_upload.queue.clear();
     }
     SDL_EndGPUCopyPass(copy_pass);
   }
@@ -1033,12 +1065,12 @@ namespace cse::help::game
     {
       unsigned int max_width{1};
       unsigned int max_height{1};
-      Uint32 total{};
+      std::size_t total{};
       for (const auto &entry : graphics_occluder.layers)
       {
         max_width = std::max(max_width, entry.image.width);
         max_height = std::max(max_height, entry.image.height);
-        total += (entry.image.width + 1) * (entry.image.height + 1) * static_cast<Uint32>(sizeof(Uint32));
+        total += static_cast<std::size_t>(entry.image.width + 1) * (entry.image.height + 1);
       }
       SDL_ReleaseGPUTexture(video, graphics_occluder.texture);
       const SDL_GPUTextureCreateInfo array_info{.type = SDL_GPU_TEXTURETYPE_2D_ARRAY,
@@ -1053,19 +1085,14 @@ namespace cse::help::game
                                                 .props = 0};
       graphics_occluder.texture = SDL_CreateGPUTexture(video, &array_info);
       if (!graphics_occluder.texture) throw sdl_exception("Could not create occluder texture array for game");
-      const SDL_GPUTransferBufferCreateInfo transfer_info{
-        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = total, .props = 0};
-      auto *transfer{SDL_CreateGPUTransferBuffer(video, &transfer_info)};
-      if (!transfer) throw sdl_exception("Could not create occluder layer transfer buffer for game");
-      auto *pixels{static_cast<Uint32 *>(SDL_MapGPUTransferBuffer(video, transfer, false))};
-      if (!pixels) throw sdl_exception("Could not map occluder layer data for game");
+      graphics_occluder.table.resize(total);
       std::size_t cursor{};
-      for (const auto &entry : graphics_occluder.layers)
+      for (std::size_t layer{}; layer < graphics_occluder.layers.size(); ++layer)
       {
-        const auto &image{entry.image};
+        const auto &image{graphics_occluder.layers.at(layer).image};
         const std::size_t stride{image.width + 1};
         const std::size_t step{image.channels};
-        auto *table{pixels + cursor};
+        auto *table{graphics_occluder.table.data() + cursor};
         for (std::size_t column{}; column <= image.width; ++column) table[column] = 0;
         for (std::size_t row{}; row < image.height; ++row)
         {
@@ -1079,19 +1106,6 @@ namespace cse::help::game
             current[column + 1] = behind[column + 1] + running;
           }
         }
-        cursor += stride * (image.height + 1);
-      }
-      SDL_UnmapGPUTransferBuffer(video, transfer);
-      auto *command_buffer{SDL_AcquireGPUCommandBuffer(video)};
-      if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
-      auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
-      if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
-      Uint32 offset{};
-      for (std::size_t layer{}; layer < graphics_occluder.layers.size(); ++layer)
-      {
-        const auto &image{graphics_occluder.layers.at(layer).image};
-        const SDL_GPUTextureTransferInfo source{
-          .transfer_buffer = transfer, .offset = offset, .pixels_per_row = 0, .rows_per_layer = 0};
         const SDL_GPUTextureRegion region{.texture = graphics_occluder.texture,
                                           .mip_level = 0,
                                           .layer = static_cast<Uint32>(layer),
@@ -1101,12 +1115,12 @@ namespace cse::help::game
                                           .w = image.width + 1,
                                           .h = image.height + 1,
                                           .d = 1};
-        SDL_UploadToGPUTexture(copy_pass, &source, &region, false);
-        offset += (image.width + 1) * (image.height + 1) * static_cast<Uint32>(sizeof(Uint32));
+        graphics_upload.queue.push_back(
+          {.source = table,
+           .bytes = static_cast<Uint32>(stride * (image.height + 1) * sizeof(std::uint32_t)),
+           .region = region});
+        cursor += stride * (image.height + 1);
       }
-      SDL_EndGPUCopyPass(copy_pass);
-      SDL_SubmitGPUCommandBuffer(command_buffer);
-      SDL_ReleaseGPUTransferBuffer(video, transfer);
       graphics_occluder.width = max_width;
       graphics_occluder.height = max_height;
     }
@@ -1671,20 +1685,7 @@ namespace cse::help::game
                                                 .props = 0};
     auto *texture{SDL_CreateGPUTexture(video, &texture_info)};
     if (!texture) throw sdl_exception("Could not create texture for game");
-    const SDL_GPUTransferBufferCreateInfo texture_transfer_buffer_info{
-      .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = image.width * image.height * image.channels, .props = 0};
-    auto *texture_transfer_buffer{SDL_CreateGPUTransferBuffer(video, &texture_transfer_buffer_info)};
-    if (!texture_transfer_buffer) throw sdl_exception("Could not create transfer buffer for texture for game");
-    auto *texture_data{SDL_MapGPUTransferBuffer(video, texture_transfer_buffer, false)};
-    if (!texture_data) throw sdl_exception("Could not map texture data for game");
-    SDL_memcpy(texture_data, image.data.data(), static_cast<std::size_t>(image.width) * image.height * image.channels);
-    SDL_UnmapGPUTransferBuffer(video, texture_transfer_buffer);
-    auto *command_buffer{SDL_AcquireGPUCommandBuffer(video)};
-    if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer for game");
-    auto *copy_pass{SDL_BeginGPUCopyPass(command_buffer)};
-    if (!copy_pass) throw sdl_exception("Could not begin GPU copy pass for game");
-    const SDL_GPUTextureTransferInfo texture_transfer_info{
-      .transfer_buffer = texture_transfer_buffer, .offset = 0, .pixels_per_row = 0, .rows_per_layer = 0};
+    const auto bytes{static_cast<std::size_t>(image.width) * image.height * image.channels};
     const SDL_GPUTextureRegion texture_region{.texture = texture,
                                               .mip_level = 0,
                                               .layer = 0,
@@ -1694,11 +1695,8 @@ namespace cse::help::game
                                               .w = image.width,
                                               .h = image.height,
                                               .d = 1};
-    SDL_UploadToGPUTexture(copy_pass, &texture_transfer_info, &texture_region, false);
-    SDL_EndGPUCopyPass(copy_pass);
-    SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(video, texture_transfer_buffer);
-    const auto bytes{static_cast<std::size_t>(image.width) * image.height * image.channels};
+    graphics_upload.queue.push_back(
+      {.source = image.data.data(), .bytes = static_cast<Uint32>(bytes), .region = texture_region});
     actual_vram.current += bytes;
     return graphics_cache.texture.emplace(key, cached<SDL_GPUTexture *>{texture, bytes, time}).first->second.value;
   }
