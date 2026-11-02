@@ -23,10 +23,15 @@ namespace cse::help::object
   };
   struct illumination
   {
+    struct penetration
+    {
+      temporal<double> face{1.0};
+      temporal<double> edge{1.0};
+    };
     cse::group self{cse::everything};
     cse::group target{cse::everything};
     temporal<double> brightness{1.0};
-    temporal<double> penetration{1.0};
+    illumination::penetration penetration{};
   };
   struct occlusion
   {
@@ -38,7 +43,6 @@ namespace cse::help::object
     };
     cse::group self{cse::everything};
     occlusion::target target{};
-    temporal<double> darkness{1.0};
     temporal<double> softness{1.0};
   };
   struct texture

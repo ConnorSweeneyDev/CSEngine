@@ -279,7 +279,7 @@ namespace cse::help::game
         cse::group illumination_self{}, illumination_target{};
         cse::group occlusion_self{}, occlusion_block{}, occlusion_show{}, occlusion_cast{};
         double brightness{}, transparency{};
-        double penetration{}, darkness{}, softness{};
+        double face{}, edge{}, softness{};
         double plane{};
         int steps{};
       };

@@ -44,8 +44,8 @@ namespace cse::help::object
     texture.color.tint.synchronize();
     texture.color.alpha.synchronize();
     texture.illumination.brightness.synchronize();
-    texture.illumination.penetration.synchronize();
-    texture.occlusion.darkness.synchronize();
+    texture.illumination.penetration.face.synchronize();
+    texture.illumination.penetration.edge.synchronize();
     texture.occlusion.softness.synchronize();
     text.playback.speed.synchronize();
     text.align.horizontal.spacing.synchronize();
@@ -55,8 +55,8 @@ namespace cse::help::object
     text.color.tint.synchronize();
     text.color.alpha.synchronize();
     text.illumination.brightness.synchronize();
-    text.illumination.penetration.synchronize();
-    text.occlusion.darkness.synchronize();
+    text.illumination.penetration.face.synchronize();
+    text.illumination.penetration.edge.synchronize();
     text.occlusion.softness.synchronize();
     mixer.synchronize();
   }
@@ -224,8 +224,8 @@ namespace cse
     active.texture.color.tint.simulate(tick);
     active.texture.color.alpha.simulate(tick);
     active.texture.illumination.brightness.simulate(tick);
-    active.texture.illumination.penetration.simulate(tick);
-    active.texture.occlusion.darkness.simulate(tick);
+    active.texture.illumination.penetration.face.simulate(tick);
+    active.texture.illumination.penetration.edge.simulate(tick);
     active.texture.occlusion.softness.simulate(tick);
     active.text.playback.speed.simulate(tick);
     active.text.align.horizontal.spacing.simulate(tick);
@@ -235,8 +235,8 @@ namespace cse
     active.text.color.tint.simulate(tick);
     active.text.color.alpha.simulate(tick);
     active.text.illumination.brightness.simulate(tick);
-    active.text.illumination.penetration.simulate(tick);
-    active.text.occlusion.darkness.simulate(tick);
+    active.text.illumination.penetration.face.simulate(tick);
+    active.text.illumination.penetration.edge.simulate(tick);
     active.text.occlusion.softness.simulate(tick);
     active.timer.simulate(tick);
     active.mixer.simulate(tick);

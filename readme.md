@@ -237,12 +237,11 @@ player::player(const glm::dvec3 &translation_)
                              .illumination = {.self = cse::everything,
                                               .target = cse::everything,
                                               .brightness = 1.0,
-                                              .penetration = 1.0},
+                                              .penetration = {.face = 0.0, .edge = 1.0}},
                              .occlusion = {.self = occluder::character,
                                            .target = {.block = cse::everything,
                                                       .show = cse::everything,
                                                       .cast = cse::everything},
-                                           .darkness = 1.0,
                                            .softness = 1.0}},
                  .text = {.content = {"[", lexeme::player, "]"},
                           .source = {.font = font::text, .animation = animation::text.main},
@@ -256,12 +255,11 @@ player::player(const glm::dvec3 &translation_)
                           .illumination = {.self = cse::everything,
                                            .target = cse::everything,
                                            .brightness = 1.0,
-                                           .penetration = 1.0},
+                                           .penetration = {.face = 0.0, .edge = 1.0}},
                           .occlusion = {.self = occluder::character,
                                         .target = {.block = cse::everything,
                                                    .show = cse::nothing,
                                                    .cast = cse::everything},
-                                        .darkness = 1.0,
                                         .softness = 0.5}},
                  .priority = {.simulation = 0, .rendering = 1}}) {};
 ```
@@ -466,8 +464,9 @@ for (const auto &contact : scene->active.contacts)
 empty - read `previous.contacts` for last tick's results.
 
 ### Illumination & Occlusion
-Lighting is the opposite of collision: every field defaults to `cse::everything`, so everything is lit and shadowed by
-everything until you opt out, and **both sides must agree** for an effect to happen - either side can refuse.
+Lighting is the opposite of collision: every group field defaults to `cse::everything`, so everything is lit by and can
+shadow everything until you opt out, and **both sides must agree** for an effect to happen - either side can refuse.
+How strongly an object actually shadows is set by its penetration, which defaults to letting all light through.
 
 - **Illumination** - a light lights an object when the light's `illumination.target` matches the object's
   `illumination.self` *and* the object's `illumination.target` matches the light's `illumination.self`. An empty
@@ -479,31 +478,46 @@ everything until you opt out, and **both sides must agree** for an effect to hap
   - `X.target.cast` against `O.self`, and `O.target.show` against `X.self`,
   - `X.target.block` against `L.occlusion.self`, and `L.occlusion.target` against `X.self`.
 
-The same rule governs penetration (light losing reach as it passes through objects on its own plane), including an
-object's own pixels - an object only absorbs light passing through itself when its own `self` is in its own `cast` and
-`show`, which the defaults satisfy.
+The same rule governs both ways light can pass through an object, including an object's own pixels - an object only
+affects light passing through itself when its own `self` is in its own `cast` and `show`, which the defaults satisfy.
+
+- **Penetration** - an object's `illumination.penetration` sets how much light gets through it. `face` applies to light
+  crossing the object from another z plane (a cast shadow); `edge` applies to light travelling through it on its own
+  plane (light losing reach). For both, `1.0` lets light through untouched (the default), lower values cast an
+  increasingly strong shadow down to `0.0`, which blocks, and higher values amplify the light.
+- **Strength** - a light's `occlusion.strength` sets how much objects' penetration affects it, separately for `face`
+  and `edge`. The penetration the light sees is `lerp(1.0, penetration, strength)`: `1.0` applies it as set (the
+  default), `0.5` gives half-strength shadows and amplification, `0.0` ignores it, and higher values exaggerate it.
 
 ```cpp
-// sun light: lights everything except objects tagged indoor
+// sun light: lights everything except objects tagged indoor, with faint cast shadows
 .illumination = {.self = illuminator::sun,
                  .target = without(cse::everything, illuminator::indoor),
                  .brightness = {1.0, 1.0, 1.0, 1.0},
-                 .penetration = 1.0,
                  .shape = {.global = true, .range = 0.0, .angle = 0.0, .feather = 0.0}};
+.occlusion = {.self = cse::everything,
+              .target = cse::everything,
+              .strength = {.face = 0.5, .edge = 1.0},
+              .softness = 0.0};
 // furniture object: indoor, so the sun skips it
-.illumination = {.self = illuminator::indoor, .target = cse::everything, .brightness = 1.0, .penetration = 1.0};
+.illumination = {.self = illuminator::indoor,
+                 .target = cse::everything,
+                 .brightness = 1.0,
+                 .penetration = {.face = 1.0, .edge = 1.0}};
 
-// player object: its shadow never falls on objects tagged scenery
+// player object: casts a full shadow, which never falls on objects tagged scenery
+.illumination = {.self = cse::everything,
+                 .target = cse::everything,
+                 .brightness = 1.0,
+                 .penetration = {.face = 0.0, .edge = 1.0}};
 .occlusion = {.self = occluder::character,
               .target = {.block = cse::everything,
                          .show = cse::everything,
                          .cast = without(cse::everything, occluder::scenery)},
-              .darkness = 1.0,
               .softness = 1.0};
 // background object: scenery, so the player's shadow skips it
 .occlusion = {.self = occluder::scenery,
               .target = {.block = cse::everything, .show = cse::everything, .cast = cse::everything},
-              .darkness = 1.0,
               .softness = 1.0};
 ```
 

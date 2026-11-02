@@ -801,9 +801,9 @@ namespace cse::help::game
       block.brightness = illumination.brightness.interpolated(element->previous.text.illumination.brightness, alpha);
       block.transparency =
         std::clamp(text.color.alpha.interpolated(element->previous.text.color.alpha, alpha), 0.0, 1.0);
-      block.penetration =
-        std::max(0.0, illumination.penetration.interpolated(element->previous.text.illumination.penetration, alpha));
-      block.darkness = std::max(0.0, occlusion.darkness.interpolated(element->previous.text.occlusion.darkness, alpha));
+      const auto &last_penetration{element->previous.text.illumination.penetration};
+      block.face = std::max(0.0, illumination.penetration.face.interpolated(last_penetration.face, alpha));
+      block.edge = std::max(0.0, illumination.penetration.edge.interpolated(last_penetration.edge, alpha));
       block.softness = std::max(0.0, occlusion.softness.interpolated(element->previous.text.occlusion.softness, alpha));
       block.steps =
         static_cast<int>(std::floor(element->active.rotation.interpolated(element->previous.rotation, alpha) + 0.5));
@@ -870,8 +870,6 @@ namespace cse::help::game
       const auto direction{element->active.calculate_direction(element->previous, alpha)};
       const auto brightness{
         element->active.illumination.brightness.interpolated(element->previous.illumination.brightness, alpha)};
-      const auto penetration{std::max(
-        0.0, element->active.illumination.penetration.interpolated(element->previous.illumination.penetration, alpha))};
       const auto &shape{element->active.illumination.shape};
       const auto &last_shape{element->previous.illumination.shape};
       const auto range{shape.range.interpolated(last_shape.range, alpha)};
@@ -880,7 +878,10 @@ namespace cse::help::game
       const auto feather{std::clamp(shape.feather.interpolated(last_shape.feather, alpha), 0.0, 1.0)};
       const auto &illumination{element->active.illumination};
       const auto &occlusion{element->active.occlusion};
-      const auto shadow_darkness{occlusion.darkness.interpolated(element->previous.occlusion.darkness, alpha)};
+      const auto &last_strength{element->previous.occlusion.strength};
+      const auto ignored{occlusion.target.empty()};
+      const auto face{ignored ? 0.0 : std::max(0.0, occlusion.strength.face.interpolated(last_strength.face, alpha))};
+      const auto edge{ignored ? 0.0 : std::max(0.0, occlusion.strength.edge.interpolated(last_strength.edge, alpha))};
       const auto shadow_softness{occlusion.softness.interpolated(element->previous.occlusion.softness, alpha)};
       graphics_light::entry entry{};
       entry.position.at(0) = static_cast<float>(position.x);
@@ -890,14 +891,14 @@ namespace cse::help::game
       entry.brightness.at(0) = static_cast<float>(brightness.x * brightness.w);
       entry.brightness.at(1) = static_cast<float>(brightness.y * brightness.w);
       entry.brightness.at(2) = static_cast<float>(brightness.z * brightness.w);
-      entry.brightness.at(3) = occlusion.target.empty() ? 0.0f : static_cast<float>(std::max(0.0, shadow_darkness));
+      entry.brightness.at(3) = static_cast<float>(face);
       entry.direction.at(0) = static_cast<float>(direction.x);
       entry.direction.at(1) = static_cast<float>(direction.y);
       entry.direction.at(2) = static_cast<float>(direction.z);
       entry.direction.at(3) = shape.global ? 1.0f : 0.0f;
       entry.cone.at(0) = static_cast<float>(std::cos(glm::radians(half)));
       entry.cone.at(1) = static_cast<float>(std::cos(glm::radians(half * (1.0 - feather))));
-      entry.cone.at(2) = static_cast<float>(penetration);
+      entry.cone.at(2) = static_cast<float>(edge);
       entry.cone.at(3) = static_cast<float>(std::max(0.0, shadow_softness));
       entry.illumination_self = pack(illumination.self);
       entry.illumination_target = pack(illumination.target);
@@ -932,8 +933,9 @@ namespace cse::help::game
       const auto &illumination{element->active.texture.illumination};
       const auto &occlusion{element->active.texture.occlusion};
       if (occlusion.target.cast.empty() || occlusion.target.block.empty()) continue;
-      const auto penetration{std::max(
-        0.0, illumination.penetration.interpolated(element->previous.texture.illumination.penetration, alpha))};
+      const auto &last_penetration{element->previous.texture.illumination.penetration};
+      const auto face{std::max(0.0, illumination.penetration.face.interpolated(last_penetration.face, alpha))};
+      const auto edge{std::max(0.0, illumination.penetration.edge.interpolated(last_penetration.edge, alpha))};
       const auto &image{element->active.texture.source.image};
       const auto frame_count{element->active.texture.source.animation.frames.size()};
       if (!usable(image) || frame_count == 0) continue;
@@ -975,14 +977,13 @@ namespace cse::help::game
       entry.frame.at(1) = static_cast<float>(swap_v ? second_v : first_v);
       entry.frame.at(2) = static_cast<float>(swap_u ? first_u : second_u);
       entry.frame.at(3) = static_cast<float>(swap_v ? first_v : second_v);
-      const auto shadow_darkness{occlusion.darkness.interpolated(element->previous.texture.occlusion.darkness, alpha)};
       const auto shadow_softness{occlusion.softness.interpolated(element->previous.texture.occlusion.softness, alpha)};
       entry.surface.at(0) = static_cast<float>(snapped_z);
       entry.surface.at(1) = static_cast<float>(layer_of(image));
       entry.surface.at(2) = static_cast<float>(transparency);
       entry.surface.at(3) = rotated ? 1.0f : 0.0f;
-      entry.shadow.at(0) = static_cast<float>(penetration);
-      entry.shadow.at(2) = static_cast<float>(std::max(0.0, shadow_darkness));
+      entry.shadow.at(0) = static_cast<float>(edge);
+      entry.shadow.at(2) = static_cast<float>(face);
       entry.shadow.at(3) = static_cast<float>(std::max(0.0, shadow_softness));
       entry.self = pack(occlusion.self);
       entry.block = pack(occlusion.target.block);
@@ -1018,8 +1019,8 @@ namespace cse::help::game
         entry.surface.at(1) = layer;
         entry.surface.at(2) = static_cast<float>(block.transparency);
         entry.surface.at(3) = rotated ? 1.0f : 0.0f;
-        entry.shadow.at(0) = static_cast<float>(block.penetration);
-        entry.shadow.at(2) = static_cast<float>(block.darkness);
+        entry.shadow.at(0) = static_cast<float>(block.edge);
+        entry.shadow.at(2) = static_cast<float>(block.face);
         entry.shadow.at(3) = static_cast<float>(block.softness);
         entry.self = self;
         entry.block = blocked;
@@ -1145,7 +1146,7 @@ namespace cse::help::game
                   [this, amplification](const graphics_light::entry &entry)
                   {
                     if (entry.direction.at(3) > 0.5f) return false;
-                    if (static_cast<double>(entry.cone.at(2)) * amplification > 1.0) return false;
+                    if (entry.cone.at(2) > 0.0f && amplification > 1.0) return false;
                     const glm::dvec3 center{entry.position.at(0), entry.position.at(1), entry.position.at(2)};
                     const auto range{std::max(static_cast<double>(entry.position.at(3)), 1e-4)};
                     return !inside_frustum(center, range + cull_margin);
@@ -1192,7 +1193,7 @@ namespace cse::help::game
               continue;
             return true;
           }
-          if (static_cast<double>(light.cone.at(2)) * amplification > 1.0)
+          if (light.cone.at(2) > 0.0f && amplification > 1.0)
           {
             if (!graphics_bounds.bounded) return true;
             if (right < std::min(graphics_bounds.upper.x, position.x) - cull_margin ||

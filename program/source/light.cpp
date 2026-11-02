@@ -35,11 +35,11 @@ namespace cse::help::light
     translation.synchronize();
     rotation.synchronize();
     illumination.brightness.synchronize();
-    illumination.penetration.synchronize();
     illumination.shape.range.synchronize();
     illumination.shape.angle.synchronize();
     illumination.shape.feather.synchronize();
-    occlusion.darkness.synchronize();
+    occlusion.strength.face.synchronize();
+    occlusion.strength.edge.synchronize();
     occlusion.softness.synchronize();
     mixer.synchronize();
   }
@@ -104,11 +104,11 @@ namespace cse
     active.translation.simulate(tick);
     active.rotation.simulate(tick);
     active.illumination.brightness.simulate(tick);
-    active.illumination.penetration.simulate(tick);
     active.illumination.shape.range.simulate(tick);
     active.illumination.shape.angle.simulate(tick);
     active.illumination.shape.feather.simulate(tick);
-    active.occlusion.darkness.simulate(tick);
+    active.occlusion.strength.face.simulate(tick);
+    active.occlusion.strength.edge.simulate(tick);
     active.occlusion.softness.simulate(tick);
     active.timer.simulate(tick);
     active.mixer.simulate(tick);

@@ -26,14 +26,18 @@ namespace cse::help::light
     cse::group self{cse::everything};
     cse::group target{cse::everything};
     temporal<glm::dvec4> brightness{1.0, 1.0, 1.0, 1.0};
-    temporal<double> penetration{1.0};
     illumination::shape shape{};
   };
   struct occlusion
   {
+    struct strength
+    {
+      temporal<double> face{1.0};
+      temporal<double> edge{1.0};
+    };
     cse::group self{cse::everything};
     cse::group target{cse::everything};
-    temporal<double> darkness{1.0};
+    occlusion::strength strength{};
     temporal<double> softness{};
   };
 
