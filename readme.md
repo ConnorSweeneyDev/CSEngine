@@ -138,7 +138,9 @@ namespace custom
 `tick` and `frame` are the simulation and render rates respectively. The tick rate will always be maintained as long as
 the game is not too demanding; if the tick rate ever falls below the target, the game will still be deterministic, but
 will run slower than real time. The frame rate is a target; this means that even if the game can easily render at your
-target frame rate, the user's system may be configured to limit it to a lower value, so you should not rely on it.
+target frame rate, the user's system may be configured to limit it to a lower value, so you should not rely on it. A
+`frame` of `0` or below removes the frame limit (vsync still caps it to the display's refresh rate when enabled); values
+between `0` and `1` are raised to `1`.
 
 `aspect` bundles the three things that define the virtual canvas. `ratio` is a `double` that defines the aspect ratio
 the game will adhere to no matter the size of the window. `resolution` holds two **heights** in virtual pixels, each

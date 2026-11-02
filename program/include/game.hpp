@@ -427,7 +427,7 @@ namespace cse::help::game
 
     static constexpr auto gpu_backend{"vulkan"};
     static constexpr auto shader_format{SDL_GPU_SHADERFORMAT_SPIRV};
-    double actual_frame{1.0 / frame.target};
+    double actual_frame{frame.target > 0.0 ? 1.0 / frame.target : 0.0};
     game::vram actual_vram{};
     game::ram actual_ram{};
     SDL_GPUDevice *video{};

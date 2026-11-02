@@ -2020,9 +2020,9 @@ namespace cse
   void game::step()
   {
     active.tick.target = std::max(10.0, active.tick.target);
-    active.frame.target = std::max(1.0, active.frame.target);
+    active.frame.target = active.frame.target > 0.0 ? std::max(1.0, active.frame.target) : 0.0;
     const double real_tick = 1.0 / active.tick.target;
-    const double real_frame = 1.0 / active.frame.target;
+    const double real_frame = active.frame.target > 0.0 ? 1.0 / active.frame.target : 0.0;
     if (!equal(real_tick, active.actual_tick))
     {
       active.accumulator = active.accumulator * (real_tick / active.actual_tick);

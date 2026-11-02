@@ -76,8 +76,8 @@ namespace cse::help::window
               .vsync = vsync};
     SDL_ShowWindow(instance);
     if (!SDL_SyncWindow(instance)) log("Timed out waiting for the window to finish showing");
-    if (const auto shown{pixel_size()}; static_cast<unsigned int>(shown.x) != render_width ||
-                                        static_cast<unsigned int>(shown.y) != render_height)
+    if (const auto shown{pixel_size()};
+        static_cast<unsigned int>(shown.x) != render_width || static_cast<unsigned int>(shown.y) != render_height)
     {
       render_width = static_cast<unsigned int>(shown.x);
       render_height = static_cast<unsigned int>(shown.y);
