@@ -56,7 +56,7 @@ namespace cse::help::object
     cse::text::source source{};
     cse::playback playback{};
     cse::align align{};
-    temporal<glm::dvec2> scale{{1.0, 1.0}};
+    temporal<glm::dvec2> scale{1.0, 1.0};
     cse::overflow overflow{};
     cse::color color{};
     object::illumination illumination{};
@@ -145,7 +145,7 @@ namespace cse
     {
       const temporal<glm::dvec3> translation{};
       const temporal<double> rotation{};
-      const temporal<glm::dvec2> scale{{1.0, 1.0}};
+      const temporal<glm::dvec2> scale{1.0, 1.0};
       const help::object::collision collision{};
       const help::object::texture texture{};
       const help::object::text text{};

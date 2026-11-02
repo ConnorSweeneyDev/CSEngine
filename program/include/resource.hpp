@@ -54,7 +54,7 @@ namespace cse
   };
   struct color
   {
-    temporal<glm::dvec4> tint{{0.5, 0.5, 0.5, 1.0}};
+    temporal<glm::dvec4> tint{0.5, 0.5, 0.5, 1.0};
     temporal<double> alpha{1.0};
   };
   struct align

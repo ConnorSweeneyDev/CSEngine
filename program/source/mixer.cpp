@@ -53,12 +53,28 @@ namespace cse::help
     musics.clear();
   }
 
+  void mixer::synchronize()
+  {
+    for (auto &[name, track] : sounds)
+    {
+      track.speed.synchronize();
+      track.volume.synchronize();
+    }
+    for (auto &[name, track] : musics)
+    {
+      track.speed.synchronize();
+      track.volume.synchronize();
+    }
+  }
+
   void mixer::simulate(const double tick)
   {
     const auto step{[tick](auto &entries)
                     {
                       for (auto &[name, track] : entries)
                       {
+                        track.speed.simulate(tick);
+                        track.volume.simulate(tick);
                         track.speed.value = std::abs(track.speed.value);
                         if (!track.playing || track.speed.value <= 0.0) continue;
                         const auto duration{track.source.duration};

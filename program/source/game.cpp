@@ -10,6 +10,7 @@
 #include <memory>
 #include <numeric>
 #include <optional>
+#include <span>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -200,15 +201,6 @@ namespace cse::help::game
       sdl_log("Could not create audio mixer for game; continuing without sound");
       return;
     }
-    SDL_AudioSpec spec{};
-    if (!MIX_GetMixerFormat(soundboard, &spec))
-    {
-      sdl_log("Could not get audio mixer format for game; continuing without sound");
-      MIX_DestroyMixer(soundboard);
-      soundboard = nullptr;
-      return;
-    }
-    frequency = spec.freq;
   }
 
   void active::synchronize(previous &last)
@@ -234,20 +226,11 @@ namespace cse::help::game
     last.mixer = mixer;
     last.phase = phase;
 
-    for (auto &[name, track] : mixer.sounds)
-    {
-      track.speed.instant = false;
-      track.volume.instant = false;
-    }
-    for (auto &[name, track] : mixer.musics)
-    {
-      track.speed.instant = false;
-      track.volume.instant = false;
-    }
-    clear.instant = false;
-    master.instant = false;
-    sound.instant = false;
-    music.instant = false;
+    clear.synchronize();
+    master.synchronize();
+    sound.synchronize();
+    music.synchronize();
+    mixer.synchronize();
   }
 
   void active::render()
@@ -419,13 +402,16 @@ namespace cse::help::game
     for (auto &[key, audio] : audio_cache.tracks) audio.seen = false;
     for (const auto &audio : channels)
     {
-      reconcile_audio<cse::sound>(audio.previous, audio.active, "sound", true, sound_bus);
-      reconcile_audio<cse::music>(audio.previous, audio.active, "music", false, music_bus);
+      reconcile_audio<cse::sound>(audio.previous, audio.active, "sound", true, sound_bus,
+                                  master.instant || sound.instant);
+      reconcile_audio<cse::music>(audio.previous, audio.active, "music", false, music_bus,
+                                  master.instant || music.instant);
     }
     for (auto iterator{audio_cache.tracks.begin()}; iterator != audio_cache.tracks.end();)
       if (!iterator->second.seen)
       {
-        if (iterator->second.handle) MIX_DestroyTrack(iterator->second.handle);
+        for (const auto &voice : iterator->second.voices)
+          if (voice.handle) MIX_DestroyTrack(voice.handle);
         iterator = audio_cache.tracks.erase(iterator);
       }
       else
@@ -449,10 +435,74 @@ namespace cse::help::game
     }
   }
 
+  void SDLCALL active::fade(void *userdata, MIX_Track *, const SDL_AudioSpec *spec, float *pcm, const int samples)
+  {
+    auto &gain{*static_cast<audio_gain *>(userdata)};
+    const auto start{gain.start.exchange(false)};
+    const auto jump{gain.jump.exchange(false)};
+    const auto stopping{gain.stopping.load()};
+    const auto target{stopping ? 0.0f : gain.target.load()};
+    const auto rate{static_cast<double>(std::max(spec->freq, 1))};
+    const auto shortest{std::max(static_cast<int>(shortest_ramp * rate), 1)};
+    const auto longest{std::max(static_cast<int>(longest_ramp * rate), shortest)};
+    const auto edge{std::max(static_cast<int>(edge_ramp * rate), 1)};
+    if (jump)
+    {
+      gain.current = target;
+      gain.last = target;
+      gain.remaining = 0;
+      gain.since = 0;
+    }
+    else if (start)
+    {
+      gain.current = 0.0f;
+      gain.last = target;
+      gain.remaining = edge;
+      gain.step = target / static_cast<float>(edge);
+      gain.since = 0;
+    }
+    else if (stopping != gain.halting)
+    {
+      gain.remaining = edge;
+      gain.step = (target - gain.current) / static_cast<float>(edge);
+      gain.last = target;
+      gain.since = 0;
+    }
+    else if (!equal(target, gain.last))
+    {
+      gain.remaining = std::clamp(gain.since, shortest, longest);
+      gain.step = (target - gain.current) / static_cast<float>(gain.remaining);
+      gain.last = target;
+      gain.since = 0;
+    }
+
+    const auto channels{std::max(spec->channels, 1)};
+    auto current{gain.current};
+    auto remaining{gain.remaining};
+    int channel{};
+    int frames{};
+    for (auto &sample : std::span{pcm, static_cast<std::size_t>(std::max(samples, 0))})
+    {
+      if (channel == 0)
+      {
+        ++frames;
+        if (remaining > 0) current = --remaining == 0 ? gain.last : current + gain.step;
+      }
+      sample *= current;
+      if (++channel == channels) channel = 0;
+    }
+    gain.current = current;
+    gain.remaining = remaining;
+    gain.since = std::min(gain.since + frames, longest);
+    gain.halting = stopping;
+    gain.silent.store(stopping && remaining == 0);
+  }
+
   void active::destroy()
   {
     for (auto &[key, audio] : audio_cache.tracks)
-      if (audio.handle) MIX_DestroyTrack(audio.handle);
+      for (const auto &voice : audio.voices)
+        if (voice.handle) MIX_DestroyTrack(voice.handle);
     audio_cache.tracks.clear();
     for (auto &[key, audio] : audio_cache.sources)
       if (audio.value) MIX_DestroyAudio(audio.value);
@@ -1651,16 +1701,16 @@ namespace cse::help::game
     return graphics_cache.texture.emplace(key, cached<SDL_GPUTexture *>{texture, bytes, time}).first->second.value;
   }
 
-  std::int64_t active::seconds_to_frames(const double seconds) const
+  std::int64_t active::seconds_to_frames(const double seconds, const int rate)
   {
-    if (seconds <= 0.0 || frequency <= 0) return 0;
-    return static_cast<std::int64_t>(seconds * static_cast<double>(frequency));
+    if (seconds <= 0.0 || rate <= 0) return 0;
+    return std::llround(seconds * static_cast<double>(rate));
   }
 
-  double active::frames_to_seconds(const std::int64_t frames) const
+  double active::frames_to_seconds(const std::int64_t frames, const int rate)
   {
-    if (frames <= 0 || frequency <= 0) return 0.0;
-    return static_cast<double>(frames) / static_cast<double>(frequency);
+    if (frames <= 0 || rate <= 0) return 0.0;
+    return static_cast<double>(frames) / static_cast<double>(rate);
   }
 
   MIX_Audio *active::require_audio(const unsigned char *data, const std::size_t size, const bool predecode)
@@ -1884,6 +1934,10 @@ namespace cse
   {
     if (active.phase != help::phase::CREATED) throw exception("Game must be created before simulation");
     pre_simulate(active.actual_tick);
+    active.clear.simulate(active.actual_tick);
+    active.master.simulate(active.actual_tick);
+    active.sound.simulate(active.actual_tick);
+    active.music.simulate(active.actual_tick);
     active.timer.simulate(active.actual_tick);
     active.mixer.simulate(active.actual_tick);
     active.window->simulate(active.actual_tick);

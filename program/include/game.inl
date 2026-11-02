@@ -15,6 +15,7 @@
 #include <utility>
 #include <vector>
 
+#include "SDL3/SDL_audio.h"
 #include "SDL3/SDL_properties.h"
 #include "SDL3_mixer/SDL_mixer.h"
 #include "glm/ext/vector_double2.hpp"
@@ -294,7 +295,7 @@ namespace cse::help::game
 
   template <typename resource> void active::reconcile_audio(const help::mixer *previous_mixer,
                                                             help::mixer *active_mixer, const char *tag,
-                                                            const bool predecode, const double bus)
+                                                            const bool predecode, const double bus, const bool instant)
   {
     if (!previous_mixer) return;
     auto &entries{active_mixer->select<resource>()};
@@ -306,30 +307,51 @@ namespace cse::help::game
       const audio_cache::track_key key{static_cast<const void *>(&entries), entry_name.identifier()};
       auto &audio{audio_cache.tracks[key]};
       audio.seen = true;
-      if (!audio.handle)
-      {
-        audio.handle = MIX_CreateTrack(soundboard);
-        if (!audio.handle) throw sdl_exception("Could not create audio track for game");
-        MIX_TagTrack(audio.handle, tag);
-      }
+      for (auto &voice : audio.voices)
+        if (!voice.handle)
+        {
+          voice.handle = MIX_CreateTrack(soundboard);
+          if (!voice.handle) throw sdl_exception("Could not create audio track for game");
+          if (!MIX_SetTrackCookedCallback(voice.handle, fade, &voice.gain))
+            throw sdl_exception("Could not set audio track callback for game");
+          MIX_TagTrack(voice.handle, tag);
+        }
+
+      const auto cut{instant || entry.volume.instant};
+      const auto halt{[](audio_voice &voice)
+                      {
+                        if (voice.started) MIX_PauseTrack(voice.handle);
+                        voice.gain.stopping.store(true);
+                        voice.stopping = false;
+                        voice.started = false;
+                      }};
+      const auto fade_out{[](audio_voice &voice)
+                          {
+                            if (voice.stopping) return;
+                            voice.gain.silent.store(false);
+                            voice.gain.stopping.store(true);
+                            voice.stopping = true;
+                          }};
 
       const auto *data{entry.source.data.data()};
       const auto size{entry.source.data.size()};
       if (data != audio.source || size != audio.size)
       {
+        for (auto &voice : audio.voices) halt(voice);
         audio.source = data;
         audio.size = size;
         audio.position = entry.elapsed.device;
-        audio.started = false;
         audio.finished = false;
         audio.audio = data ? require_audio(data, size, predecode) : nullptr;
-        MIX_SetTrackAudio(audio.handle, audio.audio);
+        audio.rate = 0;
+        if (SDL_AudioSpec spec{}; audio.audio && MIX_GetAudioFormat(audio.audio, &spec)) audio.rate = spec.freq;
+        for (const auto &voice : audio.voices) MIX_SetTrackAudio(voice.handle, audio.audio);
       }
       if (!data) continue;
 
       if (entry.loop != audio.loop)
       {
-        MIX_SetTrackLoops(audio.handle, entry.loop ? -1 : 0);
+        for (const auto &voice : audio.voices) MIX_SetTrackLoops(voice.handle, entry.loop ? -1 : 0);
         audio.loop = entry.loop;
       }
       auto volume{entry.volume.value};
@@ -340,69 +362,88 @@ namespace cse::help::game
           volume = entry.volume.interpolated(iterator->second.volume, alpha);
           speed = entry.speed.interpolated(iterator->second.speed, alpha);
         }
-      if (const auto target{bus * volume}; !equal(target, audio.gain))
+      for (auto &voice : audio.voices)
       {
-        MIX_SetTrackGain(audio.handle, static_cast<float>(target));
-        audio.gain = target;
+        voice.gain.target.store(static_cast<float>(bus * volume));
+        if (cut) voice.gain.jump.store(true);
       }
       if (speed > 0.0 && !equal(speed, audio.speed))
       {
-        MIX_SetTrackFrequencyRatio(audio.handle, static_cast<float>(speed));
+        for (const auto &voice : audio.voices) MIX_SetTrackFrequencyRatio(voice.handle, static_cast<float>(speed));
         audio.speed = speed;
       }
 
+      auto *current{&audio.voices.at(audio.active)};
       if (!equal(entry.elapsed.device, audio.position))
       {
-        if (const auto duration{audio.audio ? frames_to_seconds(MIX_GetAudioDuration(audio.audio)) : 0.0};
+        if (const auto duration{audio.audio ? frames_to_seconds(MIX_GetAudioDuration(audio.audio), audio.rate) : 0.0};
             duration > 0.0 && entry.elapsed.device >= duration)
           entry.elapsed.device = entry.loop ? 0.0 : duration;
-        MIX_SetTrackPlaybackPosition(audio.handle, seconds_to_frames(entry.elapsed.device));
         audio.position = entry.elapsed.device;
-        audio.started = false;
+        if (current->started && !audio.finished && !cut)
+        {
+          fade_out(*current);
+          audio.active = 1 - audio.active;
+          current = &audio.voices.at(audio.active);
+        }
+        halt(*current);
         audio.finished = false;
       }
+      for (auto &voice : audio.voices)
+        if (voice.stopping && (cut || voice.gain.silent.load() || !MIX_TrackPlaying(voice.handle))) halt(voice);
 
       const auto running{entry.playing && entry.speed.value > 0.0};
       if (running)
       {
-        if (audio.finished) {}
-        else if (!audio.started)
+        if (current->stopping)
         {
+          current->gain.stopping.store(false);
+          current->stopping = false;
+        }
+        else if (!current->started)
+        {
+          const auto first{seconds_to_frames(entry.elapsed.device, audio.rate)};
           const auto options{SDL_CreateProperties()};
           SDL_SetNumberProperty(options, MIX_PROP_PLAY_LOOPS_NUMBER, entry.loop ? -1 : 0);
-          SDL_SetNumberProperty(options, MIX_PROP_PLAY_START_FRAME_NUMBER, seconds_to_frames(entry.elapsed.device));
-          MIX_PlayTrack(audio.handle, options);
+          SDL_SetNumberProperty(options, MIX_PROP_PLAY_START_FRAME_NUMBER, first);
+          MIX_SetTrackPlaybackPosition(current->handle, first);
+          MIX_PlayTrack(current->handle, options);
           SDL_DestroyProperties(options);
-          audio.started = true;
-          audio.paused = false;
-        }
-        else if (audio.paused)
-        {
-          MIX_ResumeTrack(audio.handle);
-          audio.paused = false;
+          current->gain.stopping.store(false);
+          current->gain.jump.store(cut);
+          current->gain.start.store(true);
+          current->started = true;
         }
       }
-      else if (audio.started && !audio.paused)
+      else if (current->started && !audio.finished && !current->stopping)
       {
-        MIX_PauseTrack(audio.handle);
-        audio.paused = true;
+        if (cut) MIX_PauseTrack(current->handle);
+        if (const auto frames{MIX_GetTrackPlaybackPosition(current->handle)}; frames >= 0)
+        {
+          entry.elapsed.device = frames_to_seconds(frames, audio.rate);
+          audio.position = entry.elapsed.device;
+        }
+        if (cut)
+          halt(*current);
+        else
+          fade_out(*current);
       }
 
-      if (audio.started && !audio.paused && !audio.finished)
+      if (current->started && !current->stopping && !audio.finished)
       {
-        if (const auto frames{MIX_GetTrackPlaybackPosition(audio.handle)}; frames >= 0)
+        if (const auto frames{MIX_GetTrackPlaybackPosition(current->handle)}; frames >= 0)
         {
-          const auto seconds{frames_to_seconds(frames)};
+          const auto seconds{frames_to_seconds(frames, audio.rate)};
           entry.elapsed.device = seconds;
           audio.position = seconds;
         }
-        if (!entry.loop && !MIX_TrackPlaying(audio.handle))
+        if (!entry.loop && !MIX_TrackPlaying(current->handle))
         {
           audio.finished = true;
           if (audio.audio)
             if (const auto duration{MIX_GetAudioDuration(audio.audio)}; duration > 0)
             {
-              entry.elapsed.device = frames_to_seconds(duration);
+              entry.elapsed.device = frames_to_seconds(duration, audio.rate);
               audio.position = entry.elapsed.device;
             }
         }
@@ -414,9 +455,9 @@ namespace cse::help::game
 namespace cse
 {
   template <trait::is_game game_type, typename... game_arguments> std::shared_ptr<game_type>
-  game::create(const std::function<void(const std::shared_ptr<game_type> &)> &config, game_arguments &&...arguments)
+  game::make(const std::function<void(const std::shared_ptr<game_type> &)> &config, game_arguments &&...arguments)
   {
-    if (instance) throw exception("Tried to create a second game instance");
+    if (instance) throw exception("Tried to make a second game instance");
     auto new_instance{std::shared_ptr<game_type>{new game_type{std::forward<game_arguments>(arguments)...}}};
     if (config) config(new_instance);
     instance = new_instance;
@@ -424,10 +465,10 @@ namespace cse
   }
 
   template <trait::is_callable callable, typename... game_arguments>
-  std::shared_ptr<game> game::create(callable &&config, game_arguments &&...arguments)
+  std::shared_ptr<game> game::make(callable &&config, game_arguments &&...arguments)
   {
     using game_type = trait::callable_smart_inner<callable>::type;
-    return create<game_type, game_arguments...>(
+    return make<game_type, game_arguments...>(
       std::function<void(const std::shared_ptr<game_type>)>(std::forward<callable>(config)),
       std::forward<game_arguments>(arguments)...);
   }

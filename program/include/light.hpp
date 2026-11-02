@@ -25,7 +25,7 @@ namespace cse::help::light
     };
     cse::group self{cse::everything};
     cse::group target{cse::everything};
-    temporal<glm::dvec4> brightness{{1.0, 1.0, 1.0, 1.0}};
+    temporal<glm::dvec4> brightness{1.0, 1.0, 1.0, 1.0};
     temporal<double> penetration{1.0};
     illumination::shape shape{};
   };

@@ -37,37 +37,28 @@ namespace cse::help::object
     last.mixer = mixer;
     last.phase = phase;
 
-    for (auto &[name, sound] : mixer.sounds)
-    {
-      sound.speed.instant = false;
-      sound.volume.instant = false;
-    }
-    for (auto &[name, music] : mixer.musics)
-    {
-      music.speed.instant = false;
-      music.volume.instant = false;
-    }
-    translation.instant = false;
-    rotation.instant = false;
-    scale.instant = false;
-    texture.playback.speed.instant = false;
-    texture.color.tint.instant = false;
-    texture.color.alpha.instant = false;
-    texture.illumination.brightness.instant = false;
-    texture.illumination.penetration.instant = false;
-    texture.occlusion.darkness.instant = false;
-    texture.occlusion.softness.instant = false;
-    text.playback.speed.instant = false;
-    text.align.horizontal.spacing.instant = false;
-    text.align.vertical.spacing.instant = false;
-    text.align.offset.instant = false;
-    text.scale.instant = false;
-    text.color.tint.instant = false;
-    text.color.alpha.instant = false;
-    text.illumination.brightness.instant = false;
-    text.illumination.penetration.instant = false;
-    text.occlusion.darkness.instant = false;
-    text.occlusion.softness.instant = false;
+    translation.synchronize();
+    rotation.synchronize();
+    scale.synchronize();
+    texture.playback.speed.synchronize();
+    texture.color.tint.synchronize();
+    texture.color.alpha.synchronize();
+    texture.illumination.brightness.synchronize();
+    texture.illumination.penetration.synchronize();
+    texture.occlusion.darkness.synchronize();
+    texture.occlusion.softness.synchronize();
+    text.playback.speed.synchronize();
+    text.align.horizontal.spacing.synchronize();
+    text.align.vertical.spacing.synchronize();
+    text.align.offset.synchronize();
+    text.scale.synchronize();
+    text.color.tint.synchronize();
+    text.color.alpha.synchronize();
+    text.illumination.brightness.synchronize();
+    text.illumination.penetration.synchronize();
+    text.occlusion.darkness.synchronize();
+    text.occlusion.softness.synchronize();
+    mixer.synchronize();
   }
 
   glm::dmat4 active::calculate_model_matrix(const previous &last, const unsigned int frame_width,
@@ -226,6 +217,27 @@ namespace cse
   {
     if (active.phase != help::phase::CREATED)
       throw exception("Object '{}' must be created before simulation", name.string());
+    active.translation.simulate(tick);
+    active.rotation.simulate(tick);
+    active.scale.simulate(tick);
+    active.texture.playback.speed.simulate(tick);
+    active.texture.color.tint.simulate(tick);
+    active.texture.color.alpha.simulate(tick);
+    active.texture.illumination.brightness.simulate(tick);
+    active.texture.illumination.penetration.simulate(tick);
+    active.texture.occlusion.darkness.simulate(tick);
+    active.texture.occlusion.softness.simulate(tick);
+    active.text.playback.speed.simulate(tick);
+    active.text.align.horizontal.spacing.simulate(tick);
+    active.text.align.vertical.spacing.simulate(tick);
+    active.text.align.offset.simulate(tick);
+    active.text.scale.simulate(tick);
+    active.text.color.tint.simulate(tick);
+    active.text.color.alpha.simulate(tick);
+    active.text.illumination.brightness.simulate(tick);
+    active.text.illumination.penetration.simulate(tick);
+    active.text.occlusion.darkness.simulate(tick);
+    active.text.occlusion.softness.simulate(tick);
     active.timer.simulate(tick);
     active.mixer.simulate(tick);
     active.animate(tick);

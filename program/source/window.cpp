@@ -100,16 +100,7 @@ namespace cse::help::window
     last.mixer = mixer;
     last.phase = phase;
 
-    for (auto &[name, sound] : mixer.sounds)
-    {
-      sound.speed.instant = false;
-      sound.volume.instant = false;
-    }
-    for (auto &[name, music] : mixer.musics)
-    {
-      music.speed.instant = false;
-      music.volume.instant = false;
-    }
+    mixer.synchronize();
     mouse.wheel = {};
   }
 

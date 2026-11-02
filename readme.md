@@ -31,7 +31,7 @@ it is the reference consumer and a good template to copy.
   engine calls them in the right order each tick/frame.
 - **Simulation is fixed-timestep** (e.g. 300Hz); **rendering is decoupled and interpolated** (e.g. 144fps). Values that
   change over time are declared as `temporal<T>` so the renderer can smoothly interpolate between the previous and
-  current state, and to make it easier to drive them without extra state.
+  current state, and so the engine can drive them through a transition for you.
 - **Everything has an `active` and previous snapshot**, so behaviour can compare "this tick vs last tick" (e.g.
   detecting a hover that just started).
 
@@ -124,12 +124,12 @@ namespace custom
     : cse::game({.tick = 300.0,
                  .frame = 144.0,
                  .aspect = {.ratio = 16.0 / 9.0, .resolution = {.world = 0, .canvas = 180}, .scaling = VIRTUAL},
-                 .clear = {{0.0, 0.0, 0.0}},
+                 .clear = {0.0, 0.0, 0.0},
                  .memory = {.vram = 512, .ram = 128},
                  .language = language::en,
-                 .master = {0.5},
-                 .sound = {1.0},
-                 .music = {1.0}}) {};
+                 .master = 0.5,
+                 .sound = 1.0,
+                 .music = 1.0}) {};
 }
 ```
 
@@ -224,43 +224,43 @@ protected:
 };
 
 player::player(const glm::dvec3 &translation_)
-  : cse::object({.translation = {translation_},
-                 .rotation = {0.0},
-                 .scale = {{1.0, 1.0}},
+  : cse::object({.translation = translation_,
+                 .rotation = 0.0,
+                 .scale = {1.0, 1.0},
                  .collision = {.self = collider::character, .target = cse::nothing},
                  .texture = {.source = {.image = image::redhood, .animation = animation::redhood.idle},
-                             .playback = {.frame = 0, .elapsed = 0.0, .playing = true, .speed = {1.0}, .loop = true},
+                             .playback = {.frame = 0, .elapsed = 0.0, .playing = true, .speed = 1.0, .loop = true},
                              .flip = {.horizontal = false, .vertical = false},
-                             .color = {.tint = {{0.5, 0.5, 0.5, 1.0}}, .alpha = {1.0}},
+                             .color = {.tint = {0.5, 0.5, 0.5, 1.0}, .alpha = 1.0},
                              .illumination = {.self = cse::everything,
                                               .target = cse::everything,
-                                              .brightness = {1.0},
-                                              .penetration = {1.0}},
+                                              .brightness = 1.0,
+                                              .penetration = 1.0},
                              .occlusion = {.self = occluder::character,
                                            .target = {.block = cse::everything,
                                                       .show = cse::everything,
                                                       .cast = cse::everything},
-                                           .darkness = {1.0},
-                                           .softness = {1.0}}},
+                                           .darkness = 1.0,
+                                           .softness = 1.0}},
                  .text = {.content = {"[", lexeme::player, "]"},
                           .source = {.font = font::text, .animation = animation::text.main},
-                          .playback = {.frame = 0, .elapsed = 0.0, .playing = false, .speed = {0.0}, .loop = false},
-                          .align = {.horizontal = {.preset = CENTER, .spacing = {0.0}},
-                                    .vertical = {.preset = TOP, .spacing = {0.0}},
-                                    .offset = {{0.0, -5.0}}},
-                          .scale = {{1.0, 1.0}},
+                          .playback = {.frame = 0, .elapsed = 0.0, .playing = false, .speed = 0.0, .loop = false},
+                          .align = {.horizontal = {.preset = CENTER, .spacing = 0.0},
+                                    .vertical = {.preset = TOP, .spacing = 0.0},
+                                    .offset = {0.0, -5.0}},
+                          .scale = {1.0, 1.0},
                           .overflow = {.wrap = false, .clip = false},
-                          .color = {.tint = {{0.5, 0.5, 0.5, 1.0}}, .alpha = {1.0}},
+                          .color = {.tint = {0.5, 0.5, 0.5, 1.0}, .alpha = 1.0},
                           .illumination = {.self = cse::everything,
                                            .target = cse::everything,
-                                           .brightness = {1.0},
-                                           .penetration = {1.0}},
+                                           .brightness = 1.0,
+                                           .penetration = 1.0},
                           .occlusion = {.self = occluder::character,
                                         .target = {.block = cse::everything,
                                                    .show = cse::nothing,
                                                    .cast = cse::everything},
-                                        .darkness = {1.0},
-                                        .softness = {0.5}}},
+                                        .darkness = 1.0,
+                                        .softness = 0.5}},
                  .priority = {.simulation = 0, .rendering = 1}}) {};
 ```
 
@@ -328,26 +328,82 @@ instantiation of the entity in memory, and create is called when the entity beco
 describes destroy and clean.
 
 ### The Temporal Value Model
-Any value that should animate smoothly is a `temporal<T>`. It carries a `value`, an optional `rate` (first derivative)
-and `curve` (used for acceleration), and an `interpolate` flag the renderer uses to blend between ticks. Drive physics
-by writing the value/rate inside `on_simulate`:
+Any value that should change smoothly over time is a `temporal<T>`, where `T` is a `double` or a `glm` vector. Build
+one straight from its value (`.translation = {0.0, 5.0, 0.0}`, `.alpha = 1.0`). It carries:
+- `value` - the current value; read and write it freely.
+- `interpolate` - whether the renderer blends between the previous and current tick (`true` by default).
+- `instant` - set it to `true` for a hard cut (no interpolation) for one frame; it resets itself every tick.
+- `motion` - a transition the engine drives for you. A `temporal<double>` has a single `cse::motion`; a vector has one
+  per axis (`motion.x`, `motion.y`, ...), so every axis moves, eases and stops independently.
+
+A `cse::motion` is plain data - there are no functions to call, you just set the fields:
+
+```cpp
+struct motion
+{
+  double from{};                             // value at the start of the curve
+  double to{};                               // value at the end of the curve
+  double duration{};                         // seconds from start to end
+  double elapsed{};                          // seconds along the curve
+  bool moving{};                             // the engine only drives the value while this is true
+  double speed{1.0};                         // time multiplier: negative plays backwards, 0 holds in place
+  double (*ease)(double){cse::ease::linear}; // maps progress in [0, 1] to how far between from and to
+};
+```
+
+Every tick, just before `on_simulate` (or just after `pre_simulate` for the game), each moving motion advances
+`elapsed` by `tick × speed` (clamped to `[0, duration]`), sets the value to `from + (to - from) × ease(elapsed /
+duration)`, and clears `moving` once `elapsed` reaches the end it is heading for. While `moving` is false the value is
+never touched, so it is entirely yours; while it is true, anything you write to the value in `on_simulate` lasts for
+that tick and is replaced by the curve on the next. `cse::ease` provides `linear`, `in`, `out` and `in_out`, but any
+`double(double)` function or capture-less lambda works, including ones that overshoot or come back to `0`
+(out-and-back); a null `ease` is treated as linear.
+
+```cpp
+// fade out over 2 seconds
+auto &alpha{active.texture.color.alpha};
+alpha.motion = {.from = alpha.value, .to = 0.0, .duration = 2.0, .elapsed = 0.0, .moving = true, .speed = 1.0,
+                .ease = cse::ease::out};
+
+// reverse mid-flight - or replay it backwards after it has finished
+alpha.motion.speed = -alpha.motion.speed;
+alpha.motion.moving = true;
+
+// pause and resume
+alpha.motion.moving = false;
+alpha.motion.moving = true;
+
+// scrub: hold the value at any point on the curve
+alpha.motion.speed = 0.0;
+alpha.motion.elapsed = slider * alpha.motion.duration;
+alpha.motion.moving = true;
+
+// slide only along x, leaving y and z to your own code
+auto &translation{active.translation};
+translation.motion.x = {.from = translation.value.x, .to = 40.0, .duration = 0.5, .elapsed = 0.0, .moving = true,
+                        .speed = 1.0, .ease = cse::ease::in_out};
+
+// react the tick a motion arrives
+if (previous.texture.color.alpha.motion.moving && !active.texture.color.alpha.motion.moving) { /* ... */ }
+```
+
+Values travel in a straight line from `from` to `to`, so angles are not wrapped for you: to turn from `350` to `10` the
+short way, set `to` to `370`.
+
+Anything that is not a timed transition, like physics, is just written to the value yourself in `on_simulate`, keeping
+any extra state (such as a velocity) on your own class:
 
 ```cpp
 void player::on_simulate(const double tick)
 {
   const auto &keyboard{scene->game->active.window->active.keyboard};
-  auto &position{active.translation.value};
-  auto &velocity{active.translation.rate};
-  auto &acceleration{active.translation.curve};
+  glm::dvec3 acceleration{};
   if (keyboard[SDL_SCANCODE_E]) acceleration.y += max_velocity;
   if (keyboard[SDL_SCANCODE_D]) acceleration.y -= max_velocity;
   velocity += acceleration * tick;
-  acceleration = {0.0, 0.0, 0.0};
-  position += velocity * tick;
+  active.translation.value += velocity * tick;
 }
 ```
-
-Set `.instant = true` on a temporal when you want a hard cut (no interpolation) for one frame.
 
 ### Accessing Runtime State
 - `active.*` is the current snapshot; `previous.*` is last tick's - compare them to detect transitions.
@@ -429,24 +485,24 @@ object's own pixels - an object only absorbs light passing through itself when i
 // sun light: lights everything except objects tagged indoor
 .illumination = {.self = illuminator::sun,
                  .target = without(cse::everything, illuminator::indoor),
-                 .brightness = {{1.0, 1.0, 1.0, 1.0}},
-                 .penetration = {1.0},
-                 .shape = {.global = true, .range = {0.0}, .angle = {0.0}, .feather = {0.0}}};
+                 .brightness = {1.0, 1.0, 1.0, 1.0},
+                 .penetration = 1.0,
+                 .shape = {.global = true, .range = 0.0, .angle = 0.0, .feather = 0.0}};
 // furniture object: indoor, so the sun skips it
-.illumination = {.self = illuminator::indoor, .target = cse::everything, .brightness = {1.0}, .penetration = {1.0}};
+.illumination = {.self = illuminator::indoor, .target = cse::everything, .brightness = 1.0, .penetration = 1.0};
 
 // player object: its shadow never falls on objects tagged scenery
 .occlusion = {.self = occluder::character,
               .target = {.block = cse::everything,
                          .show = cse::everything,
                          .cast = without(cse::everything, occluder::scenery)},
-              .darkness = {1.0},
-              .softness = {1.0}};
+              .darkness = 1.0,
+              .softness = 1.0};
 // background object: scenery, so the player's shadow skips it
 .occlusion = {.self = occluder::scenery,
               .target = {.block = cse::everything, .show = cse::everything, .cast = cse::everything},
-              .darkness = {1.0},
-              .softness = {1.0}};
+              .darkness = 1.0,
+              .softness = 1.0};
 ```
 
 To exclude something, give it a tag first: a `self` left at `cse::everything` matches every `target`.
@@ -491,6 +547,19 @@ active.mixer.remove<cse::music>("main");
 Removing is optional; the mixer will automatically clear tracks when the entity is destroyed.\
 The game's `master`, `sound` and `music` temporals act as global buses for volume, all affecting each track's own
 `volume` temporal.
+
+Volume changes are smoothed on the audio thread, sample by sample: each new volume is reached in a straight line spread
+across the time since the previous change (never longer than 20ms), so fades, slider drags and plain writes never click
+or buzz. This means the audio trails the simulation slightly: a volume is only fully reached within one rendered frame
+plus 20ms of the tick that set it. Starting, stopping (`playing = false`) and resuming a track ramp over 5ms - in from
+silence or out to it - which removes the pop of an abrupt edge without audibly softening the sound. Seeking (writing
+`elapsed.device`) a playing track crossfades: the new position starts straight away and fades in over 5ms while the old
+one fades out underneath it, so there is no gap. Plain `playing` and `elapsed.device` writes are therefore always
+click-free. All positions are in seconds of the source itself, whatever its sample rate or the device's. A stopped
+track resumes from exactly where it was stopped: `elapsed.device` holds the stop (or seek) position while the fade-out
+plays, and setting `playing = true` again before a stop's fade-out has finished simply ramps back up. When you want a
+deliberate hard cut instead, set `instant` on the track's `volume` (or on a bus) in the same tick as the change.
+Swapping a track's `source` (or removing the track) is always a hard cut.
 
 A track's `elapsed` is a `cse::elapsed`, which carries one clock per owner - and which one you read matters:
 

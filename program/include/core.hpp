@@ -63,6 +63,9 @@ namespace cse::help
     struct previous;
     struct active;
   }
+
+  class timer;
+  class mixer;
 }
 
 namespace cse::trait

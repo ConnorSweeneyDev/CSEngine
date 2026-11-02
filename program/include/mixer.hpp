@@ -73,6 +73,7 @@ namespace cse::help
     template <trait::is_audio audio> void clear() noexcept;
 
   private:
+    void synchronize();
     void simulate(const double tick);
 
     template <trait::is_audio audio> auto &select() noexcept;

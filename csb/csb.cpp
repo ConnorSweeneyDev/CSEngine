@@ -27,7 +27,7 @@ int csb::clean()
 
 int csb::build()
 {
-  csb::vcpkg_install("2026.04.27", {{"builtin-baseline", "56bb2411609227288b70117ead2c47585ba07713"},
+  csb::vcpkg_install("2026.07.29", {{"builtin-baseline", "9e593bb18ea69cc5095e012465dcd675a822ed0d"},
                                     {"dependencies",
                                      {
                                        {
@@ -55,11 +55,11 @@ int csb::build()
                                      {
                                        {
                                          {"name", "sdl3"},
-                                         {"version", "3.4.4"},
+                                         {"version", "3.4.12"},
                                        },
                                        {
                                          {"name", "sdl3-mixer"},
-                                         {"version", "3.2.0#2"},
+                                         {"version", "3.2.4#0"},
                                        },
                                        {
                                          {"name", "glm"},
@@ -69,7 +69,8 @@ int csb::build()
                                          {"name", "nlohmann-json"},
                                          {"version", "3.12.0#2"},
                                        },
-                                     }}});
+                                     }},
+                                    {"vcpkg-configuration", {{"overlay-ports", {"../../port"}}}}});
 
   csb::subproject_install({"ConnorSweeneyDev/CSData", "1.0.0", HEADER_LIBRARY});
   csb::subproject_install({"ConnorSweeneyDev/CSPack", "1.0.0", HEADER_LIBRARY});

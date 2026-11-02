@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -13,9 +14,11 @@
 #include <utility>
 #include <vector>
 
+#include "SDL3/SDL_audio.h"
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_init.h"
+#include "SDL3/SDL_stdinc.h"
 #include "SDL3_mixer/SDL_mixer.h"
 #include "glm/ext/matrix_double4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
@@ -294,17 +297,37 @@ namespace cse::help::game
       const help::mixer *previous{};
       help::mixer *active{};
     };
-    struct audio_track
+    struct audio_gain
+    {
+      std::atomic<float> target{};
+      std::atomic<bool> start{};
+      std::atomic<bool> jump{};
+      std::atomic<bool> stopping{true};
+      std::atomic<bool> silent{};
+      float current{};
+      float last{};
+      float step{};
+      int remaining{};
+      int since{};
+      bool halting{true};
+    };
+    struct audio_voice
     {
       MIX_Track *handle{};
+      audio_gain gain{};
+      bool started{};
+      bool stopping{};
+    };
+    struct audio_track
+    {
+      std::array<audio_voice, 2> voices{};
+      std::size_t active{};
       MIX_Audio *audio{};
       const unsigned char *source{};
       std::size_t size{};
+      int rate{};
       double position{};
-      double gain{-1.0};
       double speed{-1.0};
-      bool started{};
-      bool paused{};
       bool finished{};
       bool loop{};
       bool seen{};
@@ -364,9 +387,12 @@ namespace cse::help::game
     SDL_GPUTexture *require_texture(const cse::image &image);
 
     template <typename resource> void reconcile_audio(const help::mixer *previous_mixer, help::mixer *active_mixer,
-                                                      const char *tag, const bool predecode, const double bus);
-    std::int64_t seconds_to_frames(const double seconds) const;
-    double frames_to_seconds(const std::int64_t frames) const;
+                                                      const char *tag, const bool predecode, const double bus,
+                                                      const bool instant);
+    static void SDLCALL fade(void *userdata, MIX_Track *track, const SDL_AudioSpec *spec, float *pcm,
+                             const int samples);
+    static std::int64_t seconds_to_frames(const double seconds, const int rate);
+    static double frames_to_seconds(const std::int64_t frames, const int rate);
     MIX_Audio *require_audio(const unsigned char *data, const std::size_t size, const bool predecode);
 
   public:
@@ -416,8 +442,10 @@ namespace cse::help::game
     active::graphics_text graphics_text{};
     active::graphics_interface graphics_interface{};
 
+    static constexpr double shortest_ramp{0.001};
+    static constexpr double longest_ramp{0.02};
+    static constexpr double edge_ramp{0.005};
     bool audio_ready{};
-    int frequency{};
     MIX_Mixer *soundboard{};
     active::audio_cache audio_cache{};
     std::vector<active::channel> audio_channels{};
@@ -464,9 +492,9 @@ namespace cse
     game &operator=(game &&) = delete;
 
     template <trait::is_game game_type, typename... game_arguments> static std::shared_ptr<game_type>
-    create(const std::function<void(const std::shared_ptr<game_type> &)> &config, game_arguments &&...arguments);
+    make(const std::function<void(const std::shared_ptr<game_type> &)> &config, game_arguments &&...arguments);
     template <trait::is_callable callable, typename... game_arguments>
-    static std::shared_ptr<game> create(callable &&config, game_arguments &&...arguments);
+    static std::shared_ptr<game> make(callable &&config, game_arguments &&...arguments);
     template <trait::is_state state_type, typename... state_arguments>
     state_type &set(const name state_name, state_arguments &&...arguments);
     template <trait::is_window window_type, typename... window_arguments>
@@ -474,9 +502,8 @@ namespace cse
     template <trait::is_scene scene_type, typename... scene_arguments>
     scene_type &set(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
                     scene_arguments &&...arguments);
-    template <trait::is_callable callable, typename... scene_arguments>
-    auto set(const name scene_name, callable &&config, scene_arguments &&...arguments)
-      -> trait::callable_smart_inner<callable>::type &;
+    template <trait::is_callable callable, typename... scene_arguments> trait::callable_smart_inner<callable>::type &
+    set(const name scene_name, callable &&config, scene_arguments &&...arguments);
     template <trait::is_scene scene_type, typename... scene_arguments>
     scene_type &current(const name scene_name, const std::function<void(const std::shared_ptr<scene_type> &)> &config,
                         scene_arguments &&...arguments);

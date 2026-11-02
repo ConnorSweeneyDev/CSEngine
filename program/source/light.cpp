@@ -32,25 +32,16 @@ namespace cse::help::light
     last.mixer = mixer;
     last.phase = phase;
 
-    for (auto &[name, sound] : mixer.sounds)
-    {
-      sound.speed.instant = false;
-      sound.volume.instant = false;
-    }
-    for (auto &[name, music] : mixer.musics)
-    {
-      music.speed.instant = false;
-      music.volume.instant = false;
-    }
-    translation.instant = false;
-    rotation.instant = false;
-    illumination.brightness.instant = false;
-    illumination.penetration.instant = false;
-    illumination.shape.range.instant = false;
-    illumination.shape.angle.instant = false;
-    illumination.shape.feather.instant = false;
-    occlusion.darkness.instant = false;
-    occlusion.softness.instant = false;
+    translation.synchronize();
+    rotation.synchronize();
+    illumination.brightness.synchronize();
+    illumination.penetration.synchronize();
+    illumination.shape.range.synchronize();
+    illumination.shape.angle.synchronize();
+    illumination.shape.feather.synchronize();
+    occlusion.darkness.synchronize();
+    occlusion.softness.synchronize();
+    mixer.synchronize();
   }
 
   glm::dvec3 active::calculate_direction(const previous &last, const double alpha) const
@@ -110,6 +101,15 @@ namespace cse
   {
     if (active.phase != help::phase::CREATED)
       throw exception("Light '{}' must be created before simulation", name.string());
+    active.translation.simulate(tick);
+    active.rotation.simulate(tick);
+    active.illumination.brightness.simulate(tick);
+    active.illumination.penetration.simulate(tick);
+    active.illumination.shape.range.simulate(tick);
+    active.illumination.shape.angle.simulate(tick);
+    active.illumination.shape.feather.simulate(tick);
+    active.occlusion.darkness.simulate(tick);
+    active.occlusion.softness.simulate(tick);
     active.timer.simulate(tick);
     active.mixer.simulate(tick);
     on_simulate(tick);

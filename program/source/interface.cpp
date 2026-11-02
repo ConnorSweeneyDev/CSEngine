@@ -37,29 +37,20 @@ namespace cse::help::interface
     last.mixer = mixer;
     last.phase = phase;
 
-    for (auto &[name, sound] : mixer.sounds)
-    {
-      sound.speed.instant = false;
-      sound.volume.instant = false;
-    }
-    for (auto &[name, music] : mixer.musics)
-    {
-      music.speed.instant = false;
-      music.volume.instant = false;
-    }
-    translation.instant = false;
-    rotation.instant = false;
-    scale.instant = false;
-    texture.playback.speed.instant = false;
-    texture.color.tint.instant = false;
-    texture.color.alpha.instant = false;
-    text.playback.speed.instant = false;
-    text.align.horizontal.spacing.instant = false;
-    text.align.vertical.spacing.instant = false;
-    text.align.offset.instant = false;
-    text.scale.instant = false;
-    text.color.tint.instant = false;
-    text.color.alpha.instant = false;
+    translation.synchronize();
+    rotation.synchronize();
+    scale.synchronize();
+    texture.playback.speed.synchronize();
+    texture.color.tint.synchronize();
+    texture.color.alpha.synchronize();
+    text.playback.speed.synchronize();
+    text.align.horizontal.spacing.synchronize();
+    text.align.vertical.spacing.synchronize();
+    text.align.offset.synchronize();
+    text.scale.synchronize();
+    text.color.tint.synchronize();
+    text.color.alpha.synchronize();
+    mixer.synchronize();
     target.released = {};
     target.clicked = {};
   }
@@ -218,6 +209,19 @@ namespace cse
   {
     if (active.phase != help::phase::CREATED)
       throw exception("Interface '{}' must be created before simulation", name.string());
+    active.translation.simulate(tick);
+    active.rotation.simulate(tick);
+    active.scale.simulate(tick);
+    active.texture.playback.speed.simulate(tick);
+    active.texture.color.tint.simulate(tick);
+    active.texture.color.alpha.simulate(tick);
+    active.text.playback.speed.simulate(tick);
+    active.text.align.horizontal.spacing.simulate(tick);
+    active.text.align.vertical.spacing.simulate(tick);
+    active.text.align.offset.simulate(tick);
+    active.text.scale.simulate(tick);
+    active.text.color.tint.simulate(tick);
+    active.text.color.alpha.simulate(tick);
     active.timer.simulate(tick);
     active.mixer.simulate(tick);
     active.animate(tick);

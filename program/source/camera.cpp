@@ -33,20 +33,11 @@ namespace cse::help::camera
     last.mixer = mixer;
     last.phase = phase;
 
-    for (auto &[name, sound] : mixer.sounds)
-    {
-      sound.speed.instant = false;
-      sound.volume.instant = false;
-    }
-    for (auto &[name, music] : mixer.musics)
-    {
-      music.speed.instant = false;
-      music.volume.instant = false;
-    }
-    translation.instant = false;
-    forward.instant = false;
-    up.instant = false;
-    fov.instant = false;
+    translation.synchronize();
+    forward.synchronize();
+    up.synchronize();
+    fov.synchronize();
+    mixer.synchronize();
   }
 
   glm::dmat4 active::calculate_view_matrix(const previous &last, const double alpha) const
@@ -108,6 +99,10 @@ namespace cse
   void camera::simulate(const double tick)
   {
     if (active.phase != help::phase::CREATED) throw exception("Camera must be created before simulation");
+    active.translation.simulate(tick);
+    active.forward.simulate(tick);
+    active.up.simulate(tick);
+    active.fov.simulate(tick);
     active.timer.simulate(tick);
     active.mixer.simulate(tick);
     on_simulate(tick);

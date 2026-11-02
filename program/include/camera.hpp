@@ -88,8 +88,8 @@ namespace cse
     struct initial
     {
       const temporal<glm::dvec3> translation{};
-      const temporal<glm::dvec3> forward{{0.0, 0.0, -1.0}};
-      const temporal<glm::dvec3> up{{0.0, 1.0, 0.0}};
+      const temporal<glm::dvec3> forward{0.0, 0.0, -1.0};
+      const temporal<glm::dvec3> up{0.0, 1.0, 0.0};
       const temporal<double> fov{60};
       const help::camera::clip clip{};
       const bool snap{};
