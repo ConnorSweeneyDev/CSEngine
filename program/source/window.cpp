@@ -13,6 +13,7 @@
 #include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_rect.h"
 #include "SDL3/SDL_stdinc.h"
+#include "SDL3/SDL_timer.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/vector_double2.hpp"
@@ -80,6 +81,13 @@ namespace cse::help::window
     const auto pixel{to_pixel(mouse.position.x, mouse.position.y, aspect)};
     SDL_WarpMouseInWindow(instance, static_cast<float>(pixel.x) / density, static_cast<float>(pixel.y) / density);
     shadow.mouse.position = mouse.position;
+    pointer = pixel / static_cast<double>(density);
+    warped = SDL_GetTicksNS();
+
+    std::copy_n(SDL_GetKeyboardState(nullptr), keyboard.size(), keyboard.begin());
+    const auto buttons{SDL_GetMouseState(nullptr, nullptr)};
+    for (std::size_t button{SDL_BUTTON_LEFT}; button <= SDL_BUTTON_X2; ++button)
+      mouse.buttons.at(button) = has(buttons, SDL_BUTTON_MASK(button));
   }
 
   void active::synchronize(previous &last)
@@ -282,34 +290,55 @@ namespace cse::help::window
 
   void active::poll(const help::game::aspect &aspect)
   {
-    float horizontal{}, vertical{};
-    const auto buttons{SDL_GetMouseState(&horizontal, &vertical)};
-    const auto density{pixel_density()};
-    horizontal *= density;
-    vertical *= density;
+    const auto density{static_cast<double>(pixel_density())};
+    const auto pixel{pointer * density};
     const auto view{letterbox(aspect)};
     const bool warping{mouse.position != shadow.mouse.position};
     const bool focused{SDL_GetMouseFocus() == instance};
-    const bool inside{focused && horizontal >= view.left && horizontal <= view.left + view.width &&
-                      vertical >= view.top && vertical <= view.top + view.height};
+    const bool inside{focused && pixel.x >= view.left && pixel.x <= view.left + view.width && pixel.y >= view.top &&
+                      pixel.y <= view.top + view.height};
     const bool show{mouse.visible || (!warping && !inside)};
 
     if (show && !SDL_CursorVisible())
       SDL_ShowCursor();
     else if (!show && SDL_CursorVisible())
       SDL_HideCursor();
-    for (std::size_t button{SDL_BUTTON_LEFT}; button <= SDL_BUTTON_X2; ++button)
-      mouse.buttons.at(button) = has(buttons, SDL_BUTTON_MASK(button));
     if (warping)
     {
-      const auto pixel{to_pixel(mouse.position.x, mouse.position.y, aspect)};
-      SDL_WarpMouseInWindow(instance, static_cast<float>(pixel.x) / density, static_cast<float>(pixel.y) / density);
+      pointer = to_pixel(mouse.position.x, mouse.position.y, aspect) / density;
+      warped = SDL_GetTicksNS();
+      SDL_WarpMouseInWindow(instance, static_cast<float>(pointer.x), static_cast<float>(pointer.y));
     }
     else
-      mouse.position = to_virtual(horizontal, vertical, aspect);
+      mouse.position = to_virtual(pixel.x, pixel.y, aspect);
     shadow.mouse.position = mouse.position;
+  }
 
-    std::copy_n(SDL_GetKeyboardState(nullptr), keyboard.size(), keyboard.begin());
+  void active::apply(const help::game::aspect &aspect, const SDL_Event &event)
+  {
+    switch (event.type)
+    {
+      case SDL_EVENT_KEY_DOWN:
+      case SDL_EVENT_KEY_UP:
+        if (const auto scancode{static_cast<std::size_t>(event.key.scancode)}; scancode < keyboard.size())
+          keyboard.at(scancode) = event.key.down;
+        break;
+      case SDL_EVENT_MOUSE_BUTTON_DOWN:
+      case SDL_EVENT_MOUSE_BUTTON_UP:
+        if (event.button.button <= SDL_BUTTON_X2) mouse.buttons.at(event.button.button) = event.button.down;
+        break;
+      case SDL_EVENT_MOUSE_MOTION:
+      {
+        if (event.motion.timestamp < warped) break;
+        pointer = {event.motion.x, event.motion.y};
+        if (mouse.position != shadow.mouse.position) break;
+        const auto density{static_cast<double>(pixel_density())};
+        mouse.position = to_virtual(pointer.x * density, pointer.y * density, aspect);
+        shadow.mouse.position = mouse.position;
+        break;
+      }
+      default: break;
+    }
   }
 
   active::viewport active::letterbox(const help::game::aspect &aspect) const
@@ -476,21 +505,27 @@ namespace cse::help::window
 
   bool active::acquire_swapchain_texture(SDL_GPUDevice *video)
   {
+    swapchain_texture = nullptr;
     command_buffer = SDL_AcquireGPUCommandBuffer(video);
     if (!command_buffer) throw sdl_exception("Could not acquire GPU command buffer");
     Uint32 swapchain_width{};
     Uint32 swapchain_height{};
-    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, &swapchain_width,
-                                               &swapchain_height))
+    if (!SDL_AcquireGPUSwapchainTexture(command_buffer, instance, &swapchain_texture, &swapchain_width,
+                                        &swapchain_height))
     {
       sdl_log("Could not acquire GPU swapchain texture; skipping frame");
       if (!SDL_CancelGPUCommandBuffer(command_buffer)) sdl_log("Could not cancel GPU command buffer");
-      return false;
+      command_buffer = nullptr;
+      swapchain_texture = nullptr;
+      return true;
     }
     if (!swapchain_texture)
     {
-      if (!SDL_SubmitGPUCommandBuffer(command_buffer)) throw sdl_exception("Could not submit GPU command buffer");
-      return false;
+      if (!SDL_CancelGPUCommandBuffer(command_buffer)) sdl_log("Could not cancel GPU command buffer");
+      command_buffer = nullptr;
+      const auto pixels{pixel_size()};
+      return pixels.x <= 0 || pixels.y <= 0 ||
+             any(SDL_GetWindowFlags(instance), SDL_WINDOW_MINIMIZED, SDL_WINDOW_HIDDEN, SDL_WINDOW_OCCLUDED);
     }
     if (swapchain_width != render_width || swapchain_height != render_height)
     {
@@ -858,12 +893,10 @@ namespace cse
       case SDL_EVENT_WINDOW_MOVED: active.handle_move(); break;
       case SDL_EVENT_WINDOW_RESIZED: active.handle_resize(video); break;
       case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: active.handle_resize(video); break;
-      case SDL_EVENT_MOUSE_WHEEL:
-        active.mouse.wheel += glm::dvec2{event.wheel.x, event.wheel.y};
-        on_event(event);
-        break;
-      default: on_event(event); break;
+      case SDL_EVENT_MOUSE_WHEEL: active.mouse.wheel += glm::dvec2{event.wheel.x, event.wheel.y}; break;
+      default: break;
     }
+    on_event(event);
   }
 
   void window::on_simulate(const double) {}

@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <numeric>
@@ -1915,8 +1916,14 @@ namespace cse
   {
     if (active.phase != help::phase::CREATED) throw exception("Game must be created before processing events");
     active.window->active.poll(active.aspect);
-    for (const auto &item : queue)
+    const auto boundary{static_cast<Uint64>(std::max(0.0, active.time - active.accumulator) * 1e9)};
+    const auto due{static_cast<std::size_t>(std::ranges::distance(
+      queue.begin(),
+      std::ranges::find_if(queue, [boundary](const SDL_Event &item) { return item.common.timestamp > boundary; })))};
+    for (std::size_t index{}; index < due; ++index)
     {
+      const auto item{queue.at(index)};
+      active.window->active.apply(active.aspect, item);
       pre_event(item);
       active.interact(item);
       active.window->event(active.video, item);
@@ -1924,7 +1931,7 @@ namespace cse
       for (const auto &interface : active.interface_order) interface->event(item);
       post_event(item);
     }
-    queue.clear();
+    queue.erase(queue.begin(), queue.begin() + static_cast<std::ptrdiff_t>(due));
     active.hover();
   }
 
@@ -1963,7 +1970,7 @@ namespace cse
     if (active.phase != help::phase::CREATED) throw exception("Game must be created before rendering");
     pre_render(active.alpha);
     const auto clear{active.clear.interpolated(previous.clear, active.alpha)};
-    if (!active.window->available(active.video)) return;
+    if (!active.window->active.swapchain_texture) return;
     active.scene->render(active.aspect.ratio, active.alpha);
     active.render();
     active.window->render(clear, active.alpha);
@@ -2052,14 +2059,11 @@ namespace cse
   {
     time();
     static double deadline{};
-    if (active.time - deadline >= active.actual_frame)
-    {
-      deadline += active.actual_frame;
-      if (active.time - deadline >= active.actual_frame) deadline = active.time;
-      active.alpha = active.accumulator / active.actual_tick;
-      return true;
-    }
-    return false;
+    if (active.time - deadline < active.actual_frame || !active.window->available(active.video)) return false;
+    deadline += active.actual_frame;
+    if (active.time - deadline >= active.actual_frame) deadline = active.time;
+    active.alpha = active.accumulator / active.actual_tick;
+    return true;
   }
 
   void game::tps()

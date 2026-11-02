@@ -7,6 +7,7 @@
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_gpu.h"
 #include "SDL3/SDL_pixels.h"
+#include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_video.h"
 #include "glm/ext/vector_double2.hpp"
 #include "glm/ext/vector_double3.hpp"
@@ -105,6 +106,7 @@ namespace cse::help::window
     void destroy(SDL_GPUDevice *video);
 
     void poll(const help::game::aspect &aspect);
+    void apply(const help::game::aspect &aspect, const SDL_Event &event);
     viewport letterbox(const help::game::aspect &aspect) const;
     float pixel_density();
     glm::ivec2 pixel_size();
@@ -149,6 +151,8 @@ namespace cse::help::window
 
   private:
     active::shadow shadow{};
+    glm::dvec2 pointer{};
+    Uint64 warped{};
 
     SDL_Window *instance{};
     SDL_GPUCommandBuffer *command_buffer{};
