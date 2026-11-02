@@ -105,6 +105,7 @@ namespace cse::help::game
       throw sdl_exception("No supported shader formats found for {}", gpu_backend);
     video = SDL_CreateGPUDevice(shader_format, debug, gpu_backend);
     if (!video) throw sdl_exception("Could not create GPU device");
+    if (!SDL_SetGPUAllowedFramesInFlight(video, 1)) sdl_log("Could not limit GPU frames in flight to 1");
 
     const std::array<corner, 4> vertices{
       {{1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, -1.0f, 1.0f, 0.0f}, {-1.0f, 1.0f, 0.0f, 1.0f}, {-1.0f, -1.0f, 0.0f, 0.0f}}};
