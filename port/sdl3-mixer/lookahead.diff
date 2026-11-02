@@ -1,11 +1,9 @@
 diff --git a/src/SDL_mixer.c b/src/SDL_mixer.c
 --- a/src/SDL_mixer.c
 +++ b/src/SDL_mixer.c
-@@ -347,6 +347,7 @@ static void SDLCALL TrackGetCallback(void *userdata, SDL_AudioStream *stream, int additional_amount, int total_amount)
+@@ -347,4 +347,5 @@ static void SDLCALL TrackGetCallback(void *userdata, SDL_AudioStream *stream, int additional_amount, int total_amount)
      SDL_AudioSpec raw_spec;
      if (track->input_stream) {
          SDL_GetAudioStreamFormat(track->input_stream, NULL, &raw_spec);
 +        additional_amount += 64 * SDL_AUDIO_FRAMESIZE(raw_spec);  // supply the resampler's lookahead too, so the first request on an empty output_stream isn't short.
      }
-
-     // do we need to grow our buffer?
