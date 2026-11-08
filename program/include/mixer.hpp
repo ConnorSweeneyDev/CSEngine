@@ -38,6 +38,8 @@ namespace cse::help
       temporal<double> speed{1.0};
       bool loop{};
       temporal<double> volume{1.0};
+      double attack{0.01};
+      double release{0.01};
     };
     struct request
     {

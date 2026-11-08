@@ -441,15 +441,7 @@ namespace cse::help::game
       reconcile_audio<cse::music>(audio.previous, audio.active, "music", false, music_bus,
                                   master.instant || music.instant);
     }
-    for (auto iterator{audio_cache.tracks.begin()}; iterator != audio_cache.tracks.end();)
-      if (!iterator->second.seen)
-      {
-        for (const auto &voice : iterator->second.voices)
-          if (voice.handle) MIX_DestroyTrack(voice.handle);
-        iterator = audio_cache.tracks.erase(iterator);
-      }
-      else
-        ++iterator;
+    retire_tracks();
     for (const auto &[key, track] : audio_cache.tracks)
       if (track.source)
         if (const auto iterator{audio_cache.sources.find({track.source, track.size})};
@@ -469,71 +461,18 @@ namespace cse::help::game
     }
   }
 
-  void SDLCALL active::fade(void *userdata, MIX_Track *, const SDL_AudioSpec *spec, float *pcm, const int samples)
-  {
-    auto &gain{*static_cast<audio_gain *>(userdata)};
-    const auto start{gain.start.exchange(false)};
-    const auto jump{gain.jump.exchange(false)};
-    const auto stopping{gain.stopping.load()};
-    const auto target{stopping ? 0.0f : gain.target.load()};
-    const auto rate{static_cast<double>(std::max(spec->freq, 1))};
-    const auto shortest{std::max(static_cast<int>(shortest_ramp * rate), 1)};
-    const auto longest{std::max(static_cast<int>(longest_ramp * rate), shortest)};
-    const auto edge{std::max(static_cast<int>(edge_ramp * rate), 1)};
-    if (jump)
-    {
-      gain.current = target;
-      gain.last = target;
-      gain.remaining = 0;
-      gain.since = 0;
-    }
-    else if (start)
-    {
-      gain.current = 0.0f;
-      gain.last = target;
-      gain.remaining = edge;
-      gain.step = target / static_cast<float>(edge);
-      gain.since = 0;
-    }
-    else if (stopping != gain.halting)
-    {
-      gain.remaining = edge;
-      gain.step = (target - gain.current) / static_cast<float>(edge);
-      gain.last = target;
-      gain.since = 0;
-    }
-    else if (!equal(target, gain.last))
-    {
-      gain.remaining = std::clamp(gain.since, shortest, longest);
-      gain.step = (target - gain.current) / static_cast<float>(gain.remaining);
-      gain.last = target;
-      gain.since = 0;
-    }
-
-    const auto channels{std::max(spec->channels, 1)};
-    auto current{gain.current};
-    auto remaining{gain.remaining};
-    int channel{};
-    int frames{};
-    for (auto &sample : std::span{pcm, static_cast<std::size_t>(std::max(samples, 0))})
-    {
-      if (channel == 0)
-      {
-        ++frames;
-        if (remaining > 0) current = --remaining == 0 ? gain.last : current + gain.step;
-      }
-      sample *= current;
-      if (++channel == channels) channel = 0;
-    }
-    gain.current = current;
-    gain.remaining = remaining;
-    gain.since = std::min(gain.since + frames, longest);
-    gain.halting = stopping;
-    gain.silent.store(stopping && remaining == 0);
-  }
-
   void active::destroy()
   {
+    double longest{};
+    for (auto &[key, audio] : audio_cache.tracks)
+    {
+      audio.seen = false;
+      for (const auto &voice : audio.voices)
+        longest = std::max(longest, static_cast<double>(voice.gain.release.load()));
+    }
+    const auto deadline{SDL_GetTicksNS() + static_cast<Uint64>((longest + drain_limit) * 1e9)};
+    while (retire_tracks() && SDL_GetTicksNS() < deadline) SDL_Delay(1);
+    if (soundboard) SDL_Delay(static_cast<Uint32>(drain_margin * 1000.0));
     for (auto &[key, audio] : audio_cache.tracks)
       for (const auto &voice : audio.voices)
         if (voice.handle) MIX_DestroyTrack(voice.handle);
@@ -598,8 +537,7 @@ namespace cse::help::game
   void active::clean()
   {
     MIX_Quit();
-    SDL_QuitSubSystem(SDL_INIT_AUDIO);
-    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+    SDL_QuitSubSystem(SDL_INIT_AUDIO | SDL_INIT_VIDEO);
     SDL_Quit();
   }
 
@@ -1712,6 +1650,116 @@ namespace cse::help::game
   {
     if (frames <= 0 || rate <= 0) return 0.0;
     return static_cast<double>(frames) / static_cast<double>(rate);
+  }
+
+  void SDLCALL active::fade(void *userdata, MIX_Track *, const SDL_AudioSpec *spec, float *pcm, const int samples)
+  {
+    auto &gain{*static_cast<audio_gain *>(userdata)};
+    const auto start{gain.start.exchange(false)};
+    const auto jump{gain.jump.exchange(false)};
+    const auto stopping{gain.stopping.load()};
+    const auto target{gain.target.load()};
+    const auto goal{stopping ? 0.0f : 1.0f};
+    const auto rate{static_cast<double>(std::max(spec->freq, 1))};
+    const auto shortest{std::max(static_cast<int>(shortest_ramp * rate), 1)};
+    const auto longest{std::max(static_cast<int>(longest_ramp * rate), shortest)};
+    const auto rise{std::max(static_cast<int>(static_cast<double>(gain.attack.load()) * rate), 1)};
+    const auto fall{std::max(static_cast<int>(static_cast<double>(gain.release.load()) * rate), 1)};
+    if (jump || start)
+    {
+      gain.current = target;
+      gain.last = target;
+      gain.remaining = 0;
+      gain.since = 0;
+    }
+    else if (!equal(target, gain.last))
+    {
+      gain.remaining = std::clamp(gain.since, shortest, longest);
+      gain.step = (target - gain.current) / static_cast<float>(gain.remaining);
+      gain.last = target;
+      gain.since = 0;
+    }
+    if (jump)
+    {
+      gain.envelope = goal;
+      gain.envelope_remaining = 0;
+    }
+    else if (start)
+    {
+      gain.envelope = 0.0f;
+      gain.envelope_remaining = rise;
+      gain.envelope_step = goal / static_cast<float>(rise);
+    }
+    else if (stopping != gain.halting)
+    {
+      gain.envelope_remaining = stopping ? fall : rise;
+      gain.envelope_step = (goal - gain.envelope) / static_cast<float>(gain.envelope_remaining);
+    }
+
+    const auto channels{std::max(spec->channels, 1)};
+    auto current{gain.current};
+    auto remaining{gain.remaining};
+    auto envelope{gain.envelope};
+    auto envelope_remaining{gain.envelope_remaining};
+    int channel{};
+    int frames{};
+    for (auto &sample : std::span{pcm, static_cast<std::size_t>(std::max(samples, 0))})
+    {
+      if (channel == 0)
+      {
+        ++frames;
+        if (remaining > 0) current = --remaining == 0 ? gain.last : current + gain.step;
+        if (envelope_remaining > 0) envelope = --envelope_remaining == 0 ? goal : envelope + gain.envelope_step;
+      }
+      sample *= current * envelope;
+      if (++channel == channels) channel = 0;
+    }
+    gain.current = current;
+    gain.remaining = remaining;
+    gain.envelope = envelope;
+    gain.envelope_remaining = envelope_remaining;
+    gain.since = std::min(gain.since + frames, longest);
+    gain.halting = stopping;
+    gain.silent.store(stopping && envelope_remaining == 0);
+  }
+
+  void active::fade_out(audio_voice &voice)
+  {
+    if (voice.stopping) return;
+    voice.gain.silent.store(false);
+    voice.gain.stopping.store(true);
+    voice.stopping = true;
+  }
+
+  bool active::retire_tracks()
+  {
+    bool fading{};
+    for (auto iterator{audio_cache.tracks.begin()}; iterator != audio_cache.tracks.end();)
+    {
+      auto &audio{iterator->second};
+      if (audio.seen)
+      {
+        ++iterator;
+        continue;
+      }
+      bool done{true};
+      for (auto &voice : audio.voices)
+        if (voice.started && MIX_TrackPlaying(voice.handle) && !(voice.stopping && voice.gain.silent.load()))
+        {
+          fade_out(voice);
+          done = false;
+        }
+      if (!done)
+      {
+        fading = true;
+        ++iterator;
+        continue;
+      }
+      for (const auto &voice : audio.voices)
+        if (voice.handle) MIX_DestroyTrack(voice.handle);
+      iterator = audio_cache.tracks.erase(iterator);
+    }
+    return fading;
   }
 
   MIX_Audio *active::require_audio(const unsigned char *data, const std::size_t size, const bool predecode)

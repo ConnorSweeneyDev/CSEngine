@@ -304,6 +304,8 @@ namespace cse::help::game
     {
       entry.volume.value = std::clamp(entry.volume.value, 0.0, 1.0);
       entry.speed.value = std::abs(entry.speed.value);
+      entry.attack = std::max(entry.attack, 0.0);
+      entry.release = std::max(entry.release, 0.0);
       const audio_cache::track_key key{static_cast<const void *>(&entries), entry_name.identifier()};
       auto &audio{audio_cache.tracks[key]};
       audio.seen = true;
@@ -325,13 +327,6 @@ namespace cse::help::game
                         voice.stopping = false;
                         voice.started = false;
                       }};
-      const auto fade_out{[](audio_voice &voice)
-                          {
-                            if (voice.stopping) return;
-                            voice.gain.silent.store(false);
-                            voice.gain.stopping.store(true);
-                            voice.stopping = true;
-                          }};
 
       const auto *data{entry.source.data.data()};
       const auto size{entry.source.data.size()};
@@ -365,6 +360,8 @@ namespace cse::help::game
       for (auto &voice : audio.voices)
       {
         voice.gain.target.store(static_cast<float>(bus * volume));
+        voice.gain.attack.store(static_cast<float>(entry.attack));
+        voice.gain.release.store(static_cast<float>(entry.release));
         if (cut) voice.gain.jump.store(true);
       }
       if (speed > 0.0 && !equal(speed, audio.speed))

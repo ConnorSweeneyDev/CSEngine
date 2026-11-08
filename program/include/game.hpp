@@ -311,6 +311,8 @@ namespace cse::help::game
     struct audio_gain
     {
       std::atomic<float> target{};
+      std::atomic<float> attack{};
+      std::atomic<float> release{};
       std::atomic<bool> start{};
       std::atomic<bool> jump{};
       std::atomic<bool> stopping{true};
@@ -320,6 +322,9 @@ namespace cse::help::game
       float step{};
       int remaining{};
       int since{};
+      float envelope{};
+      float envelope_step{};
+      int envelope_remaining{};
       bool halting{true};
     };
     struct audio_voice
@@ -400,10 +405,12 @@ namespace cse::help::game
     template <typename resource> void reconcile_audio(const help::mixer *previous_mixer, help::mixer *active_mixer,
                                                       const char *tag, const bool predecode, const double bus,
                                                       const bool instant);
-    static void SDLCALL fade(void *userdata, MIX_Track *track, const SDL_AudioSpec *spec, float *pcm,
-                             const int samples);
     static std::int64_t seconds_to_frames(const double seconds, const int rate);
     static double frames_to_seconds(const std::int64_t frames, const int rate);
+    static void SDLCALL fade(void *userdata, MIX_Track *track, const SDL_AudioSpec *spec, float *pcm,
+                             const int samples);
+    static void fade_out(audio_voice &voice);
+    bool retire_tracks();
     MIX_Audio *require_audio(const unsigned char *data, const std::size_t size, const bool predecode);
 
   public:
@@ -456,7 +463,8 @@ namespace cse::help::game
 
     static constexpr double shortest_ramp{0.001};
     static constexpr double longest_ramp{0.02};
-    static constexpr double edge_ramp{0.005};
+    static constexpr double drain_limit{0.1};
+    static constexpr double drain_margin{0.3};
     bool audio_ready{};
     MIX_Mixer *soundboard{};
     active::audio_cache audio_cache{};

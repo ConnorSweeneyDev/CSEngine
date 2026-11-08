@@ -35,7 +35,18 @@ namespace cse::help
   }
 
   template <trait::is_audio audio> mixer::entry<audio> &mixer::set(const name name, const audio &source)
-  { return select<audio>().insert_or_assign(name, entry<audio>{.source = source}).first->second; }
+  {
+    return select<audio>()
+      .insert_or_assign(name, entry<audio>{.source = source,
+                                           .elapsed = {},
+                                           .playing = false,
+                                           .speed = {1.0},
+                                           .loop = false,
+                                           .volume = {1.0},
+                                           .attack = 0.01,
+                                           .release = 0.01})
+      .first->second;
+  }
 
   template <trait::is_audio audio, typename callable> void mixer::iterate(callable &&function)
   {

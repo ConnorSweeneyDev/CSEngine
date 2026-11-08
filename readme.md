@@ -551,6 +551,8 @@ Each game, scene and entity has a `mixer`. Set tracks by name, then toggle/seek/
 auto &song = active.mixer.set("main", music::main);
 song.loop = true;
 song.speed.value = 0.80;
+song.attack = 0.5;  // fade in over half a second
+song.release = 2.0; // fade out over two seconds
 song.playing = true;
 
 active.mixer.set({{"sample1", sound::sample1}, {"sample2", sound::sample2}});
@@ -567,15 +569,21 @@ The game's `master`, `sound` and `music` temporals act as global buses for volum
 Volume changes are smoothed on the audio thread, sample by sample: each new volume is reached in a straight line spread
 across the time since the previous change (never longer than 20ms), so fades, slider drags and plain writes never click
 or buzz. This means the audio trails the simulation slightly: a volume is only fully reached within one rendered frame
-plus 20ms of the tick that set it. Starting, stopping (`playing = false`) and resuming a track ramp over 5ms - in from
-silence or out to it - which removes the pop of an abrupt edge without audibly softening the sound. Seeking (writing
-`elapsed.device`) a playing track crossfades: the new position starts straight away and fades in over 5ms while the old
-one fades out underneath it, so there is no gap. Plain `playing` and `elapsed.device` writes are therefore always
-click-free. All positions are in seconds of the source itself, whatever its sample rate or the device's. A stopped
-track resumes from exactly where it was stopped: `elapsed.device` holds the stop (or seek) position while the fade-out
-plays, and setting `playing = true` again before a stop's fade-out has finished simply ramps back up. When you want a
-deliberate hard cut instead, set `instant` on the track's `volume` (or on a bus) in the same tick as the change.
-Swapping a track's `source` (or removing the track) is always a hard cut.
+plus 20ms of the tick that set it.
+
+Every track also has an `attack` and a `release` (seconds, both `0.01` by default). Starting or resuming a track
+(`playing = true`) fades it in from silence over its `attack`, and stopping it (`playing = false`) fades it out over its
+`release`. Seeking (writing `elapsed.device`) a playing track crossfades: the new position starts straight away and
+fades in over the `attack` while the old one fades out underneath it over the `release`, so there is no gap. Removing a
+track (removing it from its mixer, or removing the entity that owns it) fades it out over its `release` too, and so does
+shutting the game down - the game waits for the longest release to finish before it closes. These fades multiply the
+track's volume rather than replacing it, so a volume change during a long attack or release does not cut it short. Plain
+`playing` and `elapsed.device` writes are therefore always click-free; a `0` attack or release is a hard edge. All
+positions are in seconds of the source itself, whatever its sample rate or the device's. A stopped track resumes from
+exactly where it was stopped: `elapsed.device` holds the stop (or seek) position while the release plays, and setting
+`playing = true` again before the release has finished ramps back up over the `attack`. When you want a deliberate hard
+cut instead, set `instant` on the track's `volume` (or on a bus) in the same tick as the change. Swapping a track's
+`source` is always a hard cut.
 
 A track's `elapsed` is a `cse::elapsed`, which carries one clock per owner - and which one you read matters:
 
